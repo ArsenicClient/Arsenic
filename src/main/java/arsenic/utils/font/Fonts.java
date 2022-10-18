@@ -1,0 +1,32 @@
+package arsenic.utils.font;
+
+import java.awt.*;
+import java.io.IOException;
+import java.util.Objects;
+
+public class Fonts {
+
+    public final TTFontRenderer FR =
+            new TTFontRenderer(getFontFromLocation("font2.ttf", 21), true, true);
+    public final TTFontRenderer MEDIUM_FR =
+            new TTFontRenderer(getFontFromLocation("font2.ttf", 20), true, true);
+    public final TTFontRenderer SMALL_FR =
+            new TTFontRenderer(getFontFromLocation("font2.ttf", 18), true, true);
+
+    public void initTextures() {
+        FR.generateTextures();
+        MEDIUM_FR.generateTextures();
+        SMALL_FR.generateTextures();
+    }
+
+    private Font getFontFromLocation(String fileName, int size) {
+        try {
+            return Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(Fonts.class.getResourceAsStream("/assets/arsenic/" + fileName)))
+                    .deriveFont(Font.PLAIN, size);
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+}

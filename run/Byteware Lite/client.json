@@ -1,1 +1,0 @@
-{"metadata":{"clientVersion":0.1},"modules":{"DemoMode":{"state":false,"keybind":0},"FlagDetector":{"state":true,"keybind":0},"ClickGUI":{"state":false,"keybind":54},"HUD":{"state":true,"keybind":0}},"values":{"DemoMode":{},"FlagDetector":{},"ClickGUI":{},"HUD":{"FPSStatisticLength":250}}}
