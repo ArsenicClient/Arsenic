@@ -1,57 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="74815a52-564c-43bf-88d8-81b981ad5322" name="Changes" comment="h">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.travis.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Arsenic.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Arsenic.ipr" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Arsenic.iws" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/settings.gradle" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/EventManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/bus/Listener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/bus/Priorities.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/bus/annotations/EventLink.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/bus/bus/Bus.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/bus/bus/impl/EventBus.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventKey.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventRender2D.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventTick.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventUpdate.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/types/CancellableEvent.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/types/Event.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/gui/click/ClickGuiScreen.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/MixinLoader.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinEntityPlayerSP.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinFontRenderer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinGuiIngame.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinGuiSpectator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinMinecraft.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/main/Arsenic.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/main/MinecraftAPI.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/Module.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/ModuleCategory.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/ModuleInfo.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/ModuleManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/impl/misc/TestModule.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/impl/visual/HUD.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/Property.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/BooleanProperty.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/font/Fonts.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/font/TTFontRenderer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/interfaces/IConfigurable.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/interfaces/IFontRenderer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/interfaces/ISerializable.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/assets/arsenic/font.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/assets/arsenic/font2.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/mcmod.info" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/mixins.arsenic.json" afterDir="false" />
-    </list>
+    <list default="true" id="74815a52-564c-43bf-88d8-81b981ad5322" name="Changes" comment="h" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -308,6 +258,14 @@
       <option name="presentableId" value="Default" />
       <updated>1663355747727</updated>
     </task>
+    <task id="LOCAL-00001" summary="h">
+      <created>1666115830476</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1666115830476</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
