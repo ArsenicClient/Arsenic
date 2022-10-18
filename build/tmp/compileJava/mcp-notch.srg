@@ -1,0 +1,4 @@
+FD: dev/kino/injection/mixin/MixinFontRenderer/FONT_HEIGHT dev/kino/injection/mixin/MixinFontRenderer/a
+FD: dev/kino/injection/mixin/MixinMinecraft/theMinecraft dev/kino/injection/mixin/MixinMinecraft/S
+MD: dev/kino/injection/mixin/MixinFontRenderer/getStringWidth (Ljava/lang/String;)I dev/kino/injection/mixin/MixinFontRenderer/a (Ljava/lang/String;)I
+MD: dev/kino/injection/mixin/MixinFontRenderer/drawString (Ljava/lang/String;FFIZ)I dev/kino/injection/mixin/MixinFontRenderer/a (Ljava/lang/String;FFIZ)I

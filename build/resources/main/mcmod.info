@@ -1,0 +1,19 @@
+[
+    {
+        "modid": "kino",
+        "name": "Kino Client",
+        "description": "cheaters get banned. im not banned so im not cheater.
+
+Kino, the MCP client experience, but worse.",
+        "version": "v69420",
+        "url": "https://www.youtube.com/c/sigmaclientwastaken",
+        "updateUrl": "",
+        "authorList": [
+            "sigmaclientwastaken"
+        ],
+        "credits": "forge devs for suicidal thoughts",
+        "logoFile": "",
+        "screenshots": [],
+        "dependencies": []
+    }
+]

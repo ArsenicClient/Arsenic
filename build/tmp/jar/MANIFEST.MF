@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+TweakOrder: 0
+MixinConfigs: mixins.kino.json
+ModSide: CLIENT
+FMLCorePluginContainsFMLMod: true
+tweakClass: org.spongepowered.asm.launch.MixinTweaker
+ForceLoadAsMod: true
+FMLCorePlugin: dev.kino.injection.MixinLoader
+

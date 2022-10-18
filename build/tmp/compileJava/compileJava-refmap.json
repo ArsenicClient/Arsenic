@@ -1,0 +1,52 @@
+{
+  "mappings": {
+    "dev/kino/injection/mixin/MixinGuiIngame": {
+      "renderTooltip": "Lnet/minecraft/client/gui/GuiIngame;func_180479_a(Lnet/minecraft/client/gui/ScaledResolution;F)V"
+    },
+    "dev/kino/injection/mixin/MixinMinecraft": {
+      "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V": "Lnet/minecraft/client/settings/KeyBinding;func_74510_a(IZ)V",
+      "runTick": "Lnet/minecraft/client/Minecraft;func_71407_l()V"
+    },
+    "dev/kino/injection/mixin/MixinGuiSpectator": {
+      "renderTooltip": "Lnet/minecraft/client/gui/GuiSpectator;func_175264_a(Lnet/minecraft/client/gui/ScaledResolution;F)V"
+    },
+    "dev/kino/injection/mixin/MixinEntityPlayerSP": {
+      "onUpdateWalkingPlayer": "Lnet/minecraft/client/entity/EntityPlayerSP;func_175161_p()V",
+      "onUpdate": "Lnet/minecraft/client/entity/EntityPlayerSP;func_70071_h_()V"
+    }
+  },
+  "data": {
+    "notch": {
+      "dev/kino/injection/mixin/MixinGuiIngame": {
+        "renderTooltip": "Lavo;a(Lavr;F)V"
+      },
+      "dev/kino/injection/mixin/MixinMinecraft": {
+        "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V": "Lavb;a(IZ)V",
+        "runTick": "Lave;s()V"
+      },
+      "dev/kino/injection/mixin/MixinGuiSpectator": {
+        "renderTooltip": "Lawm;a(Lavr;F)V"
+      },
+      "dev/kino/injection/mixin/MixinEntityPlayerSP": {
+        "onUpdateWalkingPlayer": "Lbew;p()V",
+        "onUpdate": "Lbew;t_()V"
+      }
+    },
+    "searge": {
+      "dev/kino/injection/mixin/MixinGuiIngame": {
+        "renderTooltip": "Lnet/minecraft/client/gui/GuiIngame;func_180479_a(Lnet/minecraft/client/gui/ScaledResolution;F)V"
+      },
+      "dev/kino/injection/mixin/MixinMinecraft": {
+        "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V": "Lnet/minecraft/client/settings/KeyBinding;func_74510_a(IZ)V",
+        "runTick": "Lnet/minecraft/client/Minecraft;func_71407_l()V"
+      },
+      "dev/kino/injection/mixin/MixinGuiSpectator": {
+        "renderTooltip": "Lnet/minecraft/client/gui/GuiSpectator;func_175264_a(Lnet/minecraft/client/gui/ScaledResolution;F)V"
+      },
+      "dev/kino/injection/mixin/MixinEntityPlayerSP": {
+        "onUpdateWalkingPlayer": "Lnet/minecraft/client/entity/EntityPlayerSP;func_175161_p()V",
+        "onUpdate": "Lnet/minecraft/client/entity/EntityPlayerSP;func_70071_h_()V"
+      }
+    }
+  }
+}

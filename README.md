@@ -1,2 +1,0 @@
-# Arsenic
-The client.
