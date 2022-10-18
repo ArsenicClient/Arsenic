@@ -85,11 +85,9 @@ public class Module implements IConfigurable {
             if(enabled) {
                 Arsenic.getInstance().getEventManager().subscribe(this);
                 this.registered = true;
-            } else {
-                if(this.registered) {
-                    this.registered = false;
-                    Arsenic.getInstance().getEventManager().unsubscribe(this);
-                }
+            } else if(this.registered) {
+                this.registered = false;
+                Arsenic.getInstance().getEventManager().unsubscribe(this);
             }
         }
     }
