@@ -19,3 +19,12 @@ gradle-app.setting
 
 out/
 run/
+
+#ignore launch configs
+Arsenic_Server.launch
+Arsenic_Client.launch
+
+#eclipse stuff
+/.settings/
+.project
+.classpath

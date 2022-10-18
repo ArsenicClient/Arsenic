@@ -1,9 +1,10 @@
 package arsenic.module.impl.misc;
 
+import org.lwjgl.input.Keyboard;
+
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "Test Module", category = ModuleCategory.MISC, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
