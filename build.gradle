@@ -74,7 +74,7 @@ dependencies {
         exclude module: "launchwrapper"
     }
 
-    implementation 'org.jetbrains:annotations:15.0'
+    implementation 'org.jetbrains:annotations:23.0'
 
 }
 
