@@ -1,12 +1,13 @@
 package arsenic.module;
 
 import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.misc.TestModule;
 import arsenic.module.impl.movement.Sprint;
+import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.HUD;
-import arsenic.event.bus.annotations.EventLink;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,7 +27,8 @@ public class ModuleManager {
         add(
                 new TestModule(),
                 new HUD(),
-                new Sprint()
+                new Sprint(),
+                new ClickGui()
         );
 
         Arsenic.getInstance().getEventManager().subscribe(this);
