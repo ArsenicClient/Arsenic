@@ -2,7 +2,6 @@ package arsenic.module;
 
 import arsenic.main.Arsenic;
 import arsenic.module.property.Property;
-import arsenic.utils.interfaces.IConfigurable;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import net.minecraft.client.Minecraft;
@@ -11,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class Module implements IConfigurable, IContainable, IContainer {
+public class Module implements IContainable, IContainer {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();

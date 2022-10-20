@@ -50,6 +50,11 @@ public class Arsenic implements IContainer {
         return Arrays.asList(customFontProperty, blurIntensityProperty);
     }
 
+    @Override
+    public String getName() {
+        return clientName;
+    }
+
     @Mod.Instance
     private static Arsenic instance;
 
