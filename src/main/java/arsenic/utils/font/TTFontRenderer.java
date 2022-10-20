@@ -33,20 +33,18 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     @Override
-    public int drawString(String text, float x, float y, int color) {
+    public void drawString(String text, float x, float y, int color) {
         renderString(text, x, y, color, false);
-        return 0;
     }
 
     @Override
-    public int drawStringWithShadow(String text, float x, float y, int color) {
+    public void drawStringWithShadow(String text, float x, float y, int color) {
         double s = 0.5;
 
         glTranslated(s, s, 0);
         renderString(text, x, y, color, true);
         glTranslated(-s, -s, 0);
         renderString(text, x, y, color, false);
-        return 0;
     }
 
     @Override

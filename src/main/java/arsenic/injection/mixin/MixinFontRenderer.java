@@ -15,13 +15,13 @@ public abstract class MixinFontRenderer implements IFontRenderer {
     @Shadow public abstract int drawString(String p_drawString_1_, float p_drawString_2_, float p_drawString_3_, int p_drawString_4_, boolean p_drawString_5_);
 
     @Override
-    public int drawString(String text, float x, float y, int color) {
-        return this.drawString(text, x, y, color, false);
+    public void drawString(String text, float x, float y, int color) {
+        this.drawString(text, x, y, color, false);
     }
 
     @Override
-    public int drawStringWithShadow(String text, float x, float y, int color) {
-        return this.drawString(text, x, y, color, true);
+    public void drawStringWithShadow(String text, float x, float y, int color) {
+        this.drawString(text, x, y, color, true);
     }
 
     @Override

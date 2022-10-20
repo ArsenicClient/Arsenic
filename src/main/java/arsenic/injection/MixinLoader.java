@@ -36,13 +36,12 @@ public class MixinLoader implements IFMLLoadingPlugin {
     }
 
     @Override
-    public void injectData(Map<String, Object> data) {
-
-    }
+    public void injectData(Map<String, Object> data) {}
 
     @Nullable
     @Override
     public String getAccessTransformerClass() {
         return null;
     }
+
 }
