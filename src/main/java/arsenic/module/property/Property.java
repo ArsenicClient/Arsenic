@@ -17,21 +17,21 @@ public abstract class Property<T> implements ISerializable {
     protected abstract void loadInfoFromJson(JsonObject obj);
 
     @Override
-    public void loadFromJson(JsonObject obj) {
+    public final void loadFromJson(JsonObject obj) {
         loadInfoFromJson(obj);
     }
 
     @Override
-    public JsonObject saveToJson() {
+    public final JsonObject saveToJson() {
         return saveInfoToJson(new JsonObject());
     }
 
     @Override
-    public String getJsonKey() {
+    public final String getJsonKey() {
         return name;
     }
 
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
