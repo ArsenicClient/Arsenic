@@ -38,7 +38,6 @@ apply plugin: "com.github.johnrengelman.shadow"
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
 
     maven {
         name = 'spongepowered-repo'
@@ -71,10 +70,17 @@ configurations {
 dependencies {
 
     embed('org.spongepowered:mixin:0.6.4-SNAPSHOT') {
-        exclude module: "launchwrapper"
+        exclude module: 'gson'
+        exclude module: 'guava'
+        exclude module: 'jarjar'
+        exclude module: 'commons-codec'
+        exclude module: 'commons-io'
+        exclude module: 'launchwrapper'
+        exclude module: 'asm-commons'
+        exclude module: 'slf4j-api'
     }
 
-    implementation 'org.jetbrains:annotations:23.0'
+    implementation 'org.jetbrains:annotations:23.0.0'
 
 }
 
