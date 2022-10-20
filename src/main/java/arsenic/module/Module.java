@@ -1,10 +1,17 @@
 package arsenic.module;
 
 import arsenic.main.Arsenic;
+import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IConfigurable;
+import arsenic.utils.interfaces.IContainable;
+import arsenic.utils.interfaces.IContainer;
 import net.minecraft.client.Minecraft;
 
-public class Module implements IConfigurable {
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+public class Module implements IConfigurable, IContainable, IContainer {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
@@ -16,6 +23,8 @@ public class Module implements IConfigurable {
     private int keybind;
 
     private boolean registered;
+
+    private final List<Property<?>> properties = new ArrayList<>();
 
     public Module() {
         if(!this.getClass().isAnnotationPresent(ModuleInfo.class))
@@ -92,6 +101,11 @@ public class Module implements IConfigurable {
         }
     }
 
+    @Override
+    public Collection<IContainable> getContents() {
+        return new ArrayList<>(properties);
+    }
+
     public final boolean isHidden() {
         return hidden;
     }
@@ -114,6 +128,10 @@ public class Module implements IConfigurable {
 
     public final void setKeybind(int keybind) {
         this.keybind = keybind;
+    }
+
+    public final List<Property<?>> getProperties() {
+        return properties;
     }
 
 }

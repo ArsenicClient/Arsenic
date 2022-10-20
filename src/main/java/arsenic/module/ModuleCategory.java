@@ -1,6 +1,13 @@
 package arsenic.module;
 
-public enum ModuleCategory {
+import arsenic.main.Arsenic;
+import arsenic.utils.interfaces.IContainable;
+import arsenic.utils.interfaces.IContainer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+public enum ModuleCategory implements IContainer {
     COMBAT("Combat"),
     MOVEMENT("Movement"),
     VISUAL("Visual"),
@@ -16,6 +23,11 @@ public enum ModuleCategory {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public Collection<IContainable> getContents() {
+        return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModules(this));
     }
 
 }

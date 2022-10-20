@@ -1,9 +1,10 @@
 package arsenic.module.property;
 
+import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.ISerializable;
 import com.google.gson.JsonObject;
 
-public abstract class Property<T> implements ISerializable {
+public abstract class Property<T> implements ISerializable, IContainable {
 
     private final String name;
     protected T value;

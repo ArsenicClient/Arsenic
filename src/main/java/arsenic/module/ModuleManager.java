@@ -22,7 +22,7 @@ public class ModuleManager {
         this.modules = new HashMap<>();
     }
 
-    public int initialize() {
+    public final int initialize() {
 
         add(
                 new TestModule(),
@@ -36,25 +36,29 @@ public class ModuleManager {
         return modules.size();
     }
 
-    private void add(Module... modules) {
+    private final void add(Module... modules) {
         for(Module module : modules) {
             this.modules.put(module.getClass(), module);
         }
     }
 
-    public Map<Class<? extends Module>, Module> getModulesMap() {
+    public final Map<Class<? extends Module>, Module> getModulesMap() {
         return modules;
     }
 
-    public Collection<Module> getModules() {
+    public final Collection<Module> getModules() {
         return modules.values();
     }
 
-    public Collection<Module> getEnabledModules() {
+    public final Collection<Module> getEnabledModules() {
         return modules.values().stream().filter(Module::isEnabled).collect(Collectors.toList());
     }
 
-    public <T extends Module> T getModule(Class<T> moduleClass) {
+    public final Collection<Module> getModules(ModuleCategory category) {
+        return modules.values().stream().filter(m -> m.getCategory() == category).collect(Collectors.toList());
+    }
+
+    public final <T extends Module> T getModule(Class<T> moduleClass) {
         return (T) modules.get(moduleClass);
     }
 
