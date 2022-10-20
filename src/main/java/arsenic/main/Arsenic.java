@@ -1,8 +1,8 @@
 package arsenic.main;
 
 import arsenic.event.EventManager;
-import arsenic.utils.font.Fonts;
 import arsenic.module.ModuleManager;
+import arsenic.utils.font.Fonts;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 public class Arsenic {
 
     private final String clientName =   "Arsenic";
-    private final long clientVersion =  221018L;
+    private final long clientVersion =  221020L;
 
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
