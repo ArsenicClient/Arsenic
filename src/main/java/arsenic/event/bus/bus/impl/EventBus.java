@@ -1,8 +1,9 @@
 package arsenic.event.bus.bus.impl;
 
 import arsenic.event.bus.Listener;
-import arsenic.event.bus.bus.Bus;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.bus.bus.Bus;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -23,7 +24,7 @@ public final class EventBus<Event> implements Bus<Event> {
     }
 
     @Override
-    public void subscribe(final Object subscriber) {
+    public void subscribe(final @NotNull Object subscriber) {
         for (final Field field : subscriber.getClass().getDeclaredFields()) {
             final EventLink annotation = field.getAnnotation(EventLink.class);
             if (annotation != null) {
@@ -84,7 +85,7 @@ public final class EventBus<Event> implements Bus<Event> {
     }
 
     @Override
-    public void post(final Event event) {
+    public void post(final @NotNull Event event) {
         final List<Listener<Event>> listeners = listenerCache.getOrDefault(event.getClass(), Collections.emptyList());
 
         int i = 0;

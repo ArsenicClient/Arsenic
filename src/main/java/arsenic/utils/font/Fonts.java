@@ -1,5 +1,7 @@
 package arsenic.utils.font;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.awt.*;
 import java.io.IOException;
 import java.util.Objects;
@@ -19,7 +21,7 @@ public class Fonts {
         SMALL_FR.generateTextures();
     }
 
-    private Font getFontFromLocation(String fileName, int size) {
+    private @Nullable Font getFontFromLocation(String fileName, int size) {
         try {
             return Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(Fonts.class.getResourceAsStream("/assets/arsenic/" + fileName)))
                     .deriveFont(Font.PLAIN, size);

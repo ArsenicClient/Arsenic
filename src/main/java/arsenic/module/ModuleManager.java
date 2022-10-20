@@ -8,6 +8,8 @@ import arsenic.module.impl.misc.TestModule;
 import arsenic.module.impl.movement.Sprint;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.HUD;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,7 +38,7 @@ public class ModuleManager {
         return modules.size();
     }
 
-    private final void add(Module... modules) {
+    private void add(Module @NotNull ... modules) {
         for(Module module : modules) {
             this.modules.put(module.getClass(), module);
         }
@@ -46,7 +48,8 @@ public class ModuleManager {
         return modules;
     }
 
-    public final Collection<Module> getModules() {
+    @Contract(pure = true)
+    public final @NotNull Collection<Module> getModules() {
         return modules.values();
     }
 

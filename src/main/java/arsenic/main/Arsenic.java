@@ -12,6 +12,8 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,8 +47,9 @@ public class Arsenic implements IContainer {
 
     }
 
+    @Contract(pure = true)
     @Override
-    public final Collection<IContainable> getContents() {
+    public final @NotNull Collection<IContainable> getContents() {
         return Arrays.asList(customFontProperty, blurIntensityProperty);
     }
 
@@ -74,7 +77,8 @@ public class Arsenic implements IContainer {
         return clientVersion;
     }
 
-    public final String getClientVersionString() {
+    @Contract(pure = true)
+    public final @NotNull String getClientVersionString() {
         return String.valueOf(clientVersion);
     }
 

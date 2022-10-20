@@ -4,6 +4,7 @@ import arsenic.gui.click.Component;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.IExpandable;
 import arsenic.utils.render.RenderInfo;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
@@ -15,7 +16,7 @@ public class ContainerComponent extends Component implements IExpandable<Compone
 
     private boolean expanded;
 
-    public ContainerComponent(IContainer self, Collection<Component> subcomponents) {
+    public ContainerComponent(@NotNull IContainer self, Collection<Component> subcomponents) {
         this.self = self;
         this.subcomponents = subcomponents;
         this.name = self.getName();

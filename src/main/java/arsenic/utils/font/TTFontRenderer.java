@@ -1,6 +1,7 @@
 package arsenic.utils.font;
 
 import arsenic.utils.interfaces.IFontRenderer;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -72,7 +73,7 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     @Override
-    public float getHeight(String text) {
+    public float getHeight(@NotNull String text) {
         float height = 0;
 
         CharacterData[] characterData = charData;
@@ -134,7 +135,7 @@ public class TTFontRenderer implements IFontRenderer {
                 characterImage.getHeight(), textureId);
     }
 
-    private void createTexture(int textureId, BufferedImage image) {
+    private void createTexture(int textureId, @NotNull BufferedImage image) {
         int[] pixels = new int[image.getWidth() * image.getHeight()];
 
         image.getRGB(0, 0, image.getWidth(), image.getHeight(),
@@ -260,7 +261,7 @@ public class TTFontRenderer implements IFontRenderer {
         return c > 10 && c < 256 && c != 127;
     }
 
-    public void drawChar(CharacterData characterData, float x, float y) {
+    public void drawChar(@NotNull CharacterData characterData, float x, float y) {
         characterData.bind();
         glBegin(GL_QUADS);
         {

@@ -3,6 +3,7 @@ package arsenic.module.property.impl;
 import arsenic.module.property.Property;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import org.jetbrains.annotations.NotNull;
 
 public class DoubleProperty extends Property<Double> {
 
@@ -22,17 +23,17 @@ public class DoubleProperty extends Property<Double> {
     }
 
     @Override
-    protected JsonObject saveInfoToJson(JsonObject obj) {
+    protected JsonObject saveInfoToJson(@NotNull JsonObject obj) {
         obj.add("value", new JsonPrimitive(value));
         return obj;
     }
 
     @Override
-    protected void loadInfoFromJson(JsonObject obj) {
+    protected void loadInfoFromJson(@NotNull JsonObject obj) {
         value = obj.get("value").getAsDouble();
     }
 
-    public final String getValueString() {
+    public final @NotNull String getValueString() {
         return (value%1==0)? String.valueOf(value.intValue()) : String.valueOf(value.doubleValue()) + displayMode;
     }
 

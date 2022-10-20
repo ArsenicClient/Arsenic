@@ -3,6 +3,8 @@ package arsenic.module;
 import arsenic.main.Arsenic;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,8 +27,9 @@ public enum ModuleCategory implements IContainer {
         return name;
     }
 
+    @Contract(" -> new")
     @Override
-    public Collection<IContainable> getContents() {
+    public @NotNull Collection<IContainable> getContents() {
         return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModules(this));
     }
 

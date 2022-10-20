@@ -5,6 +5,7 @@ import arsenic.module.Module;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.IExpandable;
 import arsenic.utils.render.RenderInfo;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
@@ -16,7 +17,7 @@ public class ModuleComponent extends Component implements IExpandable<Component>
 
     private boolean expanded;
 
-    public ModuleComponent(Module self, Collection<Component> subcomponents) {
+    public ModuleComponent(@NotNull Module self, Collection<Component> subcomponents) {
         this.self = self;
         this.subcomponents = subcomponents;
         this.name = self.getName();
