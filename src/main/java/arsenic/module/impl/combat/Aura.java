@@ -4,7 +4,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 
-@ModuleInfo(name = "Killaura", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Aura", category = ModuleCategory.COMBAT)
 public class Aura extends Module{
 
 }
