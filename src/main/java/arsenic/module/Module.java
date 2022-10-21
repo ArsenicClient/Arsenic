@@ -39,7 +39,7 @@ public class Module implements IContainable, IContainer {
         this.hidden = info.hidden();
         this.keybind = info.keybind();
 
-        if(this.enabled) {
+        if(info.enabled()) {
             setEnabledSilently(true);
         }
     }

@@ -1,15 +1,20 @@
 package arsenic.utils.render;
 
+import arsenic.utils.interfaces.IFontRenderer;
+
 import java.awt.*;
 
 public class RenderInfo {
 
     private int index = 0;
     private final int mouseX, mouseY;
+    private final IFontRenderer fr;
+    public final float[] STACK = new float[16];
 
-    public RenderInfo(int mouseX, int mouseY) {
+    public RenderInfo(int mouseX, int mouseY, IFontRenderer fr) {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
+        this.fr = fr;
     }
 
     public final int getIndex() {
@@ -41,6 +46,10 @@ public class RenderInfo {
             color = color.darker();
         }
         return color;
+    }
+
+    public final IFontRenderer getFr() {
+        return fr;
     }
 
 }
