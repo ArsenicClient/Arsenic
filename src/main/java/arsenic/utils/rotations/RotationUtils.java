@@ -46,5 +46,9 @@ public class RotationUtils {
         return getPlayerRotationsToVec(v);
     }
 
+    public static float getYawDifference(float yaw1, float yaw2) {
+        return (((((yaw1 - yaw2) % 360.0F) + 540.0F) % 360.0F) - 180.0F);
+    }
+
 
 }
