@@ -1,6 +1,8 @@
 package arsenic.event.impl;
 
-public class EventMove {
+import arsenic.event.types.Event;
+
+public class EventMove implements Event {
 
     private float strafe, forward, friction, yaw;
 

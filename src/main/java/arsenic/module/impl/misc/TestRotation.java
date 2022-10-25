@@ -13,8 +13,8 @@ import arsenic.module.ModuleInfo;
 public class TestRotation extends Module {
 
     @EventLink
-    public final Listener<EventRotate> onKeyPress = event -> {
-      event.setYaw(event.getYaw() + 50);
+    public final Listener<EventRotate> onRotate = event -> {
+      event.setYaw(event.getYaw() + 1);
     };
 
     @Override

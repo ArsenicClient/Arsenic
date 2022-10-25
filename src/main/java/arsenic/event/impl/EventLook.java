@@ -1,6 +1,8 @@
 package arsenic.event.impl;
 
-public class EventLook {
+import arsenic.event.types.Event;
+
+public class EventLook implements Event {
 
     private float pitch, yaw;
 

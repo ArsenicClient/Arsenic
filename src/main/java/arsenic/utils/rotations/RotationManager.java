@@ -7,8 +7,8 @@ import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventRotate;
 import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
+import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 
 public class RotationManager {
 
@@ -17,12 +17,17 @@ public class RotationManager {
     private float yaw, prevYaw, pitch, prevPitch;
     private float maxRotationSpeed = 10; //prob changed in a module somewhere or sent in the event + this is per tick
     private boolean locked; //if the rotations are the same as player rotations
-    private EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
+    private Minecraft mc = Minecraft.getMinecraft();
+
+    public RotationManager() {
+        Arsenic.getArsenic().getEventManager().subscribe(this);
+    }
 
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        EventRotate e = new EventRotate(player.rotationYaw, player.rotationPitch);
+        EventRotate e = new EventRotate(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+        Arsenic.getArsenic().getEventManager().getBus().post(e);
         prevYaw = yaw;
         prevPitch = pitch;
         if(locked && !e.hasBeenTouched())
@@ -39,20 +44,25 @@ public class RotationManager {
         //checking that the yaws & pitches are valid
         yaw = ((yaw + 180) % 360) - 180;
         pitch = ((pitch + 90) % 180) - 90;
+        locked = false;
 
         if(!e.hasBeenTouched()) {
-            if(Math.min(Math.abs(yaw), maxRotationSpeed) == yaw)
+            if(Math.min(Math.abs(yawd), maxRotationSpeed) == yawd)
                 locked = true;
         }
+
+       // mc.thePlayer.sendChatMessage(yaw + "  " + pitch + "  locked:" + locked);
     };
 
 
+
     @EventLink
-    public final Listener<EventUpdate> onUpdate = event -> {
+    public final Listener<EventUpdate.Pre> onUpdate = event -> {
         if(locked) return;
         event.setYaw(yaw);
         event.setPitch(pitch);
     };
+
 
     @EventLink
     public final Listener<EventMove> onMove = event -> {
@@ -60,7 +70,7 @@ public class RotationManager {
         event.setYaw(yaw);
     };
 
-    @EventLink
+   @EventLink
     public final Listener<EventLook> onLook = event -> {
         if(locked) return;
         event.setYaw(yaw);

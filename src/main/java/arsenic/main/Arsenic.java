@@ -1,5 +1,13 @@
 package arsenic.main;
 
+import java.util.Arrays;
+import java.util.Collection;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 import arsenic.event.EventManager;
 import arsenic.module.ModuleManager;
 import arsenic.module.property.Property;
@@ -8,15 +16,9 @@ import arsenic.module.property.impl.DoubleProperty;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.rotations.RotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
 public class Arsenic implements IContainer {
@@ -43,7 +45,11 @@ public class Arsenic implements IContainer {
         fonts.initTextures();
         logger.info("Loaded fonts.");
 
+        new RotationManager();
+        logger.info("Loaded RotationManager.");
+
         logger.info("Loaded {}.", clientName);
+
 
     }
 

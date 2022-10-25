@@ -1,20 +1,22 @@
 package arsenic.module;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.misc.TestModule;
+import arsenic.module.impl.misc.TestRotation;
 import arsenic.module.impl.movement.Sprint;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.HUD;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ModuleManager {
 
@@ -30,7 +32,8 @@ public class ModuleManager {
                 new TestModule(),
                 new HUD(),
                 new Sprint(),
-                new ClickGui()
+                new ClickGui(),
+                new TestRotation()
         );
 
         Arsenic.getInstance().getEventManager().subscribe(this);

@@ -1,7 +1,7 @@
 package arsenic.event;
 
-import arsenic.event.types.Event;
 import arsenic.event.bus.bus.impl.EventBus;
+import arsenic.event.types.Event;
 
 public class EventManager {
 
