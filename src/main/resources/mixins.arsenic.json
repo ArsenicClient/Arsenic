@@ -6,6 +6,7 @@
     "client": [
         "accessor.IMixinKeyBinding",
 		"mixin.MixinEntity",
+		"mixin.MixinEntityLivingBase",
         "mixin.MixinEntityPlayerSP",
         "mixin.MixinFontRenderer",
         "mixin.MixinGuiIngame",

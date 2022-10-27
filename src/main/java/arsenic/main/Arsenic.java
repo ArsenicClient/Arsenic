@@ -50,7 +50,6 @@ public class Arsenic implements IContainer {
 
         logger.info("Loaded {}.", clientName);
 
-
     }
 
     @Contract(pure = true)

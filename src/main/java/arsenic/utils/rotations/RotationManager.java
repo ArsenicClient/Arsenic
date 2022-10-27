@@ -9,14 +9,15 @@ import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
 import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.ChatComponentText;
 
 public class RotationManager {
 
     //no look :eyes:
 
     private float yaw, prevYaw, pitch, prevPitch;
-    private float maxRotationSpeed = 10; //prob changed in a module somewhere or sent in the event + this is per tick
-    private boolean locked; //if the rotations are the same as player rotations
+    private float maxRotationSpeed = 5f; //prob changed in a module somewhere or sent in the event + this is per tick
+    private boolean locked = true; //if the rotations are the same as player rotations
     private Minecraft mc = Minecraft.getMinecraft();
 
     public RotationManager() {
@@ -32,26 +33,29 @@ public class RotationManager {
         prevPitch = pitch;
         if(locked && !e.hasBeenTouched())
             return;
-
-        final float yawd = RotationUtils.getYawDifference(yaw, e.getYaw());
-        final int yawm = yawd > 0 ? 1 : -1; //surely there is a better way to do this
-        yaw += Math.min(yawd, maxRotationSpeed) * yawm;
-
-        final float pitchd = RotationUtils.getYawDifference(pitch, e.getPitch());
-        final int pitchm = pitchd > 0 ? 1 : -1; //surely there is a better way to do this
-        yaw += Math.min(pitchd, maxRotationSpeed) * pitchm;
-
-        //checking that the yaws & pitches are valid
-        yaw = ((yaw + 180) % 360) - 180;
-        pitch = ((pitch + 90) % 180) - 90;
-        locked = false;
-
-        if(!e.hasBeenTouched()) {
-            if(Math.min(Math.abs(yawd), maxRotationSpeed) == yawd)
-                locked = true;
+        if(locked && e.hasBeenTouched()) {
+            yaw = mc.thePlayer.rotationYaw;
+            prevYaw = mc.thePlayer.prevRotationYaw;
+            pitch = mc.thePlayer.rotationPitch;
+            prevPitch = mc.thePlayer.prevRotationPitch;
         }
 
-       // mc.thePlayer.sendChatMessage(yaw + "  " + pitch + "  locked:" + locked);
+
+        final float yawd = -RotationUtils.getYawDifference(yaw, e.getYaw());
+        final int yawm = yawd > 0 ? 1 : -1; //surely there is a better way to do this
+        yaw += Math.min(Math.abs(yawd), maxRotationSpeed) * yawm;
+
+        final float pitchd = -RotationUtils.getPitchDifference(pitch, e.getPitch());
+        final int pitchm = pitchd > 0 ? 1 : -1; //surely there is a better way to do this
+        pitch += Math.min(Math.abs(pitchd), maxRotationSpeed) * pitchm;
+
+
+
+        if(!e.hasBeenTouched()) {
+            locked = (Math.min(Math.abs(yawd), maxRotationSpeed * 2) == yawd && Math.min(Math.abs(pitchd), maxRotationSpeed * 2) == pitchd);
+        }
+
+        mc.thePlayer.addChatMessage(new ChatComponentText((int) e.getPitch() + "   " + (int) pitch + "   "  +(int) pitchd + "    "  + pitchm));
     };
 
 
@@ -73,8 +77,12 @@ public class RotationManager {
    @EventLink
     public final Listener<EventLook> onLook = event -> {
         if(locked) return;
+        //mc.thePlayer.sendChatMessage("yaw: " + yaw);
+        //mc.thePlayer.sendChatMessage("prev yaw" + prevYaw);
         event.setYaw(yaw);
+        event.setPrevYaw(prevYaw);
         event.setPitch(pitch);
+        event.setPrevPitch(prevPitch);
     };
 
 }
