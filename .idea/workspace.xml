@@ -6,10 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="30c60f9e-6600-461b-8090-39254099d41c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventLook.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/event/impl/EventLook.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/injection/mixin/MixinEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/main/Arsenic.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/main/Arsenic.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/utils/rotations/RotationManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/rotations/RotationManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

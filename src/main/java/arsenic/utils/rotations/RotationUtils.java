@@ -47,7 +47,9 @@ public class RotationUtils {
     }
 
     public static float getYawDifference(float yaw1, float yaw2) {
-        return (((((yaw1 - yaw2) % 360.0F) + 540.0F) % 360.0F) - 180.0F);
+        float yaw1Normalized = (yaw1 < 0) ? yaw1 + 360 : yaw1;
+        float yaw2Normalized = (yaw2 < 0) ? yaw2 + 360 : yaw2;
+        return yaw2Normalized - yaw1Normalized;
     }
 
     public static float getPitchDifference(float pitch1, float pitch2) {
