@@ -4,12 +4,19 @@ import arsenic.event.types.Event;
 
 public class EventRotate implements Event{
 
+    private float initYaw, initPitch;
     private float yaw, pitch, speed;
-    private boolean touched;
+    private boolean onMove, onLook;
 
     public EventRotate(float yaw, float pitch) {
+        this.initYaw = yaw;
+        this.initPitch = pitch;
         this.yaw = yaw;
         this.pitch = pitch;
+    }
+
+    public boolean hasBeenModified() {
+        return initYaw != yaw || initPitch != pitch;
     }
 
     public float getYaw() {
@@ -17,7 +24,6 @@ public class EventRotate implements Event{
     }
 
     public void setYaw(float yaw) {
-        touched = true;
         this.yaw = yaw;
     }
 
@@ -26,11 +32,30 @@ public class EventRotate implements Event{
     }
 
     public void setPitch(float pitch) {
-        touched = true;
         this.pitch = pitch;
     }
 
-    public boolean hasBeenTouched() {
-        return touched;
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
+    public boolean isOnMove() {
+        return onMove;
+    }
+
+    public void setOnMove(boolean onMove) {
+        this.onMove = onMove;
+    }
+
+    public boolean isOnLook() {
+        return onLook;
+    }
+
+    public void setOnLook(boolean onLook) {
+        this.onLook = onLook;
     }
 }

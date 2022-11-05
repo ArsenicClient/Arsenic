@@ -11,7 +11,8 @@
         "mixin.MixinFontRenderer",
         "mixin.MixinGuiIngame",
         "mixin.MixinGuiSpectator",
-        "mixin.MixinMinecraft"
+        "mixin.MixinMinecraft",
+        "mixin.MixinNetworkManager"
     ],
     "mixins": [
   ]
