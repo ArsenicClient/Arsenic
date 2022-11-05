@@ -16,7 +16,7 @@ public class RotationManager {
     //no look :eyes:
 
     private float yaw, prevYaw, pitch, prevPitch;
-    private float maxRotationSpeed = 5f; //prob changed in a module somewhere or sent in the event + this is per tick
+    private float maxRotationSpeed = 0.1f; //prob changed in a module somewhere or sent in the event + this is per tick
     private boolean locked = true; //if the rotations are the same as player rotations
     private Minecraft mc = Minecraft.getMinecraft();
 
@@ -84,5 +84,4 @@ public class RotationManager {
         event.setPitch(pitch);
         event.setPrevPitch(prevPitch);
     };
-
 }

@@ -4,7 +4,7 @@ import arsenic.event.types.Event;
 
 public class EventRotate implements Event{
 
-    private float yaw, pitch;
+    private float yaw, pitch, speed;
     private boolean touched;
 
     public EventRotate(float yaw, float pitch) {

@@ -14,7 +14,7 @@ public class TestRotation extends Module {
 
     @EventLink
     public final Listener<EventRotate> onRotate = event -> {
-      event.setYaw(event.getYaw() + 1);
+      event.setYaw(90);
     };
 
     @Override
