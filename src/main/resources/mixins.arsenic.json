@@ -6,11 +6,14 @@
     "client": [
         "accessor.IMixinKeyBinding",
         "mixin.MixinEntity",
+		"mixin.MixinEntity",
+		"mixin.MixinEntityLivingBase",
         "mixin.MixinEntityPlayerSP",
         "mixin.MixinFontRenderer",
         "mixin.MixinGuiIngame",
         "mixin.MixinGuiSpectator",
-        "mixin.MixinMinecraft"
+        "mixin.MixinMinecraft",
+        "mixin.MixinNetworkManager"
     ],
     "mixins": [
   ]

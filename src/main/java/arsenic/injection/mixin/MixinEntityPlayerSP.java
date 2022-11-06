@@ -1,16 +1,18 @@
 package arsenic.injection.mixin;
 
-import arsenic.event.impl.EventTick;
-import arsenic.main.Arsenic;
-import com.mojang.authlib.GameProfile;
-import arsenic.event.impl.EventUpdate;
-import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import com.mojang.authlib.GameProfile;
+
+import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventUpdate;
+import arsenic.main.Arsenic;
+import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.world.World;
 
 @Mixin(priority = 1111, value = EntityPlayerSP.class)
 public class MixinEntityPlayerSP extends AbstractClientPlayer {
