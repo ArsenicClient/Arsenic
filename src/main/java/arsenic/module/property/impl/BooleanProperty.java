@@ -1,9 +1,11 @@
 package arsenic.module.property.impl;
 
-import arsenic.module.property.Property;
+import org.jetbrains.annotations.NotNull;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import org.jetbrains.annotations.NotNull;
+
+import arsenic.module.property.Property;
 
 public class BooleanProperty extends Property<Boolean> {
 
@@ -13,13 +15,13 @@ public class BooleanProperty extends Property<Boolean> {
 
     @Override
     protected JsonObject saveInfoToJson(@NotNull JsonObject obj) {
-        obj.add("value", new JsonPrimitive(value));
+        obj.add("enabled", new JsonPrimitive(value));
         return obj;
     }
 
     @Override
     protected void loadInfoFromJson(@NotNull JsonObject obj) {
-        value = obj.get("value").getAsBoolean();
+        value = obj.get("enabled").getAsBoolean();
     }
 
 }
