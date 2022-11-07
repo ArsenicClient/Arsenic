@@ -1,20 +1,18 @@
-package arsenic.module.property.impl;
+package arsenic.module.property.impl.doubleProperty;
 
-import arsenic.module.property.Property;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 
-public class DoubleProperty extends Property<Double> {
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
-    private final Double min, max, inc;
+import arsenic.module.property.Property;
+
+public class DoubleProperty extends Property<DoubleValue> {
+
     private final DisplayMode displayMode;
 
     public DoubleProperty(String name, Double value, Double min, Double max, Double inc, DisplayMode displayMode) {
-        super(name, value);
-        this.min = min;
-        this.max = max;
-        this.inc = inc;
+        super(name, new DoubleValue(min, max, value, inc));
         this.displayMode = displayMode;
     }
 
@@ -24,33 +22,22 @@ public class DoubleProperty extends Property<Double> {
 
     @Override
     protected JsonObject saveInfoToJson(@NotNull JsonObject obj) {
-        obj.add("value", new JsonPrimitive(value));
+        obj.add("value", new JsonPrimitive(value.getInput()));
         return obj;
     }
 
     @Override
     protected void loadInfoFromJson(@NotNull JsonObject obj) {
-        value = obj.get("value").getAsDouble();
+        value.setInput(obj.get("value").getAsDouble());
     }
+
+    /*
+    public final @NotNull String getValueString() {
+        return ((value.getInput() % 1==0) ? String.valueOf((int) value.getInput()) : value.getInput()) + displayMode.getSuffix();
+    } */
 
     public final @NotNull String getValueString() {
-        return (value%1==0)? String.valueOf(value.intValue()) : String.valueOf(value.doubleValue()) + displayMode;
-    }
-
-    public final void setValueWithinBounds(Double value) {
-        this.setValue(Math.min(Math.max(value, min), max));
-    }
-
-    public Double getMin() {
-        return min;
-    }
-
-    public Double getMax() {
-        return max;
-    }
-
-    public Double getInc() {
-        return inc;
+        return value.getInput() + displayMode.getSuffix();
     }
 
     public DisplayMode getDisplayMode() {
