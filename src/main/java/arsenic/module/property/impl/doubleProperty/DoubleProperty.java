@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import arsenic.module.property.Property;
+import arsenic.module.property.impl.DisplayMode;
 
 public class DoubleProperty extends Property<DoubleValue> {
 
@@ -42,27 +43,6 @@ public class DoubleProperty extends Property<DoubleValue> {
 
     public DisplayMode getDisplayMode() {
         return displayMode;
-    }
-
-    public enum DisplayMode {
-        NORMAL(""),
-        PERCENT("%"),
-        MILLIS("ms");
-
-        private final String suffix;
-
-        DisplayMode(String suffix) {
-            this.suffix = suffix;
-        }
-
-        public String getSuffix() {
-            return suffix;
-        }
-
-        @Override
-        public String toString() {
-            return suffix;
-        }
     }
 
 }

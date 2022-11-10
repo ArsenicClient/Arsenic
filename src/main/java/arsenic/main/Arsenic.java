@@ -12,7 +12,7 @@ import arsenic.event.EventManager;
 import arsenic.module.ModuleManager;
 import arsenic.module.property.Property;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.DoubleProperty;
+import arsenic.module.property.impl.doubleProperty.DoubleProperty;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;

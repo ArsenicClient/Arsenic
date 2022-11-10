@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 
 import arsenic.module.property.Property;
 
-public class EnumProperty<T extends Enum<?>> extends Property<Enum> {
+public class EnumProperty<T extends Enum<?>> extends Property<T> {
 
     private T[] modes;
 

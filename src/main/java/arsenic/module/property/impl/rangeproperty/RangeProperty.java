@@ -6,12 +6,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import arsenic.module.property.Property;
+import arsenic.module.property.impl.DisplayMode;
 
 public class RangeProperty extends Property<RangeValue> {
 
     private final DisplayMode displayMode;
 
-    public RangeProperty(String name, double value, double minBound, double maxBound, double min, double max, double inc, DisplayMode displayMode) {
+    public RangeProperty(String name, double minBound, double maxBound, double min, double max, double inc, DisplayMode displayMode) {
         super(name, new RangeValue(minBound, maxBound, min, max, inc));
         this.displayMode = displayMode;
     }
@@ -31,28 +32,11 @@ public class RangeProperty extends Property<RangeValue> {
         value.setMin(obj.get("min").getAsDouble());
     }
 
-    public DisplayMode getDisplayMode() {
-        return displayMode;
+    public final @NotNull String getValueString() {
+        return value.getMin() + " -  " + value.getMax() + displayMode.getSuffix();
     }
 
-    public enum DisplayMode {
-        NORMAL(""),
-        PERCENT("%"),
-        MILLIS("ms");
-
-        private final String suffix;
-
-        DisplayMode(String suffix) {
-            this.suffix = suffix;
-        }
-
-        public String getSuffix() {
-            return suffix;
-        }
-
-        @Override
-        public String toString() {
-            return suffix;
-        }
+    public DisplayMode getDisplayMode() {
+        return displayMode;
     }
 }

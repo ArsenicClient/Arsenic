@@ -1,5 +1,2 @@
 package arsenic.utils.interfaces;
-
-public interface IAction {
-
-}
+@FunctionalInterface public interface IAction {  void voidFunction();}

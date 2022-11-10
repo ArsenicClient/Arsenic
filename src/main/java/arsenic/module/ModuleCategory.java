@@ -15,6 +15,7 @@ public enum ModuleCategory implements IContainer {
     VISUAL("Visual"),
     EXPLOIT("Exploit"),
     MINIGAMES("Minigames"),
+    PIT("Pit"), //i am going to make a shit ton of things for pit
     MISC("Misc");
 
     private final String name;

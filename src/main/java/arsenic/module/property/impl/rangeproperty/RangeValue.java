@@ -1,6 +1,10 @@
 package arsenic.module.property.impl.rangeproperty;
 
+import java.util.Random;
+
 public class RangeValue {
+
+    private Random random = new Random();
     private final double minBound, maxBound, inc;
     private double min, max;
 
@@ -39,5 +43,9 @@ public class RangeValue {
 
     public double getMinBound() {
         return minBound;
+    }
+
+    public double getRandomInRange() {
+        return getMin() + (random.nextDouble() * (getMax() - getMin()));
     }
 }

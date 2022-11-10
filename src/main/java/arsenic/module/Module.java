@@ -1,14 +1,14 @@
 package arsenic.module;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import arsenic.main.Arsenic;
 import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import net.minecraft.client.Minecraft;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 public class Module implements IContainable, IContainer {
 
@@ -47,6 +47,7 @@ public class Module implements IContainable, IContainer {
     protected void onEnable() {}
     protected void onDisable() {}
 
+    @Override
     public final String getName() {
         return name;
     }
@@ -100,11 +101,6 @@ public class Module implements IContainable, IContainer {
         }
     }
 
-    @Override
-    public Collection<IContainable> getContents() {
-        return new ArrayList<>(properties);
-    }
-
     public final boolean isHidden() {
         return hidden;
     }
@@ -127,6 +123,11 @@ public class Module implements IContainable, IContainer {
 
     public final void setKeybind(int keybind) {
         this.keybind = keybind;
+    }
+
+    @Override
+    public Collection<IContainable> getContents() {
+        return new ArrayList<>(properties);
     }
 
     public final List<Property<?>> getProperties() {

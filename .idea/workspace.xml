@@ -5,7 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="30c60f9e-6600-461b-8090-39254099d41c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/impl/pit/AutoHeal.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/timer/Timer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/main/Arsenic.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/main/Arsenic.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/Module.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/Module.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/ModuleCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/ModuleCategory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/EnumProperty.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/EnumProperty.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/doubleProperty/DoubleProperty.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/doubleProperty/DoubleProperty.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/rangeproperty/RangeProperty.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/rangeproperty/RangeProperty.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/rangeproperty/RangeValue.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/property/impl/rangeproperty/RangeValue.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/utils/interfaces/IAction.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/utils/interfaces/IAction.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,6 +26,14 @@
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="FxmlFile" />
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
