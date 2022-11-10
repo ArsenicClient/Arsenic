@@ -28,3 +28,4 @@ Arsenic_Client.launch
 /.settings/
 .project
 .classpath
+.idea/workspace.xml

@@ -21,10 +21,10 @@ public class AutoHeal extends Module {
 
     private int originalSlot;
     private final Timer timer = new Timer();
-    private RangeProperty actionTime = new RangeProperty("Action time", 0, 300, 80, 120, 1, DisplayMode.MILLIS);
-    private RangeProperty cooldownTime = new RangeProperty("Cooldown", 0, 5000, 1000, 1200, 1, DisplayMode.MILLIS);
-    private DoubleProperty health = new DoubleProperty("Health", 15.0, 0.0, 20.0, 0.1, DisplayMode.NORMAL);
-    private EnumProperty<SwitchMode> switchMode = new EnumProperty<AutoHeal.SwitchMode>("Swap Mode", SwitchMode.NORMAL);
+    private final RangeProperty actionTime = new RangeProperty("Action time", 0, 300, 80, 120, 1, DisplayMode.MILLIS);
+    private final RangeProperty cooldownTime = new RangeProperty("Cooldown", 0, 5000, 1000, 1200, 1, DisplayMode.MILLIS);
+    private final DoubleProperty health = new DoubleProperty("Health", 15.0, 0.0, 20.0, 0.1, DisplayMode.NORMAL);
+    private final EnumProperty<SwitchMode> switchMode = new EnumProperty<>("Swap Mode", SwitchMode.NORMAL);
     private SwitchingState state = SwitchingState.NONE;
 
 
@@ -68,13 +68,13 @@ public class AutoHeal extends Module {
             inst.state = inst.state.next();
         });
 
-        private InstanceInterface func;
+        private final InstanceInterface func;
 
         SwitchingState(InstanceInterface func) {
             this.func = func;
         }
 
-        private static SwitchingState[] vals = values();
+        private static final SwitchingState[] vals = values();
         public SwitchingState next() {
             return vals[(this.ordinal()+1) % vals.length];
         }
@@ -92,10 +92,10 @@ public class AutoHeal extends Module {
             mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
         });
 
-        private InstanceInterface switchTo, switchBack;
+        private final InstanceInterface switchTo, switchBack;
 
         SwitchMode(InstanceInterface switchTo, InstanceInterface switchBack) {
-            this.switchBack = switchTo;
+            this.switchTo = switchTo;
             this.switchBack = switchBack;
         }
     }
