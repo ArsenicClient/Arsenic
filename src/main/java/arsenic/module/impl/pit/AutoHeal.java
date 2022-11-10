@@ -30,7 +30,7 @@ public class AutoHeal extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if(mc.thePlayer != null) {
+        if(mc.thePlayer != null && timer.hasFinished()) {
             state.func.voidFunction(this);
         }
     };
