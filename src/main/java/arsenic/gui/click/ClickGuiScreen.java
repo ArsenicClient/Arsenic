@@ -1,5 +1,14 @@
 package arsenic.gui.click;
 
+import java.awt.Color;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+import com.google.gson.JsonObject;
+
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
@@ -9,15 +18,7 @@ import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
-import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiScreen;
-
-import java.awt.*;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
 
 public class ClickGuiScreen extends GuiScreen implements ISerializable {
 
@@ -78,10 +79,15 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     public void loadFromJson(JsonObject obj) {
 
     }
+    
+    @Override
+	public JsonObject saveInfoToJson(JsonObject obj) {
+		return obj;
+	}
 
     @Override
-    public JsonObject saveToJson() {
-        return new JsonObject();
+    public JsonObject addToJson(JsonObject obj) {
+        return obj;
     }
 
     @Override

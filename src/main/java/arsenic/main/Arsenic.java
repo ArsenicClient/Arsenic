@@ -13,6 +13,7 @@ import arsenic.module.ModuleManager;
 import arsenic.module.property.Property;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleProperty.DoubleProperty;
+import arsenic.module.property.impl.doubleProperty.DoubleValue;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
@@ -33,7 +34,7 @@ public class Arsenic implements IContainer {
 
     private final Property<?> // placeholders rn
             customFontProperty = new BooleanProperty("Custom Font", false),
-            blurIntensityProperty = new DoubleProperty("Blur Intensity", 5D, 0D, 10D, 0.25D);
+            blurIntensityProperty = new DoubleProperty("Blur Intensity", new DoubleValue(0D, 10D, 5D, 0.125D));
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {

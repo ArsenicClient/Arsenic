@@ -6,6 +6,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleProperty.DoubleProperty;
@@ -19,6 +20,7 @@ import net.minecraft.network.play.client.C09PacketHeldItemChange;
 @ModuleInfo(name = "AutoHeal", category = ModuleCategory.PIT)
 public class AutoHeal extends Module {
 
+	/*
     private int originalSlot;
     private final Timer timer = new Timer();
     private final RangeProperty actionTime = new RangeProperty("Action time", 0, 300, 80, 120, 1, DisplayMode.MILLIS);
@@ -101,5 +103,6 @@ public class AutoHeal extends Module {
     }
 
     @FunctionalInterface public interface InstanceInterface {void voidFunction(AutoHeal instance);}
+    */
 
 }

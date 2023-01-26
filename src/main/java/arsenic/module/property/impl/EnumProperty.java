@@ -3,8 +3,9 @@ package arsenic.module.property.impl;
 import com.google.gson.JsonObject;
 
 import arsenic.module.property.Property;
+import arsenic.module.property.SerializableProperty;
 
-public class EnumProperty<T extends Enum<?>> extends Property<T> {
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> {
 
     private T[] modes;
 
@@ -15,13 +16,13 @@ public class EnumProperty<T extends Enum<?>> extends Property<T> {
     }
 
     @Override
-    protected JsonObject saveInfoToJson(JsonObject obj) {
+	public JsonObject saveInfoToJson(JsonObject obj) {
         obj.addProperty("mode", value.toString());
         return obj;
     }
 
     @Override
-    protected void loadInfoFromJson(JsonObject obj) {
+	public void loadFromJson(JsonObject obj) {
         String mode = obj.get("mode").getAsString();
         for (T opt : modes)
             if (opt.toString().equals(mode))
@@ -29,11 +30,11 @@ public class EnumProperty<T extends Enum<?>> extends Property<T> {
     }
 
     public void nextMode() {
-        value = modes[value.ordinal() == 0 ? modes.length - 1 : value.ordinal() + 1];
+        value = modes[(value.ordinal() + 1) % (modes.length + 1)];
     }
 
     public void prevMode() {
-        value = modes[value.ordinal() == 0 ? modes.length - 1 : value.ordinal() - 1];
+    	value = modes[(value.ordinal() - 1) % (modes.length + 1)];
     }
 
 }

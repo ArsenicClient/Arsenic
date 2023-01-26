@@ -5,7 +5,8 @@ import com.google.gson.JsonObject;
 public interface ISerializable {
 
     void loadFromJson(JsonObject obj);
-    JsonObject saveToJson();
+    JsonObject saveInfoToJson(JsonObject obj);
+    JsonObject addToJson(JsonObject obj);
     String getJsonKey();
 
 }

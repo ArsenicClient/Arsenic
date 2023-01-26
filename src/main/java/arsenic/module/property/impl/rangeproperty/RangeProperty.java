@@ -5,29 +5,32 @@ import org.jetbrains.annotations.NotNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import arsenic.module.property.Property;
+import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 
-public class RangeProperty extends Property<RangeValue> {
+public class RangeProperty extends SerializableProperty<RangeValue> {
 
     private final DisplayMode displayMode;
 
-    public RangeProperty(String name, double minBound, double maxBound, double min, double max, double inc, DisplayMode displayMode) {
-        super(name, new RangeValue(minBound, maxBound, min, max, inc));
+    public RangeProperty(String name, RangeValue value, DisplayMode displayMode) {
+        super(name, value);
         this.displayMode = displayMode;
     }
-
-
+    
+    public RangeProperty(String name, RangeValue value) {
+    	super(name, value);
+    	this.displayMode = DisplayMode.NORMAL;
+    }
 
     @Override
-    protected JsonObject saveInfoToJson(@NotNull JsonObject obj) {
+    public JsonObject saveInfoToJson(JsonObject obj) {
         obj.add("min", new JsonPrimitive(value.getMin()));
         obj.add("max", new JsonPrimitive(value.getMax()));
         return obj;
     }
 
     @Override
-    protected void loadInfoFromJson(@NotNull JsonObject obj) {
+    public void loadFromJson(@NotNull JsonObject obj) {
         value.setMax(obj.get("max").getAsDouble());
         value.setMin(obj.get("min").getAsDouble());
     }

@@ -1,5 +1,8 @@
 package arsenic.gui.click;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 import arsenic.gui.click.impl.ContainerComponent;
 import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.main.Arsenic;
@@ -12,9 +15,6 @@ import arsenic.utils.io.MouseButton;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 public class Panel implements IExpandable<Component> {
 
@@ -64,7 +64,7 @@ public class Panel implements IExpandable<Component> {
     }
 
     public final void handleClick(int mouseX, int mouseY, int mouseButton) {
-        double expand = module.expandTop.getValue();
+        double expand = module.expandTop.getValue().getInput();
         MouseButton button = MouseButton.getButton(mouseButton);
 
         if(mouseX > (x-expand) && mouseX < (x+WIDTH+expand) && mouseY > y-1 && mouseY < y+HEIGHT) {
@@ -77,7 +77,7 @@ public class Panel implements IExpandable<Component> {
     }
 
     public final void handleRender(RenderInfo ri) {
-        double expand = module.expandTop.getValue();
+        double expand = module.expandTop.getValue().getInput();
 
         RenderUtils.drawRect(x-expand, y-1, x+WIDTH+expand, y+HEIGHT, screen.topColor);
         ri.getFr().drawStringWithShadow("E: " + expanded, x, y, -1);
