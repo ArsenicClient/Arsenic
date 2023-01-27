@@ -4,13 +4,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.gson.JsonObject;
+
 import arsenic.main.Arsenic;
 import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
 
-public class Module implements IContainable, IContainer {
+public class Module implements IContainable, IContainer, ISerializable {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
@@ -24,28 +27,32 @@ public class Module implements IContainable, IContainer {
     private boolean registered;
 
     private final List<Property<?>> properties = new ArrayList<>();
+    private final List<ISerializable> serializableProperties = new ArrayList<>();
 
     public Module() {
-        if(!this.getClass().isAnnotationPresent(ModuleInfo.class))
+        if (!this.getClass().isAnnotationPresent(ModuleInfo.class))
             throw new IllegalArgumentException("No @ModuleInfo on class " + this.getClass().getCanonicalName());
 
-        ModuleInfo info = this.getClass().getDeclaredAnnotation(ModuleInfo.class);
+        final ModuleInfo info = this.getClass().getDeclaredAnnotation(ModuleInfo.class);
 
-        this.name = info.name();
-        this.displayName = this.name;
-        this.description = info.description();
-        this.category = info.category();
-        this.enabled = info.enabled();
-        this.hidden = info.hidden();
-        this.keybind = info.keybind();
+        name = info.name();
+        displayName = name;
+        description = info.description();
+        category = info.category();
+        enabled = info.enabled();
+        hidden = info.hidden();
+        keybind = info.keybind();
 
-        if(info.enabled()) {
+        if (info.enabled()) {
             setEnabledSilently(true);
         }
     }
 
-    protected void onEnable() {}
-    protected void onDisable() {}
+    protected void onEnable() {
+    }
+
+    protected void onDisable() {
+    }
 
     @Override
     public final String getName() {
@@ -65,20 +72,20 @@ public class Module implements IContainable, IContainer {
     }
 
     public final void setEnabled(boolean enabled) {
-        if(this.enabled != enabled) {
+        if (this.enabled != enabled) {
             this.enabled = enabled;
 
-            if(enabled) {
+            if (enabled) {
                 onEnable();
 
                 // prevents registering when it gets disabled on enable
-                if(this.enabled) {
+                if (this.enabled) {
                     Arsenic.getInstance().getEventManager().subscribe(this);
-                    this.registered = true;
+                    registered = true;
                 }
             } else {
-                if(this.registered) {
-                    this.registered = false;
+                if (registered) {
+                    registered = false;
                     Arsenic.getInstance().getEventManager().unsubscribe(this);
                 }
 
@@ -88,14 +95,14 @@ public class Module implements IContainable, IContainer {
     }
 
     public final void setEnabledSilently(boolean enabled) {
-        if(this.enabled != enabled) {
+        if (this.enabled != enabled) {
             this.enabled = enabled;
 
-            if(enabled) {
+            if (enabled) {
                 Arsenic.getInstance().getEventManager().subscribe(this);
-                this.registered = true;
-            } else if(this.registered) {
-                this.registered = false;
+                registered = true;
+            } else if (registered) {
+                registered = false;
                 Arsenic.getInstance().getEventManager().unsubscribe(this);
             }
         }
@@ -134,4 +141,31 @@ public class Module implements IContainable, IContainer {
         return properties;
     }
 
+    @Override
+    public void loadFromJson(JsonObject obj) {
+        serializableProperties.forEach(property -> {
+            property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
+        });
+    }
+
+    @Override
+    public JsonObject saveInfoToJson(JsonObject obj) {
+        serializableProperties.forEach(property -> {
+            property.addToJson(obj);
+        });
+        return obj;
+    }
+
+    @Override
+    public JsonObject addToJson(JsonObject obj) {
+        final JsonObject config = new JsonObject();
+        saveInfoToJson(config);
+        obj.add(name, config);
+        return obj;
+    }
+
+    @Override
+    public String getJsonKey() {
+        return name;
+    }
 }
