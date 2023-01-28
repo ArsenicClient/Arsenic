@@ -32,8 +32,7 @@ public class ModuleManager {
                 new TestModule(),
                 new HUD(),
                 new Sprint(),
-                new ClickGui(),
-                new TestRotation()
+                new ClickGui()
         );
 
         Arsenic.getInstance().getEventManager().subscribe(this);
