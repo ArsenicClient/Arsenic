@@ -1,23 +1,22 @@
 package arsenic.module;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import arsenic.module.impl.visual.FullBright;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.misc.TestModule;
-import arsenic.module.impl.misc.TestRotation;
-import arsenic.module.impl.movement.Sprint;
-import arsenic.module.impl.visual.ClickGui;
-import arsenic.module.impl.visual.HUD;
+import arsenic.utils.java.JavaUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.Sys;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.net.URL;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ModuleManager {
 
@@ -29,18 +28,26 @@ public class ModuleManager {
 
     public final int initialize() {
 
-        add(
-                new TestModule(),
-                new HUD(),
-                new Sprint(),
-                new ClickGui(),
-                new FullBright()
-        );
+        for (File folder : JavaUtils.getFilesFromPackage("arsenic.module.impl")) {
+            String packageName = "arsenic.module.impl." + folder.getName();
+            for(File file : JavaUtils.getFilesFromPackage(packageName)) {
+                String className = file.getName().replaceAll(".class$", "");
+                Class<?> cls = null;
+                try {
+                    cls = Class.forName(packageName + "." + className);
+                    if (Module.class.isAssignableFrom(cls)) {
+                            add((Module) cls.newInstance());
+                    }
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {}
+            }
+        }
+
 
         Arsenic.getInstance().getEventManager().subscribe(this);
 
         return modules.size();
     }
+
 
     private void add(Module @NotNull ... modules) {
         for(Module module : modules) {
