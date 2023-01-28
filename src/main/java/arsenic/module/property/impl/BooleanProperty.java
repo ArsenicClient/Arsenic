@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 
 import arsenic.module.property.SerializableProperty;
 
-public class BooleanProperty extends SerializableProperty<Boolean> {
+public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
 
     public BooleanProperty(String name, Boolean value) {
 		super(name, value);
@@ -23,4 +23,8 @@ public class BooleanProperty extends SerializableProperty<Boolean> {
         value = obj.get("enabled").getAsBoolean();
     }
 
+    @Override
+    public IVisible valueCheck(String value) {
+        return () -> Boolean.parseBoolean(value) == this.value;
+    }
 }

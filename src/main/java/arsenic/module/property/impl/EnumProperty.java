@@ -1,11 +1,9 @@
 package arsenic.module.property.impl;
 
+import arsenic.module.property.SerializableProperty;
 import com.google.gson.JsonObject;
 
-import arsenic.module.property.Property;
-import arsenic.module.property.SerializableProperty;
-
-public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> {
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
     private T[] modes;
 
@@ -37,4 +35,8 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> {
     	value = modes[(value.ordinal() - 1) % (modes.length + 1)];
     }
 
+    @Override
+    public IVisible valueCheck(String value) {
+        return () -> value == this.value.name();
+    }
 }
