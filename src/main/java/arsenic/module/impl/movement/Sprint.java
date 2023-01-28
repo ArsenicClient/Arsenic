@@ -7,8 +7,9 @@ import arsenic.injection.accessor.IMixinKeyBinding;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT, keybind = Keyboard.KEY_V)
 public class Sprint extends Module {
 
     @EventLink

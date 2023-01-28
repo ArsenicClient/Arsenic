@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import arsenic.module.impl.visual.FullBright;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,7 +33,8 @@ public class ModuleManager {
                 new TestModule(),
                 new HUD(),
                 new Sprint(),
-                new ClickGui()
+                new ClickGui(),
+                new FullBright()
         );
 
         Arsenic.getInstance().getEventManager().subscribe(this);
