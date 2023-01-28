@@ -1,9 +1,11 @@
 package arsenic.module;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import arsenic.module.property.SerializableProperty;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
@@ -47,6 +49,19 @@ public class Module implements IContainable, IContainer, ISerializable {
             setEnabledSilently(true);
         }
     }
+
+    public void registerProperties() {
+        for (final Field field : getClass().getFields()) {
+            try {
+                Object p = field.get(this);
+                properties.add((Property<?>) p);
+                serializableProperties.add((SerializableProperty<?>) p);
+            } catch (final IllegalAccessException | ClassCastException e) {
+                //ignored
+            }
+        }
+    }
+
 
     protected void onEnable() {
     }

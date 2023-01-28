@@ -44,6 +44,7 @@ public class ModuleManager {
     private void add(Module @NotNull ... modules) {
         for(Module module : modules) {
             this.modules.put(module.getClass(), module);
+            module.registerProperties();
         }
     }
 
