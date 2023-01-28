@@ -1,5 +1,6 @@
 package arsenic.module.property.impl;
 
+import arsenic.module.property.IReliable;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -25,6 +26,6 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
 
     @Override
     public IVisible valueCheck(String value) {
-        return () -> Boolean.parseBoolean(value) == this.value;
+        return () -> Boolean.parseBoolean(value) == this.value && isVisable();
     }
 }

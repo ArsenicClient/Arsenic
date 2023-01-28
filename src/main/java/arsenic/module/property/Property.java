@@ -21,7 +21,7 @@ public abstract class Property<T> implements IContainable {
 
     public void setVisible(IVisible visible) {this.visible = visible;}
 
-    public IVisible getVisibleInterface() {return visible;}
+    public boolean isVisable() {return visible.func();}
 
     @FunctionalInterface public interface IVisible {boolean func();}
 

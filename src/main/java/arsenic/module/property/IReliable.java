@@ -1,4 +1,4 @@
-package arsenic.module.property.impl;
+package arsenic.module.property;
 
 import arsenic.module.property.Property;
 

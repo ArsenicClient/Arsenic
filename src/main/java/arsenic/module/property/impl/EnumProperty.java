@@ -1,5 +1,6 @@
 package arsenic.module.property.impl;
 
+import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
 import com.google.gson.JsonObject;
 
@@ -37,6 +38,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
     @Override
     public IVisible valueCheck(String value) {
-        return () -> value == this.value.name();
+        return () -> value == this.value.name() && isVisable();
     }
 }

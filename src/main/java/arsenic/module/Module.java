@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.SerializableProperty;
+import arsenic.module.property.IReliable;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
@@ -29,7 +31,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     private boolean registered;
 
     private final List<Property<?>> properties = new ArrayList<>();
-    private final List<ISerializable> serializableProperties = new ArrayList<>();
+    private final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
 
     public Module() {
         if (!this.getClass().isAnnotationPresent(ModuleInfo.class))
@@ -53,9 +55,18 @@ public class Module implements IContainable, IContainer, ISerializable {
     public void registerProperties() {
         for (final Field field : getClass().getFields()) {
             try {
-                Object p = field.get(this);
-                properties.add((Property<?>) p);
-                serializableProperties.add((SerializableProperty<?>) p);
+                Property<?> property = (Property<?>) field.get(this);
+                properties.add(property);
+                if(field.isAnnotationPresent(PropertyInfo.class)) {
+                    final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
+                    for(SerializableProperty<?> p : serializableProperties){
+                        if(p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
+                             property.setVisible(((IReliable) p).valueCheck(info.value()));
+                             break;
+                        }
+                    }
+                }
+                serializableProperties.add((SerializableProperty<?>) property);
             } catch (final IllegalAccessException | ClassCastException e) {
                 //ignored
             }
