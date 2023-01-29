@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
 import arsenic.module.ModuleManager;
 import arsenic.module.property.Property;
@@ -24,16 +25,17 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
 public class Arsenic implements IContainer {
 
-    private final String clientName =   "Arsenic";
-    private final long clientVersion =  221020L;
+    private final String clientName = "Arsenic";
+    private final long clientVersion = 221020L;
 
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
     private final Fonts fonts = new Fonts();
+    private final ConfigManager configManager = new ConfigManager();
 
     private final Property<?> // placeholders rn
-            customFontProperty = new BooleanProperty("Custom Font", false),
+    customFontProperty = new BooleanProperty("Custom Font", false),
             blurIntensityProperty = new DoubleProperty("Blur Intensity", new DoubleValue(0D, 10D, 5D, 0.125D));
 
     @Mod.EventHandler
@@ -106,6 +108,10 @@ public class Arsenic implements IContainer {
 
     public final BooleanProperty getCustomFontProperty() {
         return (BooleanProperty) customFontProperty;
+    }
+
+    public final ConfigManager getConfigManager() {
+        return configManager;
     }
 
 }

@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.main.Arsenic;
 import arsenic.module.property.Property;
 import org.lwjgl.input.Keyboard;
 
@@ -28,9 +29,7 @@ public class ClickGui extends Module {
             screen = new ClickGuiScreen();
 
         mc.displayGuiScreen(screen);
-        System.out.println(getProperties().size());
 
-        super.onEnable();
         setEnabled(false);
     }
 
