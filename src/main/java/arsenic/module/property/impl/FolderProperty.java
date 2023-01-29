@@ -6,7 +6,10 @@ import arsenic.module.property.Property;
 import scala.actors.threadpool.Arrays;
 
 public class FolderProperty extends Property<List<Property>>{
-	
+
+	//does not save the config of properties inside the folder
+	//properties inside the folder cannot use @PropertyInfo
+
 	private boolean open;
 
 	protected FolderProperty(Property... values) {
