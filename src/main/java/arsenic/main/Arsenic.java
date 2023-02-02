@@ -3,6 +3,7 @@ package arsenic.main;
 import java.util.Arrays;
 import java.util.Collection;
 
+import arsenic.command.CommandManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -18,7 +19,6 @@ import arsenic.module.property.impl.doubleProperty.DoubleValue;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.rotations.RotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
@@ -33,6 +33,7 @@ public class Arsenic implements IContainer {
     private final ModuleManager moduleManager = new ModuleManager();
     private final Fonts fonts = new Fonts();
     private final ConfigManager configManager = new ConfigManager();
+    private final CommandManager commandManager = new CommandManager();
 
     private final Property<?> // placeholders rn
     customFontProperty = new BooleanProperty("Custom Font", false),
@@ -47,9 +48,6 @@ public class Arsenic implements IContainer {
 
         fonts.initTextures();
         logger.info("Loaded fonts.");
-
-        new RotationManager();
-        logger.info("Loaded RotationManager.");
 
         logger.info("Loaded {}.", clientName);
 
@@ -112,6 +110,9 @@ public class Arsenic implements IContainer {
 
     public final ConfigManager getConfigManager() {
         return configManager;
+    }
+    public final CommandManager getCommandManagerManager() {
+        return commandManager;
     }
 
 }
