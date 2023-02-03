@@ -37,7 +37,7 @@ public class CommandManager {
     public void executeCommand(String str) {
         str = str.replaceFirst(".", "");
         String name = str.split(" ")[0];
-        String[] args = str.substring(name.length() + 1, str.length()).split(" ");
+        String[] args =  str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[]{};
         for(Command command : commands) {
             if(command.isName(name)) {
                 command.execute(args);
