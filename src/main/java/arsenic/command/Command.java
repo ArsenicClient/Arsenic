@@ -35,6 +35,9 @@ public class Command {
     public String getName() {
         return name;
     }
+    public String getHelp(){return help;}
+    public String[] getAliases(){return aliases;}
+    public String[] getArgs(){return args;}
 
     public boolean isName(String name) {
         for (final String alias : JavaUtils.concat(aliases, new String[] { this.name }))

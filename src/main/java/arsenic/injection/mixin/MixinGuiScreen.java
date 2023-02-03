@@ -17,7 +17,7 @@ public class MixinGuiScreen {
     @Inject(method = "sendChatMessage(Ljava/lang/String;Z)V", at = @At(value = "HEAD"), cancellable = true)
     public void sendChatMessage(String msg, boolean addToChat, CallbackInfo ci) {
         if(msg.startsWith(".")) {
-            Arsenic.getInstance().getCommandManagerManager().executeCommand(msg);
+            Arsenic.getInstance().getCommandManager().executeCommand(msg);
             mc.ingameGUI.getChatGUI().addToSentMessages(msg);
             ci.cancel();
         }

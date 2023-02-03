@@ -38,12 +38,13 @@ public class CommandManager {
         str = str.replaceFirst(".", "");
         String name = str.split(" ")[0];
         String[] args =  str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[]{};
-        for(Command command : commands) {
-            if(command.isName(name)) {
-                command.execute(args);
-                return;
-            }
+        Command command = getCommandByName(name);
+
+        if(command != null) {
+            command.execute(args);
+            return;
         }
+
         PlayerUtils.addWaterMarkedMessageToChat("unable to find " + name);
     }
 
@@ -57,6 +58,15 @@ public class CommandManager {
 
     public ArrayList<String> getAutoCompletions(String str) {
         return new ArrayList<String>();
+    }
+
+    public Command getCommandByName(String name) {
+        for(Command command : commands) {
+            if(command.isName(name)) {
+                return command;
+            }
+        }
+        return null;
     }
 
 }

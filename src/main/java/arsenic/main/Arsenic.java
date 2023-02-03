@@ -113,7 +113,7 @@ public class Arsenic implements IContainer {
     public final ConfigManager getConfigManager() {
         return configManager;
     }
-    public final CommandManager getCommandManagerManager() {
+    public final CommandManager getCommandManager() {
         return commandManager;
     }
 
