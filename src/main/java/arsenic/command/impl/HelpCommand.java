@@ -29,7 +29,13 @@ public class HelpCommand extends Command {
             PlayerUtils.addWaterMarkedMessageToChat("Usage: " + str);
             PlayerUtils.addMessageToChat("---------------");
         }
+    }
 
-
+    @Override
+    public String getAutoComplete(String str, int arg) {
+        if(arg == 0) {
+            return Arsenic.getArsenic().getCommandManager().getClosestCommandName(str);
+        }
+        return "";
     }
 }

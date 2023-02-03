@@ -28,7 +28,7 @@ public class Command {
 
     }
 
-    public String getAutoComplete(int arg) {
+    public String getAutoComplete(String str, int arg) {
         return "";
     }
 

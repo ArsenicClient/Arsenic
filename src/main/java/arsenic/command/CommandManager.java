@@ -1,13 +1,11 @@
 package arsenic.command;
 
-import arsenic.module.Module;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.client.Minecraft;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,6 +56,21 @@ public class CommandManager {
 
     public ArrayList<String> getAutoCompletions(String str) {
         return new ArrayList<String>();
+    }
+    public String getAutoCompletion(String str) {
+        str = str.replaceFirst(".", "");
+        String name = str.split(" ")[0];
+        String[] args =  str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[]{};
+        if(args.length == 0) {
+            return getClosestCommandName(name).replaceFirst(str, "");
+        }
+        Command command = getCommandByName(name);
+        return command == null ? "" : command.getAutoComplete(args[args.length-1], args.length - 1).replaceFirst(args[args.length-1], "");
+    }
+
+    public String getClosestCommandName(String name) {
+        List<Command> commands = this.commands.stream().filter(c -> c.getName().toLowerCase().startsWith(name.toLowerCase())).collect(Collectors.toList());
+        return commands.isEmpty() ? "" : commands.get(0).getName();
     }
 
     public Command getCommandByName(String name) {
