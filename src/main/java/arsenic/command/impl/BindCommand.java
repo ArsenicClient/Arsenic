@@ -16,11 +16,12 @@ public class BindCommand extends Command {
     @Override
     public void execute(String[] args) {
         Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(args[0]);
-        if(module != null) {
-            PlayerUtils.addWaterMarkedMessageToChat("Binded " + module.getName() + " to " + args[1]);
-            module.setKeybind(Keyboard.getKeyIndex(args[1]));
+        if(module == null) {
+            PlayerUtils.addWaterMarkedMessageToChat( args[0] + " is not a valid module");
             return;
         }
-        PlayerUtils.addWaterMarkedMessageToChat( args[0] + " is not a valid module");
+        int bind = Keyboard.getKeyIndex(args[1].toUpperCase());
+        PlayerUtils.addWaterMarkedMessageToChat("Bound " + module.getName() + " to " + Keyboard.getKeyName(bind));
+        module.setKeybind(Keyboard.getKeyIndex(args[1].toUpperCase()));
     }
 }
