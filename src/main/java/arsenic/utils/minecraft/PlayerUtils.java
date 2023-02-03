@@ -11,6 +11,6 @@ public class PlayerUtils {
     }
 
     public static void addWaterMarkedMessageToChat(String msg) {
-        addMessageToChat("&7[&cA&7]&r " + msg);
+        addMessageToChat("§7[§cA§7]§r " + msg);
     }
 }
