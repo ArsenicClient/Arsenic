@@ -75,6 +75,14 @@ public class ModuleManager {
         return (T) modules.get(moduleClass);
     }
 
+    public final Module getModuleByName(String str) {
+        for(Module module : modules.values()) {
+            if(module.getName().equalsIgnoreCase(str))
+                return module;
+        }
+        return null;
+    }
+
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         getModules().forEach(module -> {
