@@ -23,6 +23,11 @@ public class MixinGuiChat extends GuiScreen {
     public void keyTypedReturn(char typedChar, int keyCode, CallbackInfo ci) {
         if(inputField.getText().startsWith(".")) {
             inputField.setTextColor(0x70FF70);
+
+            if(!ci.isCancelled() && keyCode != 15 && keyCode != 1) {
+                Arsenic.getArsenic().getCommandManager().updateAutoCompletions(inputField.getText());
+            }
+
         } else {
             inputField.setTextColor(0xE0E0E0);
         }
@@ -30,9 +35,12 @@ public class MixinGuiChat extends GuiScreen {
 
     @Inject(method = "keyTyped", at = @At("HEAD"), cancellable = true)
     public void keyTypedHead(char typedChar, int keyCode, CallbackInfo ci) {
-        if (keyCode == 15) {
-            inputField.writeText(Arsenic.getArsenic().getCommandManager().getAutoCompletion(inputField.getText()));
+        if (keyCode == 15 && inputField.getText().startsWith(".")) {
+            inputField.setText(inputField.getText().substring(0, inputField.getText().lastIndexOf((inputField.getText().contains(" ") ? ' ' : '.')) + 1));
+            inputField.writeText(Arsenic.getArsenic().getCommandManager().getAutoCompletion());
             ci.cancel();
         }
     }
+
+
 }

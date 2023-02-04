@@ -3,7 +3,9 @@ package arsenic.command;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.java.JavaUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Command {
 
@@ -28,8 +30,12 @@ public class Command {
 
     }
 
-    public String getAutoComplete(String str, int arg) {
-        return "";
+
+    public List<String> getAutoComplete(String str, int arg) {
+        return getAutoComplete(str, arg, new ArrayList<String>());
+    }
+    protected List<String> getAutoComplete(String str, int arg, List<String> completions) {
+        return completions;
     }
 
     public String getName() {
