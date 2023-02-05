@@ -1,23 +1,21 @@
 package arsenic.command.impl;
 
+import org.lwjgl.input.Keyboard;
+
 import arsenic.command.Command;
 import arsenic.command.CommandInfo;
-import arsenic.event.bus.Listener;
-import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
-import org.lwjgl.input.Keyboard;
 
-@CommandInfo(name = "bind", args = {"name", "key"}, aliases = {"b"}, help = "binds a module to a key")
+@CommandInfo(name = "bind", args = { "name", "key" }, aliases = { "b" }, help = "binds a module to a key")
 public class BindCommand extends Command {
 
     @Override
     public void execute(String[] args) {
         Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(args[0]);
-        if(module == null) {
-            PlayerUtils.addWaterMarkedMessageToChat( args[0] + " is not a valid module");
+        if (module == null) {
+            PlayerUtils.addWaterMarkedMessageToChat(args[0] + " is not a valid module");
             return;
         }
         int bind = Keyboard.getKeyIndex(args[1].toUpperCase());

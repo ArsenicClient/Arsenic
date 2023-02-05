@@ -1,11 +1,9 @@
 package arsenic.command;
 
-import arsenic.module.ModuleInfo;
-import arsenic.utils.java.JavaUtils;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import arsenic.utils.java.JavaUtils;
 
 public class Command {
 
@@ -30,24 +28,26 @@ public class Command {
 
     }
 
-
     public List<String> getAutoComplete(String str, int arg) {
         return getAutoComplete(str, arg, new ArrayList<String>());
     }
+
     protected List<String> getAutoComplete(String str, int arg, List<String> completions) {
         return completions;
     }
 
-    public String getName() {
-        return name;
-    }
-    public String getHelp(){return help;}
-    public String[] getAliases(){return aliases;}
-    public String[] getArgs(){return args;}
+    public String getName() { return name; }
+
+    public String getHelp() { return help; }
+
+    public String[] getAliases() { return aliases; }
+
+    public String[] getArgs() { return args; }
 
     public boolean isName(String name) {
         for (final String alias : JavaUtils.concat(aliases, new String[] { this.name }))
-          if (alias.equalsIgnoreCase(name)) return true;
+            if (alias.equalsIgnoreCase(name))
+                return true;
         return false;
     }
 }

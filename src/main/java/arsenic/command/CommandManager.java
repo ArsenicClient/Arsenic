@@ -1,16 +1,14 @@
 package arsenic.command;
 
-import arsenic.utils.java.JavaUtils;
-import arsenic.utils.minecraft.PlayerUtils;
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import arsenic.utils.java.JavaUtils;
+import arsenic.utils.minecraft.PlayerUtils;
 
 public class CommandManager {
 
@@ -24,26 +22,27 @@ public class CommandManager {
 
     public final int initialize() {
         for (File file : JavaUtils.getFilesFromPackage("arsenic.command.impl")) {
-                String className = file.getName().replaceAll(".class$", "");
-                Class<?> cls = null;
-                try {
-                    cls = Class.forName("arsenic.command.impl." + className);
-                    if (Command.class.isAssignableFrom(cls)) {
-                        add((Command) cls.newInstance());
-                    }
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {}
+            String className = file.getName().replaceAll(".class$", "");
+            Class<?> cls = null;
+            try {
+                cls = Class.forName("arsenic.command.impl." + className);
+                if (Command.class.isAssignableFrom(cls)) {
+                    add((Command) cls.newInstance());
+                }
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+            }
         }
         return commands.size();
     }
 
-
     public void executeCommand(String str) {
         str = str.replaceFirst(".", "");
         String name = str.split(" ")[0];
-        String[] args =  str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[]{};
+        String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
+                : new String[] {};
         Command command = getCommandByName(name);
 
-        if(command != null) {
+        if (command != null) {
             command.execute(args);
             return;
         }
@@ -62,36 +61,44 @@ public class CommandManager {
     public void updateAutoCompletions(String str) {
         str = str.replaceFirst(".", "");
         String name = str.split(" ")[0];
-        String[] args =  str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[]{};
-        if(args.length == 0) {
-            autoCompletions = getClosestCommandName(name);
+        String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
+                : new String[] {};
+        if (args.length == 0) {
+            setAutoCompletions(getClosestCommandName(name));
             return;
         }
         Command command = getCommandByName(name);
-        if(command == null) {
+        if (command == null) {
             autoCompletions.clear();
             return;
         }
-        autoCompletions = command.getAutoComplete(args[args.length-1], args.length - 1);
+        setAutoCompletions(command.getAutoComplete(args[args.length - 1], args.length - 1));
     }
+
+    // sorts alphabetically
+    private void setAutoCompletions(List<String> list) {
+        Collections.sort(list);
+        autoCompletions = list;
+    }
+
     public String getAutoCompletion() {
-        if(autoCompletions.isEmpty())
+        if (autoCompletions.isEmpty())
             return "";
         Collections.rotate(autoCompletions, -1);
         return autoCompletions.get(0);
     }
 
     public List<String> getClosestCommandName(String name) {
-        return this.commands.stream().filter(c -> c.getName().toLowerCase().startsWith(name.toLowerCase())).map(Command::getName).collect(Collectors.toList());
+        return commands.stream().filter(c -> c.getName().toLowerCase().startsWith(name.toLowerCase()))
+                .map(Command::getName).collect(Collectors.toList());
     }
 
     public Command getCommandByName(String name) {
-        for(Command command : commands) {
-            if(command.isName(name)) {
+        for (Command command : commands) {
+            if (command.isName(name)) {
                 return command;
             }
         }
         return null;
     }
-
 }

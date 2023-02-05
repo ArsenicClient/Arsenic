@@ -10,8 +10,11 @@ import java.lang.annotation.Target;
 public @interface CommandInfo {
 
     String name();
+
     String help() default "No help provided for this command";
+
     String[] args() default {};
+
     String[] aliases() default {};
 
 }
