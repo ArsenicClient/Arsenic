@@ -1,19 +1,18 @@
 package arsenic.command;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.minecraft.PlayerUtils;
+import org.lwjgl.Sys;
 
 public class CommandManager {
 
     private final ArrayList<Command> commands;
     private List<String> autoCompletions;
+    private String latestAutoCompletion = "";
 
     public CommandManager() {
         commands = new ArrayList<>();
@@ -77,19 +76,27 @@ public class CommandManager {
 
     // sorts alphabetically
     private void setAutoCompletions(List<String> list) {
-        Collections.sort(list);
+        list.sort(Comparator.naturalOrder());
         autoCompletions = list;
     }
 
-    public String getAutoCompletion() {
-        if (autoCompletions.isEmpty())
+    public String getAutoCompletionWithoutRotation() {
+        if (autoCompletions.isEmpty()) {
             return "";
-        Collections.rotate(autoCompletions, -1);
+        }
         return autoCompletions.get(0);
     }
 
+    public String getAutoCompletion() {
+        if (autoCompletions.isEmpty()) {
+            return "";
+        }
+        Collections.rotate(autoCompletions, -1);
+        return autoCompletions.get(autoCompletions.size() - 1);
+    }
+
     public List<String> getClosestCommandName(String name) {
-        return commands.stream().filter(c -> c.getName().toLowerCase().startsWith(name.toLowerCase()))
+        return commands.stream().filter(c -> c.getName().toLowerCase().startsWith(name.toLowerCase()) && c.getName().length() > name.length())
                 .map(Command::getName).collect(Collectors.toList());
     }
 
