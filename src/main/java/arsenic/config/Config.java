@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,11 +28,11 @@ public abstract class Config {
     }
 
     public void loadConfig() {
-        JsonObject data = null;
+        JsonObject data = new JsonObject();
         JsonParser jsonParser = new JsonParser();
         try (FileReader reader = new FileReader(config)) {
             JsonElement obj = jsonParser.parse(reader);
-            obj = obj.getAsJsonObject();
+            data = obj.getAsJsonObject();
         } catch (JsonSyntaxException | ClassCastException | IOException | IllegalStateException e) {
             e.printStackTrace();
         }

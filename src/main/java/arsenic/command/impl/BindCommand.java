@@ -21,5 +21,7 @@ public class BindCommand extends Command {
         int bind = Keyboard.getKeyIndex(args[1].toUpperCase());
         PlayerUtils.addWaterMarkedMessageToChat("Bound " + module.getName() + " to " + Keyboard.getKeyName(bind));
         module.setKeybind(Keyboard.getKeyIndex(args[1].toUpperCase()));
+
+        Arsenic.getArsenic().getConfigManager().saveConfig();
     }
 }

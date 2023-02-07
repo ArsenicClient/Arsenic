@@ -46,6 +46,8 @@ public class Arsenic implements IContainer {
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
 
+        logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
+
         logger.info("Loaded {} commands...", String.valueOf(commandManager.initialize()));
 
         fonts.initTextures();

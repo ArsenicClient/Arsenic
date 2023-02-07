@@ -16,6 +16,7 @@ import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.input.Keyboard;
 
 public class Module implements IContainable, IContainer, ISerializable {
 
@@ -169,13 +170,28 @@ public class Module implements IContainable, IContainer, ISerializable {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        serializableProperties.forEach(property -> {
-            property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
-        });
+        try {
+
+            keybind = obj.get("bind").getAsInt();
+            setEnabledSilently(obj.get("enabled").getAsBoolean());
+
+            serializableProperties.forEach(property -> {
+                property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
+            });
+        } catch (NullPointerException e) {
+            System.out.println("Error loading " + getName() + "'s config (If this the first launch or the first launch after an update ignore this)");
+        }
+        postApplyConfig();
     }
+
+    protected void postApplyConfig() {}
 
     @Override
     public JsonObject saveInfoToJson(JsonObject obj) {
+
+        obj.addProperty("bind", keybind);
+        obj.addProperty("enabled", enabled);
+
         serializableProperties.forEach(property -> {
             property.addToJson(obj);
         });

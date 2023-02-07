@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Contract;
@@ -85,11 +86,16 @@ public class ModuleManager {
 
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
+        AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
         getModules().forEach(module -> {
             if (event.getKeycode() == module.getKeybind()) {
                 module.setEnabled(!module.isEnabled());
+                saveConfig.set(true);
             }
         });
+        if (saveConfig.get()) {
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+        }
     };
 
 }

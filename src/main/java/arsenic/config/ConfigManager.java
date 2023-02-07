@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
+import org.lwjgl.Sys;
 
 public class ConfigManager {
 
@@ -15,7 +16,7 @@ public class ConfigManager {
     private final File configDirectory = new File(
             Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs");
 
-    public ConfigManager() {
+    public int initialize() {
         if (!configDirectory.isDirectory()) {
             configDirectory.mkdirs();
         }
@@ -27,12 +28,16 @@ public class ConfigManager {
         if (!configs.isEmpty()) {
             clientConfig.loadConfig();
             if(currentConfig == null) {
-                loadConfig((String) configs.keySet().toArray()[0]);
+                currentConfig = (ModuleConfig) configs.values().toArray()[0];
             }
         } else {
             createConfig("default");
         }
+
+        currentConfig.loadConfig();
+        return configs.size();
     }
+
 
     public void reloadConfigs() {
         configs.clear();
@@ -40,7 +45,7 @@ public class ConfigManager {
             return; // nothing to discover if there are no files in the directory
 
         for (File file : Objects.requireNonNull(configDirectory.listFiles())) {
-            if (file.getName().endsWith(".Arsenic")) {
+            if (file.getName().endsWith(".json")) {
                 ModuleConfig c = new ModuleConfig(file);
                 configs.put(c.getName(), c);
             }
@@ -80,5 +85,9 @@ public class ConfigManager {
     public Set<String> getConfigList() {
         return configs.keySet();
     }
+
+    public void saveConfig() {currentConfig.saveConfig();}
+    //remember to only call this during events that the user can call eg closing the clickgui, using commands etc.
+    // if you don't then there is a potential of recursion
 
 }
