@@ -53,7 +53,7 @@ public class Module implements IContainable, IContainer, ISerializable {
         }
     }
 
-    public void registerProperties() {
+    public final void registerProperties() {
         for (final Field field : getClass().getFields()) {
             try {
                 Property<?> property = (Property<?>) field.get(this);
@@ -160,7 +160,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     }
 
     @Override
-    public Collection<IContainable> getContents() {
+    public final Collection<IContainable> getContents() {
         return new ArrayList<>(properties);
     }
 
@@ -169,7 +169,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     }
 
     @Override
-    public void loadFromJson(JsonObject obj) {
+    public final void loadFromJson(JsonObject obj) {
         try {
 
             keybind = obj.get("bind").getAsInt();
@@ -187,7 +187,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     protected void postApplyConfig() {}
 
     @Override
-    public JsonObject saveInfoToJson(JsonObject obj) {
+    public final JsonObject saveInfoToJson(JsonObject obj) {
 
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);
@@ -199,7 +199,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     }
 
     @Override
-    public JsonObject addToJson(JsonObject obj) {
+    public final JsonObject addToJson(JsonObject obj) {
         final JsonObject config = new JsonObject();
         saveInfoToJson(config);
         obj.add(name, config);
@@ -207,7 +207,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     }
 
     @Override
-    public String getJsonKey() {
+    public final String getJsonKey() {
         return name;
     }
 }
