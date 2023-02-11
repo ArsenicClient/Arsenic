@@ -1,83 +1,44 @@
 package arsenic.module;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.utils.java.JavaUtils;
+import arsenic.module.impl.misc.TestModule;
+import arsenic.module.impl.movement.Sprint;
+import arsenic.module.impl.visual.ClickGui;
+import arsenic.module.impl.visual.FullBright;
+import arsenic.module.impl.visual.HUD;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ModuleManager {
 
-    private final Map<Class<? extends Module>, Module> modules;
-
-    public ModuleManager() {
-        modules = new HashMap<>();
-    }
+    private final Set<Module> modules = Arrays.stream(Modules.values()).map(Modules::getModule).collect(Collectors.toSet());
 
     public final int initialize() {
-
-        // might not work on obfuscation -> could search whole project for anything that
-        // extends module / search for the annotation however that seems harder
-        for (File folder : JavaUtils.getFilesFromPackage("arsenic.module.impl")) {
-            String packageName = "arsenic.module.impl." + folder.getName();
-            for (File file : JavaUtils.getFilesFromPackage(packageName)) {
-                String className = file.getName().replaceAll(".class$", "");
-                Class<?> cls = null;
-                try {
-                    cls = Class.forName(packageName + "." + className);
-                    if (Module.class.isAssignableFrom(cls)) {
-                        add((Module) cls.newInstance());
-                    }
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-                }
-            }
-        }
-
         Arsenic.getInstance().getEventManager().subscribe(this);
-
         return modules.size();
     }
 
-    private void add(Module @NotNull... modules) {
-        for (Module module : modules) {
-            this.modules.put(module.getClass(), module);
-            module.registerProperties();
-        }
-    }
-
-    public final Map<Class<? extends Module>, Module> getModulesMap() {
+    public final Set<Module> getModulesSet() {
         return modules;
     }
 
-    @Contract(pure = true)
-    public final @NotNull Collection<Module> getModules() {
-        return modules.values();
-    }
-
     public final Collection<Module> getEnabledModules() {
-        return modules.values().stream().filter(Module::isEnabled).collect(Collectors.toList());
+        return modules.stream().filter(Module::isEnabled).collect(Collectors.toList());
     }
 
-    public final Collection<Module> getModules(ModuleCategory category) {
-        return modules.values().stream().filter(m -> m.getCategory() == category).collect(Collectors.toList());
-    }
-
-    public final <T extends Module> T getModule(Class<T> moduleClass) {
-        return (T) modules.get(moduleClass);
+    public final Collection<Module> getModulesByCategory(ModuleCategory category) {
+        return modules.stream().filter(m -> m.getCategory() == category).collect(Collectors.toList());
     }
 
     public final Module getModuleByName(String str) {
-        for(Module module : modules.values()) {
+        for(Module module : modules) {
             if(module.getName().equalsIgnoreCase(str))
                 return module;
         }
@@ -87,7 +48,7 @@ public class ModuleManager {
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
-        getModules().forEach(module -> {
+        modules.forEach(module -> {
             if (event.getKeycode() == module.getKeybind()) {
                 module.setEnabled(!module.isEnabled());
                 saveConfig.set(true);
@@ -98,4 +59,20 @@ public class ModuleManager {
         }
     };
 
+    public enum Modules {
+        FULLBRIGHT(new FullBright()),
+        SPRINT(new Sprint()),
+        HUD(new HUD()),
+        CLICKGUI(new ClickGui()),
+        TESTMODULE(new TestModule());
+
+        private final Module module;
+        private Modules(Module module) {
+            this.module = module;
+        }
+
+        public Module getModule() {
+            return module;
+        }
+    }
 }

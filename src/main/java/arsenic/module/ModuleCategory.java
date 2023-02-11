@@ -31,7 +31,7 @@ public enum ModuleCategory implements IContainer {
     @Contract(" -> new")
     @Override
     public @NotNull Collection<IContainable> getContents() {
-        return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModules(this));
+        return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModulesByCategory(this));
     }
 
 }

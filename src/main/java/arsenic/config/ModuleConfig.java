@@ -14,12 +14,12 @@ public class ModuleConfig extends Config {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        Arsenic.getArsenic().getModuleManager().getModules().forEach(module -> module.loadFromJson(obj.get(module.getName()).getAsJsonObject()));
+        Arsenic.getArsenic().getModuleManager().getModulesSet().forEach(module -> module.loadFromJson(obj.get(module.getName()).getAsJsonObject()));
     }
 
     @Override
     public JsonObject getJson(JsonObject obj) {
-        Arsenic.getArsenic().getModuleManager().getModules().forEach(module -> module.addToJson(obj));
+        Arsenic.getArsenic().getModuleManager().getModulesSet().forEach(module -> module.addToJson(obj));
         return obj;
     }
 

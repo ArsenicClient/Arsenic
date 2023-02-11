@@ -7,6 +7,7 @@ import arsenic.gui.click.impl.ContainerComponent;
 import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
+import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
@@ -34,8 +35,7 @@ public class Panel implements IExpandable<Component> {
         this.name = name;
         this.x = x;
         this.y = y;
-        this.module = Arsenic.getInstance().getModuleManager()
-                .getModule(ClickGui.class);
+        this.module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
         this.screen = screen;
     }
 

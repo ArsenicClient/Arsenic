@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import arsenic.module.ModuleManager;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
@@ -43,8 +44,7 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
             i++;
         }
 
-        this.module = Arsenic.getInstance().getModuleManager()
-                .getModule(ClickGui.class);
+        this.module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
     }
 
     @Override
