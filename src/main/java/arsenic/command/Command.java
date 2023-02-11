@@ -28,7 +28,7 @@ public class Command {
 
     }
 
-    public List<String> getAutoComplete(String str, int arg) {
+    public final List<String> getAutoComplete(String str, int arg) {
         return getAutoComplete(str, arg, new ArrayList<String>());
     }
 
