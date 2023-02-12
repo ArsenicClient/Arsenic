@@ -1,10 +1,10 @@
 package arsenic.config;
 
-import java.io.File;
-
+import arsenic.main.Arsenic;
+import arsenic.module.Module;
 import com.google.gson.JsonObject;
 
-import arsenic.main.Arsenic;
+import java.io.File;
 
 public class ModuleConfig extends Config {
 
@@ -14,7 +14,11 @@ public class ModuleConfig extends Config {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        Arsenic.getArsenic().getModuleManager().getModulesSet().forEach(module -> module.loadFromJson(obj.get(module.getName()).getAsJsonObject()));
+        obj.entrySet().forEach(entry -> {
+            Module m = Arsenic.getArsenic().getModuleManager().getModuleByName(entry.getKey());
+            if(m != null)
+                m.loadFromJson(entry.getValue().getAsJsonObject());
+        });
     }
 
     @Override
