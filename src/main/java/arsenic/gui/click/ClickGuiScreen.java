@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
+import arsenic.module.Module;
 import arsenic.module.ModuleManager;
 import arsenic.utils.render.PosInfo;
 import com.google.gson.JsonObject;
@@ -24,6 +26,7 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     public final Color topColor = new Color(44, 62, 80), bgColor = new Color(52, 73, 94);
     private final ClickGui module;
     private final List<UICategoryComponent> components = new ArrayList<>();
+    private ModuleCategoryComponent cmcc;
 
 
     public ClickGuiScreen() {
@@ -31,6 +34,7 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
         for (UICategory value : UICategory.values()) {
             components.add(new UICategoryComponent(value));
         }
+        cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
     }
 
     @Override
@@ -56,9 +60,15 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
 
-        //panels.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
+        components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
 
         super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    public void setCmcc(ModuleCategoryComponent mcc) {
+        cmcc.setCurrentCategory(false);
+        mcc.setCurrentCategory(true);
+        cmcc = mcc;
     }
 
     public final IFontRenderer getFontRenderer() {

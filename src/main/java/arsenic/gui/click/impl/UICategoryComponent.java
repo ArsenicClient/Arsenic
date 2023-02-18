@@ -31,15 +31,15 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
         PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) + 2));
 
-        wholeHeight = pi.getY() - y1;
-        wholeY2 = pi.getY();
+        expandY = pi.getY() - y1;
+        expandX = pi.getX() - x1;
 
-        return wholeHeight;
+        return expandY;
     }
 
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
-
+        contents.forEach(child -> child.handleClick(mouseX, mouseY, mouseButton));
     }
 
     @Override
