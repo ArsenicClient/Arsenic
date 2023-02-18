@@ -8,7 +8,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 
-@ModuleInfo(name = "TestModule", category = ModuleCategory.MISC, keybind = Keyboard.KEY_R)
+@ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
 
     public final BooleanProperty test1 = new BooleanProperty("Test", true);

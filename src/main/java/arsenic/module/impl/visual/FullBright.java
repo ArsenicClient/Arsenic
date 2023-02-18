@@ -5,7 +5,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 
-@ModuleInfo(name = "FullBright", category = ModuleCategory.VISUAL, keybind = Keyboard.KEY_F)
+@ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F)
 public class FullBright extends Module {
 
 int OriginalGamma = 0;

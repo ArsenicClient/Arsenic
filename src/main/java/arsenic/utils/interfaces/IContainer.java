@@ -3,11 +3,12 @@ package arsenic.utils.interfaces;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public interface IContainer {
+public interface IContainer<T extends IContainable> {
 
-    Collection<IContainable> getContents();
 
     String getName();
+
+    Collection<T> getContents();
 
     default Collection<IContainable> getContentsIncludingSubContainers() {
         Collection<IContainable> containables = new ArrayList<>();

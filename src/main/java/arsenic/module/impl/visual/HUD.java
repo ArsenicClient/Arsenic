@@ -11,7 +11,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.interfaces.IFontRenderer;
 
-@ModuleInfo(name = "HUD", category = ModuleCategory.VISUAL, keybind = Keyboard.KEY_Y)
+@ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_Y)
 public class HUD extends Module {
 
     @EventLink

@@ -9,15 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public enum ModuleCategory implements IContainer {
-    COMBAT("Combat"),
-    MOVEMENT("Movement"),
-    VISUAL("Visual"),
-    EXPLOIT("Exploit"),
-    MINIGAMES("Minigames"),
-    PIT("Pit"), //i am going to make a shit ton of things for pit
-    MISC("Misc");
-
+public enum ModuleCategory implements IContainer, IContainable {
+    PLAYERS("Players"),
+    WORLD("World"),
+    CLIENT("Client"),
+    GHOST("Ghost"),
+    BLATANT("Blatant"),
+    OTHER("Other"),
+    MOVEMENT("Movement");
     private final String name;
 
     ModuleCategory(String name) {
