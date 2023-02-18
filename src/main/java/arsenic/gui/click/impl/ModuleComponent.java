@@ -3,9 +3,8 @@ package arsenic.gui.click.impl;
 import arsenic.gui.click.Component;
 import arsenic.module.Module;
 import arsenic.module.property.Property;
-import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.DimensionInfo;
+import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,7 +25,7 @@ public class ModuleComponent extends Component implements IContainer<Property> {
     }
 
     @Override
-    protected int drawComponent(DimensionInfo di, RenderInfo ri) {
+    protected int drawComponent(RenderInfo ri) {
         return 0;
     }
 

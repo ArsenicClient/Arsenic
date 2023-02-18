@@ -1,11 +1,9 @@
 package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
-import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
-import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.DimensionInfo;
+import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
@@ -33,10 +31,14 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     @Override
-    protected int drawComponent(DimensionInfo di, RenderInfo ri) {
-        RenderUtils.drawRect(di.getX(), di.getY(), di.getX1(),  di.getY() + HEIGHT, 0xFFFFFF00);
-        ri.getFr().drawString(getName(), di.getX(), di.getY() + (HEIGHT)/2, 0xFFFF0000);
-        return HEIGHT;
+    protected int drawComponent(RenderInfo ri) {
+        RenderUtils.drawRect(x1, y1, x2,  y2, 0xFF00FF00);
+        ri.getFr().drawString(getName(), x1, y1 + (height)/2, 0xFFFFFF00);
+
+        //PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
+        //contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) + 2));
+
+        return height;
     }
 
     @Override

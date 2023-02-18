@@ -3,21 +3,15 @@ package arsenic.gui.click;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.module.ModuleManager;
-import arsenic.utils.functionalinterfaces.IInt;
-import arsenic.utils.render.DimensionInfo;
+import arsenic.utils.render.PosInfo;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
-import arsenic.utils.interfaces.IContainable;
-import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.render.RenderInfo;
@@ -41,7 +35,7 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer());
+        RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
         RenderUtils.drawRect(0, 0, width, height, 0x35000000);
 
@@ -52,10 +46,9 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
 
         Gui.drawRect(x, y, x1, y1, 0x900000FF);
 
-        DimensionInfo di = new DimensionInfo( x + 5, y + 25, x + 40, y + 40);
-        components.forEach(component -> {
-            di.moveY(component.updateComponent(di, ri));
-        });
+        PosInfo pi = new PosInfo( x + 5, y + 5);
+
+        components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

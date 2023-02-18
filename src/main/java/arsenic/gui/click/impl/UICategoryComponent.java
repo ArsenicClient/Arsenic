@@ -2,13 +2,12 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UICategory;
-import arsenic.utils.interfaces.IContainable;
+import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.DimensionInfo;
+import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +15,7 @@ import java.util.List;
 
 public class UICategoryComponent extends Component implements IContainer<ModuleCategoryComponent> {
 
-    private final int HEIGHT = Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 5;
+    private final IInt heightP = (i -> Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 5);
     private final UICategory self;
     private final List<ModuleCategoryComponent> contents = new ArrayList<>();
     public UICategoryComponent(UICategory self) {
@@ -25,19 +24,17 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     }
 
     @Override
-    protected int drawComponent(DimensionInfo di, RenderInfo ri) {
-        int height = HEIGHT;
-        int originalY = di.getY();
+    protected int drawComponent(RenderInfo ri) {
+        RenderUtils.drawRect(x1, y1, x2,  y2, 0xFF00FF00);
+        ri.getFr().drawString(getName(), x1, y1 + (height)/2, 0xFFFF0000);
 
-        RenderUtils.drawRect(di.getX(), di.getY(), di.getX1(),  di.getY() + HEIGHT, 0xFF00FF00);
-        ri.getFr().drawString(getName(), di.getX(), di.getY() + (HEIGHT)/2, 0xFFFF0000);
+        PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
+        contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) + 2));
 
-        di.moveX(3);
-        di.moveY(HEIGHT);
-        contents.forEach(child -> di.moveY(child.updateComponent(di, ri)));
+        wholeHeight = pi.getY() - y1;
+        wholeY2 = pi.getY();
 
-
-        return HEIGHT;
+        return wholeHeight;
     }
 
     @Override
