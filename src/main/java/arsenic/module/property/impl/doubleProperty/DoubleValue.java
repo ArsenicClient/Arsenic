@@ -16,19 +16,11 @@ public class DoubleValue {
         return Math.round(value * inc) / inc;
     }
 
-    public double getInput() {
-        return value;
-    }
+    public double getInput() { return value; }
 
-    public void setInput(double value) {
-        this.value = getCorrectedValue(value);
-    }
+    public void setInput(double value) { this.value = getCorrectedValue(value); }
 
-    public double getMaxBound() {
-        return maxBound;
-    }
+    public double getMaxBound() { return maxBound; }
 
-    public double getMinBound() {
-        return minBound;
-    }
+    public double getMinBound() { return minBound; }
 }

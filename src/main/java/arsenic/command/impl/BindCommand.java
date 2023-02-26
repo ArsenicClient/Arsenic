@@ -1,5 +1,8 @@
 package arsenic.command.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.lwjgl.input.Keyboard;
 
 import arsenic.command.Command;
@@ -7,9 +10,6 @@ import arsenic.command.CommandInfo;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @CommandInfo(name = "bind", args = { "name", "key" }, aliases = { "b" }, help = "binds a module to a key")
 public class BindCommand extends Command {
@@ -30,6 +30,9 @@ public class BindCommand extends Command {
 
     @Override
     public List<String> getAutoComplete(String str, int arg, List<String> list) {
-        return arg == 0 ? Arsenic.getArsenic().getModuleManager().getModulesSet().stream().filter(m -> m.getName().toLowerCase().startsWith(str.toLowerCase()) && m.getName().length() > str.length()).map(Module::getName).collect(Collectors.toList()) : list;
+        return arg == 0 ? Arsenic.getArsenic().getModuleManager().getModulesSet().stream()
+                .filter(m -> m.getName().toLowerCase().startsWith(str.toLowerCase())
+                        && m.getName().length() > str.length())
+                .map(Module::getName).collect(Collectors.toList()) : list;
     }
 }

@@ -1,4 +1,3 @@
 package arsenic.event.types;
 
-public interface Event {
-}
+public interface Event {}

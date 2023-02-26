@@ -33,6 +33,6 @@ public class HelpCommand extends Command {
 
     @Override
     protected List<String> getAutoComplete(String str, int arg, List<String> list) {
-        return arg == 0 ?  Arsenic.getArsenic().getCommandManager().getClosestCommandName(str) : list ;
+        return arg == 0 ? Arsenic.getArsenic().getCommandManager().getClosestCommandName(str) : list;
     }
 }

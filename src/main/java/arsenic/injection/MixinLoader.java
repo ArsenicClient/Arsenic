@@ -1,13 +1,14 @@
 package arsenic.injection;
 
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import java.util.Map;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 
-import java.util.Map;
+import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 @IFMLLoadingPlugin.MCVersion(value = "1.8.9")
 public class MixinLoader implements IFMLLoadingPlugin {
@@ -19,29 +20,21 @@ public class MixinLoader implements IFMLLoadingPlugin {
 
     @NotNull
     @Override
-    public String[] getASMTransformerClass() {
-        return new String[0];
-    }
+    public String[] getASMTransformerClass() { return new String[0]; }
 
     @Nullable
     @Override
-    public String getModContainerClass() {
-        return null;
-    }
+    public String getModContainerClass() { return null; }
 
     @Nullable
     @Override
-    public String getSetupClass() {
-        return null;
-    }
+    public String getSetupClass() { return null; }
 
     @Override
     public void injectData(Map<String, Object> data) {}
 
     @Nullable
     @Override
-    public String getAccessTransformerClass() {
-        return null;
-    }
+    public String getAccessTransformerClass() { return null; }
 
 }

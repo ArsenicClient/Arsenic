@@ -1,12 +1,12 @@
 package arsenic.gui.click;
 
-import arsenic.module.ModuleCategory;
-import arsenic.utils.interfaces.IContainer;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import arsenic.module.ModuleCategory;
+import arsenic.utils.interfaces.IContainer;
 
 public enum UICategory implements IContainer<ModuleCategory> {
 
@@ -23,12 +23,8 @@ public enum UICategory implements IContainer<ModuleCategory> {
     }
 
     @Override
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
 
     @Override
-    public Collection<ModuleCategory> getContents() {
-        return childCategories;
-    }
+    public Collection<ModuleCategory> getContents() { return childCategories; }
 }

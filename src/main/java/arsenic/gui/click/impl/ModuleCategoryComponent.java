@@ -1,5 +1,10 @@
 package arsenic.gui.click.impl;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import arsenic.gui.click.Component;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleManager;
@@ -9,15 +14,11 @@ import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
 
     private int colour = 0xFFFFFF00;
-    //private final int HEIGHT = Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 3;
+    // private final int HEIGHT =
+    // Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 3;
     private final ModuleCategory self;
     private final List<ModuleComponent> contentsL = new ArrayList<>(), contentsR = new ArrayList<>(), contents;
 
@@ -25,7 +26,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         self = category;
         contents = self.getContents().stream().map(ModuleComponent::new).distinct().collect(Collectors.toList());
         contents.forEach(module -> {
-            if((contentsL.size() + contentsR.size()) % 2 == 0) {
+            if ((contentsL.size() + contentsR.size()) % 2 == 0) {
                 contentsL.add(module);
             } else {
                 contentsR.add(module);
@@ -34,19 +35,15 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     @Override
-    public String getName() {
-        return self.getName();
-    }
+    public String getName() { return self.getName(); }
 
     @Override
-    public Collection<ModuleComponent> getContents() {
-        return contents;
-    }
+    public Collection<ModuleComponent> getContents() { return contents; }
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        RenderUtils.drawRect(x1, y1, x2,  y2, 0xFF00FF00);
-        ri.getFr().drawString(getName(), x1, y1 + (height)/2, colour);
+        RenderUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
+        ri.getFr().drawString(getName(), x1, y1 + (height) / 2, colour);
         return height;
     }
 
@@ -68,7 +65,5 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         this.contents.forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
     }
 
-    public void setCurrentCategory(boolean currentCategory) {
-        colour = currentCategory ? 0xFFFF00FF : 0xFFFFFF00;
-    }
+    public void setCurrentCategory(boolean currentCategory) { colour = currentCategory ? 0xFFFF00FF : 0xFFFFFF00; }
 }

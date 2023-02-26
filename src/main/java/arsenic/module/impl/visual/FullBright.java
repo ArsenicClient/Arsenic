@@ -1,6 +1,7 @@
 package arsenic.module.impl.visual;
 
 import org.lwjgl.input.Keyboard;
+
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;

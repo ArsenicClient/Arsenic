@@ -3,12 +3,12 @@ package arsenic.main;
 import java.util.Arrays;
 import java.util.Collection;
 
-import arsenic.command.CommandManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
 import arsenic.module.ModuleManager;
@@ -64,59 +64,34 @@ public class Arsenic implements IContainer {
     }
 
     @Override
-    public String getName() {
-        return clientName;
-    }
+    public String getName() { return clientName; }
 
     @Mod.Instance
     private static Arsenic instance;
 
-    public static Arsenic getInstance() {
-        return instance;
-    }
+    public static Arsenic getInstance() { return instance; }
 
-    public static Arsenic getArsenic() {
-        return instance;
-    }
+    public static Arsenic getArsenic() { return instance; }
 
-    public final String getClientName() {
-        return clientName;
-    }
+    public final String getClientName() { return clientName; }
 
-    public final long getClientVersion() {
-        return clientVersion;
-    }
+    public final long getClientVersion() { return clientVersion; }
 
     @Contract(pure = true)
-    public final @NotNull String getClientVersionString() {
-        return String.valueOf(clientVersion);
-    }
+    public final @NotNull String getClientVersionString() { return String.valueOf(clientVersion); }
 
-    public final Logger getLogger() {
-        return logger;
-    }
+    public final Logger getLogger() { return logger; }
 
-    public final EventManager getEventManager() {
-        return eventManager;
-    }
+    public final EventManager getEventManager() { return eventManager; }
 
-    public final ModuleManager getModuleManager() {
-        return moduleManager;
-    }
+    public final ModuleManager getModuleManager() { return moduleManager; }
 
-    public final Fonts getFonts() {
-        return fonts;
-    }
+    public final Fonts getFonts() { return fonts; }
 
-    public final BooleanProperty getCustomFontProperty() {
-        return (BooleanProperty) customFontProperty;
-    }
+    public final BooleanProperty getCustomFontProperty() { return (BooleanProperty) customFontProperty; }
 
-    public final ConfigManager getConfigManager() {
-        return configManager;
-    }
-    public final CommandManager getCommandManager() {
-        return commandManager;
-    }
+    public final ConfigManager getConfigManager() { return configManager; }
+
+    public final CommandManager getCommandManager() { return commandManager; }
 
 }

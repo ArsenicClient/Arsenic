@@ -28,11 +28,7 @@ public class EventPacket implements Event {
         cancelled = true;
     }
 
-    public boolean isCancelled() {
-        return cancelled;
-    }
+    public boolean isCancelled() { return cancelled; }
 
-    public Packet getPacket(){
-        return packet;
-    }
+    public Packet getPacket() { return packet; }
 }

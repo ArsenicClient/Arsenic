@@ -11,9 +11,7 @@ public class EventManager {
         this.bus = new EventBus<>();
     }
 
-    public EventBus<Event> getBus() {
-        return bus;
-    }
+    public EventBus<Event> getBus() { return bus; }
 
     public void subscribe(Object listener) {
         bus.subscribe(listener);

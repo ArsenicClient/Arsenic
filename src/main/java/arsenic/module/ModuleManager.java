@@ -1,5 +1,11 @@
 package arsenic.module;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
@@ -10,24 +16,17 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.FullBright;
 import arsenic.module.impl.visual.HUD;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
 public class ModuleManager {
 
-    private final Set<Module> modules = Arrays.stream(Modules.values()).map(Modules::getModule).collect(Collectors.toSet());
+    private final Set<Module> modules = Arrays.stream(Modules.values()).map(Modules::getModule)
+            .collect(Collectors.toSet());
 
     public final int initialize() {
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }
 
-    public final Set<Module> getModulesSet() {
-        return modules;
-    }
+    public final Set<Module> getModulesSet() { return modules; }
 
     public final Collection<Module> getEnabledModules() {
         return modules.stream().filter(Module::isEnabled).collect(Collectors.toList());
@@ -38,8 +37,8 @@ public class ModuleManager {
     }
 
     public final Module getModuleByName(String str) {
-        for(Module module : modules) {
-            if(module.getName().equalsIgnoreCase(str))
+        for (Module module : modules) {
+            if (module.getName().equalsIgnoreCase(str))
                 return module;
         }
         return null;
@@ -54,19 +53,15 @@ public class ModuleManager {
                 saveConfig.set(true);
             }
         });
-        if (saveConfig.get()) {
-            Arsenic.getArsenic().getConfigManager().saveConfig();
-        }
+        if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
     };
 
     public enum Modules {
-        FULLBRIGHT(FullBright.class),
-        SPRINT(Sprint.class),
-        HUD(HUD.class),
-        CLICKGUI(ClickGui.class),
+        FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         TESTMODULE(TestModule.class);
 
         private Module module;
+
         Modules(Class<? extends Module> module) {
             try {
                 this.module = module.newInstance();
@@ -76,8 +71,6 @@ public class ModuleManager {
             }
         }
 
-        public Module getModule() {
-            return module;
-        }
+        public Module getModule() { return module; }
     }
 }

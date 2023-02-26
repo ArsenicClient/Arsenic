@@ -1,12 +1,12 @@
 package arsenic.utils.render;
 
+import java.awt.Color;
+
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-
-import java.awt.*;
 
 public class RenderUtils extends UtilityClass {
 
@@ -25,10 +25,10 @@ public class RenderUtils extends UtilityClass {
             bottom = temp;
         }
 
-        float alpha = (float)(color >> 24 & 255) / 255.0F;
-        float red = (float)(color >> 16 & 255) / 255.0F;
-        float green = (float)(color >> 8 & 255) / 255.0F;
-        float blue = (float)(color & 255) / 255.0F;
+        float alpha = (float) (color >> 24 & 255) / 255.0F;
+        float red = (float) (color >> 16 & 255) / 255.0F;
+        float green = (float) (color >> 8 & 255) / 255.0F;
+        float blue = (float) (color & 255) / 255.0F;
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer renderer = tessellator.getWorldRenderer();

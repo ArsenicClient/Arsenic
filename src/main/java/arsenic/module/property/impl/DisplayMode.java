@@ -1,9 +1,7 @@
 package arsenic.module.property.impl;
 
 public enum DisplayMode {
-    NORMAL(""),
-    PERCENT("%"),
-    MILLIS("ms");
+    NORMAL(""), PERCENT("%"), MILLIS("ms");
 
     private final String suffix;
 
@@ -11,9 +9,7 @@ public enum DisplayMode {
         this.suffix = suffix;
     }
 
-    public String getSuffix() {
-        return suffix;
-    }
+    public String getSuffix() { return suffix; }
 
     @Override
     public String toString() {

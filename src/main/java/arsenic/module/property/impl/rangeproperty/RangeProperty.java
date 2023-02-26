@@ -1,16 +1,15 @@
 package arsenic.module.property.impl.rangeproperty;
 
-import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.RenderUtils;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
@@ -20,10 +19,10 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         super(name, value);
         this.displayMode = displayMode;
     }
-    
+
     public RangeProperty(String name, RangeValue value) {
-    	super(name, value);
-    	this.displayMode = DisplayMode.NORMAL;
+        super(name, value);
+        this.displayMode = DisplayMode.NORMAL;
     }
 
     @Override
@@ -43,10 +42,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         return value.getMin() + " -  " + value.getMax() + displayMode.getSuffix();
     }
 
-    public DisplayMode getDisplayMode() {
-        return displayMode;
-    }
-
+    public DisplayMode getDisplayMode() { return displayMode; }
 
     @Override
     public PropertyComponent createComponent() {

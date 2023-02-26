@@ -1,5 +1,12 @@
 package arsenic.gui.click;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.google.gson.JsonObject;
+
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
@@ -10,24 +17,18 @@ import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
-import com.google.gson.JsonObject;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ClickGuiScreen extends GuiScreen implements ISerializable {
     private final ClickGui module;
     private final List<UICategoryComponent> components;
     private ModuleCategoryComponent cmcc;
 
-
     public ClickGuiScreen() {
         this.module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
-        components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct().collect(Collectors.toList());
+        components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
+                .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
     }
@@ -36,35 +37,33 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
-        //makes whole screen slightly darker
+        // makes whole screen slightly darker
         RenderUtils.drawRect(0, 0, width, height, 0x35000000);
 
-        int x = width/8;
-        int y = height/6;
+        int x = width / 8;
+        int y = height / 6;
         int x1 = width - x;
         int y1 = height - y;
 
-        //main container
+        // main container
         Gui.drawRect(x, y, x1, y1, 0x900000FF);
-
 
         int vLineX = 2 * x;
         int hLineY = (int) (1.5 * y);
 
-        //vertical line
+        // vertical line
         Gui.drawRect(vLineX, y, vLineX + 1, y1, 0xFFFF0000);
-        //horizontal line
+        // horizontal line
         Gui.drawRect(x, hLineY, x1, hLineY + 1, 0xFFFF0000);
 
-
-        //draws each module category component
-        PosInfo pi = new PosInfo(  x+ 5, hLineY + 5);
+        // draws each module category component
+        PosInfo pi = new PosInfo(x + 5, hLineY + 5);
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
-        //makes the currently selected category component draw its modules
+        // makes the currently selected category component draw its modules
         PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
         cmcc.drawLeft(piL, ri);
-        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX)/2 , hLineY + 5);
+        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2, hLineY + 5);
         cmcc.drawRight(piR, ri);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
@@ -84,7 +83,8 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     }
 
     public final IFontRenderer getFontRenderer() {
-        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR : (IFontRenderer) mc.fontRendererObj;
+        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR
+                : (IFontRenderer) mc.fontRendererObj;
     }
 
     @Override
@@ -96,11 +96,11 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     public void loadFromJson(JsonObject obj) {
 
     }
-    
+
     @Override
-	public JsonObject saveInfoToJson(JsonObject obj) {
-		return obj;
-	}
+    public JsonObject saveInfoToJson(JsonObject obj) {
+        return obj;
+    }
 
     @Override
     public JsonObject addToJson(JsonObject obj) {
@@ -108,8 +108,6 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
     }
 
     @Override
-    public String getJsonKey() {
-        return "clickgui";
-    }
+    public String getJsonKey() { return "clickgui"; }
 
 }

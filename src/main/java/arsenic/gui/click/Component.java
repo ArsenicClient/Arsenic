@@ -5,16 +5,15 @@ import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import org.lwjgl.opengl.GL11;
 
 public abstract class Component implements IContainable {
 
     protected int x1, y1, x2, y2, width, height, expandY, expandX;
 
-    //percent * (Height or width)/100
-    protected final IInt widthP = (i) -> 5 * (i/100), heightP = (i) -> 5 * (i/100);
+    // percent * (Height or width)/100
+    protected final IInt widthP = (i) -> 5 * (i / 100), heightP = (i) -> 5 * (i / 100);
 
-    //returns height
+    // returns height
     public int updateComponent(PosInfo pi, RenderInfo ri) {
 
         width = widthP.getValue(ri.getGuiScreen().width);
@@ -30,16 +29,19 @@ public abstract class Component implements IContainable {
     }
 
     public void handleClick(int mouseX, int mouseY, int mouseButton) {
-        if(mouseX > (x1) && mouseX < (x2 + expandX) && mouseY > (y1) && mouseY < (y2 + expandY)) {
+        if (mouseX > (x1) && mouseX < (x2 + expandX) && mouseY > (y1) && mouseY < (y2 + expandY)) {
             clickComponent(mouseX, mouseY, mouseButton);
-            if(this instanceof IContainer) {
-                ((IContainer) this).getContents().forEach(component -> ((Component)component).handleClick(mouseX, mouseY, mouseButton));
+            if (this instanceof IContainer) {
+                ((IContainer) this).getContents()
+                        .forEach(component -> ((Component) component).handleClick(mouseX, mouseY, mouseButton));
             }
         }
     }
 
     protected abstract int drawComponent(RenderInfo ri);
+
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {};
+
     public void mouseUpdate(int x, int y) {
 
     }

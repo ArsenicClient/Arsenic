@@ -19,12 +19,8 @@ public class EventRender2D implements Event {
         this.sr = sr;
     }
 
-    public ScaledResolution getSr() {
-        return sr;
-    }
+    public ScaledResolution getSr() { return sr; }
 
-    public float getPartialTicks() {
-        return partialTicks;
-    }
+    public float getPartialTicks() { return partialTicks; }
 
 }

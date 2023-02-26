@@ -10,8 +10,6 @@ public class EventKey implements Event {
         this.keycode = keycode;
     }
 
-    public int getKeycode() {
-        return keycode;
-    }
+    public int getKeycode() { return keycode; }
 
 }

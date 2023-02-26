@@ -70,7 +70,8 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
         rotationYaw = cachedRotationYaw;
         rotationPitch = cachedRotationPitch;
 
-        Arsenic.getInstance().getEventManager().post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
+        Arsenic.getInstance().getEventManager()
+                .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
     }
 
 }

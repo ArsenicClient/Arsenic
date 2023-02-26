@@ -5,7 +5,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -49,17 +48,12 @@ public abstract class Config {
     }
 
     public void deleteConfig() {
-        if(config.exists()) {
-            config.delete();
-        }
+        if (config.exists()) { config.delete(); }
     }
 
-    public String getName() {
-        return config.getName().replace(".json", "");
-    }
+    public String getName() { return config.getName().replace(".json", ""); }
 
     public abstract void loadFromJson(JsonObject obj);
-
     public abstract JsonObject getJson(JsonObject obj);
 
 }

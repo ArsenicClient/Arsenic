@@ -3,7 +3,6 @@ package arsenic.utils.interfaces;
 public interface IFontRenderer {
 
     void drawString(String text, float x, float y, int color);
-
     void drawStringWithShadow(String text, float x, float y, int color);
 
     default void drawStringWithOutline(String text, float x, float y, int color) {

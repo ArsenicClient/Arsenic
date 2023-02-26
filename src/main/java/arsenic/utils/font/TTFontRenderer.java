@@ -1,17 +1,47 @@
 package arsenic.utils.font;
 
-import arsenic.utils.interfaces.IFontRenderer;
-import org.jetbrains.annotations.NotNull;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
+import static org.lwjgl.opengl.GL11.GL_LINES;
+import static org.lwjgl.opengl.GL11.GL_NEAREST;
+import static org.lwjgl.opengl.GL11.GL_QUADS;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.glBegin;
+import static org.lwjgl.opengl.GL11.glBindTexture;
+import static org.lwjgl.opengl.GL11.glColor4d;
+import static org.lwjgl.opengl.GL11.glColor4f;
+import static org.lwjgl.opengl.GL11.glDisable;
+import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL11.glEnd;
+import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL11.glLineWidth;
+import static org.lwjgl.opengl.GL11.glPopMatrix;
+import static org.lwjgl.opengl.GL11.glPushMatrix;
+import static org.lwjgl.opengl.GL11.glScaled;
+import static org.lwjgl.opengl.GL11.glTexCoord2f;
+import static org.lwjgl.opengl.GL11.glTexImage2D;
+import static org.lwjgl.opengl.GL11.glTexParameteri;
+import static org.lwjgl.opengl.GL11.glTranslated;
+import static org.lwjgl.opengl.GL11.glVertex2d;
+import static org.lwjgl.opengl.GL11.glVertex2f;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import static org.lwjgl.opengl.GL11.*;
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
+
+import arsenic.utils.interfaces.IFontRenderer;
 
 public class TTFontRenderer implements IFontRenderer {
 
@@ -58,9 +88,9 @@ public class TTFontRenderer implements IFontRenderer {
         for (int i = 0; i < length; i++) {
             char character = text.charAt(i);
 
-            if (character == COLOR_INVOKER ||
-                    (i > 0 ? text.charAt(i - 1) : '.') == COLOR_INVOKER ||
-                    !isValid(character)) continue;
+            if (character == COLOR_INVOKER || (i > 0 ? text.charAt(i - 1) : '.') == COLOR_INVOKER
+                    || !isValid(character))
+                continue;
 
             CharacterData charData = characterData[character];
 
@@ -80,9 +110,9 @@ public class TTFontRenderer implements IFontRenderer {
 
         for (int i = 0; i < length; i++) {
             char character = text.charAt(i);
-            if ((i > 0 ? text.charAt(i - 1) : '.') == COLOR_INVOKER ||
-                    character == COLOR_INVOKER ||
-                    !isValid(character)) continue;
+            if ((i > 0 ? text.charAt(i - 1) : '.') == COLOR_INVOKER || character == COLOR_INVOKER
+                    || !isValid(character))
+                continue;
 
             CharacterData charData = characterData[character];
             height = Math.max(height, charData.height);
@@ -94,7 +124,8 @@ public class TTFontRenderer implements IFontRenderer {
     public void generateTextures() {
         for (int i = 0; i < 256; i++) {
             char c = (char) i;
-            if (isValid(c)) setup(c);
+            if (isValid(c))
+                setup(c);
         }
     }
 
@@ -107,8 +138,7 @@ public class TTFontRenderer implements IFontRenderer {
         Rectangle2D characterBounds = fontMetrics.getStringBounds(String.valueOf(character), utilityGraphics);
         BufferedImage characterImage = new BufferedImage(
                 (int) StrictMath.ceil(characterBounds.getWidth() + (2 * margin)),
-                (int) StrictMath.ceil(characterBounds.getHeight()),
-                BufferedImage.TYPE_INT_ARGB);
+                (int) StrictMath.ceil(characterBounds.getHeight()), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = (Graphics2D) characterImage.getGraphics();
         graphics.setFont(font);
         // Fill background with clear rect
@@ -117,27 +147,23 @@ public class TTFontRenderer implements IFontRenderer {
         graphics.setColor(Color.WHITE);
         // Setup rendering hints
         if (antiAlias)
-            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         if (fracMetrics)
-            graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
-                    RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
         graphics.drawString(String.valueOf(character), margin, fontMetrics.getAscent());
 
         int textureId = glGenTextures();
         createTexture(textureId, characterImage);
 
-        charData[character] = new CharacterData(characterImage.getWidth(),
-                characterImage.getHeight(), textureId);
+        charData[character] = new CharacterData(characterImage.getWidth(), characterImage.getHeight(), textureId);
     }
 
     private void createTexture(int textureId, @NotNull BufferedImage image) {
         int[] pixels = new int[image.getWidth() * image.getHeight()];
 
-        image.getRGB(0, 0, image.getWidth(), image.getHeight(),
-                pixels, 0, image.getWidth());
+        image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels, 0, image.getWidth());
 
         ByteBuffer buffer = BufferUtils.createByteBuffer(image.getWidth() * image.getHeight() * 4);
 
@@ -159,22 +185,18 @@ public class TTFontRenderer implements IFontRenderer {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // Upload texture
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                image.getWidth(), image.getHeight(), 0,
-                GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                buffer);
     }
 
     private void renderString(CharSequence text, float x, float y, int color, boolean shadow) {
-        if (text == null || text.length() == 0) return;
+        if (text == null || text.length() == 0)
+            return;
 
         glPushMatrix();
 
-        if ((color & 0xFC000000) == 0) {
-            color |= 0xFF000000;
-        }
-        if (color == 0x20FFFFFF) {
-            color = 0xFFAFAFAF;
-        }
+        if ((color & 0xFC000000) == 0) { color |= 0xFF000000; }
+        if (color == 0x20FFFFFF) { color = 0xFFAFAFAF; }
 
         glScaled(0.5, 0.5, 1);
 
@@ -207,19 +229,20 @@ public class TTFontRenderer implements IFontRenderer {
         for (int i = 0; i < length; i++) {
             char character = text.charAt(i);
             char previous = i > 0 ? text.charAt(i - 1) : '.';
-            if (previous == COLOR_INVOKER) continue;
+            if (previous == COLOR_INVOKER)
+                continue;
             if (character == COLOR_INVOKER) {
                 int index = "0123456789ABCDEFKLMNOR".indexOf(text.charAt(i + 1));
                 if (index < 16) {
                     obfuscated = false;
                     strikethrough = false;
                     underlined = false;
-                    if (index < 0) index = 15;
-                    if (shadow) index += 16;
+                    if (index < 0)
+                        index = 15;
+                    if (shadow)
+                        index += 16;
                     int textColor = this.colorCodes[index];
-                    glColor4f((textColor >> 16) / 255.0F,
-                            (textColor >> 8 & 255) / 255.0F,
-                            (textColor & 255) / 255.0F,
+                    glColor4f((textColor >> 16) / 255.0F, (textColor >> 8 & 255) / 255.0F, (textColor & 255) / 255.0F,
                             a);
                 } else if (index == 16)
                     obfuscated = true;
@@ -293,7 +316,8 @@ public class TTFontRenderer implements IFontRenderer {
             int red = (i >> 2 & 1) * 170 + thingy;
             int green = (i >> 1 & 1) * 170 + thingy;
             int blue = (i & 1) * 170 + thingy;
-            if (i == 6) red += 85;
+            if (i == 6)
+                red += 85;
             if (i >= 16) {
                 red /= 4;
                 green /= 4;

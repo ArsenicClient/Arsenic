@@ -5,18 +5,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.SerializableProperty;
-import arsenic.module.property.IReliable;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
+import arsenic.module.property.IReliable;
 import arsenic.module.property.Property;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.input.Keyboard;
 
 public class Module implements IContainable, IContainer<Property>, ISerializable {
 
@@ -48,9 +47,7 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
         hidden = info.hidden();
         keybind = info.keybind();
 
-        if (info.enabled()) {
-            setEnabledSilently(true);
-        }
+        if (info.enabled()) { setEnabledSilently(true); }
     }
 
     public final void registerProperties() {
@@ -58,22 +55,21 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
             try {
                 Property property = (Property) field.get(this);
                 properties.add(property);
-                if(field.isAnnotationPresent(PropertyInfo.class)) {
+                if (field.isAnnotationPresent(PropertyInfo.class)) {
                     final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
-                    for(SerializableProperty<?> p : serializableProperties){
-                        if(p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
-                             property.setVisible(((IReliable) p).valueCheck(info.value()));
-                             break;
+                    for (SerializableProperty<?> p : serializableProperties) {
+                        if (p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
+                            property.setVisible(((IReliable) p).valueCheck(info.value()));
+                            break;
                         }
                     }
                 }
                 serializableProperties.add((SerializableProperty<?>) property);
             } catch (final IllegalAccessException | ClassCastException e) {
-                //ignored
+                // ignored
             }
         }
     }
-
 
     protected void onEnable() {
     }
@@ -82,21 +78,13 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
     }
 
     @Override
-    public final String getName() {
-        return name;
-    }
+    public final String getName() { return name; }
 
-    public final String getDescription() {
-        return description;
-    }
+    public final String getDescription() { return description; }
 
-    public final ModuleCategory getCategory() {
-        return category;
-    }
+    public final ModuleCategory getCategory() { return category; }
 
-    public final boolean isEnabled() {
-        return enabled;
-    }
+    public final boolean isEnabled() { return enabled; }
 
     public final void setEnabled(boolean enabled) {
         if (this.enabled != enabled) {
@@ -135,37 +123,22 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
         }
     }
 
-    public final boolean isHidden() {
-        return hidden;
-    }
+    public final boolean isHidden() { return hidden; }
 
-    public final void setHidden(boolean hidden) {
-        this.hidden = hidden;
-    }
+    public final void setHidden(boolean hidden) { this.hidden = hidden; }
 
-    public final String getDisplayName() {
-        return displayName;
-    }
+    public final String getDisplayName() { return displayName; }
 
-    public final void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
+    public final void setDisplayName(String displayName) { this.displayName = displayName; }
 
-    public final int getKeybind() {
-        return keybind;
-    }
+    public final int getKeybind() { return keybind; }
 
-    public final void setKeybind(int keybind) {
-        this.keybind = keybind;
-    }
+    public final void setKeybind(int keybind) { this.keybind = keybind; }
 
     @Override
-    public final Collection<Property> getContents() {
-        return properties;
-    }
-    public final List<Property> getProperties() {
-        return properties;
-    }
+    public final Collection<Property> getContents() { return properties; }
+
+    public final List<Property> getProperties() { return properties; }
 
     @Override
     public final void loadFromJson(JsonObject obj) {
@@ -174,11 +147,11 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
             keybind = obj.get("bind").getAsInt();
             setEnabledSilently(obj.get("enabled").getAsBoolean());
 
-            serializableProperties.forEach(property -> {
-                property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
-            });
+            serializableProperties
+                    .forEach(property -> { property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())); });
         } catch (NullPointerException | IllegalArgumentException e) {
-            System.out.println("Error loading " + getName() + "'s config (If this the first launch or the first launch after an update ignore this)");
+            System.out.println("Error loading " + getName()
+                    + "'s config (If this the first launch or the first launch after an update ignore this)");
         }
         postApplyConfig();
     }
@@ -191,9 +164,7 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);
 
-        serializableProperties.forEach(property -> {
-            property.addToJson(obj);
-        });
+        serializableProperties.forEach(property -> { property.addToJson(obj); });
         return obj;
     }
 
@@ -206,7 +177,5 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
     }
 
     @Override
-    public final String getJsonKey() {
-        return name;
-    }
+    public final String getJsonKey() { return name; }
 }

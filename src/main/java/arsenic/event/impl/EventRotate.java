@@ -2,7 +2,7 @@ package arsenic.event.impl;
 
 import arsenic.event.types.Event;
 
-public class EventRotate implements Event{
+public class EventRotate implements Event {
 
     private float initYaw, initPitch;
     private float yaw, pitch, speed;
@@ -19,43 +19,23 @@ public class EventRotate implements Event{
         return initYaw != yaw || initPitch != pitch;
     }
 
-    public float getYaw() {
-        return yaw;
-    }
+    public float getYaw() { return yaw; }
 
-    public void setYaw(float yaw) {
-        this.yaw = yaw;
-    }
+    public void setYaw(float yaw) { this.yaw = yaw; }
 
-    public float getPitch() {
-        return pitch;
-    }
+    public float getPitch() { return pitch; }
 
-    public void setPitch(float pitch) {
-        this.pitch = pitch;
-    }
+    public void setPitch(float pitch) { this.pitch = pitch; }
 
-    public float getSpeed() {
-        return speed;
-    }
+    public float getSpeed() { return speed; }
 
-    public void setSpeed(float speed) {
-        this.speed = speed;
-    }
+    public void setSpeed(float speed) { this.speed = speed; }
 
-    public boolean isOnMove() {
-        return onMove;
-    }
+    public boolean isOnMove() { return onMove; }
 
-    public void setOnMove(boolean onMove) {
-        this.onMove = onMove;
-    }
+    public void setOnMove(boolean onMove) { this.onMove = onMove; }
 
-    public boolean isOnLook() {
-        return onLook;
-    }
+    public boolean isOnLook() { return onLook; }
 
-    public void setOnLook(boolean onLook) {
-        this.onLook = onLook;
-    }
+    public void setOnLook(boolean onLook) { this.onLook = onLook; }
 }

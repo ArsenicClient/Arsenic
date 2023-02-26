@@ -22,13 +22,9 @@ public class Timer {
         return false;
     }
 
-    public void setCooldown(long coolDownTime) {
-        this.coolDownTime = coolDownTime;
-    }
+    public void setCooldown(long coolDownTime) { this.coolDownTime = coolDownTime; }
 
-    public long getCooldownTime() {
-        return coolDownTime;
-    }
+    public long getCooldownTime() { return coolDownTime; }
 
     public long getElapsedTime() {
         long et = System.currentTimeMillis() - startTime;

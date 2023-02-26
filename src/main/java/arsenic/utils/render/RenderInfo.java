@@ -1,10 +1,9 @@
 package arsenic.utils.render;
 
-import arsenic.utils.interfaces.IFontRenderer;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
+import java.awt.Color;
 
-import java.awt.*;
+import arsenic.utils.interfaces.IFontRenderer;
+import net.minecraft.client.gui.GuiScreen;
 
 public class RenderInfo {
     private int index = 0;
@@ -20,21 +19,13 @@ public class RenderInfo {
         this.guiScreen = guiScreen;
     }
 
-    public final int getIndex() {
-        return index;
-    }
+    public final int getIndex() { return index; }
 
-    public final void setIndex(int index) {
-        this.index = index;
-    }
+    public final void setIndex(int index) { this.index = index; }
 
-    public final int getMouseX() {
-        return mouseX;
-    }
+    public final int getMouseX() { return mouseX; }
 
-    public final int getMouseY() {
-        return mouseY;
-    }
+    public final int getMouseY() { return mouseY; }
 
     public final Color getLighterColorByLevel(Color color) {
         return getColorByLevel(color, -index);
@@ -44,19 +35,13 @@ public class RenderInfo {
         return getColorByLevel(color, index);
     }
 
-    public GuiScreen getGuiScreen() {
-        return guiScreen;
-    }
+    public GuiScreen getGuiScreen() { return guiScreen; }
 
     private Color getColorByLevel(Color color, int level) {
-        for (int i = 0; i < level; i++) {
-            color = color.darker();
-        }
+        for (int i = 0; i < level; i++) { color = color.darker(); }
         return color;
     }
 
-    public final IFontRenderer getFr() {
-        return fr;
-    }
+    public final IFontRenderer getFr() { return fr; }
 
 }

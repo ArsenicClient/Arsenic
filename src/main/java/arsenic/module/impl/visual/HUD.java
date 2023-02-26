@@ -17,8 +17,8 @@ public class HUD extends Module {
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
         IFontRenderer mcFr = (IFontRenderer) mc.fontRendererObj;
-        float yOffSet= 0;
-        for(Module m : Arsenic.getArsenic().getModuleManager().getEnabledModules()) {
+        float yOffSet = 0;
+        for (Module m : Arsenic.getArsenic().getModuleManager().getEnabledModules()) {
             mcFr.drawString(m.getName(), 0, yOffSet, 0xFFFFFFFF);
             yOffSet += mcFr.getHeight(m.getName());
         }

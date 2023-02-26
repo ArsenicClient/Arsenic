@@ -18,7 +18,6 @@ public class ClickGui extends Module {
 
     private ClickGuiScreen screen;
 
-
     @Override
     protected void onEnable() {
         if (screen == null)
@@ -29,8 +28,6 @@ public class ClickGui extends Module {
         setEnabled(false);
     }
 
-    public final ClickGuiScreen getScreen() {
-        return screen;
-    }
+    public final ClickGuiScreen getScreen() { return screen; }
 
 }

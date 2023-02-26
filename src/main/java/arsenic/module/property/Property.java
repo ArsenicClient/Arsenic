@@ -12,23 +12,17 @@ public abstract class Property<T> implements IContainable {
         this.value = value;
     }
 
-    public T getValue() {
-        return value;
-    }
+    public T getValue() { return value; }
 
-    public void setValue(T value) {
-        this.value = value;
-    }
+    public void setValue(T value) { this.value = value; }
 
-    public void setVisible(IVisible visible) {this.visible = visible;}
+    public void setVisible(IVisible visible) { this.visible = visible; }
 
-    public boolean isVisible() {return visible.func();}
+    public boolean isVisible() { return visible.func(); }
 
     public abstract PropertyComponent createComponent();
 
-    @FunctionalInterface public interface IVisible {boolean func();}
+    @FunctionalInterface
+    public interface IVisible { boolean func(); }
 
-
-
-    
 }

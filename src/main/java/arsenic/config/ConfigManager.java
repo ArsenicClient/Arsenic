@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
-import org.lwjgl.Sys;
 
 public class ConfigManager {
 
@@ -17,19 +16,15 @@ public class ConfigManager {
             Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs");
 
     public int initialize() {
-        if (!configDirectory.isDirectory()) {
-            configDirectory.mkdirs();
-        }
+        if (!configDirectory.isDirectory()) { configDirectory.mkdirs(); }
 
-        clientConfig = new ClientConfig(new File(
-                Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json"));
+        clientConfig = new ClientConfig(
+                new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json"));
 
         reloadConfigs();
         if (!configs.isEmpty()) {
             clientConfig.loadConfig();
-            if(currentConfig == null) {
-                currentConfig = (ModuleConfig) configs.values().toArray()[0];
-            }
+            if (currentConfig == null) { currentConfig = (ModuleConfig) configs.values().toArray()[0]; }
         } else {
             createConfig("default");
         }
@@ -37,7 +32,6 @@ public class ConfigManager {
         currentConfig.loadConfig();
         return configs.size();
     }
-
 
     public void reloadConfigs() {
         configs.clear();
@@ -62,9 +56,7 @@ public class ConfigManager {
         currentConfig = configs.get(name);
         if (currentConfig == null) {
             System.out.println("Config " + name + " not found loading default config... ");
-            if (!configs.containsKey("default")) {
-                createConfig("default");
-            }
+            if (!configs.containsKey("default")) { createConfig("default"); }
         }
         currentConfig.loadConfig();
         clientConfig.saveConfig();
@@ -78,16 +70,13 @@ public class ConfigManager {
         clientConfig.saveConfig();
     }
 
-    public ModuleConfig getCurrentConfig() {
-        return currentConfig;
-    }
+    public ModuleConfig getCurrentConfig() { return currentConfig; }
 
-    public Set<String> getConfigList() {
-        return configs.keySet();
-    }
+    public Set<String> getConfigList() { return configs.keySet(); }
 
-    public void saveConfig() {currentConfig.saveConfig();}
-    //remember to only call this during events that the user can call eg closing the clickgui, using commands etc.
+    public void saveConfig() { currentConfig.saveConfig(); }
+    // remember to only call this during events that the user can call eg closing
+    // the clickgui, using commands etc.
     // if you don't then there is a potential of recursion
 
 }

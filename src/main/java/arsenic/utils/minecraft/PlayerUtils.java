@@ -6,6 +6,7 @@ import net.minecraft.util.ChatComponentText;
 public class PlayerUtils {
 
     private static Minecraft mc = Minecraft.getMinecraft();
+
     public static void addMessageToChat(String msg) {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }

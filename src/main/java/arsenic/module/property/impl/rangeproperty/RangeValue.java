@@ -21,31 +21,17 @@ public class RangeValue {
         return Math.round(value * inc) / inc;
     }
 
-    public double getMin() {
-        return min;
-    }
+    public double getMin() { return min; }
 
-    public void setMin(double min) {
-        this.min = getCorrectedValue(min);
-    }
+    public void setMin(double min) { this.min = getCorrectedValue(min); }
 
-    public double getMax() {
-        return max;
-    }
+    public double getMax() { return max; }
 
-    public void setMax(double max) {
-        this.max = getCorrectedValue(max);
-    }
+    public void setMax(double max) { this.max = getCorrectedValue(max); }
 
-    public double getMaxBound() {
-        return maxBound;
-    }
+    public double getMaxBound() { return maxBound; }
 
-    public double getMinBound() {
-        return minBound;
-    }
+    public double getMinBound() { return minBound; }
 
-    public double getRandomInRange() {
-        return getMin() + (random.nextDouble() * (getMax() - getMin()));
-    }
+    public double getRandomInRange() { return getMin() + (random.nextDouble() * (getMax() - getMin())); }
 }

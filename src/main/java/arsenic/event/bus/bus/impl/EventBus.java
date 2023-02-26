@@ -1,15 +1,20 @@
 package arsenic.event.bus.bus.impl;
 
-import arsenic.event.bus.Listener;
-import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.bus.bus.Bus;
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
+
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.bus.bus.Bus;
 
 public final class EventBus<Event> implements Bus<Event> {
 
@@ -33,8 +38,7 @@ public final class EventBus<Event> implements Bus<Event> {
                 if (!field.isAccessible())
                     field.setAccessible(true);
                 try {
-                    final Listener<Event> listener =
-                        (Listener<Event>) LOOKUP.unreflectGetter(field)
+                    final Listener<Event> listener = (Listener<Event>) LOOKUP.unreflectGetter(field)
                             .invokeWithArguments(subscriber);
 
                     final byte priority = annotation.value();
@@ -91,9 +95,7 @@ public final class EventBus<Event> implements Bus<Event> {
         int i = 0;
         final int listenersSize = listeners.size();
 
-        while (i < listenersSize) {
-            listeners.get(i++).call(event);
-        }
+        while (i < listenersSize) { listeners.get(i++).call(event); }
     }
 
     private static class CallSite<Event> {
