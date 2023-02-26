@@ -1,46 +1,42 @@
 package arsenic.gui.click;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
-import arsenic.module.Module;
-import arsenic.module.ModuleManager;
-import arsenic.utils.render.PosInfo;
-import com.google.gson.JsonObject;
-
 import arsenic.main.Arsenic;
+import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISerializable;
+import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import com.google.gson.JsonObject;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 
-public class ClickGuiScreen extends GuiScreen implements ISerializable {
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-    public final Color topColor = new Color(44, 62, 80), bgColor = new Color(52, 73, 94);
+public class ClickGuiScreen extends GuiScreen implements ISerializable {
     private final ClickGui module;
-    private final List<UICategoryComponent> components = new ArrayList<>();
+    private final List<UICategoryComponent> components;
     private ModuleCategoryComponent cmcc;
 
 
     public ClickGuiScreen() {
         this.module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
-        for (UICategory value : UICategory.values()) {
-            components.add(new UICategoryComponent(value));
-        }
+        components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct().collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
+        cmcc.setCurrentCategory(true);
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
+        //makes whole screen slightly darker
         RenderUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width/8;
@@ -48,20 +44,36 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
         int x1 = width - x;
         int y1 = height - y;
 
+        //main container
         Gui.drawRect(x, y, x1, y1, 0x900000FF);
 
-        PosInfo pi = new PosInfo( x + 5, y + 5);
 
+        int vLineX = 2 * x;
+        int hLineY = (int) (1.5 * y);
+
+        //vertical line
+        Gui.drawRect(vLineX, y, vLineX + 1, y1, 0xFFFF0000);
+        //horizontal line
+        Gui.drawRect(x, hLineY, x1, hLineY + 1, 0xFFFF0000);
+
+
+        //draws each module category component
+        PosInfo pi = new PosInfo(  x+ 5, hLineY + 5);
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+
+        //makes the currently selected category component draw its modules
+        PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
+        cmcc.drawLeft(piL, ri);
+        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX)/2 , hLineY + 5);
+        cmcc.drawRight(piR, ri);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
-
+        cmcc.clickChildren(mouseX, mouseY, mouseButton);
         super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 

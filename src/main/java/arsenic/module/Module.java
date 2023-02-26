@@ -18,7 +18,7 @@ import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
 
-public class Module implements IContainable, IContainer, ISerializable {
+public class Module implements IContainable, IContainer<Property>, ISerializable {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
@@ -31,7 +31,7 @@ public class Module implements IContainable, IContainer, ISerializable {
 
     private boolean registered;
 
-    private final List<Property<?>> properties = new ArrayList<>();
+    private final List<Property> properties = new ArrayList<>();
     private final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
 
     public Module() {
@@ -56,7 +56,7 @@ public class Module implements IContainable, IContainer, ISerializable {
     public final void registerProperties() {
         for (final Field field : getClass().getFields()) {
             try {
-                Property<?> property = (Property<?>) field.get(this);
+                Property property = (Property) field.get(this);
                 properties.add(property);
                 if(field.isAnnotationPresent(PropertyInfo.class)) {
                     final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
@@ -160,11 +160,10 @@ public class Module implements IContainable, IContainer, ISerializable {
     }
 
     @Override
-    public final Collection<IContainable> getContents() {
-        return new ArrayList<>(properties);
+    public final Collection<Property> getContents() {
+        return properties;
     }
-
-    public final List<Property<?>> getProperties() {
+    public final List<Property> getProperties() {
         return properties;
     }
 
@@ -178,7 +177,7 @@ public class Module implements IContainable, IContainer, ISerializable {
             serializableProperties.forEach(property -> {
                 property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
             });
-        } catch (NullPointerException e) {
+        } catch (NullPointerException | IllegalArgumentException e) {
             System.out.println("Error loading " + getName() + "'s config (If this the first launch or the first launch after an update ignore this)");
         }
         postApplyConfig();

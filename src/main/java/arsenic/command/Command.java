@@ -14,7 +14,7 @@ public class Command {
 
     public Command() {
         if (!this.getClass().isAnnotationPresent(CommandInfo.class))
-            throw new IllegalArgumentException("No @ModuleInfo on class " + this.getClass().getCanonicalName());
+            throw new IllegalArgumentException("No @CommandInfo on class " + this.getClass().getCanonicalName());
 
         final CommandInfo info = this.getClass().getDeclaredAnnotation(CommandInfo.class);
 

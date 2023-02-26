@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public enum ModuleCategory implements IContainer, IContainable {
+public enum ModuleCategory implements IContainer<Module>, IContainable {
     PLAYERS("Players"),
     WORLD("World"),
     CLIENT("Client"),
@@ -29,7 +29,7 @@ public enum ModuleCategory implements IContainer, IContainable {
 
     @Contract(" -> new")
     @Override
-    public @NotNull Collection<IContainable> getContents() {
+    public @NotNull Collection<Module> getContents() {
         return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModulesByCategory(this));
     }
 

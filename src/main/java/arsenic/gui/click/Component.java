@@ -2,9 +2,10 @@ package arsenic.gui.click;
 
 import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.interfaces.IContainable;
-import arsenic.utils.io.MouseButton;
+import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import org.lwjgl.opengl.GL11;
 
 public abstract class Component implements IContainable {
 
@@ -24,19 +25,21 @@ public abstract class Component implements IContainable {
         y2 = y1 + height;
 
         mouseUpdate(ri.getMouseX(), ri.getMouseY());
+
         return drawComponent(ri);
     }
 
-    public final void handleClick(int mouseX, int mouseY, int mouseButton) {
-        MouseButton button = MouseButton.getButton(mouseButton);
-
+    public void handleClick(int mouseX, int mouseY, int mouseButton) {
         if(mouseX > (x1) && mouseX < (x2 + expandX) && mouseY > (y1) && mouseY < (y2 + expandY)) {
             clickComponent(mouseX, mouseY, mouseButton);
+            if(this instanceof IContainer) {
+                ((IContainer) this).getContents().forEach(component -> ((Component)component).handleClick(mouseX, mouseY, mouseButton));
+            }
         }
     }
 
     protected abstract int drawComponent(RenderInfo ri);
-    protected abstract void clickComponent(int mouseX, int mouseY, int mouseButton);
+    protected void clickComponent(int mouseX, int mouseY, int mouseButton) {};
     public void mouseUpdate(int x, int y) {
 
     }

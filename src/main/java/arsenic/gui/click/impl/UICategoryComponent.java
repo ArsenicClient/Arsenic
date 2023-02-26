@@ -32,14 +32,8 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) + 2));
 
         expandY = pi.getY() - y1;
-        expandX = pi.getX() - x1;
 
         return expandY;
-    }
-
-    @Override
-    protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
-        contents.forEach(child -> child.handleClick(mouseX, mouseY, mouseButton));
     }
 
     @Override

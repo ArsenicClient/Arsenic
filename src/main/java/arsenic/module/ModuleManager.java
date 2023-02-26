@@ -60,15 +60,20 @@ public class ModuleManager {
     };
 
     public enum Modules {
-        FULLBRIGHT(new FullBright()),
-        SPRINT(new Sprint()),
-        HUD(new HUD()),
-        CLICKGUI(new ClickGui()),
-        TESTMODULE(new TestModule());
+        FULLBRIGHT(FullBright.class),
+        SPRINT(Sprint.class),
+        HUD(HUD.class),
+        CLICKGUI(ClickGui.class),
+        TESTMODULE(TestModule.class);
 
-        private final Module module;
-        private Modules(Module module) {
-            this.module = module;
+        private Module module;
+        Modules(Class<? extends Module> module) {
+            try {
+                this.module = module.newInstance();
+                this.module.registerProperties();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         public Module getModule() {

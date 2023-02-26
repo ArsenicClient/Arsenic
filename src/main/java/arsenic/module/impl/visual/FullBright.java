@@ -8,11 +8,11 @@ import arsenic.module.ModuleInfo;
 @ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F)
 public class FullBright extends Module {
 
-int OriginalGamma = 0;
+    int OriginalGamma = 0;
 
     @Override
     protected void onEnable() {
-        int OriginalGamma = (int) mc.gameSettings.gammaSetting;
+        OriginalGamma = (int) mc.gameSettings.gammaSetting;
         mc.gameSettings.gammaSetting = 1000;
     }
 
