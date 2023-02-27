@@ -3,6 +3,7 @@ package arsenic.gui.click.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.render.DrawUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +15,6 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 
 public class ModuleComponent extends Component implements IContainer<PropertyComponent> {
-
     private final Module self;
     private final Collection<PropertyComponent> contents = new ArrayList<>();
     private final String name;
@@ -43,5 +43,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     public final Collection<PropertyComponent> getContents() { return contents; }
 
     public final String getName() { return name; }
+
+    @Override
+    protected int getWidth(int i) {
+        return 35 * (i / 100);
+    }
+
 
 }

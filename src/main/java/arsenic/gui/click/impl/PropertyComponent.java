@@ -3,15 +3,12 @@ package arsenic.gui.click.impl;
 import arsenic.gui.click.Component;
 import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
-import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.render.RenderInfo;
 
 public abstract class PropertyComponent<T extends Property> extends Component implements IContainable {
 
     // placeholder class
-
-    protected final IInt widthP = (i) -> 30 * (i / 100);
     private final String name;
     protected final T self;
 
@@ -42,4 +39,9 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     }
 
     public String getName() { return name; }
+
+    @Override
+    protected int getWidth(int i) {
+        return 30 * (i / 100);
+    }
 }

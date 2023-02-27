@@ -10,14 +10,12 @@ public abstract class Component implements IContainable {
 
     protected int x1, y1, x2, y2, width, height, expandY, expandX;
 
-    // percent * (Height or width)/100
-    protected final IInt widthP = (i) -> 5 * (i / 100), heightP = (i) -> 5 * (i / 100);
 
     // returns height
     public int updateComponent(PosInfo pi, RenderInfo ri) {
 
-        width = widthP.getValue(ri.getGuiScreen().width);
-        height = heightP.getValue(ri.getGuiScreen().height);
+        width = getWidth(ri.getGuiScreen().width);
+        height = getHeight(ri.getGuiScreen().height);
         x1 = pi.getX();
         x2 = x1 + width;
         y1 = pi.getY();
@@ -44,6 +42,14 @@ public abstract class Component implements IContainable {
 
     public void mouseUpdate(int x, int y) {
 
+    }
+
+    protected int getHeight(int i) {
+        return 5 * (i/100);
+    }
+
+    protected int getWidth(int i) {
+        return 5 * (i/100);
     }
 
 }
