@@ -1,5 +1,6 @@
 package arsenic.module.property.impl.rangeproperty;
 
+import arsenic.utils.render.DrawUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -49,7 +50,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         return new PropertyComponent<RangeProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                RenderUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
+                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
                 ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
                 return height;
             }

@@ -10,6 +10,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -42,7 +43,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        RenderUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
+        DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
         ri.getFr().drawString(getName(), x1, y1 + (height) / 2, colour);
         return height;
     }

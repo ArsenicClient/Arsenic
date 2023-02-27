@@ -1,5 +1,6 @@
 package arsenic.module.property.impl;
 
+import arsenic.utils.render.DrawUtils;
 import com.google.gson.JsonObject;
 
 import arsenic.gui.click.impl.PropertyComponent;
@@ -55,7 +56,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
             @Override
             protected int draw(RenderInfo ri) {
-                RenderUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
+                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
                 ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
                 return height;
             }

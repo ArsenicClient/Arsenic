@@ -1,58 +1,53 @@
 package arsenic.utils.render;
 
-import java.awt.Color;
-
 import arsenic.utils.java.UtilityClass;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class RenderUtils extends UtilityClass {
 
-    public static void drawRect(double left, double top, double right, double bottom, int color) {
-        double temp;
+    private static Minecraft mc = Minecraft.getMinecraft();
 
-        if (left < right) {
-            temp = left;
-            left = right;
-            right = temp;
-        }
-
-        if (top < bottom) {
-            temp = top;
-            top = bottom;
-            bottom = temp;
-        }
-
-        float alpha = (float) (color >> 24 & 255) / 255.0F;
-        float red = (float) (color >> 16 & 255) / 255.0F;
-        float green = (float) (color >> 8 & 255) / 255.0F;
-        float blue = (float) (color & 255) / 255.0F;
-
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer renderer = tessellator.getWorldRenderer();
-
-        GlStateManager.enableBlend();
-        GlStateManager.disableTexture2D();
-
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.color(red, green, blue, alpha);
-
-        renderer.begin(7, DefaultVertexFormats.POSITION);
-        renderer.pos(left, bottom, 0.0D).endVertex();
-        renderer.pos(right, bottom, 0.0D).endVertex();
-        renderer.pos(right, top, 0.0D).endVertex();
-        renderer.pos(left, top, 0.0D).endVertex();
-        tessellator.draw();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
-        GlStateManager.resetColor();
+    public static void glScissor(int x, int y, int width, int height) {
+        int scale = new ScaledResolution(mc).getScaleFactor();
+        GL11.glScissor(
+                x * scale,
+                (mc.displayHeight - ((((y/height) + height)) * scale)),
+                width * scale,
+                (height + y) * scale);
     }
 
-    public static void drawRect(double left, double top, double right, double bottom, Color color) {
-        drawRect(left, top, right, bottom, color.getRGB());
+    public static void setColor(final int color) {
+        final float a = ((color >> 24) & 0xFF) / 255.0f;
+        final float r = ((color >> 16) & 0xFF) / 255.0f;
+        final float g = ((color >> 8) & 0xFF) / 255.0f;
+        final float b = (color & 0xFF) / 255.0f;
+        GL11.glColor4f(r, g, b, a);
     }
+
+    public static void resetColor() {
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+    }
+
+    public static ResourceLocation getResourcePath(String s) {
+        InputStream inputStream = RenderUtils.class.getResourceAsStream(s);
+        BufferedImage bf;
+        try {
+            assert inputStream != null;
+            bf = ImageIO.read(inputStream);
+            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("arsenic",new DynamicTexture(bf));
+        } catch (IOException | IllegalArgumentException | NullPointerException noway) {
+            return new ResourceLocation("null");
+        }
+    }
+
 
 }

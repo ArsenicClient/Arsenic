@@ -8,6 +8,7 @@ import arsenic.gui.click.Component;
 import arsenic.gui.click.UICategory;
 import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -26,7 +27,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        RenderUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
+        DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
         ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFFFF0000);
 
         PosInfo pi = new PosInfo(x1 + 3, y2 + 1);

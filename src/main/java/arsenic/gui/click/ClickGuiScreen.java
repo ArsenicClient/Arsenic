@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import arsenic.utils.render.DrawUtils;
 import com.google.gson.JsonObject;
 
 import arsenic.gui.click.impl.ModuleCategoryComponent;
@@ -38,7 +39,7 @@ public class ClickGuiScreen extends GuiScreen implements ISerializable {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
         // makes whole screen slightly darker
-        RenderUtils.drawRect(0, 0, width, height, 0x35000000);
+        DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
         int y = height / 6;
