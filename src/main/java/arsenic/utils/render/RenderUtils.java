@@ -8,6 +8,7 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +48,15 @@ public class RenderUtils extends UtilityClass {
         } catch (IOException | IllegalArgumentException | NullPointerException noway) {
             return new ResourceLocation("null");
         }
+    }
+
+    public static int interpolateColours(Color a, Color b, float f) {
+        float rf = 1 - f;
+        int red = (int) (a.getRed() * rf + b.getRed() * f);
+        int green = (int) (a.getGreen() * rf + b.getGreen() * f);
+        int blue = (int) (a.getBlue() * rf + b.getBlue() * f);
+        int alpha = (int) (a.getAlpha() * rf + b.getAlpha() * f);
+        return new Color(red, green, blue, alpha).getRGB();
     }
 
 

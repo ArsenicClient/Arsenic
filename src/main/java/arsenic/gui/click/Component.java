@@ -1,10 +1,11 @@
 package arsenic.gui.click;
 
-import arsenic.utils.functionalinterfaces.IInt;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import net.minecraft.client.renderer.GlStateManager;
+import org.lwjgl.opengl.GL11;
 
 public abstract class Component implements IContainable {
 
@@ -23,7 +24,15 @@ public abstract class Component implements IContainable {
 
         mouseUpdate(ri.getMouseX(), ri.getMouseY());
 
-        return drawComponent(ri);
+        GL11.glPushMatrix();
+        GlStateManager.pushMatrix();
+        GlStateManager.pushAttrib();
+        int r = drawComponent(ri);
+        GlStateManager.popMatrix();
+        GlStateManager.popAttrib();
+        GL11.glPopMatrix();
+
+        return r;
     }
 
     public void handleClick(int mouseX, int mouseY, int mouseButton) {
@@ -38,7 +47,7 @@ public abstract class Component implements IContainable {
 
     protected abstract int drawComponent(RenderInfo ri);
 
-    protected void clickComponent(int mouseX, int mouseY, int mouseButton) {};
+    protected void clickComponent(int mouseX, int mouseY, int mouseButton) {}
 
     public void mouseUpdate(int x, int y) {
 

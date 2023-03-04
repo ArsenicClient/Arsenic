@@ -1,18 +1,15 @@
 package arsenic.gui.click.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import arsenic.utils.functionalinterfaces.IInt;
-import arsenic.utils.render.DrawUtils;
-import org.jetbrains.annotations.NotNull;
-
 import arsenic.gui.click.Component;
 import arsenic.module.Module;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class ModuleComponent extends Component implements IContainer<PropertyComponent> {
     private final Module self;
@@ -46,7 +43,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected int getWidth(int i) {
-        return 35 * (i / 100);
+        return 35 * (i/100);
     }
 
 

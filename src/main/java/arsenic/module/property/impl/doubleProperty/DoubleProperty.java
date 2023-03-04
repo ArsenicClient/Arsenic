@@ -1,16 +1,12 @@
 package arsenic.module.property.impl.doubleProperty;
 
-import arsenic.utils.render.DrawUtils;
-import org.jetbrains.annotations.NotNull;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import org.jetbrains.annotations.NotNull;
 
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
@@ -46,8 +42,19 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         return new PropertyComponent<DoubleProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+                //draws name
+                ri.getFr().drawString(getName(), x1, (y1 + height/2) - (ri.getFr().getHeight(self.getName())/2), 0xFFFFFFFE);
+
+                //draws value
+                ri.getFr().drawString(
+                        self.getValueString(),
+                        x2 - ri.getFr().getWidth(self.getValueString()) + 4,
+                        (y1 + height/2) - (ri.getFr().getHeight(self.getValueString())/2),
+                        0xFFFFFFFE);
+
+                //draws line
+
+
                 return height;
             }
         };

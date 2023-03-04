@@ -1,25 +1,24 @@
 package arsenic.gui.click.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import arsenic.gui.click.Component;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
 
-    private int colour = 0xFFFFFF00;
+    private int colour = 0xFFFFFF01;
     // private final int HEIGHT =
     // Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 3;
+    private boolean currentCategory = false;
     private final ModuleCategory self;
     private final List<ModuleComponent> contentsL = new ArrayList<>(), contentsR = new ArrayList<>(), contents;
 
@@ -43,8 +42,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-        ri.getFr().drawString(getName(), x1, y1 + (height) / 2, colour);
+        ri.getFr().drawString(getName(), x1, y1 , colour);
         return height;
     }
 
@@ -66,5 +64,18 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         this.contents.forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
     }
 
-    public void setCurrentCategory(boolean currentCategory) { colour = currentCategory ? 0xFFFF00FF : 0xFFFFFF00; }
+    public void setCurrentCategory(boolean currentCategory) {
+        this.currentCategory = currentCategory;
+        colour = currentCategory ? 0xFFFF01FF : 0xFFFFFF01;
+    }
+
+    @Override
+    protected int getWidth(int i) {
+        return 40 * (i/100);
+    }
+
+    @Override
+    protected int getHeight(int i) {
+        return 5 * (i/100);
+    }
 }

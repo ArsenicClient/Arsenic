@@ -1,5 +1,7 @@
 package arsenic.module.impl.misc;
 
+import arsenic.module.property.impl.doubleProperty.DoubleProperty;
+import arsenic.module.property.impl.doubleProperty.DoubleValue;
 import org.lwjgl.input.Keyboard;
 
 import arsenic.module.Module;
@@ -11,6 +13,8 @@ import arsenic.module.property.impl.DescriptionProperty;
 
 @ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
+
+    public final DoubleProperty doubleProperty = new DoubleProperty("Double prop", new DoubleValue(0, 180, 70, 1));
 
     public final BooleanProperty test1 = new BooleanProperty("Test1", true);
 

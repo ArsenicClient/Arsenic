@@ -89,7 +89,7 @@ public class DrawUtils {
     }
 
     public static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation, int finalRotation) {
-        for (int i = originalRotation; i <= finalRotation; i += 3)
+        for (int i = originalRotation; i <= finalRotation; i += 1)
             GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn), y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
     }
 

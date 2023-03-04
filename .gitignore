@@ -29,3 +29,4 @@ Arsenic_Client.launch
 .project
 .classpath
 .idea/workspace.xml
+.idea/sonarlint

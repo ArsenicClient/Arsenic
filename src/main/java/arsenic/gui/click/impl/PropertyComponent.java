@@ -42,6 +42,9 @@ public abstract class PropertyComponent<T extends Property> extends Component im
 
     @Override
     protected int getWidth(int i) {
-        return 30 * (i / 100);
+        return 30 * (i/100);
+    }
+    protected int getHeight(int i) {
+        return 5 * (i/100);
     }
 }
