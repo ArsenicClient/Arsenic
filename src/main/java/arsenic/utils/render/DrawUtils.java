@@ -11,8 +11,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
 public class DrawUtils {
 
-
-    //horrible shitcode need to fix
+    // horrible shitcode need to fix
 
     public static void drawRect(double left, double top, double right, double bottom, int color) {
         double temp;
@@ -29,10 +28,10 @@ public class DrawUtils {
             bottom = temp;
         }
 
-        float alpha = (float)(color >> 24 & 255) / 255.0F;
-        float red = (float)(color >> 16 & 255) / 255.0F;
-        float green = (float)(color >> 8 & 255) / 255.0F;
-        float blue = (float)(color & 255) / 255.0F;
+        float alpha = (float) (color >> 24 & 255) / 255.0F;
+        float red = (float) (color >> 16 & 255) / 255.0F;
+        float green = (float) (color >> 8 & 255) / 255.0F;
+        float blue = (float) (color & 255) / 255.0F;
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer renderer = tessellator.getWorldRenderer();
@@ -60,10 +59,11 @@ public class DrawUtils {
     }
 
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color) {
-        drawRoundedRect(x, y, x1, y1, radius, color,  new boolean[] {true,true,true,true} );
+        drawRoundedRect(x, y, x1, y1, radius, color, new boolean[] { true, true, true, true });
     }
 
-    public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color, boolean[] round) {
+    public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color,
+            boolean[] round) {
         GL11.glPushAttrib(0);
         GL11.glScaled(0.5, 0.5, 0.5);
         x *= 2.0;
@@ -89,39 +89,42 @@ public class DrawUtils {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    public static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation, int finalRotation) {
+    public static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
+            int finalRotation) {
         for (int i = originalRotation; i <= finalRotation; i += 1)
-            GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn), y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
+            GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn),
+                    y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
     }
 
-    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color) {
-        drawRoundedOutline(x, y, x1, y1, radius, borderSize , color, new boolean[] {true,true,true,true});
+    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius,
+            final float borderSize, final int color) {
+        drawRoundedOutline(x, y, x1, y1, radius, borderSize, color, new boolean[] { true, true, true, true });
     }
 
     public static void round(float x, float y, float x1, float y1, float radius, final boolean[] round) {
-        if(round[0])
-            roundHelper(x, y, radius, -1, 1,0, 90);
+        if (round[0])
+            roundHelper(x, y, radius, -1, 1, 0, 90);
         else
             GL11.glVertex2d(x, y);
 
-        if(round[1])
+        if (round[1])
             roundHelper(x, y1, radius, -1, -1, 90, 180);
         else
             GL11.glVertex2d(x, y1);
 
-        if(round[2])
+        if (round[2])
             roundHelper(x1, y1, radius, 1, -1, 0, 90);
         else
             GL11.glVertex2d(x1, y1);
 
-        if(round[3])
+        if (round[3])
             roundHelper(x1, y, radius, 1, 1, 90, 180);
         else
             GL11.glVertex2d(x1, y);
     }
 
-
-    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color, boolean[] drawCorner) {
+    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius,
+            final float borderSize, final int color, boolean[] drawCorner) {
         GL11.glPushAttrib(0);
         GL11.glScaled(0.5, 0.5, 0.5);
         x *= 2.0;
@@ -147,12 +150,14 @@ public class DrawUtils {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    public static void drawBorderedRoundedRect(float x, float y, float d, float y1, float radius, float borderSize, int borderC, int insideC, boolean[] round) {
+    public static void drawBorderedRoundedRect(float x, float y, float d, float y1, float radius, float borderSize,
+            int borderC, int insideC, boolean[] round) {
         drawRoundedRect(x, y, d, y1, radius, insideC, round);
         drawRoundedOutline(x, y, d, y1, radius, borderSize, borderC, round);
     }
 
-    public static void drawBorderedRoundedRect(float x, float y, float x1, float y1, float radius, float borderSize, int borderC, int insideC) {
+    public static void drawBorderedRoundedRect(float x, float y, float x1, float y1, float radius, float borderSize,
+            int borderC, int insideC) {
         drawRoundedRect(x, y, x1, y1, radius, insideC);
         drawRoundedOutline(x, y, x1, y1, radius, borderSize, borderC);
     }

@@ -42,7 +42,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        ri.getFr().drawString(getName(), x1, y1 , colour);
+        ri.getFr().drawString(getName(), x1, y1, colour);
         return height;
     }
 
@@ -71,11 +71,11 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected int getWidth(int i) {
-        return 40 * (i/100);
+        return 40 * (i / 100);
     }
 
     @Override
     protected int getHeight(int i) {
-        return 5 * (i/100);
+        return 5 * (i / 100);
     }
 }

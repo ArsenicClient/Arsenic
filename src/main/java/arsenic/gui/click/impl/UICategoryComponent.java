@@ -23,7 +23,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     @Override
     protected int drawComponent(RenderInfo ri) {
         GlStateManager.pushMatrix();
-        GlStateManager.scale(0.5,0.5,0.5);
+        GlStateManager.scale(0.5, 0.5, 0.5);
         ri.getFr().drawString(getName(), x1 * 2, y1 * 2, 0xFFFFFFFE);
         GlStateManager.popMatrix();
 
@@ -43,6 +43,6 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected int getHeight(int i) {
-        return 5 * (i/100);
+        return 5 * (i / 100);
     }
 }

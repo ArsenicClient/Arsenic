@@ -4,11 +4,10 @@ import arsenic.utils.functionalinterfaces.IFunction;
 
 public enum TickMode {
 
-    SINE(i -> i),
-    LINEAR(i -> i),
-    ROOT(i -> i);
+    SINE(i -> i), LINEAR(i -> i), ROOT(i -> i);
 
     private IFunction<Float> i;
+
     TickMode(IFunction<Float> i) {
         this.i = i;
     }

@@ -33,7 +33,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
         // makes whole screen slightly darker
-        //DrawUtils.drawRect(0, 0, width, height, 0x35000000);
+        // DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
         int y = height / 6;
@@ -57,7 +57,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         // draws the box around the current category
-        //DrawUtils.drawRoundedRect(cmcc.x1, cmcc.y1, cmcc.x2, cmcc.y2, 2 * sf, 0x60FFFFFF);
+        // DrawUtils.drawRoundedRect(cmcc.x1, cmcc.y1, cmcc.x2, cmcc.y2, 2 * sf,
+        // 0x60FFFFFF);
 
         // makes the currently selected category component draw its modules
         PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);

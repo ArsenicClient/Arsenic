@@ -44,8 +44,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected int getWidth(int i) {
-        return 35 * (i/100);
+        return 35 * (i / 100);
     }
-
 
 }

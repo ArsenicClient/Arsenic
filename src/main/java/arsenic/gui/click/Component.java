@@ -12,7 +12,6 @@ public abstract class Component implements IContainable {
 
     protected int x1, y1, x2, y2, width, height, expandY, expandX;
 
-
     // returns height
     public int updateComponent(PosInfo pi, RenderInfo ri) {
 
@@ -55,11 +54,11 @@ public abstract class Component implements IContainable {
     }
 
     protected int getHeight(int i) {
-        return 5 * (i/100);
+        return 5 * (i / 100);
     }
 
     protected int getWidth(int i) {
-        return 5 * (i/100);
+        return 5 * (i / 100);
     }
 
 }

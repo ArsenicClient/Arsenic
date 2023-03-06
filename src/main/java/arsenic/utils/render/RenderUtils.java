@@ -21,10 +21,7 @@ public class RenderUtils extends UtilityClass {
 
     public static void glScissor(int x, int y, int width, int height) {
         int scale = new ScaledResolution(mc).getScaleFactor();
-        GL11.glScissor(
-                x * scale,
-                (mc.displayHeight - ((((y/height) + height)) * scale)),
-                width * scale,
+        GL11.glScissor(x * scale, (mc.displayHeight - ((((y / height) + height)) * scale)), width * scale,
                 (height + y) * scale);
     }
 
@@ -46,7 +43,7 @@ public class RenderUtils extends UtilityClass {
         try {
             assert inputStream != null;
             bf = ImageIO.read(inputStream);
-            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("arsenic",new DynamicTexture(bf));
+            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("arsenic", new DynamicTexture(bf));
         } catch (IOException | IllegalArgumentException | NullPointerException noway) {
             return new ResourceLocation("null");
         }
@@ -60,6 +57,5 @@ public class RenderUtils extends UtilityClass {
         int alpha = (int) (a.getAlpha() * rf + b.getAlpha() * f);
         return new Color(red, green, blue, alpha).getRGB();
     }
-
 
 }

@@ -22,8 +22,11 @@ public class CustomGuiScreen extends GuiScreen {
     }
 
     public void doInit() {};
+
     public void drawScr(int mouseX, int mouseY, float partialTicks) {}
+
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {}
+
     public void mouseRelease(int mouseX, int mouseY, int state) {}
 
     @Override
@@ -56,9 +59,7 @@ public class CustomGuiScreen extends GuiScreen {
         super.mouseReleased(mouseX, mouseY, state);
     }
 
-    public int getRealMouseX() {
-        return (int) ((Mouse.getX() * (mc.displayWidth / scale)) / mc.displayWidth);
-    }
+    public int getRealMouseX() { return (int) ((Mouse.getX() * (mc.displayWidth / scale)) / mc.displayWidth); }
 
     public int getRealMouseY() {
         float scaleHeight = (mc.displayHeight / scale);
@@ -71,7 +72,7 @@ public class CustomGuiScreen extends GuiScreen {
 
     public void rescaleMC() {
         ScaledResolution resolution = new ScaledResolution(mc);
-        rescale(mc.displayWidth / resolution.getScaleFactor(),mc.displayHeight / resolution.getScaleFactor());
+        rescale(mc.displayWidth / resolution.getScaleFactor(), mc.displayHeight / resolution.getScaleFactor());
     }
 
     public void rescale(double width, double height) {
