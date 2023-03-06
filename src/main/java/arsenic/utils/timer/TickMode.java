@@ -1,7 +1,6 @@
 package arsenic.utils.timer;
 
 import arsenic.utils.functionalinterfaces.IFunction;
-import arsenic.utils.functionalinterfaces.IInt;
 
 public enum TickMode {
 

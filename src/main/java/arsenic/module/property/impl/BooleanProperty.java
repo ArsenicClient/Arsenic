@@ -40,12 +40,12 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
         return new PropertyComponent<BooleanProperty>(this) {
 
             private Color disabledColor = new Color(0xFF4B5F55), enabledColor = new Color(0xFF2ECC71);
-            private AnimationTimer animationTimer = new AnimationTimer(700, TickMode.SINE);
+            private AnimationTimer animationTimer = new AnimationTimer(700, () -> getValue(), TickMode.SINE);
 
             @Override
             protected int draw(RenderInfo ri) {
                 float buttonWidth = 24;
-                float percent =  animationTimer.getPercent(self.getValue());
+                float percent =  animationTimer.getPercent();
                 int color = RenderUtils.interpolateColours(disabledColor, enabledColor, percent);
 
                 //name

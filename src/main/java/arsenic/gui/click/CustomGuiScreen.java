@@ -12,11 +12,11 @@ public class CustomGuiScreen extends GuiScreen {
     public float curWidth = 0;
     public float curHeight = 0;
 
-    public AbstractGuiScreen() {
+    public CustomGuiScreen() {
         this(2);
     }
 
-    public AbstractGuiScreen(int scale) {
+    public CustomGuiScreen(int scale) {
         this.scale = scale;
     }
 

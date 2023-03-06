@@ -1,4 +1,4 @@
 package arsenic.utils.functionalinterfaces;
 
 @FunctionalInterface
-public interface IInt { int getValue(int i); }
+public interface IVoidFunction { void voidFunction(); }

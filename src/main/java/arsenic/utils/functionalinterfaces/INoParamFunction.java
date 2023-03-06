@@ -1,4 +1,6 @@
 package arsenic.utils.functionalinterfaces;
 
 @FunctionalInterface
-public interface IAction { void voidFunction(); }
+public interface INoParamFunction<T> {
+    T getValue();
+}

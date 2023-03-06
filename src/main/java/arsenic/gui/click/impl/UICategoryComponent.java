@@ -2,7 +2,7 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UICategory;
-import arsenic.utils.functionalinterfaces.IInt;
+import arsenic.utils.functionalinterfaces.IFunction;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
@@ -14,8 +14,6 @@ import java.util.Collection;
 import java.util.List;
 
 public class UICategoryComponent extends Component implements IContainer<ModuleCategoryComponent> {
-
-    private final IInt heightP = (i -> Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 5);
     private final UICategory self;
     private final List<ModuleCategoryComponent> contents = new ArrayList<>();
 
