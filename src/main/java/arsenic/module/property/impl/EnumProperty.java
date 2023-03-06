@@ -46,13 +46,12 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
     @Override
     public IVisible valueCheck(String value) {
-        return () -> value == this.value.name() && isVisible();
+        return () -> value.equals(this.value.name()) && isVisible();
     }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<EnumProperty> createComponent() {
         return new PropertyComponent<EnumProperty>(this) {
-
             @Override
             protected int draw(RenderInfo ri) {
                 DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);

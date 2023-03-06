@@ -24,9 +24,9 @@ public class HelpCommand extends Command {
             PlayerUtils.addWaterMarkedMessageToChat(command.getName() + "'s info:");
             PlayerUtils.addWaterMarkedMessageToChat("Description: " + command.getHelp());
             PlayerUtils.addWaterMarkedMessageToChat("Aliases: " + Arrays.toString(command.getAliases()));
-            String str = "." + command.getName();
-            for (String arg : command.getArgs()) { str += " <" + arg + ">"; }
-            PlayerUtils.addWaterMarkedMessageToChat("Usage: " + str);
+            StringBuilder bobTheBuilder = new StringBuilder("." + command.getName());
+            for (String arg : command.getArgs()) { bobTheBuilder.append(" <" + arg + ">");}
+            PlayerUtils.addWaterMarkedMessageToChat("Usage: " + bobTheBuilder.toString());
             PlayerUtils.addMessageToChat("---------------");
         }
     }

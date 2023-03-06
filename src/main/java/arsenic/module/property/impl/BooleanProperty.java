@@ -51,7 +51,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
                 int color = RenderUtils.interpolateColours(disabledColor, enabledColor, percent);
 
                 //name
-                ri.getFr().drawString(getName(), x1, (y1 + height/2) - (ri.getFr().getHeight(getName())/2), 0xFFFFFFFE);
+                ri.getFr().drawString(getName(), x1, (y1 + height/2f) - (ri.getFr().getHeight(getName())/2f), 0xFFFFFFFE);
 
                 //oval
                 DrawUtils.drawRoundedRect(
@@ -67,9 +67,9 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
                 x2 = x2 - 4;
                 float circleOffset = buttonWidth * percent;
                 DrawUtils.drawRoundedRect(
-                        x2 - buttonWidth + circleOffset - (height/2) - 0.5f,
+                        x2 - buttonWidth + circleOffset - (height/2f) - 0.5f,
                         y1 - 0.5f,
-                        x2 - buttonWidth + circleOffset + (height/2) + 0.5f,
+                        x2 - buttonWidth + circleOffset + (height/2f) + 0.5f,
                         y2 + 0.5f,
                         height + 1f,
                         color);

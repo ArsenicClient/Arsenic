@@ -5,6 +5,8 @@ import net.minecraft.util.ChatComponentText;
 
 public class PlayerUtils {
 
+    private PlayerUtils() { throw new IllegalStateException("Utility class should not be initialised");}
+
     private static Minecraft mc = Minecraft.getMinecraft();
 
     public static void addMessageToChat(String msg) {

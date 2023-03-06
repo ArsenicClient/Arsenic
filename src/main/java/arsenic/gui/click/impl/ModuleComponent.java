@@ -12,16 +12,12 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 
-public class ModuleComponent extends Component implements IContainer<PropertyComponent> {
-    private final Module self;
-    private final Collection<PropertyComponent> contents = new ArrayList<>();
+public class ModuleComponent extends Component implements IContainer<PropertyComponent<?>> {
+    private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
     private final String name;
 
     public ModuleComponent(@NotNull Module self) {
-        this.self = self;
-        self.getProperties().forEach(property -> contents.add(property.createComponent())); // streaming and mapping
-                                                                                            // didn't keep order so i
-                                                                                            // had to do this
+        self.getProperties().forEach(property -> contents.add(property.createComponent()));
         this.name = self.getName();
     }
 
@@ -38,7 +34,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         return expandY;
     }
 
-    public final Collection<PropertyComponent> getContents() { return contents; }
+    public final Collection<PropertyComponent<?>> getContents() { return contents; }
 
     public final String getName() { return name; }
 

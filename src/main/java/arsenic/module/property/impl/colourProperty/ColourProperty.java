@@ -30,22 +30,22 @@ public class ColourProperty extends SerializableProperty<Integer> {
     // think i can replace (getRed() & 0xFF) with just value >> 8 but idk
     public void setAlpha(int alpha) {
         value = ((alpha & 0xFF) << 24) | ((getRed() & 0xFF) << 16) | ((getGreen() & 0xFF) << 8)
-                | ((getBlue() & 0xFF) << 0);
+                | ((getBlue() & 0xFF));
     }
 
     public void setRed(int red) {
         value = ((getAlpha() & 0xFF) << 24) | ((red & 0xFF) << 16) | ((getGreen() & 0xFF) << 8)
-                | ((getBlue() & 0xFF) << 0);
+                | ((getBlue() & 0xFF));
     }
 
     public void setGreen(int green) {
         value = ((getAlpha() & 0xFF) << 24) | ((getRed() & 0xFF) << 16) | ((green & 0xFF) << 8)
-                | ((getBlue() & 0xFF) << 0);
+                | ((getBlue() & 0xFF));
     }
 
     public void setBlue(int blue) {
         value = ((getAlpha() & 0xFF) << 24) | ((getRed() & 0xFF) << 16) | ((getGreen() & 0xFF) << 8)
-                | ((blue & 0xFF) << 0);
+                | ((blue & 0xFF));
     }
 
     public int getAlpha() { return value & 0xFF; }

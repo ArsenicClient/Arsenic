@@ -15,8 +15,6 @@ public class CommandManager {
 
     private final ArrayList<Command> commands;
     private List<String> autoCompletions;
-    private String latestAutoCompletion = "";
-
     public CommandManager() {
         commands = new ArrayList<>();
         autoCompletions = new ArrayList<>();
@@ -29,17 +27,15 @@ public class CommandManager {
             try {
                 cls = Class.forName("arsenic.command.impl." + className);
                 if (Command.class.isAssignableFrom(cls)) { add((Command) cls.newInstance()); }
-            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            }
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {}
         }
         return commands.size();
     }
 
     public void executeCommand(String str) {
-        str = str.replaceFirst(".", "");
+        str = str.substring(1);
         String name = str.split(" ")[0];
-        String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
-                : new String[] {};
+        String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ") : new String[] {};
         Command command = getCommandByName(name);
 
         if (command != null) {
@@ -57,7 +53,7 @@ public class CommandManager {
     public Set<String> getCommands() { return commands.stream().map(Command::getName).collect(Collectors.toSet()); }
 
     public void updateAutoCompletions(String str) {
-        str = str.replaceFirst(".", "");
+        str = str.substring(1);
         String name = str.split(" ")[0];
         String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
                 : new String[] {};

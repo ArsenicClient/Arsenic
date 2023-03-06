@@ -15,7 +15,7 @@ public class Timer {
     }
 
     public boolean firstFinish() {
-        if (hasFinished()) {
+        if (hasFinished() || finishChecked) {
             finishChecked = true;
             return true;
         }

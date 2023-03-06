@@ -5,7 +5,7 @@ import java.util.List;
 
 import arsenic.utils.java.JavaUtils;
 
-public class Command {
+public abstract class Command {
 
     protected String name;
     protected String help;
@@ -24,14 +24,13 @@ public class Command {
         args = info.args();
     }
 
-    public void execute(String[] args) {
-
-    }
+    public abstract void execute(String[] args);
 
     public final List<String> getAutoComplete(String str, int arg) {
         return getAutoComplete(str, arg, new ArrayList<String>());
     }
 
+    //str and arg are used when this method is @Overridden
     protected List<String> getAutoComplete(String str, int arg, List<String> completions) {
         return completions;
     }

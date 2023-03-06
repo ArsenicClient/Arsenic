@@ -20,7 +20,7 @@ public abstract class Property<T> implements IContainable {
 
     public boolean isVisible() { return visible.func(); }
 
-    public abstract PropertyComponent createComponent();
+    public abstract PropertyComponent<?> createComponent();
 
     @FunctionalInterface
     public interface IVisible { boolean func(); }

@@ -2,6 +2,7 @@ package arsenic.utils.render;
 
 import java.awt.Color;
 
+import arsenic.utils.java.UtilityClass;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.renderer.GlStateManager;
@@ -9,7 +10,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
-public class DrawUtils {
+public class DrawUtils extends UtilityClass {
 
     // horrible shitcode need to fix
 

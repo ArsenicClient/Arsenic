@@ -8,7 +8,7 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import scala.actors.threadpool.Arrays;
 
-public class FolderProperty extends Property<List<Property>> {
+public class FolderProperty extends Property<List<Property<?>>> {
 
     // does not save the config of properties inside the folder
     // properties inside the folder cannot use @PropertyInfo

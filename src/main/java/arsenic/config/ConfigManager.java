@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 
+import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
 
 public class ConfigManager {
@@ -35,7 +36,7 @@ public class ConfigManager {
 
     public void reloadConfigs() {
         configs.clear();
-        if (configDirectory.listFiles() == null || !(Objects.requireNonNull(configDirectory.listFiles()).length > 0))
+        if (configDirectory.listFiles() == null || (Objects.requireNonNull(configDirectory.listFiles()).length == 0))
             return; // nothing to discover if there are no files in the directory
 
         for (File file : Objects.requireNonNull(configDirectory.listFiles())) {
@@ -55,7 +56,7 @@ public class ConfigManager {
     public void loadConfig(String name) {
         currentConfig = configs.get(name);
         if (currentConfig == null) {
-            System.out.println("Config " + name + " not found loading default config... ");
+            Arsenic.getArsenic().getLogger().info("Config {} not found loading default config... ", name);
             if (!configs.containsKey("default")) { createConfig("default"); }
         }
         currentConfig.loadConfig();

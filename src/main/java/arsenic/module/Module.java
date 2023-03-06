@@ -17,7 +17,7 @@ import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
 
-public class Module implements IContainable, IContainer<Property>, ISerializable {
+public class Module implements IContainable, IContainer<Property<?>>, ISerializable {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
@@ -30,7 +30,7 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
 
     private boolean registered;
 
-    private final List<Property> properties = new ArrayList<>();
+    private final List<Property<?>> properties = new ArrayList<>();
     private final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
 
     public Module() {
@@ -53,7 +53,7 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
     public final void registerProperties() {
         for (final Field field : getClass().getFields()) {
             try {
-                Property property = (Property) field.get(this);
+                Property<?> property = (Property<?>) field.get(this);
                 properties.add(property);
                 if (field.isAnnotationPresent(PropertyInfo.class)) {
                     final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
@@ -71,11 +71,11 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
         }
     }
 
-    protected void onEnable() {
-    }
+    //triggers when the module is enabled
+    protected void onEnable() {}
 
-    protected void onDisable() {
-    }
+    //triggers when the module is disabled
+    protected void onDisable() {}
 
     @Override
     public final String getName() { return name; }
@@ -136,9 +136,9 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
     public final void setKeybind(int keybind) { this.keybind = keybind; }
 
     @Override
-    public final Collection<Property> getContents() { return properties; }
+    public final Collection<Property<?>> getContents() { return properties; }
 
-    public final List<Property> getProperties() { return properties; }
+    public final List<? extends Property<?>> getProperties() { return properties; }
 
     @Override
     public final void loadFromJson(JsonObject obj) {
@@ -148,14 +148,14 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
             setEnabledSilently(obj.get("enabled").getAsBoolean());
 
             serializableProperties
-                    .forEach(property -> { property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())); });
+                    .forEach(property -> property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())));
         } catch (NullPointerException | IllegalArgumentException e) {
-            System.out.println("Error loading " + getName()
-                    + "'s config (If this the first launch or the first launch after an update ignore this)");
+            Arsenic.getArsenic().getLogger().info("Error loading {}'s config (If this the first launch or the first launch after an update ignore this)", getName());
         }
         postApplyConfig();
     }
 
+    //triggers after the config has been applied
     protected void postApplyConfig() {}
 
     @Override
@@ -164,7 +164,7 @@ public class Module implements IContainable, IContainer<Property>, ISerializable
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);
 
-        serializableProperties.forEach(property -> { property.addToJson(obj); });
+        serializableProperties.forEach(property -> property.addToJson(obj));
         return obj;
     }
 

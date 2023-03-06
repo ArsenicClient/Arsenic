@@ -17,6 +17,6 @@ public interface IFontRenderer {
 
     default float getHeight(String text) {
         return 11.0F;
-    };
+    }
 
 }

@@ -14,8 +14,6 @@ import arsenic.module.ModuleInfo;
 public class Sprint extends Module {
 
     @EventLink
-    public final Listener<EventTick> onKeyPress = event -> {
-        ((IMixinKeyBinding) mc.gameSettings.keyBindSprint).setPressed(true);
-    };
+    public final Listener<EventTick> onKeyPress = event -> ((IMixinKeyBinding) mc.gameSettings.keyBindSprint).setPressed(true);
 
 }

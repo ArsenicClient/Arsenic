@@ -1,35 +1,32 @@
 package arsenic.config;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
+import java.io.*;
+import java.nio.file.Files;
+
 public abstract class Config {
 
-    protected File config;
+    protected File configDir;
 
     public Config(File config) {
         if (!config.exists()) {
             try {
                 config.createNewFile();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Unable to create new config file");
             }
         }
-        this.config = config;
+        this.configDir = config;
     }
 
     public void loadConfig() {
         JsonObject data = new JsonObject();
         JsonParser jsonParser = new JsonParser();
-        try (FileReader reader = new FileReader(config)) {
+        try (FileReader reader = new FileReader(configDir)) {
             JsonElement obj = jsonParser.parse(reader);
             data = obj.getAsJsonObject();
         } catch (JsonSyntaxException | ClassCastException | IOException | IllegalStateException e) {
@@ -40,7 +37,7 @@ public abstract class Config {
 
     public void saveConfig() {
         JsonObject data = getJson(new JsonObject());
-        try (PrintWriter out = new PrintWriter(new FileWriter(config))) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(configDir))) {
             out.write(data.toString());
         } catch (final Exception e) {
             e.printStackTrace();
@@ -48,10 +45,14 @@ public abstract class Config {
     }
 
     public void deleteConfig() {
-        if (config.exists()) { config.delete(); }
+        try {
+            Files.delete(configDir.toPath());
+        } catch (IOException e) {
+            //ignored
+        }
     }
 
-    public String getName() { return config.getName().replace(".json", ""); }
+    public String getName() { return configDir.getName().replace(".json", ""); }
 
     public abstract void loadFromJson(JsonObject obj);
     public abstract JsonObject getJson(JsonObject obj);

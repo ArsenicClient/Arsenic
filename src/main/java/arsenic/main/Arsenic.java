@@ -23,7 +23,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
-public class Arsenic implements IContainer {
+public class Arsenic implements IContainer<IContainable> {
 
     private final String clientName = "Arsenic";
     private final long clientVersion = 221020L;

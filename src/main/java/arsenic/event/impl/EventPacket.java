@@ -5,15 +5,15 @@ import net.minecraft.network.Packet;
 
 public class EventPacket implements Event {
 
-    private final Packet packet;
+    private final Packet<?> packet;
     private boolean cancelled;
 
-    public EventPacket(Packet packet) {
+    public EventPacket(Packet<?> packet) {
         this.packet = packet;
     }
 
     public static class OutGoing extends EventPacket {
-        public OutGoing(Packet packet) {
+        public OutGoing(Packet<?> packet) {
             super(packet);
         }
     }
@@ -30,5 +30,5 @@ public class EventPacket implements Event {
 
     public boolean isCancelled() { return cancelled; }
 
-    public Packet getPacket() { return packet; }
+    public Packet<?> getPacket() { return packet; }
 }
