@@ -1,5 +1,10 @@
 package arsenic.gui.click.impl;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import arsenic.gui.click.Component;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleManager;
@@ -7,11 +12,6 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
 

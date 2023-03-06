@@ -1,6 +1,5 @@
 package arsenic.utils.timer;
 
-import arsenic.utils.functionalinterfaces.IFunction;
 import arsenic.utils.functionalinterfaces.INoParamFunction;
 
 public class AnimationTimer {

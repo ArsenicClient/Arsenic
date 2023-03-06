@@ -1,5 +1,9 @@
 package arsenic.gui.click;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
@@ -10,11 +14,6 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ClickGuiScreen extends CustomGuiScreen {
     private final ClickGui module;

@@ -1,6 +1,5 @@
 package arsenic.module.property.impl.rangeproperty;
 
-import arsenic.utils.render.DrawUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -9,8 +8,8 @@ import com.google.gson.JsonPrimitive;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {
 

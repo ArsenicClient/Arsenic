@@ -1,17 +1,15 @@
 package arsenic.gui.click.impl;
 
-import arsenic.gui.click.Component;
-import arsenic.gui.click.UICategory;
-import arsenic.utils.functionalinterfaces.IFunction;
-import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.PosInfo;
-import arsenic.utils.render.RenderInfo;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import arsenic.gui.click.Component;
+import arsenic.gui.click.UICategory;
+import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.render.PosInfo;
+import arsenic.utils.render.RenderInfo;
+import net.minecraft.client.renderer.GlStateManager;
 
 public class UICategoryComponent extends Component implements IContainer<ModuleCategoryComponent> {
     private final UICategory self;

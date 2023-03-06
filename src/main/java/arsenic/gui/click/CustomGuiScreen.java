@@ -1,11 +1,12 @@
 package arsenic.gui.click;
 
+import java.io.IOException;
+
+import org.lwjgl.input.Mouse;
+
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
-import org.lwjgl.input.Mouse;
-
-import java.io.IOException;
 
 public class CustomGuiScreen extends GuiScreen {
     public float scale;

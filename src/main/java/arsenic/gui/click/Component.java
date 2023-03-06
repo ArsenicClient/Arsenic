@@ -1,11 +1,12 @@
 package arsenic.gui.click;
 
+import org.lwjgl.opengl.GL11;
+
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import net.minecraft.client.renderer.GlStateManager;
-import org.lwjgl.opengl.GL11;
 
 public abstract class Component implements IContainable {
 

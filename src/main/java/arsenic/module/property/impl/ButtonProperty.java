@@ -4,7 +4,6 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.Property;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 
 public class ButtonProperty extends Property<String> {
     protected ButtonProperty(String value) { super(value); }

@@ -1,13 +1,12 @@
 package arsenic.module.property.impl;
 
-import arsenic.utils.render.DrawUtils;
 import com.google.gson.JsonObject;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 

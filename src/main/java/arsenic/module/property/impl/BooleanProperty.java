@@ -1,5 +1,11 @@
 package arsenic.module.property.impl;
 
+import java.awt.Color;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.google.gson.JsonObject;
+
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
@@ -8,10 +14,6 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import com.google.gson.JsonObject;
-import org.jetbrains.annotations.NotNull;
-
-import java.awt.*;
 
 public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
 
