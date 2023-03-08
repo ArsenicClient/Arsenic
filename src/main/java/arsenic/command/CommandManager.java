@@ -39,7 +39,12 @@ public class CommandManager {
         Command command = getCommandByName(name);
 
         if (command != null) {
-            command.execute(args);
+            if(command.getMinArgs() < args.length + 1)
+                command.execute(args);
+            else {
+                PlayerUtils.addWaterMarkedMessageToChat(("Insufficient Arguments. Correct usage is:"));
+                PlayerUtils.addWaterMarkedMessageToChat((command.getUsage()));
+            }
             return;
         }
 

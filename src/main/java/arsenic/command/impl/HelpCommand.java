@@ -8,7 +8,7 @@ import arsenic.command.CommandInfo;
 import arsenic.main.Arsenic;
 import arsenic.utils.minecraft.PlayerUtils;
 
-@CommandInfo(name = "help", args = { "command" }, help = "shows help for commands")
+@CommandInfo(name = "help", args = { "command" }, help = "shows help for commands", minArgs = 1)
 public class HelpCommand extends Command {
 
     @Override
@@ -24,9 +24,7 @@ public class HelpCommand extends Command {
             PlayerUtils.addWaterMarkedMessageToChat(command.getName() + "'s info:");
             PlayerUtils.addWaterMarkedMessageToChat("Description: " + command.getHelp());
             PlayerUtils.addWaterMarkedMessageToChat("Aliases: " + Arrays.toString(command.getAliases()));
-            StringBuilder bobTheBuilder = new StringBuilder("." + command.getName());
-            for (String arg : command.getArgs()) { bobTheBuilder.append(" <" + arg + ">");}
-            PlayerUtils.addWaterMarkedMessageToChat("Usage: " + bobTheBuilder.toString());
+            PlayerUtils.addWaterMarkedMessageToChat("Usage: " + command.getUsage());
             PlayerUtils.addMessageToChat("---------------");
         }
     }

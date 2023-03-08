@@ -9,8 +9,10 @@ public abstract class Command {
 
     protected String name;
     protected String help;
+    private int minArgs;
     protected String[] aliases;
     protected String[] args;
+    protected String usage;
 
     public Command() {
         if (!this.getClass().isAnnotationPresent(CommandInfo.class))
@@ -18,16 +20,22 @@ public abstract class Command {
 
         final CommandInfo info = this.getClass().getDeclaredAnnotation(CommandInfo.class);
 
+        minArgs = info.minArgs();
         name = info.name();
         help = info.help();
         aliases = info.aliases();
         args = info.args();
+
+        StringBuilder bobTheBuilder = new StringBuilder("." + getName());
+        for (String arg : getArgs())
+            bobTheBuilder.append(" <" + arg + ">");
+        usage = bobTheBuilder.toString();
     }
 
     public abstract void execute(String[] args);
 
     public final List<String> getAutoComplete(String str, int arg) {
-        return getAutoComplete(str, arg, new ArrayList<String>());
+        return getAutoComplete(str, arg, new ArrayList<>());
     }
 
     //str and arg are used when this method is @Overridden
@@ -48,5 +56,13 @@ public abstract class Command {
             if (alias.equalsIgnoreCase(name))
                 return true;
         return false;
+    }
+
+    public int getMinArgs() {
+        return minArgs;
+    }
+
+    public String getUsage() {
+        return usage;
     }
 }

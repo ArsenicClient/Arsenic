@@ -11,6 +11,8 @@ public @interface CommandInfo {
 
     String name();
 
+    int minArgs() default 0;
+
     String help() default "No help provided for this command";
 
     String[] args() default {};

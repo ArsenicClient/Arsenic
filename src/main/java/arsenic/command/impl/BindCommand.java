@@ -11,7 +11,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
 
-@CommandInfo(name = "bind", args = { "name", "key" }, aliases = { "b" }, help = "binds a module to a key")
+@CommandInfo(name = "bind", args = { "name", "key" }, aliases = { "b" }, help = "binds a module to a key", minArgs = 2)
 public class BindCommand extends Command {
 
     @Override
