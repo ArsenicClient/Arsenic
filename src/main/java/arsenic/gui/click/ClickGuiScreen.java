@@ -21,7 +21,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc;
 
     public ClickGuiScreen() {
-        super(900, 1440);
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());

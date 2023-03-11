@@ -13,13 +13,8 @@ public class CustomGuiScreen extends GuiScreen {
     public float curWidth = 0;
     public float curHeight = 0;
 
-    public int constHeight;
-    public int constWidth;
-
-    public CustomGuiScreen(int constHeight, int constWidth) {
+    public CustomGuiScreen() {
         this.scale = 2;
-        this.constWidth = constWidth;
-        this.constHeight = constHeight;
     }
 
 
@@ -35,9 +30,10 @@ public class CustomGuiScreen extends GuiScreen {
     @Override
     public final void initGui() {
         this.doInit();
-        System.out.println(height + " " + width);
-        height = (int) (constHeight / scale);
-        width = (int) (constWidth / scale);
+        int sf = new ScaledResolution(mc).getScaleFactor();
+        height = (int) ((height * sf) / scale);
+        width = (int) ((width * sf) / scale);
+        
         super.initGui();
     }
 
