@@ -42,7 +42,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
         return new PropertyComponent<BooleanProperty>(this) {
 
             private Color disabledColor = new Color(0xFF4B5F55), enabledColor = new Color(0xFF2ECC71);
-            private AnimationTimer animationTimer = new AnimationTimer(700, () -> getValue(), TickMode.SINE);
+            private AnimationTimer animationTimer = new AnimationTimer(350, () -> getValue(), TickMode.SINE);
 
             @Override
             protected int draw(RenderInfo ri) {

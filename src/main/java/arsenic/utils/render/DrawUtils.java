@@ -163,4 +163,14 @@ public class DrawUtils extends UtilityClass {
         drawRoundedOutline(x, y, x1, y1, radius, borderSize, borderC);
     }
 
+    public static void drawCircle(float centrePointX, float centrePointY, float radius, int color) {
+        float circleX1 = centrePointX - radius;
+        float circleX2 = centrePointX + radius;
+        float circleY1 = centrePointY + radius;
+        float circleY2 = centrePointY - radius;
+        drawRect(circleX1, circleY1, circleX2, circleY2, color);
+        //drawRoundedRect(circleX1, circleY1, circleX2, circleY2, radius, color);
+        //drawRoundedRect does not work for some reason
+    }
+
 }

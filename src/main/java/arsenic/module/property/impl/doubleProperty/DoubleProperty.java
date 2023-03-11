@@ -1,5 +1,7 @@
 package arsenic.module.property.impl.doubleProperty;
 
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -9,6 +11,8 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.RenderInfo;
+
+import java.awt.*;
 
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
@@ -42,10 +46,20 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
     @Override
     public PropertyComponent createComponent() {
         return new PropertyComponent<DoubleProperty>(this) {
+
+            private final Color disabledColor = new Color(0xFF4B5F55);
+            private final Color enabledColor = new Color(0xFF2ECC71);
+            private final int radius = 5;
+            private float lineXChangePoint, lineY, lineWidth, lineX1, lineX2;
+            private boolean clicked;
+
             @Override
             protected int draw(RenderInfo ri) {
+
+                float percent = (float) (getValue().getInput() / getValue().getMaxBound());
+
                 //draws name
-                ri.getFr().drawString(getName(), x1, (y1 + height/2) - (ri.getFr().getHeight(self.getName())/2), 0xFFFFFFFE);
+                ri.getFr().drawString(getName(), x1, y1 + (height/2f) - (ri.getFr().getHeight(self.getName())/2), 0xFFFFFFFE);
 
                 //draws value
                 ri.getFr().drawString(
@@ -54,10 +68,50 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                         (y1 + height/2) - (ri.getFr().getHeight(self.getValueString())/2),
                         0xFFFFFFFE);
 
-                //draws line
+                //draws lines
+                lineX1 = x2 - width/2f;
+                lineX2 = x2 - width/5f;
+                lineWidth = lineX2 - lineX1;
+                lineXChangePoint = (lineX1 + (percent * lineWidth));
+                lineY = y1 + height/2f;
 
 
+                //draws first bit (uncolored) of line
+                DrawUtils.drawRect(lineX1, lineY - 0.5d, lineXChangePoint, lineY + 0.5d, 0xFF2ECC71);
+
+                //draws second bit (colored) of the line
+                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5d, lineX2, lineY + 0.5d, 0xFF4B5F55);
+
+                //draws the circle
+                //DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
+                DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
                 return height;
+            }
+
+            @Override
+            protected void click(int mouseX, int mouseY, int mouseButton) {
+                if(mouseX > lineX1 && mouseX < lineX2 && mouseY > lineY - radius && mouseY < lineY + radius)
+                    clicked = true;
+            }
+
+            @Override
+            public void mouseReleased(int mouseX, int mouseY, int state) {
+                clicked = false;
+            }
+
+            @Override
+            public void mouseUpdate(int mouseX, int mouseY) {
+                if(!clicked)
+                    return;
+                float mousePercent = (mouseX - lineX1) / lineWidth;
+                getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+            }
+
+
+
+            @Override
+            protected int getHeight(int i) {
+                return 7 * (i / 100);
             }
         };
     }

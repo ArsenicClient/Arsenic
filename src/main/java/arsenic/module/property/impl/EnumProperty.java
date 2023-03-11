@@ -37,11 +37,11 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     }
 
     public void nextMode() {
-        value = modes[(value.ordinal() + 1) % (modes.length + 1)];
+        value = modes[(value.ordinal() + 1) % modes.length];
     }
 
     public void prevMode() {
-        value = modes[(value.ordinal() - 1) % (modes.length + 1)];
+        value = modes[(value.ordinal() == 0 ? modes.length : value.ordinal()) - 1];
     }
 
     @Override
@@ -54,9 +54,19 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         return new PropertyComponent<EnumProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+                float centreY = y1 + (height)/2f;
+                ri.getFr().drawString(getName(), x1, centreY - (ri.getFr().getHeight(getName())/2), 0xFFFFFFFF);
+                ri.getFr().drawString(getValue().name(), x2 - ri.getFr().getWidth(getValue().name()), centreY - (ri.getFr().getHeight(getName())/2), 0xFF00FFFF);
                 return height;
+            }
+
+            @Override
+            protected void click(int mouseX, int mouseY, int mouseButton) {
+                if(mouseButton == 0)
+                    nextMode();
+                else if (mouseButton == 1)
+                    prevMode();
+
             }
         };
     }

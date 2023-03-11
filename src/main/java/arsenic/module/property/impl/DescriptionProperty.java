@@ -13,8 +13,7 @@ public class DescriptionProperty extends Property<String> {
         return new PropertyComponent<DescriptionProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+                ri.getFr().drawScaledString(getName(), x1, y1 + (height) / 2f, 0xFF00FFFF, 0.7f);
                 return height;
             }
         };

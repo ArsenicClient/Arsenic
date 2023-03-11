@@ -33,7 +33,6 @@ public class CustomGuiScreen extends GuiScreen {
         int sf = new ScaledResolution(mc).getScaleFactor();
         height = (int) ((height * sf) / scale);
         width = (int) ((width * sf) / scale);
-        
         super.initGui();
     }
 

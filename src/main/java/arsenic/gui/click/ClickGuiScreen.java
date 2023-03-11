@@ -86,6 +86,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     @Override
+    public void mouseRelease(int mouseX, int mouseY, int state) {
+        components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
+        super.mouseRelease(mouseX, mouseY, state);
+    }
+
+    @Override
     public boolean doesGuiPauseGame() {
         return false;
     }

@@ -23,8 +23,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected int drawComponent(RenderInfo ri) {
-        DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-        ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+        ri.getFr().drawString(getName() + ":", x1, y1 + (height) / 2f, 0xFF2ECC71);
 
         PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
         contents.forEach(child -> pi.moveY((int) (child.updateComponent(pi, ri) * 1.1)));

@@ -1,5 +1,7 @@
 package arsenic.utils.interfaces;
 
+import org.lwjgl.opengl.GL11;
+
 public interface IFontRenderer {
 
     void drawString(String text, float x, float y, int color);
@@ -18,5 +20,15 @@ public interface IFontRenderer {
     default float getHeight(String text) {
         return 11.0F;
     }
+
+    default void drawScaledString(String text, float x, float y, int color, float scale) {
+        GL11.glPushMatrix();
+        GL11.glScalef(scale, scale, scale);
+        float scaleReciprocal = 1f/scale;
+        drawString(text, x * scaleReciprocal, y * scaleReciprocal, color);
+        GL11.glPopMatrix();
+    }
+
+
 
 }

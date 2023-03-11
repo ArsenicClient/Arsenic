@@ -1,5 +1,6 @@
 package arsenic.module.impl.misc;
 
+import arsenic.module.property.impl.EnumProperty;
 import org.lwjgl.input.Keyboard;
 
 import arsenic.module.Module;
@@ -13,6 +14,8 @@ import arsenic.module.property.impl.doubleProperty.DoubleValue;
 
 @ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
+
+    public final EnumProperty<testEnum> enumProperty = new EnumProperty<>("Mode: ", testEnum.C);
 
     public final DoubleProperty doubleProperty = new DoubleProperty("Double prop", new DoubleValue(0, 180, 70, 1));
 
@@ -34,6 +37,10 @@ public class TestModule extends Module {
     protected void onDisable() {
         mc.thePlayer.sendChatMessage("disable");
         super.onDisable();
+    }
+
+    public enum testEnum {
+        A,B,C
     }
 
 }

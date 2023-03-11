@@ -45,13 +45,21 @@ public abstract class Component implements IContainable {
         }
     }
 
+    public final void handleRelease(int mouseX, int mouseY, int state) {
+        mouseReleased(mouseX, mouseY, state);
+        if (this instanceof IContainer) {
+            ((IContainer) this).getContents()
+                    .forEach(component -> ((Component) component).handleRelease(mouseX, mouseY, state));
+        }
+    }
+
     protected abstract int drawComponent(RenderInfo ri);
 
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {}
 
-    public void mouseUpdate(int x, int y) {
+    public void mouseUpdate(int mouseX, int mouseY) {}
 
-    }
+    public void mouseReleased(int mouseX, int mouseY, int state) {}
 
     protected int getHeight(int i) {
         return 5 * (i / 100);
