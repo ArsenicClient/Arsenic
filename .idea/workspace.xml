@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="30c60f9e-6600-461b-8090-39254099d41c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/module/impl/visual/ClickGui.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/module/impl/visual/ClickGui.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/arsenic/gui/click/CustomGuiScreen.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/arsenic/gui/click/CustomGuiScreen.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,6 +64,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "dart.analysis.tool.window.visible": "false",
     "last_opened_file_path": "/Users/notjaxtaylor/Documents/GitHub/Arsenic",
     "settings.editor.selected.configurable": "preferences.lookFeel"
   }
