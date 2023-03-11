@@ -4,7 +4,9 @@ import arsenic.utils.functionalinterfaces.IFunction;
 
 public enum TickMode {
 
-    SINE(input -> input), LINEAR(input -> input), ROOT(input -> input);
+    SINE(input -> (float) ((Math.sin(Math.PI * (input + 3/2f)) + 1)/2)),
+    LINEAR(input -> input),
+    ROOT(input -> (float) Math.sqrt(input));
 
     private IFunction<Float> i;
 

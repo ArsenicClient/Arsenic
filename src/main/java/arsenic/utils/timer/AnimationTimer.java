@@ -11,7 +11,7 @@ public class AnimationTimer {
     private INoParamFunction<Boolean> func;
 
     public AnimationTimer(int maxMs, INoParamFunction<Boolean> func) {
-        this(maxMs, func, TickMode.LINEAR);
+        this(maxMs, func, TickMode.SINE);
     }
 
     public AnimationTimer(int maxMs, INoParamFunction<Boolean> func, TickMode tickMode) {
