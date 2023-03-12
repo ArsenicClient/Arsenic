@@ -48,9 +48,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int hLineY = (int) (1.5 * y);
 
         // vertical line
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0, y1, 0xFF2ECC71);
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, 0xFF2ECC71);
         // horizontal line
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0, 0xFF2ECC71);
+        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, 0xFF2ECC71);
 
         // draws each module category component
         PosInfo pi = new PosInfo(x + 5, hLineY + 5);

@@ -12,8 +12,8 @@ public class DrawUtils extends UtilityClass {
 
     // horrible shitcode need to fix
 
-    public static void drawRect(double left, double top, double right, double bottom, int color) {
-        double temp;
+    public static void drawRect(float left, float top, float right, float bottom, int color) {
+        float temp;
 
         if (left < right) {
             temp = left;
@@ -37,10 +37,10 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.setColor(color);
 
         renderer.begin(7, DefaultVertexFormats.POSITION);
-        renderer.pos(left, bottom, 0.0D).endVertex();
-        renderer.pos(right, bottom, 0.0D).endVertex();
-        renderer.pos(right, top, 0.0D).endVertex();
-        renderer.pos(left, top, 0.0D).endVertex();
+        renderer.pos(left, bottom, 0.0f).endVertex();
+        renderer.pos(right, bottom, 0.0f).endVertex();
+        renderer.pos(right, top, 0.0f).endVertex();
+        renderer.pos(left, top, 0.0f).endVertex();
         tessellator.draw();
 
         GlStateManager.enableTexture2D();

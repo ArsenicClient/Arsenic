@@ -76,11 +76,11 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 lineY = y1 + height/2f;
 
 
-                //draws first bit (uncolored) of line
-                DrawUtils.drawRect(lineX1, lineY - 0.5d, lineXChangePoint, lineY + 0.5d, disabledColor.getRGB());
+                //draws first bit (colored) of line
+                DrawUtils.drawRect(lineX1, lineY - 0.5f, lineXChangePoint, lineY + 0.5f, enabledColor.getRGB());
 
-                //draws second bit (colored) of the line
-                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5d, lineX2, lineY + 0.5d, enabledColor.getRGB());
+                //draws second bit (uncolored) of the line
+                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5f, lineX2, lineY + 0.5f, disabledColor.getRGB());
 
                 //draws the circle
                 DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
