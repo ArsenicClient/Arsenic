@@ -1,15 +1,18 @@
 package arsenic.module.property.impl.rangeproperty;
 
-import org.jetbrains.annotations.NotNull;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.utils.functionalinterfaces.ITwoParamVoidFunction;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.RenderUtils;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.opengl.GL11;
+
+import java.awt.*;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
@@ -39,20 +42,123 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
     }
 
     public final @NotNull String getValueString() {
-        return value.getMin() + " -  " + value.getMax() + displayMode.getSuffix();
+        return value.getMin() + " - " + value.getMax() + displayMode.getSuffix();
     }
 
     public DisplayMode getDisplayMode() { return displayMode; }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<RangeProperty> createComponent() {
         return new PropertyComponent<RangeProperty>(this) {
+
+            private final Color disabledColor = new Color(0xFF4B5F55);
+            private final Color enabledColor = new Color(0xFF2ECC71);
+
+            private final int thickness = 10;
+            private boolean clicked;
+
+            private Helping helping;
+
+            private float lineY, lineWidth, lineX1, lineX2;
+
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+
+                float percentMax = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                float percentMin = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                String name = getName() + getDisplayMode();
+
+                //draws name
+                ri.getFr().drawScaledString(name, x1, y1 + (height/2f) - (0.7f * (ri.getFr().getHeight(name)/2)), 0xFFFFFFFE, 0.7f);
+
+                //draws value
+                ri.getFr().drawScaledString(
+                        self.getValueString(),
+                        x2 - (0.7f * ri.getFr().getWidth(self.getValueString())),
+                        (y1 + height/2f) - (ri.getFr().getHeight(self.getValueString())/2),
+                        0xFFFFFFFE,
+                        0.7f);
+
+                //draws lines
+                lineX1 = x2 - width/2f;
+                lineX2 = x2 - width/5f;
+                lineWidth = lineX2 - lineX1;
+                float lineXChangePoint1 = (lineX1 + (percentMin * lineWidth));
+                float lineXChangePoint2 = (lineX1 + (percentMax * lineWidth));
+                lineY = y1 + height/2f;
+
+
+                //draws first bit (uncolored) of line
+                DrawUtils.drawRect(lineX1, lineY - 0.5f, lineXChangePoint1, lineY + 0.5f, disabledColor.getRGB());
+
+                //draws third bit (uncolored) of the line
+                DrawUtils.drawRect(lineXChangePoint2, lineY - 0.5f, lineX2, lineY + 0.5f, disabledColor.getRGB());
+
+                //draws second bit (colored) of the line
+                DrawUtils.drawRect(lineXChangePoint1, lineY - 0.5f, lineXChangePoint2, lineY + 0.5f,enabledColor.getRGB());
+
+                //draws the circles
+                customDraw(lineXChangePoint1, lineY, -thickness, -thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMin));
+                customDraw(lineXChangePoint2, lineY, thickness, thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMax));
                 return height;
+            }
+
+            @Override
+            protected void click(int mouseX, int mouseY, int mouseButton) {
+                if(mouseX > lineX1 && mouseX < lineX2 && mouseY > lineY - thickness *2 && mouseY < lineY + thickness) {
+                    clicked = true;
+                    float mousePercent = (mouseX - lineX1) / lineWidth;
+                    float minPercent = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                    float maxPercent = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                    helping = (Math.abs(mousePercent - minPercent) > Math.abs(mousePercent - maxPercent)) ? Helping.MIN : Helping.MAX;
+                }
+            }
+
+            @Override
+            public void mouseUpdate(int mouseX, int mouseY) {
+                if(!clicked)
+                    return;
+                float mousePercent = (mouseX - lineX1) / lineWidth;
+                helping.setValue(self, getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+            }
+
+            @Override
+            public void mouseReleased(int mouseX, int mouseY, int state) {
+                clicked = false;
+            }
+
+            //draws a <
+            private void customDraw(float x1, float y1, float halfHeight, float width, int color) {
+                final float finalX1 = x1 * 2;
+                final float finalY1 = y1 * 2;
+                final float finalHalfHeight = halfHeight * 2;
+                final float finalWidth = width * 2;
+                DrawUtils.drawCustom(color, () -> {
+                    GL11.glVertex2d(finalX1, finalY1);
+                    GL11.glVertex2d(finalX1 + finalHalfHeight, finalY1 + finalHalfHeight);
+                    GL11.glVertex2d(finalX1 + finalHalfHeight, finalY1 + finalHalfHeight - finalWidth);
+                    GL11.glVertex2d(finalX1 + finalWidth, finalY1);
+                    GL11.glVertex2d(finalX1 + finalHalfHeight, finalY1 - finalHalfHeight + finalWidth);
+                    GL11.glVertex2d(finalX1 + finalHalfHeight, finalY1 - finalHalfHeight);
+                });
             }
         };
     }
+
+    public enum Helping {
+        MIN((rangeProperty, value) -> rangeProperty.getValue().setMin(value)),
+        MAX((rangeProperty, value) -> rangeProperty.getValue().setMax(value));
+
+        private final ITwoParamVoidFunction<RangeProperty, Double> v;
+
+        Helping(ITwoParamVoidFunction<RangeProperty, Double> f) {
+            v = f;
+        }
+
+        private void setValue(RangeProperty r, double value) {
+            v.function(r,value);
+        }
+    }
 }
+
+
