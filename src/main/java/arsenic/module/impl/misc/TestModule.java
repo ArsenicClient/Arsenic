@@ -1,6 +1,8 @@
 package arsenic.module.impl.misc;
 
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.rangeproperty.RangeProperty;
+import arsenic.module.property.impl.rangeproperty.RangeValue;
 import org.lwjgl.input.Keyboard;
 
 import arsenic.module.Module;
@@ -18,6 +20,8 @@ public class TestModule extends Module {
     public final EnumProperty<testEnum> enumProperty = new EnumProperty<>("Mode: ", testEnum.C);
 
     public final DoubleProperty doubleProperty = new DoubleProperty("Double prop", new DoubleValue(0, 180, 70, 1));
+
+    public final RangeProperty rangeProperty = new RangeProperty("Range prop", new RangeValue(50,150, 60, 120, 0.5d));
 
     public final BooleanProperty test1 = new BooleanProperty("Test1", true);
 

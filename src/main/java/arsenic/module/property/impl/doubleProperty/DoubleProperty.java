@@ -65,7 +65,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 ri.getFr().drawString(
                         self.getValueString(),
                         x2 - ri.getFr().getWidth(self.getValueString()) + 4,
-                        (y1 + height/2) - (ri.getFr().getHeight(self.getValueString())/2),
+                        (y1 + height/2f) - (ri.getFr().getHeight(self.getValueString())/2),
                         0xFFFFFFFE);
 
                 //draws lines
@@ -77,13 +77,12 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
 
                 //draws first bit (uncolored) of line
-                DrawUtils.drawRect(lineX1, lineY - 0.5d, lineXChangePoint, lineY + 0.5d, 0xFF2ECC71);
+                DrawUtils.drawRect(lineX1, lineY - 0.5d, lineXChangePoint, lineY + 0.5d, disabledColor.getRGB());
 
                 //draws second bit (colored) of the line
-                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5d, lineX2, lineY + 0.5d, 0xFF4B5F55);
+                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5d, lineX2, lineY + 0.5d, enabledColor.getRGB());
 
                 //draws the circle
-                //DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
                 DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
                 return height;
             }

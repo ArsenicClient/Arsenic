@@ -1,5 +1,6 @@
 package arsenic.module.property.impl.rangeproperty;
 
+import arsenic.utils.render.RenderUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -10,6 +11,8 @@ import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
+
+import java.awt.*;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
@@ -47,10 +50,52 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
     @Override
     public PropertyComponent createComponent() {
         return new PropertyComponent<RangeProperty>(this) {
+
+            private final Color disabledColor = new Color(0xFF4B5F55);
+            private final Color enabledColor = new Color(0xFF2ECC71);
+
+            private final int radius = 5;
+
+            private float lineXChangePoint1, lineXChangePoint2, lineY, lineWidth, lineX1, lineX2;
+
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+
+                float percentMax = (float) (getValue().getMax() / getValue().getMaxBound());
+                float percentMin = (float) (getValue().getMin() / getValue().getMaxBound());
+                String name = getName() + getDisplayMode();
+
+                //draws name
+                ri.getFr().drawString(name, x1, y1 + (height/2f) - (ri.getFr().getHeight(name)/2), 0xFFFFFFFE);
+
+                //draws value
+                ri.getFr().drawString(
+                        self.getValueString(),
+                        x2 - ri.getFr().getWidth(self.getValueString()) + 4,
+                        (y1 + height/2f) - (ri.getFr().getHeight(self.getValueString())/2),
+                        0xFFFFFFFE);
+
+                //draws lines
+                lineX1 = x2 - width/2f;
+                lineX2 = x2 - width/5f;
+                lineWidth = lineX2 - lineX1;
+                lineXChangePoint1 = (lineX1 + (percentMin * lineWidth));
+                lineXChangePoint2 = (lineX1 + (percentMax * lineWidth));
+                lineY = y1 + height/2f;
+
+
+                //draws first bit (uncolored) of line
+                DrawUtils.drawRect(lineX1, lineY - 0.5d, lineXChangePoint1, lineY + 0.5d, disabledColor.getRGB());
+
+                //draws third bit (uncolored) of the line
+                DrawUtils.drawRect(lineXChangePoint2, lineY - 0.5d, lineX2, lineY + 0.5d, disabledColor.getRGB());
+
+                //draws second bit (colored) of the line
+                DrawUtils.drawRect(lineXChangePoint1, lineY - 0.5d, lineXChangePoint2, lineY + 0.5d,enabledColor.getRGB());
+
+                //draws the circles
+                DrawUtils.drawCircle(lineXChangePoint1, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMin));
+                DrawUtils.drawCircle(lineXChangePoint2, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMax));
                 return height;
             }
         };
