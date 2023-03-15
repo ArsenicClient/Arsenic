@@ -22,13 +22,24 @@ public interface IFontRenderer {
     }
 
     default void drawScaledString(String text, float x, float y, int color, float scale) {
-        GL11.glPushMatrix();
         GL11.glScalef(scale, scale, scale);
         float scaleReciprocal = 1f/scale;
         drawString(text, x * scaleReciprocal, y * scaleReciprocal, color);
-        GL11.glPopMatrix();
+        GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
     }
 
+    //will make a better implementation of this later
+    default void drawWrappingString(float x, float y, int color, String... texts) {
+        for(String text : texts) {
+            drawString(text, x, y, color);
+            y+= getHeight(text);
+        }
+    }
 
-
+    default void drawScaledWrappingString(float x, float y, int color, float scale, String... texts) {
+        GL11.glScalef(scale, scale, scale);
+        float scaleReciprocal = 1f/scale;
+        drawWrappingString(x * scaleReciprocal, y * scaleReciprocal, color, texts);
+        GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
+    }
 }
