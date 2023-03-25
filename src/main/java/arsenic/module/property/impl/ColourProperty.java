@@ -61,7 +61,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
 
                 //draws the colored bars
-                for(int i = 0; i < 2; i++) {
+                for(int i = 0; i < 4; i++) {
                     float pointX = (lineX1 + ((getColor(i)/ 255f) * lineWidth));
                     int colorInner;
                     int colorBorder;
@@ -87,7 +87,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                     float closestDist = 1;
                     float mousePercent = (mouseX - lineX1) / lineWidth;
                     //probs a better way to do this
-                    for(int i = 0; i < 2; i++) {
+                    for(int i = 0; i < 4; i++) {
                         float dist = Math.abs(mousePercent - (getColor(i) / 255f));
                         if(dist > closestDist)
                             continue;
@@ -106,7 +106,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
                 System.out.println(helping + " " + mousePercent * 255);
                 setColor(helping, (int) (mousePercent * 255));
                 System.out.println(getColor(helping));
-                //helping.setValue(self, getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
             }
 
 

@@ -7,9 +7,8 @@ public class ColorUtils extends UtilityClass {
             newValue = 0xFF;
         else if (newValue < 0)
             newValue = 0;
-
-        int a = i*8;
-        return (value & (0x00FFFFFF << a)) | ((newValue) << (24-a));
+        int a = 24 - (i*8);
+        return ((value & ~(0xFF << a)) | (newValue << a));
     }
 
     public static int getColor(int value, int i) {
