@@ -131,6 +131,7 @@ public class DrawUtils extends UtilityClass {
         drawRoundedOutline(x, y, d, y1, radius, borderSize, borderC, round);
     }
 
+    //y = lower, y1 = upper
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color) {
         drawRoundedRect(x, y, x1, y1, radius, color, new boolean[]{true, true, true, true});
     }

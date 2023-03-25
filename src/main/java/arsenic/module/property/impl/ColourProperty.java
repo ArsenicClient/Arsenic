@@ -38,7 +38,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
     @Override
     public PropertyComponent<ColourProperty> createComponent() {
         return new PropertyComponent<ColourProperty>(this) {
-            private final int thickness = 5;
+            private final int thickness = 10;
             private boolean clicked;
             private int helping;
 
@@ -66,14 +66,14 @@ public class ColourProperty extends SerializableProperty<Integer> {
                     int colorInner;
                     int colorBorder;
                     if(i == 0) { // for a
-                        colorInner = ColorUtils.setColor(0x60000000, i, (getColor(i)/2) + 127);
+                        colorInner = ColorUtils.setColor(0x00FFFFFF, i,(getColor(i)));
                         colorBorder = 0xFFFFFFFF;
                     } else { //for rgb
-                        colorInner = ColorUtils.setColor(0x60000000, i, (getColor(i)/2) + 127);
+                        colorInner = ColorUtils.setColor(0xCC000000, i, getColor(i));
                         colorBorder = ColorUtils.setColor(0xFF000000, i, 255);
                     }
-                    //DrawUtils.drawBorderedRoundedRect(pointX - thickness/3f, lineY + thickness, pointX + thickness/3f, lineY - thickness, thickness/10f, thickness/6f, colorBorder, colorInner);
-                    DrawUtils.drawCircle(pointX, lineY, thickness/2f, colorBorder);
+
+                    DrawUtils.drawBorderedRoundedRect(pointX - thickness/3f,lineY - thickness,pointX + thickness/3f,lineY + thickness,thickness/6f,thickness/6f,                            colorBorder,colorInner);
                 }
 
                 return height;
@@ -103,9 +103,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                 if(!clicked)
                     return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
-                System.out.println(helping + " " + mousePercent * 255);
                 setColor(helping, (int) (mousePercent * 255));
-                System.out.println(getColor(helping));
             }
 
 
