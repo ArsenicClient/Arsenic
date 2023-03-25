@@ -6,15 +6,16 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 
 public class ButtonProperty extends Property<String> {
-    protected ButtonProperty(String value) { super(value); }
+
+    //mostly here as a reminder to make this at some point in the future
+    public ButtonProperty(String value) { super(value); }
 
     @Override
     public PropertyComponent createComponent() {
         return new PropertyComponent<ButtonProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+                ri.getFr().drawString(getValue(), x1, y1 + (height/2f) - ((ri.getFr().getHeight(getValue())/2)), 0xFFFFFFFE);
                 return height;
             }
         };

@@ -1,7 +1,6 @@
 package arsenic.module.impl.misc;
 
-import arsenic.module.property.impl.ColourProperty;
-import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.*;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import org.lwjgl.input.Keyboard;
@@ -10,13 +9,13 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.DescriptionProperty;
 import arsenic.module.property.impl.doubleProperty.DoubleProperty;
 import arsenic.module.property.impl.doubleProperty.DoubleValue;
 
 @ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
+
+
 
     public final ColourProperty colourProperty = new ColourProperty("color", 0xFF20BB00);
 
