@@ -2,7 +2,6 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
@@ -24,7 +23,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
     @Override
     public void loadFromJson(@NotNull JsonObject obj) {
-        //value = (obj.get("value").getAsInt());
+        value = (obj.get("value").getAsInt());
     }
 
     public void setColor(int i, int newValue) {
@@ -38,18 +37,19 @@ public class ColourProperty extends SerializableProperty<Integer> {
     @Override
     public PropertyComponent<ColourProperty> createComponent() {
         return new PropertyComponent<ColourProperty>(this) {
-            private final int thickness = 10;
             private boolean clicked;
             private int helping;
-
-            private float lineX1, lineX2, lineY, lineWidth;
+            private float lineX1;
+            private float lineX2;
+            private float lineWidth;
 
             @Override
             protected int draw(RenderInfo ri) {
+                float lineY;
                 String name = getName();
 
                 //draws name
-                ri.getFr().drawString(name, x1, y1 + (height/2f) - ((ri.getFr().getHeight(name)/2)), 0xFFFFFFFE);
+                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
 
                 lineX1 = x2 - width/2f;
                 lineX2 = x2;
@@ -73,7 +73,8 @@ public class ColourProperty extends SerializableProperty<Integer> {
                         colorBorder = ColorUtils.setColor(0xFF000000, i, 255);
                     }
 
-                    DrawUtils.drawBorderedRoundedRect(pointX - thickness/3f,lineY - thickness,pointX + thickness/3f,lineY + thickness,thickness/6f,thickness/6f,                            colorBorder,colorInner);
+                    float radius = height/5f;
+                    DrawUtils.drawBorderedCircle(pointX, lineY, radius, radius/3f, colorBorder, colorInner);
                 }
 
                 return height;
@@ -82,26 +83,25 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if(mouseX > lineX1 && mouseX < lineX2) {
-                    clicked = true;
-                    float closestDist = 1;
-                    float mousePercent = (mouseX - lineX1) / lineWidth;
-                    //probs a better way to do this
-                    for(int i = 0; i < 4; i++) {
-                        float dist = Math.abs(mousePercent - (getColor(i) / 255f));
-                        if(dist > closestDist)
-                            continue;
-                        closestDist = dist;
-                        helping = i;
-                    }
+                if(!(mouseX > lineX1 && mouseX < lineX2))
+                    return;
+                clicked = true;
+                float closestDist = 1;
+                float mousePercent = (mouseX - lineX1) / lineWidth;
+                //probs a better way to do this
+                for(int i = 0; i < 4; i++) {
+                    float dist = Math.abs(mousePercent - (getColor(i) / 255f));
+                    if(dist > closestDist)
+                        continue;
+                    closestDist = dist;
+                    helping = i;
                 }
             }
 
 
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
-                if(!clicked)
-                    return;
+                if(!clicked) return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
                 setColor(helping, (int) (mousePercent * 255));
             }

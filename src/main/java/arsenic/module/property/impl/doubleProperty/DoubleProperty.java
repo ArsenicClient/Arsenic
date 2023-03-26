@@ -1,27 +1,20 @@
-package arsenic.module.property.impl.doubleProperty;
-
-import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.RenderUtils;
-import org.jetbrains.annotations.NotNull;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+package arsenic.module.property.impl.doubleproperty;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.RenderUtils;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
     private final DisplayMode displayMode;
-
-    public DoubleProperty(String name, DoubleValue value, DisplayMode displayMode) {
-        super(name, value);
-        this.displayMode = displayMode;
-    }
 
     public DoubleProperty(String name, DoubleValue value) {
         super(name, value);
@@ -39,18 +32,18 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         value.setInput(obj.get("value").getAsDouble());
     }
 
-    public final @NotNull String getValueString() { return value.getInput() + displayMode.getSuffix(); }
+    public final @NotNull String getValueString() { return value.getInput() + getDisplayMode().getSuffix(); }
 
     public DisplayMode getDisplayMode() { return displayMode; }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<DoubleProperty> createComponent() {
         return new PropertyComponent<DoubleProperty>(this) {
 
             private final Color disabledColor = new Color(0xFF4B5F55);
             private final Color enabledColor = new Color(0xFF2ECC71);
-            private final int radius = 5;
-            private float lineXChangePoint, lineY, lineWidth, lineX1, lineX2;
+            private float lineWidth;
+            private float lineX1;
             private boolean clicked;
 
             @Override
@@ -70,10 +63,10 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
                 //draws lines
                 lineX1 = x2 - width/2f;
-                lineX2 = x2 - width/5f;
+                float lineX2 = x2 - width / 5f;
                 lineWidth = lineX2 - lineX1;
-                lineXChangePoint = (lineX1 + (percent * lineWidth));
-                lineY = y1 + height/2f;
+                float lineXChangePoint = (lineX1 + (percent * lineWidth));
+                float lineY = y1 + height / 2f;
 
 
                 //draws first bit (colored) of line
@@ -83,14 +76,15 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 DrawUtils.drawRect(lineXChangePoint, lineY - 0.5f, lineX2, lineY + 0.5f, disabledColor.getRGB());
 
                 //draws the circle
-                DrawUtils.drawCircle(lineXChangePoint, lineY, radius, RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
+                float radius = height/5f;
+                Color color = new Color(RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
+                DrawUtils.drawBorderedCircle(lineXChangePoint, lineY, radius, radius/3f, color.darker().getRGB(), color.getRGB());
                 return height;
             }
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if(mouseX > lineX1 && mouseX < lineX2 && mouseY > lineY - radius && mouseY < lineY + radius)
-                    clicked = true;
+                clicked = true;
             }
 
             @Override
@@ -104,13 +98,6 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                     return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
                 getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
-            }
-
-
-
-            @Override
-            protected int getHeight(int i) {
-                return 7 * (i / 100);
             }
         };
     }

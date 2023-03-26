@@ -4,6 +4,8 @@ import org.lwjgl.opengl.GL11;
 
 public interface IFontRenderer {
 
+    //should make this better at some point
+
     void drawString(String text, float x, float y, int color);
     void drawStringWithShadow(String text, float x, float y, int color);
 
@@ -40,6 +42,29 @@ public interface IFontRenderer {
         GL11.glScalef(scale, scale, scale);
         float scaleReciprocal = 1f/scale;
         drawWrappingString(x * scaleReciprocal, y * scaleReciprocal, color, texts);
+        GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
+    }
+
+    default void drawYCenteredString(String text, float x, float y, int color) {
+        drawString(text, x, y - (getHeight(text)/2f), color);
+    }
+
+
+    default void drawXCenteredString(String text, float x, float y, int color) {
+        drawString(text, x - (getWidth(text)/2f), y, color);
+    }
+
+    default void drawXCenteredWrappingString(float x, float y, int color, String... texts) {
+        for(String text : texts) {
+            drawXCenteredString(text, x, y, color);
+            y+= getHeight(text);
+        }
+    }
+
+    default void drawScaledXCenteredWrappingString(float x, float y, int color, float scale, String... texts) {
+        GL11.glScalef(scale, scale, scale);
+        float scaleReciprocal = 1f/scale;
+        drawXCenteredWrappingString(x * scaleReciprocal, y * scaleReciprocal, color, texts);
         GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
     }
 }

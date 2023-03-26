@@ -38,41 +38,43 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<BooleanProperty> createComponent() {
         return new PropertyComponent<BooleanProperty>(this) {
 
-            private Color disabledColor = new Color(0xFF4B5F55), enabledColor = new Color(0xFF2ECC71);
-            private AnimationTimer animationTimer = new AnimationTimer(350, () -> getValue(), TickMode.SINE);
+            private final Color disabledColor = new Color(0xFF4B5F55);
+            private final Color enabledColor = new Color(0xFF2ECC71);
+            private final AnimationTimer animationTimer = new AnimationTimer(350, () -> getValue(), TickMode.SINE);
 
             @Override
             protected int draw(RenderInfo ri) {
-                float buttonWidth = 24;
+                float radius = height/5f;
+                float midPointY = (y2 - height/2f);
+                float buttonY1 = midPointY - radius;
+                float buttonY2 = midPointY + radius;
+                float buttonWidth = radius * 2.5f;
+                float buttonX = x2 - buttonWidth;
+
                 float percent =  animationTimer.getPercent();
-                int color = RenderUtils.interpolateColours(disabledColor, enabledColor, percent);
+                Color color = RenderUtils.interpolateColoursColor(disabledColor, enabledColor, percent);
+                int darkerColor = color.darker().darker().getRGB();
+                int normalColour = color.getRGB();
 
                 //name
-                ri.getFr().drawString(getName(), x1, (y1 + height/2f) - (ri.getFr().getHeight(getName())/2f), 0xFFFFFFFE);
+                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
 
                 //oval
-                DrawUtils.drawRoundedRect(
-                        x2 - buttonWidth,
-                        y1,
-                        x2,
-                        y2,
-                        height,
-                        new Color(color).darker().darker().getRGB());
+                DrawUtils.drawBorderedRoundedRect(x2 - buttonWidth, buttonY1, x2, buttonY2, radius * 2, radius/3f, normalColour, darkerColor);
 
                 //circle
-                buttonWidth = buttonWidth - 8;
-                x2 = x2 - 4;
-                float circleOffset = buttonWidth * percent;
-                DrawUtils.drawRoundedRect(
-                        x2 - buttonWidth + circleOffset - (height/2f) - 0.5f,
-                        y1 - 0.5f,
-                        x2 - buttonWidth + circleOffset + (height/2f) + 0.5f,
-                        y2 + 0.5f,
-                        height + 1f,
-                        color);
+                float circleOffset = buttonWidth * ((percent - .5f) * 0.8f);
+                DrawUtils.drawBorderedCircle(
+                        buttonX + buttonWidth/2f + circleOffset,
+                        midPointY,
+                        radius * 1.1f,
+                        radius/3f,
+                        normalColour,
+                        darkerColor
+                );
 
                 return height;
             }

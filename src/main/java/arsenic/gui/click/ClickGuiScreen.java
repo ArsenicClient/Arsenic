@@ -2,6 +2,7 @@ package arsenic.gui.click;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import arsenic.gui.click.impl.ModuleCategoryComponent;
@@ -9,7 +10,9 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
+import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
@@ -19,6 +22,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private final ClickGui module;
     private final List<UICategoryComponent> components;
     private ModuleCategoryComponent cmcc;
+    private Component alwaysClickedComponent;
 
     public ClickGuiScreen() {
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
@@ -78,6 +82,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc.setCurrentCategory(false);
         mcc.setCurrentCategory(true);
         cmcc = mcc;
+    }
+
+    public <T extends Component & ISetNotAlwaysClickable> void setAlwaysClickedComponent(T component) {
+        component.setNotAlwaysClickable();
+        this.alwaysClickedComponent = component;
     }
 
     public final IFontRenderer getFontRenderer() {

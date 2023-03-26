@@ -55,6 +55,18 @@ public class DrawUtils extends UtilityClass {
         finish();
     }
 
+
+    //no worke :(
+    public static void drawCustomOutline(int color, float borderWidth, IVoidFunction v) {
+        setupOutline(color, borderWidth);
+        v.voidFunction();
+        finishOutline();
+    }
+    public static void drawCustomWithOutline(int fillColour, int borderColour, float borderWidth, IVoidFunction v) {
+        drawCustom(fillColour, v);
+        //drawCustomOutline(borderColour, borderWidth, v);
+    }
+
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color, boolean[] round) {
         x *= 2.0;
         y *= 2.0;
@@ -68,39 +80,24 @@ public class DrawUtils extends UtilityClass {
     }
 
     public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color, boolean[] drawCorner) {
-        GL11.glPushAttrib(0);
-        GL11.glScaled(0.5, 0.5, 0.5);
         x *= 2.0;
         y *= 2.0;
         x1 *= 2.0;
         y1 *= 2.0;
-        GL11.glEnable(3042);
-        GL11.glDisable(3553);
-        RenderUtils.setColor(color);
-        GL11.glEnable(2848);
-        GL11.glLineWidth(borderSize);
-        GL11.glBegin(2);
+
+        setupOutline(color, borderSize);
         round(x, y, x1, y1, radius, drawCorner);
-        GL11.glEnd();
-        GL11.glEnable(3553);
-        GL11.glDisable(3042);
-        GL11.glDisable(2848);
-        GL11.glDisable(3042);
-        GL11.glEnable(3553);
-        GL11.glScaled(2.0, 2.0, 2.0);
-        GL11.glPopAttrib();
-        GL11.glLineWidth(1.0f);
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+        finishOutline();
     }
 
-    public static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
+    private static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
                                    int finalRotation) {
         for (int i = originalRotation; i <= finalRotation; i += 1)
             GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn),
                     y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
     }
 
-    public static void round(float x, float y, float x1, float y1, float radius, final boolean[] round) {
+    private static void round(float x, float y, float x1, float y1, float radius, final boolean[] round) {
         if (round[0])
             roundHelper(x, y, radius, -1, 1, 0, 90);
         else
@@ -141,21 +138,32 @@ public class DrawUtils extends UtilityClass {
         drawRoundedOutline(x, y, x1, y1, radius, borderSize, borderC);
     }
 
+    public static void drawBorderedCircle(float centrePointX, float centrePointY, float radius, float borderSize, int borderColour, int insideColour) {
+        drawCircle(centrePointX, centrePointY, radius, insideColour);
+        drawCircleOutline(centrePointX, centrePointY, radius, borderSize, borderColour);
+    }
+
+    public static void drawCircleOutline(float centrePointX, float centrePointY, float radius, float borderSize, int color) {
+        float circleX1 = centrePointX - radius;
+        float circleX2 = centrePointX + radius;
+        float circleY1 = centrePointY - radius;
+        float circleY2 = centrePointY + radius;
+        drawRoundedOutline(circleX1, circleY1, circleX2, circleY2, radius * 2, borderSize, color);
+    }
+
     public static void drawCircle(float centrePointX, float centrePointY, float radius, int color) {
         float circleX1 = centrePointX - radius;
         float circleX2 = centrePointX + radius;
-        float circleY1 = centrePointY + radius;
-        float circleY2 = centrePointY - radius;
-        drawRect(circleX1, circleY1, circleX2, circleY2, color);
-        //drawRoundedRect(circleX1, circleY1, circleX2, circleY2, radius, color);
-        //drawRoundedRect does not work for some reason
+        float circleY1 = centrePointY - radius;
+        float circleY2 = centrePointY + radius;
+        drawRoundedRect(circleX1, circleY1, circleX2, circleY2, radius * 2, color);
     }
 
     private static void setup(int color) {
         GL11.glScaled(0.5, 0.5, 0.5);
         GL11.glPushAttrib(0);
-        GL11.glEnable(3042);
         GL11.glDisable(3553);
+        GL11.glEnable(3042);
         GL11.glEnable(2848);
         RenderUtils.setColor(color);
     }
@@ -165,10 +173,19 @@ public class DrawUtils extends UtilityClass {
         GL11.glEnable(3553);
         GL11.glDisable(3042);
         GL11.glDisable(2848);
-        GL11.glEnable(3042);
         GL11.glScalef(2f, 2f, 2f);
         GL11.glPopAttrib();
         RenderUtils.resetColor();
+    }
+
+    private static void setupOutline(int color, float borderSize) {
+        setup(color);
+        GL11.glLineWidth(borderSize);
+        GL11.glBegin(2);
+    }
+    private static void finishOutline() {
+        finish();
+        GL11.glLineWidth(1.0f);
     }
 
 }

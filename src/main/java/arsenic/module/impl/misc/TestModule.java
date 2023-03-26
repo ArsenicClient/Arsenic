@@ -9,8 +9,8 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.doubleProperty.DoubleProperty;
-import arsenic.module.property.impl.doubleProperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 
 @ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {

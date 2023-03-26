@@ -1,4 +1,4 @@
-package arsenic.module.property.impl.doubleProperty;
+package arsenic.module.property.impl.doubleproperty;
 
 public class DoubleValue {
     private final double minBound, maxBound, inc;

@@ -1,12 +1,11 @@
 package arsenic.module.property.impl;
 
-import java.util.List;
-
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.Property;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import scala.actors.threadpool.Arrays;
+
+import java.util.List;
 
 public class FolderProperty extends Property<List<Property<?>>> {
 
@@ -16,7 +15,8 @@ public class FolderProperty extends Property<List<Property<?>>> {
 
     private boolean open;
 
-    protected FolderProperty(Property... values) {
+    //this will cause an issue with its name
+    protected FolderProperty(Property<?>... values) {
         super(Arrays.asList(values));
     }
 
@@ -29,12 +29,11 @@ public class FolderProperty extends Property<List<Property<?>>> {
     public void setOpen(boolean open) { this.open = open; }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<FolderProperty> createComponent() {
         return new PropertyComponent<FolderProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                DrawUtils.drawRect(x1, y1, x2, y2, 0xFF00FF00);
-                ri.getFr().drawString(getName(), x1, y1 + (height) / 2, 0xFF00FFFF);
+                ri.getFr().drawString(getName(), x1, y1 + (height/2f) - (ri.getFr().getHeight(getName())/2), 0xFFFFFFFE);
                 return height;
             }
         };

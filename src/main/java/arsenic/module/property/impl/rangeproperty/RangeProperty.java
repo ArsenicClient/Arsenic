@@ -18,11 +18,6 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
     private final DisplayMode displayMode;
 
-    public RangeProperty(String name, RangeValue value, DisplayMode displayMode) {
-        super(name, value);
-        this.displayMode = displayMode;
-    }
-
     public RangeProperty(String name, RangeValue value) {
         super(name, value);
         this.displayMode = DisplayMode.NORMAL;
@@ -53,13 +48,10 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
             private final Color disabledColor = new Color(0xFF4B5F55);
             private final Color enabledColor = new Color(0xFF2ECC71);
-
-            private final int thickness = 10;
             private boolean clicked;
-
             private Helping helping;
-
-            private float lineY, lineWidth, lineX1, lineX2;
+            private float lineX1;
+            private float lineWidth;
 
             @Override
             protected int draw(RenderInfo ri) {
@@ -68,24 +60,23 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                 float percentMin = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
                 String name = getName() + getDisplayMode();
 
+                lineX1 = x2 - width/2f;
+                float lineX2 = x2 - width / 5f;
+                lineWidth = lineX2 - lineX1;
+                float lineXChangePoint1 = (lineX1 + (percentMin * lineWidth));
+                float lineXChangePoint2 = (lineX1 + (percentMax * lineWidth));
+                float lineY = y1 + height / 2f;
+
                 //draws name
-                ri.getFr().drawScaledString(name, x1, y1 + (height/2f) - (0.7f * (ri.getFr().getHeight(name)/2)), 0xFFFFFFFE, 0.7f);
+                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
 
                 //draws value
-                ri.getFr().drawScaledWrappingString(
-                        x2 - ri.getFr().getWidth(String.valueOf(getValue().getMaxBound())),
+                ri.getFr().drawScaledXCenteredWrappingString(
+                        x2 - ((x2 - (lineX2))/2f),
                         y1,
                         0xFFFFFFFE,
                         0.7f,
                         self.getValueString().split(" "));
-
-                //draws lines
-                lineX1 = x2 - width/2f;
-                lineX2 = x2 - width/5f;
-                lineWidth = lineX2 - lineX1;
-                float lineXChangePoint1 = (lineX1 + (percentMin * lineWidth));
-                float lineXChangePoint2 = (lineX1 + (percentMax * lineWidth));
-                lineY = y1 + height/2f;
 
 
                 //draws first bit (uncolored) of line
@@ -97,7 +88,8 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                 //draws second bit (colored) of the line
                 DrawUtils.drawRect(lineXChangePoint1, lineY - 0.5f, lineXChangePoint2, lineY + 0.5f,enabledColor.getRGB());
 
-                //draws the circles
+                //draws the < signs
+                float thickness = height/3f;
                 customDraw(lineXChangePoint1, lineY, -thickness, -thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMin));
                 customDraw(lineXChangePoint2, lineY, thickness, thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMax));
                 return height;
@@ -105,13 +97,11 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if(mouseX > lineX1 && mouseX < lineX2 && mouseY > lineY - thickness *2 && mouseY < lineY + thickness) {
-                    clicked = true;
-                    float mousePercent = (mouseX - lineX1) / lineWidth;
-                    float minPercent = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
-                    float maxPercent = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
-                    helping = (Math.abs(mousePercent - minPercent) > Math.abs(mousePercent - maxPercent)) ? Helping.MIN : Helping.MAX;
-                }
+                clicked = true;
+                float mousePercent = (mouseX - lineX1) / lineWidth;
+                float minPercent = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                float maxPercent = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
+                helping = (Math.abs(mousePercent - minPercent) > Math.abs(mousePercent - maxPercent)) ? Helping.MIN : Helping.MAX;
             }
 
             @Override

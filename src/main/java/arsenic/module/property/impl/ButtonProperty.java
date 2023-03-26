@@ -2,7 +2,6 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.Property;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 
 public class ButtonProperty extends Property<String> {
@@ -11,11 +10,11 @@ public class ButtonProperty extends Property<String> {
     public ButtonProperty(String value) { super(value); }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<ButtonProperty> createComponent() {
         return new PropertyComponent<ButtonProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
-                ri.getFr().drawString(getValue(), x1, y1 + (height/2f) - ((ri.getFr().getHeight(getValue())/2)), 0xFFFFFFFE);
+                ri.getFr().drawString(getValue(), x1, y1 + (height/2f) - (ri.getFr().getHeight(getValue())/2), 0xFFFFFFFE);
                 return height;
             }
         };

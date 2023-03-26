@@ -19,10 +19,14 @@ public class RenderUtils extends UtilityClass {
 
     private static Minecraft mc = Minecraft.getMinecraft();
 
-    public static void glScissor(int x, int y, int width, int height) {
-        int scale = new ScaledResolution(mc).getScaleFactor();
+    public static void glScissor(int x, int y, int width, int height, int scale) {
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(x * scale, (mc.displayHeight - ((((y / height) + height)) * scale)), width * scale,
                 (height + y) * scale);
+    }
+
+    public static void glScissor(int x, int y, int width, int height) {
+        glScissor(x, y, width, height, new ScaledResolution(mc).getScaleFactor());
     }
 
     public static void setColor(final int color) {
@@ -49,13 +53,17 @@ public class RenderUtils extends UtilityClass {
         }
     }
 
-    public static int interpolateColours(Color a, Color b, float f) {
+    public static Color interpolateColoursColor(Color a, Color b, float f) {
         float rf = 1 - f;
         int red = (int) (a.getRed() * rf + b.getRed() * f);
         int green = (int) (a.getGreen() * rf + b.getGreen() * f);
         int blue = (int) (a.getBlue() * rf + b.getBlue() * f);
         int alpha = (int) (a.getAlpha() * rf + b.getAlpha() * f);
-        return new Color(red, green, blue, alpha).getRGB();
+        return new Color(red, green, blue, alpha);
+    }
+
+    public static int interpolateColours(Color a, Color b, float f) {
+        return interpolateColoursColor(a,b,f).getRGB();
     }
 
 }

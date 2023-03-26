@@ -9,7 +9,7 @@ public class DescriptionProperty extends Property<String> {
     public DescriptionProperty(String value) { super(value); }
 
     @Override
-    public PropertyComponent createComponent() {
+    public PropertyComponent<DescriptionProperty> createComponent() {
         return new PropertyComponent<DescriptionProperty>(this) {
             @Override
             protected int draw(RenderInfo ri) {
