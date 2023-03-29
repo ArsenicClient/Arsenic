@@ -35,14 +35,17 @@ public abstract class Component implements IContainable {
         return r;
     }
 
-    public void handleClick(int mouseX, int mouseY, int mouseButton) {
-        if (mouseX > (x1) && mouseX < (x2 + expandX) && mouseY > (y1) && mouseY < (y2 + expandY)) {
-            clickComponent(mouseX, mouseY, mouseButton);
-            if (this instanceof IContainer) {
-                ((IContainer) this).getContents()
-                        .forEach(component -> ((Component) component).handleClick(mouseX, mouseY, mouseButton));
+    public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
+        if (mouseX < x1 || mouseX > (x2 + expandX) || mouseY < y1 || mouseY > (y2 + expandY))
+            return false;
+        clickComponent(mouseX, mouseY, mouseButton);
+        if (this instanceof IContainer) {
+            for(Component component : ((IContainer<Component>) this).getContents()) {
+                if(component.handleClick(mouseX, mouseY, mouseButton))
+                    return true;
             }
         }
+        return true;
     }
 
     public final void handleRelease(int mouseX, int mouseY, int state) {

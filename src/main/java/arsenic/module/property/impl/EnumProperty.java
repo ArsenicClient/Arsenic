@@ -1,24 +1,21 @@
 package arsenic.module.property.impl;
 
-import arsenic.gui.click.ClickGuiScreen;
-import arsenic.main.Arsenic;
+import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.module.property.IReliable;
+import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
-
-import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.module.property.IReliable;
-import arsenic.module.property.SerializableProperty;
-import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.RenderInfo;
-import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.util.HashMap;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
@@ -72,6 +69,10 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
         private final Color disabledColor = new Color(0x604B5F55);
         private final Color enabledColor = new Color(0xFF2ECC71);
+        private float boxY1;
+        private float boxY2;
+        private float boxX1;
+        private float boxHeight;
 
         public EnumComponent(EnumProperty<?> p) {
             super(p);
@@ -79,17 +80,17 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
         @Override
         protected int draw(RenderInfo ri) {
-            float boxX1 = x2 - width/3f;
+            boxX1 = x2 - width/3f;
             float midPointY = y1 + (height/2f);
             float borderWidth = height/15f;
 
             //name
             ri.getFr().drawYCenteredString(name, x1, midPointY, 0xFFFFFFFE);
 
-            float boxY1 = midPointY - height/3f;
-            float boxY2 = midPointY + height/3f;
-            float boxHeight = boxY2 - boxY1;
-            float maxBoxHeight = animationTimer.getPercent() * ((modes.length - 1)  * boxHeight);
+            boxY1 = midPointY - height/3f;
+            boxY2 = midPointY + height/3f;
+            boxHeight = boxY2 - boxY1;
+            float maxBoxHeight = animationTimer.getPercent() * ((modes.length)  * boxHeight);
 
             //box
             DrawUtils.drawBorderedRoundedRect(
@@ -104,19 +105,18 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             );
 
             //Other value that aren't selected
-            RenderUtils.glScissor((int) boxX1, (int) boxY1, (int) (x2 - boxX1), (int) (boxHeight + maxBoxHeight), 2);
-            if(open) {
-                GuiScreen uis = ((ClickGui)(ModuleManager.Modules.CLICKGUI.getModule())).getScreen();
-                DrawUtils.drawRect(0,0, uis.width, uis.height, 0xFFFFFFFE);
-            }
+            if(animationTimer.getPercent() > 0) {
+                DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
 
-            for(int i = 0; i < modes.length; i++) {
-                T m = modes[i];
-                if(m == getValue()) continue;
-                ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + (i * boxHeight), 0xFFFFFFFE);
-            }
+                RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
 
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+                for (int i = 0; i < modes.length; i++) {
+                    T m = modes[i];
+                    ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i+1) * boxHeight), 0xFFFFFFFE);
+                }
+
+                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            }
 
             //triangle in box
             float triangleLength = (boxHeight - (borderWidth * 2f));
@@ -137,8 +137,23 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         @Override
         protected void click(int mouseX, int mouseY, int mouseButton) {
             open = !open;
+            ((ClickGui)(ModuleManager.Modules.CLICKGUI.getModule())).getScreen().setAlwaysClickedComponent(open ? this : null);
+        }
 
-            //aa
+        @Override
+        public boolean clickFirstClickable(int mouseX, int mouseY, int mouseButton) {
+            if(mouseX > x2 || mouseX < boxX1)
+                return false;
+            float mouseOffset = mouseY - boxY1;
+            if(mouseOffset < 0 || mouseOffset > ((modes.length + 1) * boxHeight))
+                return false;
+            int box = (int) (mouseOffset/boxHeight);
+            if(box == 0) {
+                click(mouseX, mouseY, mouseButton);
+                return true;
+            }
+            setValue(modes[box - 1]);
+            return true;
         }
 
         @Override
@@ -146,7 +161,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             open = false;
         }
 
-        //draws a perfect triangle
+        //draws a perfect triangle when height == width
         public void drawCustom(float x1, float y1, float width, float height, int colour) {
             final float realY1 = y1 * 2;
             final float realX1 = x1 * 2;

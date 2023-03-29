@@ -1,16 +1,10 @@
 package arsenic.gui.click;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
@@ -18,11 +12,15 @@ import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class ClickGuiScreen extends CustomGuiScreen {
     private final ClickGui module;
     private final List<UICategoryComponent> components;
     private ModuleCategoryComponent cmcc;
-    private Component alwaysClickedComponent;
+    private ISetNotAlwaysClickable alwaysClickedComponent;
 
     public ClickGuiScreen() {
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
@@ -74,6 +72,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
+        if(alwaysClickedComponent != null) {
+            if(alwaysClickedComponent.clickFirstClickable(mouseX, mouseY, mouseButton)) return;
+        }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
         cmcc.clickChildren(mouseX, mouseY, mouseButton);
     }
@@ -85,7 +86,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public <T extends Component & ISetNotAlwaysClickable> void setAlwaysClickedComponent(T component) {
-        component.setNotAlwaysClickable();
+        if(alwaysClickedComponent != null)
+            alwaysClickedComponent.setNotAlwaysClickable();
         this.alwaysClickedComponent = component;
     }
 
