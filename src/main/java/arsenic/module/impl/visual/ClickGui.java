@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.main.Arsenic;
 import org.lwjgl.input.Keyboard;
 
 import arsenic.gui.click.ClickGuiScreen;
@@ -20,8 +21,10 @@ public class ClickGui extends Module {
 
     @Override
     protected void onEnable() {
-        if (screen == null)
-            screen = new ClickGuiScreen();
+        if (screen == null) {
+            screen = Arsenic.getArsenic().getClickGuiScreen();
+            screen.init();
+        }
 
         mc.displayGuiScreen(screen);
 

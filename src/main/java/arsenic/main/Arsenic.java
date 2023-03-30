@@ -3,6 +3,8 @@ package arsenic.main;
 import java.util.Arrays;
 import java.util.Collection;
 
+import arsenic.gui.click.ClickGuiScreen;
+import arsenic.module.impl.visual.ClickGui;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -34,6 +36,7 @@ public class Arsenic implements IContainer<IContainable> {
     private final Fonts fonts = new Fonts();
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
+    private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
 
     private final Property<?> // placeholders rn
     customFontProperty = new BooleanProperty("Custom Font", false),
@@ -93,5 +96,9 @@ public class Arsenic implements IContainer<IContainable> {
     public final ConfigManager getConfigManager() { return configManager; }
 
     public final CommandManager getCommandManager() { return commandManager; }
+
+    public final ClickGuiScreen getClickGuiScreen() {
+        return clickGuiScreen;
+    }
 
 }

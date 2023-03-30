@@ -5,6 +5,7 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
@@ -12,17 +13,19 @@ import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ClickGuiScreen extends CustomGuiScreen {
-    private final ClickGui module;
-    private final List<UICategoryComponent> components;
+    private ClickGui module;
+    private List<UICategoryComponent> components;
+    private List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
     private ISetNotAlwaysClickable alwaysClickedComponent;
 
-    public ClickGuiScreen() {
+    public void init() {
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
@@ -68,6 +71,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2, hLineY + 5);
         cmcc.drawRight(piR, ri);
 
+        renderLastList.forEach(IVoidFunction::voidFunction);
+        renderLastList.clear();
     }
 
     @Override
@@ -94,6 +99,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public final IFontRenderer getFontRenderer() {
         return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR
                 : (IFontRenderer) mc.fontRendererObj;
+    }
+
+    public void addToRenderLastList(IVoidFunction v) {
+        renderLastList.add(v);
     }
 
     @Override

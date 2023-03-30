@@ -1,6 +1,7 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.property.IReliable;
@@ -15,7 +16,6 @@ import com.google.gson.JsonObject;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
-import java.util.HashMap;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
@@ -92,44 +92,48 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             boxHeight = boxY2 - boxY1;
             float maxBoxHeight = animationTimer.getPercent() * ((modes.length)  * boxHeight);
 
-            //box
-            DrawUtils.drawBorderedRoundedRect(
-                    boxX1,
-                    boxY1,
-                    x2,
-                    boxY2 + maxBoxHeight,
-                    boxHeight/2f,
-                    borderWidth,
-                    enabledColor.getRGB(),
-                    disabledColor.getRGB()
-            );
+            //so that it draws over the other properties
+            Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList( () -> {
 
-            //Other value that aren't selected
-            if(animationTimer.getPercent() > 0) {
-                DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
+                //box
+                DrawUtils.drawBorderedRoundedRect(
+                        boxX1,
+                        boxY1,
+                        x2,
+                        boxY2 + maxBoxHeight,
+                        boxHeight/2f,
+                        borderWidth,
+                        enabledColor.getRGB(),
+                        disabledColor.getRGB()
+                );
 
-                RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
+                //Other value that aren't selected
+                if(animationTimer.getPercent() > 0) {
+                    DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
 
-                for (int i = 0; i < modes.length; i++) {
-                    T m = modes[i];
-                    ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i+1) * boxHeight), 0xFFFFFFFE);
+                    RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
+
+                    for (int i = 0; i < modes.length; i++) {
+                        T m = modes[i];
+                        ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i+1) * boxHeight), 0xFFFFFFFE);
+                    }
+
+                    GL11.glDisable(GL11.GL_SCISSOR_TEST);
                 }
 
-                GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            }
+                //name in box
+                ri.getFr().drawYCenteredString(getValue().name(), boxX1 + (borderWidth * 2), midPointY, 0xFFFFFFFE);
 
-            //triangle in box
-            float triangleLength = (boxHeight - (borderWidth * 2f));
-            drawCustom(
-                    x2 - boxHeight - (borderWidth * 2),
-                    boxY1 + (borderWidth * 2) + ((boxHeight  - (borderWidth * 4)) * animationTimer.getPercent()),
-                    triangleLength,
-                    (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
-                    enabledColor.getRGB()
-            );
-
-            //name in box
-            ri.getFr().drawYCenteredString(getValue().name(), boxX1 + (borderWidth * 2), midPointY, 0xFFFFFFFE);
+                //triangle in box
+                float triangleLength = (boxHeight - (borderWidth * 2f));
+                drawCustom(
+                        x2 - boxHeight - (borderWidth * 2),
+                        boxY1 + (borderWidth * 2) + ((boxHeight  - (borderWidth * 4)) * animationTimer.getPercent()),
+                        triangleLength,
+                        (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
+                        enabledColor.getRGB()
+                );
+            });
 
             return height;
         }
@@ -137,7 +141,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         @Override
         protected void click(int mouseX, int mouseY, int mouseButton) {
             open = !open;
-            ((ClickGui)(ModuleManager.Modules.CLICKGUI.getModule())).getScreen().setAlwaysClickedComponent(open ? this : null);
+            Arsenic.getArsenic().getClickGuiScreen().setAlwaysClickedComponent(open ? this : null);
         }
 
         @Override
@@ -153,6 +157,8 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                 return true;
             }
             setValue(modes[box - 1]);
+            open = !open;
+            Arsenic.getArsenic().getClickGuiScreen().setAlwaysClickedComponent(null);
             return true;
         }
 
