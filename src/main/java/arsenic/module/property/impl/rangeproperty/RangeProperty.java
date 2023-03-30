@@ -54,7 +54,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
             private float lineWidth;
 
             @Override
-            protected int draw(RenderInfo ri) {
+            protected float draw(RenderInfo ri) {
 
                 float percentMax = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
                 float percentMin = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));

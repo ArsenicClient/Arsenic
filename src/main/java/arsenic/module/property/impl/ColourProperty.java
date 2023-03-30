@@ -44,17 +44,11 @@ public class ColourProperty extends SerializableProperty<Integer> {
             private float lineWidth;
 
             @Override
-            protected int draw(RenderInfo ri) {
-                float lineY;
-                String name = getName();
-
-                //draws name
-                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
-
+            protected float draw(RenderInfo ri) {
                 lineX1 = x2 - width/2f;
                 lineX2 = x2;
                 lineWidth = lineX2 - lineX1;
-                lineY = y1 + height/2f;
+                float lineY = y1 + height/2f;
 
                 //draws line
                 DrawUtils.drawRect(lineX1, lineY - 0.5f, lineX2, lineY + 0.5f, value);
@@ -91,8 +85,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                 //probs a better way to do this
                 for(int i = 0; i < 4; i++) {
                     float dist = Math.abs(mousePercent - (getColor(i) / 255f));
-                    if(dist > closestDist)
-                        continue;
+                    if(dist > closestDist) continue;
                     closestDist = dist;
                     helping = i;
                 }

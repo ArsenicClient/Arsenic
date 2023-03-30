@@ -22,9 +22,11 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
 
-    private final String name, description;
+    private final String name;
+    private final String description;
     private final ModuleCategory category;
-    private boolean enabled, hidden;
+    private boolean enabled;
+    private boolean hidden;
     private String displayName;
     private int keybind;
 

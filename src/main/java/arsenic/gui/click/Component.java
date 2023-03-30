@@ -10,10 +10,10 @@ import net.minecraft.client.renderer.GlStateManager;
 
 public abstract class Component implements IContainable {
 
-    protected int x1, y1, x2, y2, width, height, expandY, expandX;
+    protected float x1, y1, x2, y2, width, height, expandY, expandX, midPointY;
 
     // returns height
-    public int updateComponent(PosInfo pi, RenderInfo ri) {
+    public float updateComponent(PosInfo pi, RenderInfo ri) {
 
         width = getWidth(ri.getGuiScreen().width);
         height = getHeight(ri.getGuiScreen().height);
@@ -21,13 +21,14 @@ public abstract class Component implements IContainable {
         x2 = x1 + width;
         y1 = pi.getY();
         y2 = y1 + height;
+        midPointY = y1 + (height/2f);
 
         mouseUpdate(ri.getMouseX(), ri.getMouseY());
 
         GL11.glPushMatrix();
         GlStateManager.pushMatrix();
         GlStateManager.pushAttrib();
-        int r = drawComponent(ri);
+        float r = drawComponent(ri);
         GlStateManager.popMatrix();
         GlStateManager.popAttrib();
         GL11.glPopMatrix();
@@ -56,7 +57,7 @@ public abstract class Component implements IContainable {
         }
     }
 
-    protected abstract int drawComponent(RenderInfo ri);
+    protected abstract float drawComponent(RenderInfo ri);
 
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {}
 

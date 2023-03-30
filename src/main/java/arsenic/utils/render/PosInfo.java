@@ -1,14 +1,15 @@
 package arsenic.utils.render;
 
 public class PosInfo {
-    int x, y;
+    float x;
+    float y;
 
-    public PosInfo(int x, int y) {
+    public PosInfo(float x, float y) {
         this.x = x;
         this.y = y;
     }
 
-    public void moveY(int m) {
+    public void moveY(float m) {
         y += m;
     }
 
@@ -16,11 +17,11 @@ public class PosInfo {
         x += m;
     }
 
-    public int getY() { return y; }
+    public float getY() { return y; }
 
-    public int getX() { return x; }
+    public float getX() { return x; }
 
-    public void setX(int x) { this.x = x; }
+    public void setX(float x) { this.x = x; }
 
-    public void setY(int y) { this.y = y; }
+    public void setY(float y) { this.y = y; }
 }

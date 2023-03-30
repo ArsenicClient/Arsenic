@@ -1,14 +1,15 @@
 package arsenic.module.property;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.interfaces.IContainable;
 
 public abstract class Property<T> implements IContainable {
 
     protected T value;
-    protected IVisible visible = () -> true;
+    protected INoParamFunction<Boolean> visible = () -> true;
 
-    public Property(T value) {
+    protected Property(T value) {
         this.value = value;
     }
 
@@ -16,13 +17,14 @@ public abstract class Property<T> implements IContainable {
 
     public void setValue(T value) { this.value = value; }
 
-    public void setVisible(IVisible visible) { this.visible = visible; }
+    public void setVisible(INoParamFunction<Boolean> visible) { this.visible = visible; }
 
-    public boolean isVisible() { return visible.func(); }
+    public boolean isVisible() { return visible.getValue(); }
 
     public abstract PropertyComponent<?> createComponent();
 
-    @FunctionalInterface
-    public interface IVisible { boolean func(); }
+    public String getName() {
+        return value.toString();
+    }
 
 }

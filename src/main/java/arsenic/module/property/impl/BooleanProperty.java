@@ -2,6 +2,7 @@ package arsenic.module.property.impl;
 
 import java.awt.Color;
 
+import arsenic.utils.functionalinterfaces.INoParamFunction;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -33,7 +34,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     }
 
     @Override
-    public IVisible valueCheck(String value) {
+    public INoParamFunction<Boolean> valueCheck(String value) {
         return () -> Boolean.parseBoolean(value) == this.value && isVisible();
     }
 
@@ -46,7 +47,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
             private final AnimationTimer animationTimer = new AnimationTimer(350, () -> getValue(), TickMode.SINE);
 
             @Override
-            protected int draw(RenderInfo ri) {
+            protected float draw(RenderInfo ri) {
                 float radius = height/5f;
                 float midPointY = (y2 - height/2f);
                 float buttonY1 = midPointY - radius;
@@ -58,9 +59,6 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
                 Color color = RenderUtils.interpolateColoursColor(disabledColor, enabledColor, percent);
                 int darkerColor = color.darker().darker().getRGB();
                 int normalColour = color.getRGB();
-
-                //name
-                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
 
                 //oval
                 DrawUtils.drawBorderedRoundedRect(x2 - buttonWidth, buttonY1, x2, buttonY2, radius * 2, radius/3f, normalColour, darkerColor);

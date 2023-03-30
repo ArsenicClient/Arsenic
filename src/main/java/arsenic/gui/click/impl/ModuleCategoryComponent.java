@@ -2,7 +2,6 @@ package arsenic.gui.click.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,7 +41,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     public Collection<ModuleComponent> getContents() { return contents; }
 
     @Override
-    protected int drawComponent(RenderInfo ri) {
+    protected float drawComponent(RenderInfo ri) {
         ri.getFr().drawString(getName(), x1, y1, colour);
         return height;
     }

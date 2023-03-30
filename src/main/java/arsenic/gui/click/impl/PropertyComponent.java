@@ -12,7 +12,7 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     private final String name;
     protected final T self;
 
-    public PropertyComponent(T p) {
+    protected PropertyComponent(T p) {
         self = p;
         if (p instanceof SerializableProperty) {
             name = ((SerializableProperty<?>) p).getName();
@@ -22,12 +22,16 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     }
 
     @Override
-    protected final int drawComponent(RenderInfo ri) {
-        if (self.isVisible()) { return draw(ri); }
-        return 0;
+    protected final float drawComponent(RenderInfo ri) {
+        if (self.isVisible()) {
+            //name
+            ri.getFr().drawYCenteredString(name, x1, midPointY, 0xFFFFFFFE);
+            return draw(ri);
+        }
+        return 0f;
     }
 
-    protected abstract int draw(RenderInfo ri);
+    protected abstract float draw(RenderInfo ri);
 
     @Override
     protected final void clickComponent(int mouseX, int mouseY, int mouseButton) {

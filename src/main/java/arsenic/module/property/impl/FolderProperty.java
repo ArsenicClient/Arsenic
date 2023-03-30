@@ -14,10 +14,12 @@ public class FolderProperty extends Property<List<Property<?>>> {
     // very unfinished just here to remind me that at some point i should make it
 
     private boolean open;
+    private final String name;
 
     //this will cause an issue with its name
-    protected FolderProperty(Property<?>... values) {
+    protected FolderProperty(String name, Property<?>... values) {
         super(Arrays.asList(values));
+        this.name = name;
     }
 
     public boolean isOpen() { return open; }
@@ -29,11 +31,15 @@ public class FolderProperty extends Property<List<Property<?>>> {
     public void setOpen(boolean open) { this.open = open; }
 
     @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
     public PropertyComponent<FolderProperty> createComponent() {
         return new PropertyComponent<FolderProperty>(this) {
             @Override
-            protected int draw(RenderInfo ri) {
-                ri.getFr().drawString(getName(), x1, y1 + (height/2f) - (ri.getFr().getHeight(getName())/2), 0xFFFFFFFE);
+            protected float draw(RenderInfo ri) {
                 return height;
             }
         };

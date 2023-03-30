@@ -2,10 +2,9 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
-import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
+import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
@@ -54,7 +53,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     }
 
     @Override
-    public IVisible valueCheck(String value) {
+    public INoParamFunction<Boolean> valueCheck(String value) {
         return () -> value.equals(this.value.name()) && isVisible();
     }
 
@@ -66,29 +65,21 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     private class EnumComponent extends PropertyComponent<EnumProperty<?>> implements ISetNotAlwaysClickable {
         private boolean open;
         private final AnimationTimer animationTimer = new AnimationTimer(350, () -> open, TickMode.SINE);
-
         private final Color disabledColor = new Color(0x604B5F55);
         private final Color enabledColor = new Color(0xFF2ECC71);
         private float boxY1;
-        private float boxY2;
         private float boxX1;
         private float boxHeight;
-
         public EnumComponent(EnumProperty<?> p) {
             super(p);
         }
 
         @Override
-        protected int draw(RenderInfo ri) {
+        protected float draw(RenderInfo ri) {
             boxX1 = x2 - width/3f;
-            float midPointY = y1 + (height/2f);
             float borderWidth = height/15f;
-
-            //name
-            ri.getFr().drawYCenteredString(name, x1, midPointY, 0xFFFFFFFE);
-
             boxY1 = midPointY - height/3f;
-            boxY2 = midPointY + height/3f;
+            float boxY2 = midPointY + height/3f;
             boxHeight = boxY2 - boxY1;
             float maxBoxHeight = animationTimer.getPercent() * ((modes.length)  * boxHeight);
 

@@ -21,7 +21,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     }
 
     @Override
-    protected int drawComponent(RenderInfo ri) {
+    protected float drawComponent(RenderInfo ri) {
         GlStateManager.pushMatrix();
         GlStateManager.scale(0.5, 0.5, 0.5);
         ri.getFr().drawString(getName(), x1 * 2f, y1 * 2f, 0xFFFFFFFE);

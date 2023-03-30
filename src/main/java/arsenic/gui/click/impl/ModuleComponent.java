@@ -8,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import arsenic.gui.click.Component;
 import arsenic.module.Module;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 
@@ -22,7 +21,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     }
 
     @Override
-    protected int drawComponent(RenderInfo ri) {
+    protected float drawComponent(RenderInfo ri) {
         ri.getFr().drawString(getName() + ":", x1, y1 + (height) / 2f, 0xFF2ECC71);
 
         PosInfo pi = new PosInfo(x1 + 3, y2 + 1);

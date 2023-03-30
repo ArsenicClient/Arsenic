@@ -13,8 +13,8 @@ public class ButtonProperty extends Property<String> {
     public PropertyComponent<ButtonProperty> createComponent() {
         return new PropertyComponent<ButtonProperty>(this) {
             @Override
-            protected int draw(RenderInfo ri) {
-                ri.getFr().drawString(getValue(), x1, y1 + (height/2f) - (ri.getFr().getHeight(getValue())/2), 0xFFFFFFFE);
+            protected float draw(RenderInfo ri) {
+
                 return height;
             }
         };

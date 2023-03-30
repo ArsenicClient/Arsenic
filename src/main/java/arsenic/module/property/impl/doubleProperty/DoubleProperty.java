@@ -47,7 +47,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             private boolean clicked;
 
             @Override
-            protected int draw(RenderInfo ri) {
+            protected float draw(RenderInfo ri) {
 
                 float percent = (float) (getValue().getInput() / getValue().getMaxBound());
 
