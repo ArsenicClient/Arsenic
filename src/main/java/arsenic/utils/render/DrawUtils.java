@@ -12,40 +12,18 @@ public class DrawUtils extends UtilityClass {
 
     // horrible shitcode need to fix
 
-    public static void drawRect(float left, float top, float right, float bottom, int color) {
-        float temp;
+    public static void drawRect(float x, float y, float x1, float y1, int color) {
+        float finalX = x * 2f;
+        float finalY = y * 2f;
+        float finalX1 = x1 * 2f;
+        float finalY1 = y1 * 2f;
 
-        if (left < right) {
-            temp = left;
-            left = right;
-            right = temp;
-        }
-
-        if (top < bottom) {
-            temp = top;
-            top = bottom;
-            bottom = temp;
-        }
-
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer renderer = tessellator.getWorldRenderer();
-
-        GlStateManager.enableBlend();
-        GlStateManager.disableTexture2D();
-
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        RenderUtils.setColor(color);
-
-        renderer.begin(7, DefaultVertexFormats.POSITION);
-        renderer.pos(left, bottom, 0.0f).endVertex();
-        renderer.pos(right, bottom, 0.0f).endVertex();
-        renderer.pos(right, top, 0.0f).endVertex();
-        renderer.pos(left, top, 0.0f).endVertex();
-        tessellator.draw();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
-        GlStateManager.resetColor();
+        drawCustom(color, () -> {
+            GL11.glVertex2d(finalX, finalY1);
+            GL11.glVertex2d(finalX1, finalY1);
+            GL11.glVertex2d(finalX1, finalY);
+            GL11.glVertex2d(finalX, finalY);
+        });
     }
 
     public static void drawCustom(int color, IVoidFunction v) {
@@ -86,7 +64,7 @@ public class DrawUtils extends UtilityClass {
     }
 
     private static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
-                                   int finalRotation) {
+                                    int finalRotation) {
         for (int i = originalRotation; i <= finalRotation; i += 1)
             GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn),
                     y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
