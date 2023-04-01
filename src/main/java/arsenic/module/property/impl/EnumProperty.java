@@ -115,7 +115,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
                 //triangle in box
                 float triangleLength = (boxHeight - (borderWidth * 2f));
-                drawCustom(
+                DrawUtils.drawTriangle(
                         x2 - boxHeight - (borderWidth * 2),
                         boxY1 + (borderWidth * 2) + ((boxHeight - (borderWidth * 4)) * animationTimer.getPercent()),
                         triangleLength,
@@ -161,25 +161,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         @Override
         public void setNotAlwaysClickable() {
             open = false;
-        }
-
-        //draws a perfect triangle when height == width
-        public void drawCustom(float x1, float y1, float width, float height, int colour) {
-            final float realY1 = y1 * 2;
-            final float realX1 = x1 * 2;
-            final float realWidth = width * 2;
-            final float realHeight = (float) ((height)*Math.sqrt(3));
-            DrawUtils.drawCustom(colour, () -> {
-                if(realHeight > 0) {
-                    GL11.glVertex2d(realX1, realY1);
-                    GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
-                    GL11.glVertex2d(realX1 + realWidth, realY1);
-                } else {
-                    GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
-                    GL11.glVertex2d(realX1, realY1);
-                    GL11.glVertex2d(realX1 + realWidth, realY1);
-                }
-            });
         }
     }
 }

@@ -42,7 +42,7 @@ public class DrawUtils extends UtilityClass {
     }
     public static void drawCustomWithOutline(int fillColour, int borderColour, float borderWidth, IVoidFunction v) {
         drawCustom(fillColour, v);
-        //drawCustomOutline(borderColour, borderWidth, v);
+        drawCustomOutline(borderColour, borderWidth, v);
     }
 
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color, boolean[] round) {
@@ -130,6 +130,25 @@ public class DrawUtils extends UtilityClass {
         float circleY1 = centrePointY - radius;
         float circleY2 = centrePointY + radius;
         drawRoundedRect(circleX1, circleY1, circleX2, circleY2, radius * 2, color);
+    }
+
+    //draws a perfect triangle when height == width
+    public static void drawTriangle(float x1, float y1, float width, float height, int colour) {
+        final float realY1 = y1 * 2;
+        final float realX1 = x1 * 2;
+        final float realWidth = width * 2;
+        final float realHeight = (float) ((height)*Math.sqrt(3));
+        DrawUtils.drawCustom(colour, () -> {
+            if(realHeight > 0) {
+                GL11.glVertex2d(realX1, realY1);
+                GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
+                GL11.glVertex2d(realX1 + realWidth, realY1);
+            } else {
+                GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
+                GL11.glVertex2d(realX1, realY1);
+                GL11.glVertex2d(realX1 + realWidth, realY1);
+            }
+        });
     }
 
     private static void setup(int color) {
