@@ -88,6 +88,15 @@ public class FolderProperty extends Property<List<Property<?>>> {
                     enabledColor.getRGB()
             );
 
+            float triangleLength = (height - (borderWidth * 2f));
+            DrawUtils.drawTriangle(
+                    x2 - height - (borderWidth * 2),
+                    y1 + (borderWidth * 2) + ((height - (borderWidth * 4)) * animationTimer.getPercent()),
+                    triangleLength,
+                    (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
+                    enabledColor.getRGB()
+            );
+
             return height + expandY;
         }
 
