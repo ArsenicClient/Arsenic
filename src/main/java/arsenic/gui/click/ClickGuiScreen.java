@@ -12,6 +12,7 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,6 +67,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         // 0x60FFFFFF);
 
         // makes the currently selected category component draw its modules
+        RenderUtils.glScissor(vLineX, y, width, height);
         PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
         cmcc.drawLeft(piL, ri);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2, hLineY + 5);
@@ -73,6 +75,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         renderLastList.forEach(IVoidFunction::voidFunction);
         renderLastList.clear();
+
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
     @Override
