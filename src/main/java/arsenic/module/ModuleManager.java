@@ -11,6 +11,8 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.misc.TestModule;
+import arsenic.module.impl.misc.TestModule2;
+import arsenic.module.impl.misc.TestModule3;
 import arsenic.module.impl.movement.Sprint;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.FullBright;
@@ -58,7 +60,7 @@ public class ModuleManager {
 
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
-        TESTMODULE(TestModule.class);
+        TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class), TESTMODULE3(TestModule3.class);;
 
         private Module module;
 

@@ -13,7 +13,7 @@ public class PosInfo {
         y += m;
     }
 
-    public void moveX(int m) {
+    public void moveX(float m) {
         x += m;
     }
 

@@ -24,6 +24,7 @@ public abstract class SerializableProperty<T> extends Property<T> implements ISe
     @Override
     public final String getJsonKey() { return name; }
 
+    @Override
     public final String getName() { return name; }
 
 }

@@ -41,9 +41,6 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     @Override
     public PropertyComponent<BooleanProperty> createComponent() {
         return new PropertyComponent<BooleanProperty>(this) {
-
-            private final Color disabledColor = new Color(0xFF4B5F55);
-            private final Color enabledColor = new Color(0xFF2ECC71);
             private final AnimationTimer animationTimer = new AnimationTimer(350, () -> getValue(), TickMode.SINE);
 
             @Override

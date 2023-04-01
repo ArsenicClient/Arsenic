@@ -12,15 +12,10 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 
-@ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
-public class TestModule extends Module {
-
-    public final FolderProperty folderProperty = new FolderProperty(
-            "folderProperty",
-            new BooleanProperty("Cool beans", false),
-            new EnumProperty<testEnum>("Range Mode:", testEnum.Close));
-
-    public final EnumProperty<testEnum> enumProperty = new EnumProperty<testEnum>("Range Mode:", testEnum.Close);
+@ModuleInfo(name = "TestModule3", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
+public class TestModule3 extends Module {
+    public final DoubleProperty doubleProperty = new DoubleProperty("Double prop", new DoubleValue(0, 180, 70, 1));
+    public final DoubleProperty doubleProperty2 = new DoubleProperty("Double prop", new DoubleValue(0, 180, 70, 1));
 
     @Override
     protected void onEnable() {
@@ -35,7 +30,7 @@ public class TestModule extends Module {
     }
 
     public enum testEnum {
-        Far,Close,NotAsFar
+        A,B,C
     }
 
 }

@@ -3,6 +3,7 @@ package arsenic.gui.click.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import arsenic.utils.render.DrawUtils;
 import org.jetbrains.annotations.NotNull;
 
 import arsenic.gui.click.Component;
@@ -24,12 +25,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     protected float drawComponent(RenderInfo ri) {
         ri.getFr().drawString(getName() + ":", x1, y1 + (height) / 2f, 0xFF2ECC71);
 
-        PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
+        float expand = width/10f;
+        PosInfo pi = new PosInfo(x1 + expand, y2 + expand/2f);
         contents.forEach(child -> pi.moveY((int) (child.updateComponent(pi, ri) * 1.1)));
 
-        expandY = pi.getY() - y1;
+        expandY = pi.getY() - y2;
 
-        return expandY;
+        return expandY + height;
     }
 
     public final Collection<PropertyComponent<?>> getContents() { return contents; }
@@ -38,7 +40,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected int getWidth(int i) {
-        return 35 * (i / 100);
+        return 30 * (i / 100);
     }
 
 }

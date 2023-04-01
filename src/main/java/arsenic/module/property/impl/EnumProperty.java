@@ -5,6 +5,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.functionalinterfaces.INoParamFunction;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
@@ -65,8 +66,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     private class EnumComponent extends PropertyComponent<EnumProperty<?>> implements ISetNotAlwaysClickable {
         private boolean open;
         private final AnimationTimer animationTimer = new AnimationTimer(350, () -> open, TickMode.SINE);
-        private final Color disabledColor = new Color(0x604B5F55);
-        private final Color enabledColor = new Color(0xFF2ECC71);
         private float boxY1;
         private float boxX1;
         private float boxHeight;
@@ -83,8 +82,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             boxHeight = boxY2 - boxY1;
             float maxBoxHeight = animationTimer.getPercent() * ((modes.length)  * boxHeight);
 
-            //so that it draws over the other properties
-            Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList( () -> {
+            IVoidFunction render = () -> {
 
                 //box
                 DrawUtils.drawBorderedRoundedRect(
@@ -92,21 +90,21 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         boxY1,
                         x2,
                         boxY2 + maxBoxHeight,
-                        boxHeight/2f,
+                        boxHeight / 2f,
                         borderWidth,
                         enabledColor.getRGB(),
                         disabledColor.getRGB()
                 );
 
                 //Other value that aren't selected
-                if(animationTimer.getPercent() > 0) {
+                if (animationTimer.getPercent() > 0) {
                     DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
 
                     RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
 
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
-                        ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i+1) * boxHeight), 0xFFFFFFFE);
+                        ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE);
                     }
 
                     GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -119,12 +117,19 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                 float triangleLength = (boxHeight - (borderWidth * 2f));
                 drawCustom(
                         x2 - boxHeight - (borderWidth * 2),
-                        boxY1 + (borderWidth * 2) + ((boxHeight  - (borderWidth * 4)) * animationTimer.getPercent()),
+                        boxY1 + (borderWidth * 2) + ((boxHeight - (borderWidth * 4)) * animationTimer.getPercent()),
                         triangleLength,
                         (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
                         enabledColor.getRGB()
                 );
-            });
+
+            };
+            //so that it draws over the other properties
+            if(animationTimer.getPercent() > 0) {
+                Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList(render);
+            } else {
+                render.voidFunction();
+            }
 
             return height;
         }

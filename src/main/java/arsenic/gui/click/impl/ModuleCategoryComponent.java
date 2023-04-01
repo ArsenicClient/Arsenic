@@ -47,11 +47,11 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
-        contentsL.forEach(moduleComponent -> moduleComponent.updateComponent(pi, ri));
+        contentsL.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri)));
     }
 
     public void drawRight(PosInfo pi, RenderInfo ri) {
-        contentsR.forEach(moduleComponent -> moduleComponent.updateComponent(pi, ri));
+        contentsR.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri)));
     }
 
     @Override
@@ -71,7 +71,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected int getWidth(int i) {
-        return 40 * (i / 100);
+        return 9 * (i / 100);
     }
 
     @Override

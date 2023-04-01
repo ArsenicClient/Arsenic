@@ -40,8 +40,6 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
     public PropertyComponent<DoubleProperty> createComponent() {
         return new PropertyComponent<DoubleProperty>(this) {
 
-            private final Color disabledColor = new Color(0xFF4B5F55);
-            private final Color enabledColor = new Color(0xFF2ECC71);
             private float lineWidth;
             private float lineX1;
             private boolean clicked;

@@ -32,7 +32,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
         expandY = pi.getY() - y1;
 
-        return expandY + 5;
+        return expandY + height;
     }
 
     @Override
@@ -44,5 +44,10 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     @Override
     protected int getHeight(int i) {
         return 5 * (i / 100);
+    }
+
+    @Override
+    protected int getWidth(int i) {
+        return 9 * (i / 100);
     }
 }

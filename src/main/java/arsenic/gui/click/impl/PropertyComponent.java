@@ -14,11 +14,7 @@ public abstract class PropertyComponent<T extends Property> extends Component im
 
     protected PropertyComponent(T p) {
         self = p;
-        if (p instanceof SerializableProperty) {
-            name = ((SerializableProperty<?>) p).getName();
-        } else {
-            name = p.getValue().toString();
-        }
+        name = p.getName();
     }
 
     @Override
@@ -34,7 +30,7 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     protected abstract float draw(RenderInfo ri);
 
     @Override
-    protected final void clickComponent(int mouseX, int mouseY, int mouseButton) {
+    protected final void  clickComponent(int mouseX, int mouseY, int mouseButton) {
         if (self.isVisible()) { click(mouseX, mouseY, mouseButton); }
     }
 
@@ -46,11 +42,11 @@ public abstract class PropertyComponent<T extends Property> extends Component im
 
     @Override
     protected int getWidth(int i) {
-        return 23 * (i / 100);
+        return self.isVisible() ? 23 * (i / 100) : 0;
     }
 
     @Override
     protected int getHeight(int i) {
-        return 5 * (i / 100);
+        return self.isVisible() ? 5 * (i / 100) : 0;
     }
 }

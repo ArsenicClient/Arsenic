@@ -45,9 +45,6 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
     @Override
     public PropertyComponent<RangeProperty> createComponent() {
         return new PropertyComponent<RangeProperty>(this) {
-
-            private final Color disabledColor = new Color(0xFF4B5F55);
-            private final Color enabledColor = new Color(0xFF2ECC71);
             private boolean clicked;
             private Helping helping;
             private float lineX1;
