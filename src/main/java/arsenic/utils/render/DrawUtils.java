@@ -73,18 +73,16 @@ public class DrawUtils extends UtilityClass {
         float finalX1 = x1 * 2f;
         float finalY1 = y1 * 2f;
 
-        drawCustom(color, () -> round(finalX, finalY, finalX1, finalY1, radius , round));
+        drawCustom(color, () -> round(finalX, finalY, finalX1, finalY1, radius, round));
     }
 
-    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color, boolean[] drawCorner) {
-        x *= 2.0;
-        y *= 2.0;
-        x1 *= 2.0;
-        y1 *= 2.0;
+    public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color, boolean[] round) {
+        float finalX = x * 2f;
+        float finalY = y * 2f;
+        float finalX1 = x1 * 2f;
+        float finalY1 = y1 * 2f;
 
-        setupOutline(color, borderSize);
-        round(x, y, x1, y1, radius, drawCorner);
-        finishOutline();
+        drawCustomOutline(color, borderSize, () -> round(finalX, finalY, finalX1, finalY1, radius, round));
     }
 
     private static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
