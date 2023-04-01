@@ -62,15 +62,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         PosInfo pi = new PosInfo(x + 5, hLineY + 5);
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
-        // draws the box around the current category
-        // DrawUtils.drawRoundedRect(cmcc.x1, cmcc.y1, cmcc.x2, cmcc.y2, 2 * sf,
-        // 0x60FFFFFF);
-
         // makes the currently selected category component draw its modules
-        RenderUtils.glScissor(vLineX, y, width, height);
+        RenderUtils.glScissor(vLineX, y, x1 - vLineX, y1 - y, 2);
         PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
         cmcc.drawLeft(piL, ri);
-        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2, hLineY + 5);
+        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY + 5);
         cmcc.drawRight(piR, ri);
 
         renderLastList.forEach(IVoidFunction::voidFunction);

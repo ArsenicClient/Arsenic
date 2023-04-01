@@ -31,11 +31,7 @@ public abstract class Component implements IContainable {
         mouseUpdate(ri.getMouseX(), ri.getMouseY());
 
         GL11.glPushMatrix();
-        GlStateManager.pushMatrix();
-        GlStateManager.pushAttrib();
         float r = drawComponent(ri);
-        GlStateManager.popMatrix();
-        GlStateManager.popAttrib();
         GL11.glPopMatrix();
 
         return r;

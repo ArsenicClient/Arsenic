@@ -100,6 +100,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                 if (animationTimer.getPercent() > 0) {
                     DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
 
+                    GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
                     RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
 
                     for (int i = 0; i < modes.length; i++) {
@@ -107,7 +108,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE);
                     }
 
-                    GL11.glDisable(GL11.GL_SCISSOR_TEST);
+                    GL11.glPopAttrib();
                 }
 
                 //name in box

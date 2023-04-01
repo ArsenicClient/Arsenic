@@ -66,11 +66,13 @@ public class FolderProperty extends Property<List<Property<?>>> {
             PosInfo pi = new PosInfo(x1, y2);
             if(animationTimer.getPercent() > 0) {
                 pi.moveX(expand);
-                RenderUtils.glScissor((int) x1, (int) y2, (int) ((width) + expandX * 2), (int) expandY );
+                GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
+                RenderUtils.glScissor((int) x1, (int) y2, (int) ((width) + expandX * 2), (int) expandY, 2);
                 components.forEach(component -> {
                     pi.moveY(component.updateComponent(pi, ri));
                 });
-                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+                GL11.glPopAttrib();
                 if(open)
                     lastHeight = (pi.getY() - y2);
             }
