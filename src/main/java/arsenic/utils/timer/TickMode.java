@@ -6,7 +6,8 @@ public enum TickMode {
 
     SINE(input -> (float) ((Math.sin(Math.PI * (input + 3/2f)) + 1)/2)),
     LINEAR(input -> input),
-    ROOT(input -> (float) Math.sqrt(input));
+    ROOT(input -> (float) Math.sqrt(input)),
+    SQR(input -> input * input);
 
     private IFunction<Float> i;
 
