@@ -10,17 +10,19 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.interfaces.IContainer;
+import arsenic.utils.java.ColorUtils;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
-
-    private int colour = 0xFFFFFF01;
-    // private final int HEIGHT =
-    // Minecraft.getMinecraft().fontRendererObj.FONT_HEIGHT + 3;
-    private boolean currentCategory = false;
     private final ModuleCategory self;
+    private boolean isCC, isHovered;
     private final List<ModuleComponent> contentsL = new ArrayList<>(), contentsR = new ArrayList<>(), contents;
+    private final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SQR);
+    private final AnimationTimer hoverTimer = new AnimationTimer(350, () -> isHovered, TickMode.SQR);
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;
@@ -42,8 +44,17 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        ri.getFr().drawString(getName(), x1, y1, colour);
+        expandX = hoverTimer.getPercent() * (width/14f);
+
+        int color = ColorUtils.setColor(enabledColor.getRGB(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
+        DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, color);
+        ri.getFr().drawYCenteredString(getName(), x1 + expandX + (width/7f), midPointY, 0xFFFFFFFE);
         return height;
+    }
+
+    @Override
+    public void mouseUpdate(int mouseX, int mouseY) {
+        isHovered = isMouseInArea(mouseX, mouseY);
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
@@ -65,13 +76,12 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     public void setCurrentCategory(boolean currentCategory) {
-        this.currentCategory = currentCategory;
-        colour = currentCategory ? 0xFFFF01FF : 0xFFFFFF01;
+        this.isCC = currentCategory;
     }
 
     @Override
     protected int getWidth(int i) {
-        return 9 * (i / 100);
+        return 10 * (i / 100);
     }
 
     @Override
