@@ -6,6 +6,8 @@ import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
@@ -40,9 +42,10 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
     public PropertyComponent<DoubleProperty> createComponent() {
         return new PropertyComponent<DoubleProperty>(this) {
 
-            private float lineWidth;
-            private float lineX1;
+            private boolean hovered;
+            private float lineWidth, lineX1, radius, lineXChangePoint;
             private boolean clicked;
+            private AnimationTimer animationTimer = new AnimationTimer(120, () -> hovered || clicked, TickMode.ROOT);
 
             @Override
             protected float draw(RenderInfo ri) {
@@ -63,20 +66,22 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 lineX1 = x2 - width/2f;
                 float lineX2 = x2 - width / 5f;
                 lineWidth = lineX2 - lineX1;
-                float lineXChangePoint = (lineX1 + (percent * lineWidth));
-                float lineY = y1 + height / 2f;
+                lineXChangePoint = (lineX1 + (percent * lineWidth));
 
 
                 //draws first bit (colored) of line
-                DrawUtils.drawRect(lineX1, lineY - 0.5f, lineXChangePoint, lineY + 0.5f, enabledColor.getRGB());
+                DrawUtils.drawRect(lineX1, midPointY - 0.5f, lineXChangePoint, midPointY + 0.5f, enabledColor.getRGB());
 
                 //draws second bit (uncolored) of the line
-                DrawUtils.drawRect(lineXChangePoint, lineY - 0.5f, lineX2, lineY + 0.5f, disabledColor.getRGB());
+                DrawUtils.drawRect(lineXChangePoint, midPointY - 0.5f, lineX2, midPointY + 0.5f, disabledColor.getRGB());
 
                 //draws the circle
-                float radius = height/5f;
+                radius = height/5f;
                 Color color = new Color(RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
-                DrawUtils.drawBorderedCircle(lineXChangePoint, lineY, radius, radius/3f, color.darker().getRGB(), color.getRGB());
+                DrawUtils.drawBorderedCircle(lineXChangePoint, midPointY, radius, radius/3f, color.darker().getRGB(), color.getRGB());
+                if(animationTimer.getPercent() > 0) {
+                    DrawUtils.drawCircleOutline(lineXChangePoint, midPointY, radius * animationTimer.getPercent(), radius/3f, 0xFFFFFFFE);
+                }
                 return height;
             }
 
@@ -92,6 +97,18 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
+                handleMovement(mouseX, mouseY);
+                handleHover(mouseX, mouseY);
+            }
+
+            private void handleHover(int mouseX, int mouseY) {
+                double xDiff = Math.pow((lineXChangePoint - mouseX), 2);
+                double yDiff = Math.pow((midPointY - mouseY), 2);
+                double tDiff = Math.sqrt(xDiff + yDiff);
+                hovered = tDiff < radius;
+            }
+
+            private void handleMovement(int mouseX, int mouseY) {
                 if(!clicked)
                     return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
