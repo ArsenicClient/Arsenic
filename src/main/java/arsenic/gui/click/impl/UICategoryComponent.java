@@ -22,14 +22,10 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        GlStateManager.pushMatrix();
-        GlStateManager.scale(0.5, 0.5, 0.5);
-        ri.getFr().drawString(getName(), x1 * 2f, y1 * 2f, 0xFFFFFFFE);
-        GlStateManager.popMatrix();
+        ri.getFr().drawYCenteredString(getName(), x1, midPointY, enabledColor.getRGB());
 
         PosInfo pi = new PosInfo(x1 + 3, y2 + 1);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) + 2));
-
         expandY = pi.getY() - y1;
 
         return expandY + height;
