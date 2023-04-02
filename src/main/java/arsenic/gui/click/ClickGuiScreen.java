@@ -8,10 +8,7 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
-import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.PosInfo;
-import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.*;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
@@ -63,7 +60,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         // makes the currently selected category component draw its modules
-        RenderUtils.glScissor(vLineX, y, x1 - vLineX, y1 - y, 2);
+        ScissorUtils.subScissor(vLineX, y, x1, y1, 2);
         PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
         cmcc.drawLeft(piL, ri);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY + 5);
@@ -72,7 +69,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         renderLastList.forEach(IVoidFunction::voidFunction);
         renderLastList.clear();
 
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        ScissorUtils.endSubScissor();
+        ScissorUtils.resetScissor();
     }
 
     @Override

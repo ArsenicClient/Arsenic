@@ -19,19 +19,6 @@ public class RenderUtils extends UtilityClass {
 
     private static Minecraft mc = Minecraft.getMinecraft();
 
-    public static void glScissor(int x, int y, int width, int height) {
-        glScissor(x, y, width, height, new ScaledResolution(mc).getScaleFactor());
-    }
-
-    public static void glScissor(int x, int y, int width, int height, int scale) {
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(
-                x * scale,
-                (mc.displayHeight - (((y + height)) * scale)),
-                width * scale,
-                height * scale);
-    }
-
 
     public static void setColor(final int color) {
         final float a = ((color >> 24) & 0xFF) / 255.0f;

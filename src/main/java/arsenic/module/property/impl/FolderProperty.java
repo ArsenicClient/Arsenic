@@ -5,10 +5,7 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
-import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.PosInfo;
-import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import org.lwjgl.opengl.GL11;
@@ -66,15 +63,10 @@ public class FolderProperty extends Property<List<Property<?>>> {
             PosInfo pi = new PosInfo(x1, y2);
             if(animationTimer.getPercent() > 0) {
                 pi.moveX(expand);
-                GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
-                RenderUtils.glScissor((int) x1, (int) y2, (int) ((width) + expandX * 2), (int) expandY, 2);
-                components.forEach(component -> {
-                    pi.moveY(component.updateComponent(pi, ri));
-                });
-
-                GL11.glPopAttrib();
-                if(open)
-                    lastHeight = (pi.getY() - y2);
+                ScissorUtils.subScissor((int) x1, (int) y2, (int) (x2 + expandX * 2), (int) (y2 + expandY), 2);
+                components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+                ScissorUtils.endSubScissor();
+                if(open) lastHeight = (pi.getY() - y2);
             }
 
             expandX = expand;

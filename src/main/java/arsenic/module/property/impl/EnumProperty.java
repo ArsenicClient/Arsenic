@@ -10,6 +10,7 @@ import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
@@ -100,15 +101,14 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                 if (animationTimer.getPercent() > 0) {
                     DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
 
-                    GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
-                    RenderUtils.glScissor((int) boxX1, (int) boxY2, (int) (x2 - boxX1), (int) maxBoxHeight, 2);
+                    ScissorUtils.subScissor((int) boxX1, (int) boxY2, (int) x2, (int) (boxY2 + maxBoxHeight), 2);
 
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
                         ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE);
                     }
 
-                    GL11.glPopAttrib();
+                    ScissorUtils.endSubScissor();
                 }
 
                 //name in box
