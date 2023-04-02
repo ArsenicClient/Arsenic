@@ -63,6 +63,10 @@ public abstract class Component implements IContainable {
         }
     }
 
+    protected boolean isMouseInArea(float mouseX, float mouseY) {
+        return mouseX > x1 && mouseY > y1 && mouseX < x2 && mouseY < y2;
+    }
+
     protected abstract float drawComponent(RenderInfo ri);
 
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {}
