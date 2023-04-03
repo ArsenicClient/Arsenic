@@ -9,6 +9,8 @@ import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
 import arsenic.utils.render.*;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
@@ -22,8 +24,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
     private ISetNotAlwaysClickable alwaysClickedComponent;
+    private ResourceLocation logoPath;
 
     public void init() {
+        logoPath = RenderUtils.getResourcePath("/assets/arsenic/arseniclogo.png");
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
@@ -36,7 +40,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
 
         // makes whole screen slightly darker
-        // DrawUtils.drawRect(0, 0, width, height, 0x35000000);
+        // to be replaced with a blur
+        DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
         int y = height / 6;
@@ -54,6 +59,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, 0xFF2ECC71);
         // horizontal line
         DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, 0xFF2ECC71);
+
+        //logo
+        mc.getTextureManager().bindTexture(logoPath);
+        int tempExpand = (int) (x * 0.1f);
+        Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
 
         // draws each module category component
         PosInfo pi = new PosInfo(x + 5, hLineY + 5);

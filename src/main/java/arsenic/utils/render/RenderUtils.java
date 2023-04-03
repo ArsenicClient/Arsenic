@@ -7,6 +7,7 @@ import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 
+import arsenic.main.Arsenic;
 import org.lwjgl.opengl.GL11;
 
 import arsenic.utils.java.UtilityClass;
@@ -16,9 +17,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.ResourceLocation;
 
 public class RenderUtils extends UtilityClass {
-
-    private static Minecraft mc = Minecraft.getMinecraft();
-
 
     public static void setColor(final int color) {
         final float a = ((color >> 24) & 0xFF) / 255.0f;
@@ -33,13 +31,14 @@ public class RenderUtils extends UtilityClass {
     }
 
     public static ResourceLocation getResourcePath(String s) {
-        InputStream inputStream = RenderUtils.class.getResourceAsStream(s);
+        InputStream inputStream = Arsenic.class.getResourceAsStream(s);
         BufferedImage bf;
         try {
             assert inputStream != null;
             bf = ImageIO.read(inputStream);
-            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("arsenic", new DynamicTexture(bf));
-        } catch (IOException | IllegalArgumentException | NullPointerException noway) {
+            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
+        } catch (IOException | IllegalArgumentException | NullPointerException e) {
+            e.printStackTrace();
             return new ResourceLocation("null");
         }
     }
