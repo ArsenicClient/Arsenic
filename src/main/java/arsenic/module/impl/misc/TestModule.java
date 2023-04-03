@@ -15,10 +15,9 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 @ModuleInfo(name = "TestModule", category = ModuleCategory.OTHER, keybind = Keyboard.KEY_R)
 public class TestModule extends Module {
 
-    public final FolderProperty folderProperty = new FolderProperty(
-            "folderProperty",
-            new BooleanProperty("Cool beans", false),
-            new EnumProperty<testEnum>("Range Mode:", testEnum.Close));
+    private final BooleanProperty booleanProp =  new BooleanProperty("Cool beans", false);
+    private final EnumProperty<testEnum> enumProp =  new EnumProperty<testEnum>("Range Mode:", testEnum.Close);
+    public final FolderProperty folderProperty = new FolderProperty("folder prop", booleanProp, enumProp);
 
     public final EnumProperty<testEnum> enumProperty = new EnumProperty<testEnum>("Range Mode:", testEnum.Close);
 

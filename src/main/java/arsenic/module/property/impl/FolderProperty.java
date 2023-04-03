@@ -1,45 +1,54 @@
 package arsenic.module.property.impl;
 
-import arsenic.gui.click.Component;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.Property;
+import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
-import arsenic.utils.render.*;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.PosInfo;
+import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import org.lwjgl.opengl.GL11;
+import com.google.gson.JsonObject;
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FolderProperty extends Property<List<Property<?>>> {
+public class FolderProperty extends SerializableProperty<List<Property<?>>> {
 
     // does not save the config of properties inside the folder
     // properties inside the folder cannot use @PropertyInfo
     // very unfinished just here to remind me that at some point i should make it
     // Cant access the properties inside the folder -> probably remake how it inits
 
-    private boolean open;
-    private final String name;
-
     //this will cause an issue with its name
     public FolderProperty(String name, Property<?>... values) {
-        super(Arrays.asList(values));
-        this.name = name;
+        super(name, Arrays.asList(values));
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
 
     @Override
     public PropertyComponent<FolderProperty> createComponent() {
         return new FolderComponent(this);
+    }
+
+    @Override
+    public void loadFromJson(JsonObject obj) {
+        getValue().forEach(p -> {
+            if (p instanceof SerializableProperty) ((SerializableProperty<?>) p).loadFromJson(obj);
+        });
+    }
+
+    @Override
+    public JsonObject saveInfoToJson(JsonObject obj) {
+        getValue().forEach(p -> {
+            if (p instanceof SerializableProperty) ((SerializableProperty<?>) p).saveInfoToJson(obj);
+        });
+        return obj;
     }
 
     private class FolderComponent extends PropertyComponent<FolderProperty> implements IContainer<PropertyComponent<?>> {

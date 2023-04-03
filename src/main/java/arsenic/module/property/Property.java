@@ -1,14 +1,19 @@
 package arsenic.module.property;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.module.Module;
 import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.interfaces.IContainable;
 
 public abstract class Property<T> implements IContainable {
 
     protected T value;
+    protected Module parent;
     protected INoParamFunction<Boolean> visible = () -> true;
 
+    public final void setParent(Module parent) {
+        this.parent = parent;
+    }
     protected Property(T value) {
         this.value = value;
     }
