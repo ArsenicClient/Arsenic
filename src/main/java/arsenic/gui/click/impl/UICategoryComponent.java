@@ -38,12 +38,12 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     public Collection<ModuleCategoryComponent> getContents() { return contents; }
 
     @Override
-    protected int getHeight(int i) {
+    public int getHeight(int i) {
         return 5 * (i / 100);
     }
 
     @Override
-    protected int getWidth(int i) {
+    public int getWidth(int i) {
         return 9 * (i / 100);
     }
 }

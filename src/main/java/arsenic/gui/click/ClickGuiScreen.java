@@ -6,13 +6,14 @@ import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
+import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
-import arsenic.utils.interfaces.ISetNotAlwaysClickable;
+import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.*;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +24,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private List<UICategoryComponent> components;
     private List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
-    private ISetNotAlwaysClickable alwaysClickedComponent;
+    private IAlwaysClickable alwaysClickedComponent;
+    private IAlwaysKeyboardInput alwaysKeyboardInput;
     private ResourceLocation logoPath;
 
     public void init() {
@@ -86,7 +88,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
         if(alwaysClickedComponent != null) {
-            if(alwaysClickedComponent.clickFirstClickable(mouseX, mouseY, mouseButton)) return;
+            if(alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton)) return;
         }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
         cmcc.clickChildren(mouseX, mouseY, mouseButton);
@@ -98,10 +100,16 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc = mcc;
     }
 
-    public <T extends Component & ISetNotAlwaysClickable> void setAlwaysClickedComponent(T component) {
+    public <T extends Component & IAlwaysClickable> void setAlwaysClickedComponent(T component) {
         if(alwaysClickedComponent != null)
             alwaysClickedComponent.setNotAlwaysClickable();
         this.alwaysClickedComponent = component;
+    }
+
+    public <T extends Component & IAlwaysKeyboardInput> void setAlwaysInputComponent(T component) {
+        if(alwaysKeyboardInput != null)
+            alwaysKeyboardInput.setNotAlwaysRecieveInput();
+        this.alwaysKeyboardInput = component;
     }
 
     public final IFontRenderer getFontRenderer() {
@@ -111,6 +119,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     public void addToRenderLastList(IVoidFunction v) {
         renderLastList.add(v);
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        super.keyTyped(typedChar, keyCode);
+        if(alwaysKeyboardInput != null)
+            alwaysKeyboardInput.recieveInput(keyCode);
     }
 
     @Override

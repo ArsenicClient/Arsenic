@@ -41,12 +41,12 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     public String getName() { return name; }
 
     @Override
-    protected int getWidth(int i) {
+    public int getWidth(int i) {
         return self.isVisible() ? 23 * (i / 100) : 0;
     }
 
     @Override
-    protected int getHeight(int i) {
+    public int getHeight(int i) {
         return self.isVisible() ? 5 * (i / 100) : 0;
     }
 }

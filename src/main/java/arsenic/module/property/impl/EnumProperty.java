@@ -6,17 +6,13 @@ import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
-import arsenic.utils.interfaces.ISetNotAlwaysClickable;
+import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
-import org.lwjgl.opengl.GL11;
-
-import java.awt.*;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
@@ -64,7 +60,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         return new EnumComponent(this);
     }
 
-    private class EnumComponent extends PropertyComponent<EnumProperty<?>> implements ISetNotAlwaysClickable {
+    private class EnumComponent extends PropertyComponent<EnumProperty<?>> implements IAlwaysClickable {
         private boolean open;
         private final AnimationTimer animationTimer = new AnimationTimer(350, () -> open, TickMode.SINE);
         private float boxY1;
@@ -142,7 +138,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         }
 
         @Override
-        public boolean clickFirstClickable(int mouseX, int mouseY, int mouseButton) {
+        public boolean clickAlwaysClickable(int mouseX, int mouseY, int mouseButton) {
             if(mouseX > x2 || mouseX < boxX1)
                 return false;
             float mouseOffset = mouseY - boxY1;

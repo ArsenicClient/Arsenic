@@ -75,11 +75,11 @@ public abstract class Component implements IContainable {
 
     public void mouseReleased(int mouseX, int mouseY, int state) {}
 
-    protected int getHeight(int i) {
+    public int getHeight(int i) {
         return 5 * (i / 100);
     }
 
-    protected int getWidth(int i) {
+    public int getWidth(int i) {
         return 5 * (i / 100);
     }
 

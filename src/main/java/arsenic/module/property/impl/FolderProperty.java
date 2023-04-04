@@ -1,12 +1,10 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.module.impl.misc.TestModule;
 import arsenic.module.property.Property;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainer;
-import arsenic.utils.interfaces.ISetNotAlwaysClickable;
+import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
@@ -104,8 +102,8 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
             open = !open;
             if(!open) {
                 getContents().forEach(component ->  {
-                    if(component instanceof ISetNotAlwaysClickable)
-                        ((ISetNotAlwaysClickable) component).setNotAlwaysClickable();
+                    if(component instanceof IAlwaysClickable)
+                        ((IAlwaysClickable) component).setNotAlwaysClickable();
                 });
             }
         }

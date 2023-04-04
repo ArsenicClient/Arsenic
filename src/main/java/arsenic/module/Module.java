@@ -104,6 +104,8 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
 
     public final boolean isEnabled() { return enabled; }
 
+    public final void toggle() {setEnabled(!enabled);}
+
     public final void setEnabled(boolean enabled) {
         if (this.enabled != enabled) {
             this.enabled = enabled;
