@@ -1,7 +1,9 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.module.impl.misc.TestModule;
 import arsenic.module.property.Property;
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISetNotAlwaysClickable;
@@ -20,12 +22,13 @@ import java.util.stream.Collectors;
 
 public class FolderProperty extends SerializableProperty<List<Property<?>>> {
 
-    // does not save the config of properties inside the folder
-    // properties inside the folder cannot use @PropertyInfo
-    // very unfinished just here to remind me that at some point i should make it
-    // Cant access the properties inside the folder -> probably remake how it inits
+    /* example of how this property should be used:
+    private final BooleanProperty booleanProp =  new BooleanProperty("Coolbeans", false);
+    @PropertyInfo(reliesOn = "Coolbeans", value = "true")
+    private final EnumProperty<TestModule.testEnum> enumProp =  new EnumProperty<TestModule.testEnum>("Range Mode:", TestModule.testEnum.Close);
+    public final FolderProperty folderProperty = new FolderProperty("folder prop", booleanProp, enumProp);
+    */
 
-    //this will cause an issue with its name
     public FolderProperty(String name, Property<?>... values) {
         super(name, Arrays.asList(values));
     }
@@ -81,15 +84,8 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
             expandX = expand;
             expandY = animationTimer.getPercent() * lastHeight;
 
-            DrawUtils.drawRoundedOutline(
-                    x1,
-                    y1,
-                    x2 + (expandX * 2f),
-                    y2 + expandY,
-                    height/2f,
-                    borderWidth,
-                    enabledColor.getRGB()
-            );
+           float barX = x1 - (expandX/2f);
+           DrawUtils.drawRect(barX, y1, barX + 1, y2 + expandY, enabledColor.getRGB());
 
             float triangleLength = (height - (borderWidth * 2f));
             DrawUtils.drawTriangle(

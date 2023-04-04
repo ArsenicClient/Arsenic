@@ -52,23 +52,39 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
         if (info.enabled()) { setEnabledSilently(true); }
     }
 
-    public final void registerProperties() {
+    public final void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
             try {
                 Property<?> property = (Property<?>) field.get(this);
                 properties.add(property);
+                serializableProperties.add((SerializableProperty<?>) property);
+            } catch (ClassCastException e) {
+                //ignored
+            }
+        }
+        for (final Field field : getClass().getDeclaredFields()) {
+            try {
+                if (!field.isAccessible())
+                    field.setAccessible(true);
                 if (field.isAnnotationPresent(PropertyInfo.class)) {
+                    Property<?> property = (Property<?>) field.get(this);
+                    System.out.println(property.getName());
                     final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
-                    for (SerializableProperty<?> p : serializableProperties) {
+                    for (final Field field2 : getClass().getDeclaredFields()) {
+                        if (!field2.isAccessible())
+                            field2.setAccessible(true);
+                        Object obj = field2.get(this);
+                        if(!(obj instanceof SerializableProperty))
+                            continue;
+                        SerializableProperty<?> p = (SerializableProperty<?>) field2.get(this);
                         if (p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
                             property.setVisible(((IReliable) p).valueCheck(info.value()));
                             break;
                         }
                     }
                 }
-                serializableProperties.add((SerializableProperty<?>) property);
-            } catch (final IllegalAccessException | ClassCastException e) {
-                // ignored
+            } catch (ClassCastException e) {
+                throw new RuntimeException("The @PropertyInfo is only meant for properties & the target should only be Serializable properties that implement IReliable");
             }
         }
     }
