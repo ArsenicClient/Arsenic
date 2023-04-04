@@ -52,6 +52,7 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
         if (info.enabled()) { setEnabledSilently(true); }
     }
 
+    //so fucked but works
     public final void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
             try {
@@ -68,7 +69,6 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
                     field.setAccessible(true);
                 if (field.isAnnotationPresent(PropertyInfo.class)) {
                     Property<?> property = (Property<?>) field.get(this);
-                    System.out.println(property.getName());
                     final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
                     for (final Field field2 : getClass().getDeclaredFields()) {
                         if (!field2.isAccessible())

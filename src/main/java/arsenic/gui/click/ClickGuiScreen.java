@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 // allow escape to bind to none
 // make font scale
-//make things not click when they arent in view
 
 public class ClickGuiScreen extends CustomGuiScreen {
     private ClickGui module;
@@ -32,6 +31,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private ResourceLocation logoPath;
+    private int vLineX, hLineY, x1, y1;
 
     public void init() {
         logoPath = RenderUtils.getResourcePath("/assets/arsenic/arseniclogo.png");
@@ -52,15 +52,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         int x = width / 8;
         int y = height / 6;
-        int x1 = width - x;
-        int y1 = height - y;
+        x1 = width - x;
+        y1 = height - y;
 
         // main container
         RenderUtils.resetColor();
         DrawUtils.drawBorderedRoundedRect(x, y, x1, y1, 1f, 1f, 0xFF2ECC71, 0xDD0C0C0C);
 
-        int vLineX = 2 * x;
-        int hLineY = (int) (1.5 * y);
+        vLineX = 2 * x;
+        hLineY = (int) (1.5 * y);
 
         // vertical line
         DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, 0xFF2ECC71);
@@ -77,7 +77,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         // makes the currently selected category component draw its modules
-        ScissorUtils.subScissor(vLineX, hLineY, x1, y1, 2);
+        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
         cmcc.drawLeft(piL, ri);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
@@ -97,7 +97,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
             if(alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton)) return;
         }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
-        cmcc.clickChildren(mouseX, mouseY, mouseButton);
+        if(mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
+            cmcc.clickChildren(mouseX, mouseY, mouseButton);
     }
 
     public void setCmcc(ModuleCategoryComponent mcc) {
