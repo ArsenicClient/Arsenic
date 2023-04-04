@@ -14,11 +14,13 @@ import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
     private final ModuleCategory self;
+    private float scroll, maxHeight;
     private boolean isCC, isHovered;
     private final List<ModuleComponent> contentsL = new ArrayList<>(), contentsR = new ArrayList<>(), contents;
     private final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SQR);
@@ -58,11 +60,23 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
-        contentsL.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri)));
+        maxHeight = 0;
+        drawSection(contentsL, pi, ri);
     }
 
     public void drawRight(PosInfo pi, RenderInfo ri) {
-        contentsR.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri)));
+        drawSection(contentsR, pi, ri);
+    }
+
+    private void drawSection(List<ModuleComponent> l, PosInfo pi, RenderInfo ri) {
+        pi.moveY(scroll);
+        float temp = pi.getY();
+        float expand = width/10f;
+        pi.moveY(expand);
+        l.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri) + expand));
+        temp = pi.getY() - temp;
+        if(temp > maxHeight)
+            maxHeight = temp;
     }
 
     @Override
@@ -77,6 +91,16 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public void setCurrentCategory(boolean currentCategory) {
         this.isCC = currentCategory;
+    }
+
+    public void scroll(int scroll) {
+        this.scroll += scroll;
+        this.scroll = Math.max(Math.min(0, this.scroll), -maxHeight);
+    }
+
+    public void subtractFromMaxScrollHeight(float f) {
+        maxHeight = maxHeight - f;
+        maxHeight = Math.max(0, maxHeight);
     }
 
     @Override

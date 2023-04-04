@@ -12,12 +12,17 @@ import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.*;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+// allow escape to bind to none
+// make font scale
+//make things not click when they arent in view
 
 public class ClickGuiScreen extends CustomGuiScreen {
     private ClickGui module;
@@ -72,11 +77,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         // makes the currently selected category component draw its modules
-        ScissorUtils.subScissor(vLineX, y, x1, y1, 2);
-        PosInfo piL = new PosInfo(vLineX + 5, hLineY + 5);
+        ScissorUtils.subScissor(vLineX, hLineY, x1, y1, 2);
+        PosInfo piL = new PosInfo(vLineX + 5, hLineY);
         cmcc.drawLeft(piL, ri);
-        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY + 5);
+        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
         cmcc.drawRight(piR, ri);
+        cmcc.subtractFromMaxScrollHeight(y1 - hLineY);
 
         renderLastList.forEach(IVoidFunction::voidFunction);
         renderLastList.clear();
@@ -119,6 +125,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     public void addToRenderLastList(IVoidFunction v) {
         renderLastList.add(v);
+    }
+
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        int i = Mouse.getEventDWheel();
+        i = Integer.compare(i, 0);
+        cmcc.scroll(i * 5);
     }
 
     @Override

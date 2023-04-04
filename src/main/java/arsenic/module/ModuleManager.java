@@ -60,7 +60,7 @@ public class ModuleManager {
 
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
-        TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class);
+        TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class), TESTMODULE4(TestModule2.class), TESTMODULE5(TestModule2.class), TESTMODULE6(TestModule2.class);
 
         private Module module;
 
