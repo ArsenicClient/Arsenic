@@ -1,11 +1,10 @@
 package arsenic.utils.interfaces;
 
+import arsenic.utils.render.ScalableFontRenderer;
 import org.lwjgl.opengl.GL11;
 
 public interface IFontRenderer {
-
-    //should make this better at some point
-
+    ScalableFontRenderer<?> getScalableFontRenderer();
     void drawString(String text, float x, float y, int color);
     void drawStringWithShadow(String text, float x, float y, int color);
 

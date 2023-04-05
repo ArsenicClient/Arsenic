@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // allow escape to bind to none
-// make font scale
 
 public class ClickGuiScreen extends CustomGuiScreen {
     private ClickGui module;
@@ -45,6 +44,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
+        getFontRenderer().setScale(height/480f);
 
         // makes whole screen slightly darker
         // to be replaced with a blur
@@ -89,6 +89,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         ScissorUtils.endSubScissor();
         ScissorUtils.resetScissor();
+        getFontRenderer().resetScale();
     }
 
     @Override
@@ -119,9 +120,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         this.alwaysKeyboardInput = component;
     }
 
-    public final IFontRenderer getFontRenderer() {
-        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR
-                : (IFontRenderer) mc.fontRendererObj;
+    public final ScalableFontRenderer<?> getFontRenderer() {
+        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR.getScalableFontRenderer() : ((IFontRenderer) mc.fontRendererObj).getScalableFontRenderer();
     }
 
     public void addToRenderLastList(IVoidFunction v) {

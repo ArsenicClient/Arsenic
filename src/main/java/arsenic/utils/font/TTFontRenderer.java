@@ -37,6 +37,7 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
+import arsenic.utils.render.ScalableFontRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -54,12 +55,19 @@ public class TTFontRenderer implements IFontRenderer {
     private final boolean antiAlias;
     private final boolean fracMetrics;
 
+    private final ScalableFontRenderer<TTFontRenderer> scalableFontRenderer = new ScalableFontRenderer<>(this);
+
     public TTFontRenderer(Font font, boolean antiAlias, boolean fracMetrics) {
         generateColors();
         this.font = font;
         this.margin = 6;
         this.antiAlias = antiAlias;
         this.fracMetrics = fracMetrics;
+    }
+
+    @Override
+    public ScalableFontRenderer<?> getScalableFontRenderer() {
+        return scalableFontRenderer;
     }
 
     @Override

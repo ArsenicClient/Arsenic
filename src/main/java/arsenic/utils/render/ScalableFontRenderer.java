@@ -12,9 +12,14 @@ public class ScalableFontRenderer<T extends IFontRenderer> implements IFontRende
         this.fr = fr;
     }
 
+    @Override
+    public ScalableFontRenderer<?> getScalableFontRenderer() {
+        return this;
+    }
+
     public void setScale(float scale) {
         this.scale = scale;
-        this.scaleReciprocal = scale/1;
+        this.scaleReciprocal = 1f/scale;
     }
 
     public void resetScale() {
@@ -55,9 +60,8 @@ public class ScalableFontRenderer<T extends IFontRenderer> implements IFontRende
 
     @Override
     public void drawScaledString(String text, float x, float y, int color, float scale) {
-        GL11.glScalef(scale, scale, scale);
+        GL11.glScalef(this.scale, this.scale, this.scale);
         fr.drawScaledString(text, x * scaleReciprocal, y * scaleReciprocal, color, scale);
-        GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
     }
 
     @Override
@@ -69,7 +73,7 @@ public class ScalableFontRenderer<T extends IFontRenderer> implements IFontRende
 
     @Override
     public void drawScaledWrappingString(float x, float y, int color, float scale, String... texts) {
-        GL11.glScalef(scale, scale, scale);
+        GL11.glScalef(this.scale, this.scale, this.scale);
         fr.drawScaledWrappingString(x * scaleReciprocal, y * scaleReciprocal, color, scale, texts);
         GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
     }
@@ -97,7 +101,7 @@ public class ScalableFontRenderer<T extends IFontRenderer> implements IFontRende
 
     @Override
     public void drawScaledXCenteredWrappingString(float x, float y, int color, float scale, String... texts) {
-        GL11.glScalef(scale, scale, scale);
+        GL11.glScalef(this.scale, this.scale, this.scale);
         fr.drawScaledXCenteredWrappingString( x * scaleReciprocal, y * scaleReciprocal, color, scale, texts);
         GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
     }

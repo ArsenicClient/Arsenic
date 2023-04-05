@@ -53,6 +53,7 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
     }
 
     //so fucked but works
+    //sigmas gonna kill me
     public final void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
             try {

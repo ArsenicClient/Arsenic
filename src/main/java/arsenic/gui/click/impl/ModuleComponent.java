@@ -25,12 +25,12 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private final ButtonComponent buttonComponent = new ButtonComponent(this) {
         @Override
         protected boolean isEnabled() {
-            return open;
+            return self.isEnabled();
         }
 
         @Override
         protected void setEnabled(boolean enabled) {
-            open = enabled;
+            self.setEnabled(enabled);
         }
 
         @Override
@@ -84,7 +84,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
         if(mouseX < bindX) {
-            self.toggle();
+            open = !open;
             return;
         } else if (mouseX > bindX && mouseX < x1 + (width * 0.85)) {
             binding = !binding;

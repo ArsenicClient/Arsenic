@@ -1,5 +1,7 @@
 package arsenic.injection.mixin;
 
+import arsenic.utils.font.TTFontRenderer;
+import arsenic.utils.render.ScalableFontRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -8,6 +10,13 @@ import net.minecraft.client.gui.FontRenderer;
 
 @Mixin(priority = 1111, value = FontRenderer.class)
 public abstract class MixinFontRenderer implements IFontRenderer {
+
+    private final ScalableFontRenderer<MixinFontRenderer> scalableFontRenderer = new ScalableFontRenderer<>(this);
+
+    @Override
+    public ScalableFontRenderer<?> getScalableFontRenderer() {
+        return scalableFontRenderer;
+    }
 
     @Shadow
     public int FONT_HEIGHT;

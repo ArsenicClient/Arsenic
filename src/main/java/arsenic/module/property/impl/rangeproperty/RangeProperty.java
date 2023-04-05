@@ -55,7 +55,6 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
                 float percentMax = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
                 float percentMin = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
-                String name = getName() + getDisplayMode();
 
                 lineX1 = x2 - width/2f;
                 float lineX2 = x2 - width / 5f;
@@ -64,8 +63,6 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                 float lineXChangePoint2 = (lineX1 + (percentMax * lineWidth));
                 float lineY = y1 + height / 2f;
 
-                //draws name
-                ri.getFr().drawYCenteredString(name, x1, y1 + (height/2f), 0xFFFFFFFE);
 
                 //draws value
                 ri.getFr().drawScaledXCenteredWrappingString(
