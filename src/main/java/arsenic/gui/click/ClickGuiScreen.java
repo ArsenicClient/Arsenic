@@ -10,6 +10,7 @@ import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.*;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Mouse;
@@ -147,6 +148,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void mouseRelease(int mouseX, int mouseY, int state) {
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
         super.mouseRelease(mouseX, mouseY, state);
+    }
+
+    @Override
+    public void onResize(Minecraft mcIn, int p_175273_2_, int p_175273_3_) {
+        super.onResize(mcIn, p_175273_2_, p_175273_3_);
     }
 
     @Override
