@@ -8,6 +8,7 @@ import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
+import net.minecraft.client.renderer.entity.Render;
 import org.jetbrains.annotations.NotNull;
 
 import arsenic.gui.click.Component;
@@ -58,8 +59,14 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
         int color = RenderUtils.interpolateColours(disabledColor, enabledColor, enabledAnimationTiemr.getPercent());
 
+        //stops the colors leaking
+        RenderUtils.resetColorText();
+
         //name
         ri.getFr().drawYCenteredString(name, x1 + expand/2f, midPointY, color);
+
+        //stops the colors leaking
+        RenderUtils.resetColorText();
 
         //bind
         String bindName = binding ? "Press a key...": "[" + Keyboard.getKeyName(self.getKeybind()) + "]";

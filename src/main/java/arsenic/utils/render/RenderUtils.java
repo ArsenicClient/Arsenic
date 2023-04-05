@@ -8,6 +8,7 @@ import java.io.InputStream;
 import javax.imageio.ImageIO;
 
 import arsenic.main.Arsenic;
+import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 
 import arsenic.utils.java.UtilityClass;
@@ -24,6 +25,10 @@ public class RenderUtils extends UtilityClass {
         final float g = ((color >> 8) & 0xFF) / 255.0f;
         final float b = (color & 0xFF) / 255.0f;
         GL11.glColor4f(r, g, b, a);
+    }
+
+    public static void resetColorText() {
+        GlStateManager.color(1f, 1f, 1f, 1f);
     }
 
     public static void resetColor() {
