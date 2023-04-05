@@ -59,7 +59,6 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         int color = RenderUtils.interpolateColours(disabledColor, enabledColor, enabledAnimationTiemr.getPercent());
 
         //name
-        RenderUtils.setColor(enabledColor.getRGB());
         ri.getFr().drawYCenteredString(name, x1 + expand/2f, midPointY, color);
 
         //bind
@@ -110,8 +109,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     }
 
     @Override
-    public void recieveInput(int key) {
-        self.setKeybind(key);
+    public boolean recieveInput(int key) {
         Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
+        if(key == 1) {
+            self.setKeybind(0);
+            return true;
+        }
+        self.setKeybind(key);
+        return false;
     }
 }

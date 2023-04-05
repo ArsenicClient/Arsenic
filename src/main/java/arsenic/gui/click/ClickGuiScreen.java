@@ -139,9 +139,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        super.keyTyped(typedChar, keyCode);
         if(alwaysKeyboardInput != null)
-            alwaysKeyboardInput.recieveInput(keyCode);
+            if(alwaysKeyboardInput.recieveInput(keyCode))
+                return;
+        super.keyTyped(typedChar, keyCode);
     }
 
     @Override
