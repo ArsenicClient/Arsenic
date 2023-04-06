@@ -1,5 +1,9 @@
 package arsenic.injection.mixin;
 
+import arsenic.module.ModuleManager;
+import arsenic.module.impl.world.ChestStealer;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiChest;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,6 +44,15 @@ public class MixinMinecraft {
             MinecraftAPI.KEY_CODE = null;
         }
         return state;
+    }
+
+
+
+    @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
+    public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
+        if(guiScreenIn instanceof GuiChest)
+            ((ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule()).onChestOpen();
+        System.out.println("awawa");
     }
 
 }
