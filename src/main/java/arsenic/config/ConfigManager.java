@@ -19,8 +19,8 @@ public class ConfigManager {
     public int initialize() {
         if (!configDirectory.isDirectory()) { configDirectory.mkdirs(); }
 
-        clientConfig = new ClientConfig(
-                new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json"));
+        File clientConfigFile = new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json");
+        clientConfig = new ClientConfig(clientConfigFile);
 
         reloadConfigs();
         if (!configs.isEmpty()) {

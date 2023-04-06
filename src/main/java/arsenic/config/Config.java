@@ -30,7 +30,7 @@ public abstract class Config {
             JsonElement obj = jsonParser.parse(reader);
             data = obj.getAsJsonObject();
         } catch (JsonSyntaxException | ClassCastException | IOException | IllegalStateException e) {
-            e.printStackTrace();
+
         }
         loadFromJson(data);
     }

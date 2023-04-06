@@ -2,6 +2,7 @@ package arsenic.config;
 
 import java.io.File;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
@@ -14,7 +15,9 @@ public class ClientConfig extends Config {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        Arsenic.getArsenic().getConfigManager().loadConfig(obj.get("currentConfig").getAsString());
+        JsonElement jsonElement = obj.get("currentConfig");
+        if(jsonElement != null)
+            Arsenic.getArsenic().getConfigManager().loadConfig(jsonElement.getAsString());
     }
 
     @Override

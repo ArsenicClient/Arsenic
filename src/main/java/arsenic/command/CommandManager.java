@@ -1,13 +1,12 @@
 package arsenic.command;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import arsenic.command.impl.BindCommand;
+import arsenic.command.impl.BindsCommand;
+import arsenic.command.impl.HelpCommand;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 
@@ -21,14 +20,15 @@ public class CommandManager {
     }
 
     public final int initialize() {
-        for (File file : JavaUtils.getFilesFromPackage("arsenic.command.impl")) {
+        commands.addAll(Arrays.asList(new Command[]{new BindCommand(), new HelpCommand(), new BindsCommand()}));
+        /*for (File file : JavaUtils.getFilesFromPackage("arsenic.command.impl")) {
             String className = file.getName().replaceAll(".class$", "");
             Class<?> cls = null;
             try {
                 cls = Class.forName("arsenic.command.impl." + className);
                 if (Command.class.isAssignableFrom(cls)) { add((Command) cls.newInstance()); }
             } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {}
-        }
+        } */
         return commands.size();
     }
 
