@@ -23,11 +23,11 @@ public class RangeValue {
 
     public double getMin() { return min; }
 
-    public void setMin(double min) { this.min = getCorrectedValue(min); }
+    public void setMin(double min) { this.min = Math.min(this.max, getCorrectedValue(min)); }
 
     public double getMax() { return max; }
 
-    public void setMax(double max) { this.max = getCorrectedValue(max); }
+    public void setMax(double max) { this.max = Math.max(this.min, getCorrectedValue(max)); }
 
     public double getMaxBound() { return maxBound; }
 

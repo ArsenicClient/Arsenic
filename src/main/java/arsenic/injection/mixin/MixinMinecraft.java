@@ -50,9 +50,13 @@ public class MixinMinecraft {
 
     @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
+        ChestStealer chestStealer = ((ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule());
+        if(!chestStealer.isEnabled())
+            return;
+        if(guiScreenIn == null)
+            chestStealer.onChestClose();
         if(guiScreenIn instanceof GuiChest)
-            ((ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule()).onChestOpen();
-        System.out.println("awawa");
+            chestStealer.onChestOpen();
     }
 
 }

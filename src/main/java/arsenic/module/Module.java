@@ -58,6 +58,7 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
         for (final Field field : getClass().getFields()) {
             try {
                 Property<?> property = (Property<?>) field.get(this);
+                if(property == null) continue;
                 properties.add(property);
                 serializableProperties.add((SerializableProperty<?>) property);
             } catch (ClassCastException e) {
