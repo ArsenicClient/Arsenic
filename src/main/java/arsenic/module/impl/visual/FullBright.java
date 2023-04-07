@@ -1,9 +1,11 @@
 package arsenic.module.impl.visual;
 
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventTick;
 import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
-import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.input.Keyboard;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -19,8 +21,8 @@ public class FullBright extends Module {
     protected void onEnable() {
         originalGamma = (int) mc.gameSettings.gammaSetting;
     }
-    @Mod.EventHandler
-    protected void onTick() {
+    @EventLink
+    public final Listener<EventTick> onTick = event -> {
         if (fullbrightmode.getValue().equals(fEnum.Gamma)) {
             mc.gameSettings.gammaSetting = 1000;
         }
@@ -28,14 +30,15 @@ public class FullBright extends Module {
             Potion nightVision = Potion.getPotionFromResourceLocation("night_vision");
             PotionEffect nightVisionEffect = mc.thePlayer.getActivePotionEffect(nightVision);
             if (nightVisionEffect == null) {
-                mc.thePlayer.addPotionEffect(new PotionEffect(Potion.nightVision.id, 100));
+                mc.thePlayer.addPotionEffect(new PotionEffect(Potion.nightVision.id, 69420));
             }
         }
-    }
+    };
 
     @Override
     protected void onDisable() {
         mc.gameSettings.gammaSetting = originalGamma;
+        mc.thePlayer.removePotionEffect(Potion.nightVision.id);
     }
 
     public enum fEnum {
