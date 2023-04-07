@@ -1,21 +1,22 @@
 {
-    "required": true,
-    "package": "arsenic.injection",
-    "refmap": "mixins.arsenic.refmap.json",
-    "compatibilityLevel": "JAVA_8",
-    "client": [
-        "accessor.IMixinKeyBinding",
-        "mixin.MixinEntity",
-        "mixin.MixinEntityLivingBase",
-        "mixin.MixinEntityPlayerSP",
-        "mixin.MixinFontRenderer",
-        "mixin.MixinGuiChat",
-        "mixin.MixinGuiIngame",
-        "mixin.MixinGuiScreen",
-        "mixin.MixinGuiSpectator",
-        "mixin.MixinMinecraft",
-        "mixin.MixinNetworkManager"
-    ],
-    "mixins": [
-  ]
+  "required": true,
+  "package": "arsenic.injection",
+  "refmap": "mixins.arsenic.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "accessor.IMixinKeyBinding",
+    "mixin.MixinEntity",
+    "mixin.MixinEntityLivingBase",
+    "mixin.MixinEntityPlayerSP",
+    "mixin.MixinFontRenderer",
+    "mixin.MixinGuiChat",
+    "mixin.MixinGuiIngame",
+    "mixin.MixinGuiScreen",
+    "mixin.MixinGuiSpectator",
+    "mixin.MixinMinecraft",
+    "mixin.MixinNetworkManager"
+  ],
+  "mixins": [
+    "accessor.IMixinS12PacketEntityVelocity"
+    ]
 }

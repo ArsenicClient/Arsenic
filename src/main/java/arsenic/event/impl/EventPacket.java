@@ -19,7 +19,7 @@ public class EventPacket implements Event {
     }
 
     public static class Incoming extends EventPacket {
-        public Incoming(Packet packet) {
+        public Incoming(Packet<?> packet) {
             super(packet);
         }
     }

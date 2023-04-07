@@ -1,0 +1,50 @@
+package arsenic.module.impl.ghost;
+
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventPacket;
+import arsenic.injection.accessor.IMixinS12PacketEntityVelocity;
+import arsenic.module.Module;
+import arsenic.module.ModuleCategory;
+import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.network.play.server.S12PacketEntityVelocity;
+
+@ModuleInfo(name = "Velocity", category = ModuleCategory.GHOST)
+public class Velocity extends Module {
+
+    public final EnumProperty<vMode> veloMode = new EnumProperty<>("Mode:", vMode.Reduce);
+
+    @PropertyInfo(reliesOn = "Mode:", value = "Reduce")
+    public final DoubleProperty horizontalVelo = new DoubleProperty("Horizontal", new DoubleValue(0, 100, 80, 1));
+    @PropertyInfo(reliesOn = "Mode:", value = "Reduce")
+    public final DoubleProperty verticalVelo = new DoubleProperty("Vertical", new DoubleValue(0, 100, 80, 1));
+
+    @EventLink
+    public final Listener<EventPacket.Incoming> packetEvent = event -> {
+        if(!(event.getPacket() instanceof S12PacketEntityVelocity))
+            return;
+        switch(veloMode.getValue()) {
+            case Reduce:
+                S12PacketEntityVelocity velocityPacket = (S12PacketEntityVelocity) event.getPacket();
+                IMixinS12PacketEntityVelocity iVelocityPacket = (IMixinS12PacketEntityVelocity) velocityPacket;
+                iVelocityPacket.setMotionX((int) (velocityPacket.getMotionX() * (horizontalVelo.getValue().getInput()/100f)));
+                iVelocityPacket.setMotionY((int) (velocityPacket.getMotionY() * (verticalVelo.getValue().getInput()/100f)));
+                iVelocityPacket.setMotionZ((int) (velocityPacket.getMotionZ() * (horizontalVelo.getValue().getInput()/100f)));
+                break;
+            case Cancel:
+                event.setCancelled();
+                break;
+        }
+    };
+
+    public enum vMode {
+        Reduce,
+        Cancel;
+    }
+
+}
