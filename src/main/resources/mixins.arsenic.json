@@ -8,15 +8,16 @@
     "mixin.MixinEntity",
     "mixin.MixinEntityLivingBase",
     "mixin.MixinEntityPlayerSP",
+    "mixin.MixinEntityRenderer",
     "mixin.MixinFontRenderer",
     "mixin.MixinGuiChat",
     "mixin.MixinGuiIngame",
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",
     "mixin.MixinMinecraft",
-    "mixin.MixinNetworkManager"
+    "mixin.MixinNetworkManager",
   ],
   "mixins": [
     "accessor.IMixinS12PacketEntityVelocity"
-    ]
+  ]
 }

@@ -10,6 +10,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.ghost.Velocity;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.misc.TestModule;
@@ -62,7 +63,7 @@ public class ModuleManager {
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class), CHESTSTEALER(ChestStealer.class),
-        VELOCITY(Velocity.class);
+        VELOCITY(Velocity.class), REACH(Reach.class);
 
         private Module module;
 
