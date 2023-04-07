@@ -1,14 +1,10 @@
 package arsenic.module.impl.misc;
 
-import arsenic.module.property.impl.*;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
-import arsenic.module.property.impl.rangeproperty.RangeValue;
 import org.lwjgl.input.Keyboard;
 
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 
