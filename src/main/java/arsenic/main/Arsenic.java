@@ -24,12 +24,16 @@ import arsenic.utils.interfaces.IContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
+//to do
+// make velo have chance
+// make custom font better
+// make the module component enable on left click & open on right click
+
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
 public class Arsenic implements IContainer<IContainable> {
 
     private final String clientName = "Arsenic";
     private final long clientVersion = 221020L;
-
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
