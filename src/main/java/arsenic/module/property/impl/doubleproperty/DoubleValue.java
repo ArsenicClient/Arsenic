@@ -12,8 +12,8 @@ public class DoubleValue {
     }
 
     private double getCorrectedValue(double value) {
-        value = Math.min(Math.max(value, minBound), maxBound);
-        return Math.round(value * inc) / inc;
+        value = Math.round(value * (1.0D / inc)) / (1.0D / inc);
+        return Math.min(Math.max(value, minBound), maxBound);
     }
 
     public double getInput() { return value; }

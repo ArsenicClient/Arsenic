@@ -50,7 +50,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             @Override
             protected float draw(RenderInfo ri) {
 
-                float percent = (float) (getValue().getInput() / getValue().getMaxBound());
+                float percent = (float) ((getValue().getInput() - getValue().getMinBound())/(getValue().getMaxBound() - getValue().getMinBound()));
 
                 //draws name
                 ri.getFr().drawString(getName(), x1, y1 + (height/2f) - (ri.getFr().getHeight(self.getName())/2), 0xFFFFFFFE);
