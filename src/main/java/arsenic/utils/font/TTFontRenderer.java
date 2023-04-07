@@ -37,7 +37,6 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import arsenic.utils.render.ScalableFontRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;

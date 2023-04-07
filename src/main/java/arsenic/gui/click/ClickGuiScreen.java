@@ -5,6 +5,7 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.utils.font.ScalableFontRenderer;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;

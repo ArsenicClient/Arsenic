@@ -1,6 +1,6 @@
 package arsenic.utils.interfaces;
 
-import arsenic.utils.render.ScalableFontRenderer;
+import arsenic.utils.font.ScalableFontRenderer;
 import org.lwjgl.opengl.GL11;
 
 public interface IFontRenderer {

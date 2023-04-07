@@ -1,4 +1,4 @@
-package arsenic.utils.render;
+package arsenic.utils.font;
 
 import arsenic.utils.interfaces.IFontRenderer;
 import org.lwjgl.opengl.GL11;

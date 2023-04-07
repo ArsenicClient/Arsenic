@@ -1,7 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.utils.font.TTFontRenderer;
-import arsenic.utils.render.ScalableFontRenderer;
+import arsenic.utils.font.ScalableFontRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
