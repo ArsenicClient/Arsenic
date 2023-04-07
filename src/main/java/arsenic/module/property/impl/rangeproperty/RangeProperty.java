@@ -95,7 +95,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                 float mousePercent = (mouseX - lineX1) / lineWidth;
                 float minPercent = (float) ((getValue().getMax() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
                 float maxPercent = (float) ((getValue().getMin() - getValue().getMinBound()) / (getValue().getMaxBound() - getValue().getMinBound()));
-                helping = (Math.abs(mousePercent - minPercent) > Math.abs(mousePercent - maxPercent)) ? Helping.MIN : Helping.MAX;
+                helping = (Math.abs(mousePercent - minPercent) >= Math.abs(mousePercent - maxPercent)) ? Helping.MIN : Helping.MAX;
             }
 
             @Override
