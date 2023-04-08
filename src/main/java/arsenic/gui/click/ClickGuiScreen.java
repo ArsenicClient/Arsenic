@@ -38,6 +38,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
     private int vLineX, hLineY, x1, y1;
 
+    //called once
     public void init() {
         logoPath = RenderUtils.getResourcePath("/assets/arsenic/arseniclogo.png");
         module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
@@ -45,7 +46,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
-        blurTimer = new AnimationTimer(500, () -> true);
+    }
+
+    //called every time the ui is created
+    @Override
+    public void doInit() {
+        super.doInit();
+        blurTimer.setElapsedMs(0);
     }
 
     @Override
@@ -55,7 +62,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // makes whole screen slightly darker
         // to be replaced with a blur
-        BlurUtils.blur(2 * blurTimer.getPercent(),2 * blurTimer.getPercent());
+        BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent());
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
@@ -168,9 +175,4 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return false;
     }
 
-    @Override
-    public void onGuiClosed() {
-        super.onGuiClosed();
-        Arsenic.getArsenic().getConfigManager().saveConfig();
-    }
 }
