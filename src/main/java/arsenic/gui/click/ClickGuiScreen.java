@@ -167,4 +167,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public boolean doesGuiPauseGame() {
         return false;
     }
+
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        Arsenic.getArsenic().getConfigManager().saveConfig();
+    }
 }
