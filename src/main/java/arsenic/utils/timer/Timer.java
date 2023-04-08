@@ -28,7 +28,11 @@ public class Timer {
 
     public long getElapsedTime() {
         long et = System.currentTimeMillis() - startTime;
-        return et > coolDownTime ? coolDownTime : et;
+        return Math.min(et, coolDownTime);
+    }
+
+    public long getElapsedTimeAsPercent() {
+        return (getElapsedTime()/coolDownTime);
     }
 
     public long getTimeLeft() {

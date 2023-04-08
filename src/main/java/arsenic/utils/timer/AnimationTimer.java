@@ -26,4 +26,9 @@ public class AnimationTimer {
         ticksLived = Math.max(0, Math.min(maxMs, ticksLived + (tickDifference * (func.getValue() ? -1 : 1))));
         return tickMode.toSmoothPercent((float) ticksLived / maxMs);
     }
+
+    public void setElapsedMs(int ms) {
+        lastTick = System.currentTimeMillis();
+        ticksLived = ms;
+    }
 }

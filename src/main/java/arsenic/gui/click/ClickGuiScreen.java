@@ -7,13 +7,16 @@ import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.ScalableFontRenderer;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
+import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
-import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.*;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.Timer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -32,6 +35,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private ResourceLocation logoPath;
+    private AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
     private int vLineX, hLineY, x1, y1;
 
     public void init() {
@@ -41,6 +45,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
+        blurTimer = new AnimationTimer(500, () -> true);
     }
 
     @Override
@@ -50,6 +55,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // makes whole screen slightly darker
         // to be replaced with a blur
+        BlurUtils.blur(2 * blurTimer.getPercent(),2 * blurTimer.getPercent());
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
@@ -161,5 +167,4 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public boolean doesGuiPauseGame() {
         return false;
     }
-
 }
