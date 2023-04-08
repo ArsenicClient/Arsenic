@@ -16,6 +16,7 @@
     "mixin.MixinGuiSpectator",
     "mixin.MixinMinecraft",
     "mixin.MixinNetworkManager",
+    "mixin.MixinRenderManager"
   ],
   "mixins": [
     "accessor.IMixinS12PacketEntityVelocity"

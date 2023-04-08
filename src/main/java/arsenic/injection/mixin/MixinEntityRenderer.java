@@ -1,5 +1,8 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.event.impl.EventUpdate;
+import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.ghost.Reach;
 import com.google.common.base.Predicates;
@@ -13,6 +16,9 @@ import net.minecraft.util.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Objects;
@@ -106,5 +112,10 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
 
             this.mc.mcProfiler.endSection();
         }
+    }
+
+    @Inject(method = "renderWorld", at = @At("HEAD"))
+    public void renderWorldReturn(float partialTicks, long finishTimeNano, CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventRenderWorldLast(partialTicks));
     }
 }

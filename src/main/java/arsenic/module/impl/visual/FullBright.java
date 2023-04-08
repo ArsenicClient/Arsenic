@@ -3,13 +3,13 @@ package arsenic.module.impl.visual;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
+import arsenic.module.Module;
+import arsenic.module.ModuleCategory;
+import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import org.lwjgl.input.Keyboard;
-import arsenic.module.Module;
-import arsenic.module.ModuleCategory;
-import arsenic.module.ModuleInfo;
 
 @ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F)
 public class FullBright extends Module {

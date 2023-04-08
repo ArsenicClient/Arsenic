@@ -1,7 +1,5 @@
 package arsenic.module.impl.visual;
 
-import org.lwjgl.input.Keyboard;
-
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -10,6 +8,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.interfaces.IFontRenderer;
+import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_Y)
 public class HUD extends Module {
