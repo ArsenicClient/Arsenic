@@ -1,7 +1,9 @@
 package arsenic.utils.minecraft;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.MathHelper;
 
 public class PlayerUtils {
 
@@ -15,5 +17,12 @@ public class PlayerUtils {
 
     public static void addWaterMarkedMessageToChat(String msg) {
         addMessageToChat("§7[§cA§7]§r " + msg);
+    }
+    public static boolean playerOverAir() {
+        double x = mc.thePlayer.posX;
+        double y = mc.thePlayer.posY - 1.0D;
+        double z = mc.thePlayer.posZ;
+        BlockPos p = new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
+        return mc.theWorld.isAirBlock(p);
     }
 }

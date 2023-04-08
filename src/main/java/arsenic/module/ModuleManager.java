@@ -19,6 +19,7 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.ESP;
 import arsenic.module.impl.visual.FullBright;
 import arsenic.module.impl.visual.HUD;
+import arsenic.module.impl.world.BridgeAssist;
 import arsenic.module.impl.world.ChestStealer;
 
 public class ModuleManager {
@@ -64,7 +65,7 @@ public class ModuleManager {
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class), CHESTSTEALER(ChestStealer.class),
-        VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class);
+        BRIDGEASSIST(BridgeAssist.class),VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class);
 
         private Module module;
 
