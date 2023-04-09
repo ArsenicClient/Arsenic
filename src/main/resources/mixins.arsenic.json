@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "client": [
     "accessor.IMixinKeyBinding",
+    "accessor.IMixinRenderManager",
     "mixin.MixinEntity",
     "mixin.MixinEntityLivingBase",
     "mixin.MixinEntityPlayerSP",
