@@ -3,8 +3,10 @@ package arsenic.main;
 import java.util.Arrays;
 import java.util.Collection;
 
+import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.module.impl.visual.ClickGui;
+import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -50,6 +52,9 @@ public class Arsenic implements IContainer<IContainable> {
     public final void init(FMLInitializationEvent event) {
 
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
+
+        MinecraftForge.EVENT_BUS.register(new ForgeEvents());
+        logger.info("Hooked forge events");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
 

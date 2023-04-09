@@ -113,9 +113,4 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
             this.mc.mcProfiler.endSection();
         }
     }
-
-    @Inject(method = "renderWorld", at = @At("HEAD"))
-    public void renderWorldReturn(float partialTicks, long finishTimeNano, CallbackInfo ci) {
-        Arsenic.getInstance().getEventManager().post(new EventRenderWorldLast(partialTicks));
-    }
 }
