@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import static org.lwjgl.opengl.Display.getHeight;
 import static org.lwjgl.opengl.Display.update;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -26,10 +27,8 @@ public class BlurUtils extends UtilityClass {
      * @param _radius the radius of the blur.
      * @param _compression the compression of the blur.
      */
-    public static void blur(final float _radius, final float _compression) {
+    public static void blur(final float _radius, final float _compression, double height, double width) {
         update();
-
-        ScaledResolution scaledResolution = new ScaledResolution(mc);
         if(blurredBuffer != null)
             blurredBuffer.deleteFramebuffer();
         blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
@@ -50,11 +49,11 @@ public class BlurUtils extends UtilityClass {
         glTexCoord2f(0, 1);
         glVertex2f(0, 0);
         glTexCoord2f(0, 0);
-        glVertex2f(0, (float) scaledResolution.getScaledHeight_double());
+        glVertex2f(0, (float) height);
         glTexCoord2f(1, 0);
-        glVertex2f((float) scaledResolution.getScaledWidth_double(), (float) scaledResolution.getScaledHeight_double());
+        glVertex2f((float) width, (float) height);
         glTexCoord2f(1, 1);
-        glVertex2f((float) scaledResolution.getScaledWidth_double(), 0);
+        glVertex2f((float) width, 0);
         glEnd();
         blurredBuffer.unbindFramebuffer();
 
@@ -73,11 +72,11 @@ public class BlurUtils extends UtilityClass {
         glTexCoord2f(0, 1);
         glVertex2f(0, 0);
         glTexCoord2f(0, 0);
-        glVertex2f(0, (float) scaledResolution.getScaledHeight_double());
+        glVertex2f(0, (float) height);
         glTexCoord2f(1, 0);
-        glVertex2f((float) scaledResolution.getScaledWidth_double(), (float) scaledResolution.getScaledHeight_double());
+        glVertex2f((float) width, (float) height);
         glTexCoord2f(1, 1);
-        glVertex2f((float) scaledResolution.getScaledWidth_double(), 0);
+        glVertex2f((float) width, 0);
         glEnd();
 
         glUseProgram(0);

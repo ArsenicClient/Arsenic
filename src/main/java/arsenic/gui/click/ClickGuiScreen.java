@@ -60,7 +60,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // makes whole screen slightly darker
         // to be replaced with a blur
-        BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent());
+        BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent(), height, width);
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
