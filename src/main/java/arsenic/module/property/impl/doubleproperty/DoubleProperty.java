@@ -52,22 +52,18 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
                 float percent = (float) ((getValue().getInput() - getValue().getMinBound())/(getValue().getMaxBound() - getValue().getMinBound()));
 
-                //draws name
-                ri.getFr().drawString(getName(), x1, y1 + (height/2f) - (ri.getFr().getHeight(self.getName())/2), 0xFFFFFFFE);
-
-                //draws value
-                ri.getFr().drawString(
-                        self.getValueString(),
-                        x2 - ri.getFr().getWidth(self.getValueString()) + 4,
-                        (y1 + height/2f) - (ri.getFr().getHeight(self.getValueString())/2),
-                        0xFFFFFFFE);
-
                 //draws lines
                 lineX1 = x2 - width/2f;
                 float lineX2 = x2 - width / 5f;
                 lineWidth = lineX2 - lineX1;
                 lineXChangePoint = (lineX1 + (percent * lineWidth));
 
+                //draws value
+                ri.getFr().drawString(
+                        self.getValueString(),
+                        x2 - (lineX2/2f),
+                        midPointY,
+                        0xFFFFFFFE, ri.getFr().CENTREY, ri.getFr().CENTREX, ri.getFr().CENTREY);
 
                 //draws first bit (colored) of line
                 DrawUtils.drawRect(lineX1, midPointY - 0.5f, lineXChangePoint, midPointY + 0.5f, enabledColor.getRGB());

@@ -101,14 +101,14 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
-                        ri.getFr().drawYCenteredString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE);
+                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE, ri.getFr().CENTREY);
                     }
 
                     ScissorUtils.endSubScissor();
                 }
 
                 //name in box
-                ri.getFr().drawYCenteredString(getValue().name(), boxX1 + (borderWidth * 2), midPointY, 0xFFFFFFFE);
+                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY, 0xFFFFFFFE, ri.getFr().CENTREY);
 
                 //triangle in box
                 float triangleLength = (boxHeight - (borderWidth * 2f));

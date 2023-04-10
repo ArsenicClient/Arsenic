@@ -1,20 +1,19 @@
 package arsenic.injection.mixin;
 
-import arsenic.utils.font.ScalableFontRenderer;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-
+import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IFontRenderer;
 import net.minecraft.client.gui.FontRenderer;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(priority = 1111, value = FontRenderer.class)
 public abstract class MixinFontRenderer implements IFontRenderer {
 
-    private final ScalableFontRenderer<MixinFontRenderer> scalableFontRenderer = new ScalableFontRenderer<>(this);
+    private final FontRendererExtension<MixinFontRenderer> fontRendererExtension = new FontRendererExtension<>(this);
 
     @Override
-    public ScalableFontRenderer<?> getScalableFontRenderer() {
-        return scalableFontRenderer;
+    public FontRendererExtension<?> getFontRendererExtension() {
+        return fontRendererExtension;
     }
 
     @Shadow

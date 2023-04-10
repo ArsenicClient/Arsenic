@@ -50,7 +50,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
         int color = ColorUtils.setColor(enabledColor.getRGB(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
         DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, color);
-        ri.getFr().drawYCenteredString(getName(), x1 + expandX + (width/7f), midPointY, 0xFFFFFFFE);
+        ri.getFr().drawString(getName(), x1 + expandX + (width/7f), midPointY, 0xFFFFFFFE, ri.getFr().CENTREY);
         return height;
     }
 

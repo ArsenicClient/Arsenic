@@ -5,18 +5,16 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
-import arsenic.utils.font.ScalableFontRenderer;
+import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
-import arsenic.utils.timer.Timer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -58,7 +56,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
-        getFontRenderer().setScale(height/480f);
+        getFontRenderer().setScale(height/450f);
 
         // makes whole screen slightly darker
         // to be replaced with a blur
@@ -135,8 +133,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         this.alwaysKeyboardInput = component;
     }
 
-    public final ScalableFontRenderer<?> getFontRenderer() {
-        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR.getScalableFontRenderer() : ((IFontRenderer) mc.fontRendererObj).getScalableFontRenderer();
+    public final FontRendererExtension<?> getFontRenderer() {
+        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() : ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
     }
 
     public void addToRenderLastList(IVoidFunction v) {

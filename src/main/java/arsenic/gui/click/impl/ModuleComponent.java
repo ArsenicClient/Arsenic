@@ -63,7 +63,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         RenderUtils.resetColorText();
 
         //name
-        ri.getFr().drawYCenteredString(name, x1 + expand/2f, midPointY, color);
+        ri.getFr().drawString(name, x1 + expand/2f, midPointY, color, ri.getFr().CENTREY);
 
         //stops the colors leaking
         RenderUtils.resetColorText();
@@ -71,7 +71,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         //bind
         String bindName = binding ? "Press a key...": "[" + Keyboard.getKeyName(self.getKeybind()) + "]";
         bindX = x2 - ((expand) * 3) - ri.getFr().getWidth(bindName);
-        ri.getFr().drawYCenteredString(bindName, bindX, midPointY, self.getKeybind() == 0 ? disabledColor.getRGB() : enabledColor.getRGB());
+        ri.getFr().drawString(bindName, bindX, midPointY, self.getKeybind() == 0 ? disabledColor.getRGB() : enabledColor.getRGB(), ri.getFr().CENTREY);
 
         //draws the properties
         PosInfo pi = new PosInfo(x1 + expand, y2);

@@ -54,7 +54,7 @@ public class TTFontRenderer implements IFontRenderer {
     private final boolean antiAlias;
     private final boolean fracMetrics;
 
-    private final ScalableFontRenderer<TTFontRenderer> scalableFontRenderer = new ScalableFontRenderer<>(this);
+    private final FontRendererExtension<TTFontRenderer> fontRendererExtension = new FontRendererExtension<>(this);
 
     public TTFontRenderer(Font font, boolean antiAlias, boolean fracMetrics) {
         generateColors();
@@ -65,8 +65,8 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     @Override
-    public ScalableFontRenderer<?> getScalableFontRenderer() {
-        return scalableFontRenderer;
+    public FontRendererExtension<?> getFontRendererExtension() {
+        return fontRendererExtension;
     }
 
     @Override

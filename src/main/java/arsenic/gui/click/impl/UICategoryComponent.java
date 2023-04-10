@@ -22,7 +22,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        ri.getFr().drawYCenteredString(getName(), x1, midPointY, enabledColor.getRGB());
+        ri.getFr().drawString(getName(), x1, midPointY, enabledColor.getRGB(), ri.getFr().CENTREY);
 
         PosInfo pi = new PosInfo(x1, y2);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) * 1.1f));

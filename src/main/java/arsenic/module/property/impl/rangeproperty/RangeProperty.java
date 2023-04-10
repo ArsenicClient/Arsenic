@@ -65,12 +65,13 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
 
                 //draws value
-                ri.getFr().drawScaledXCenteredWrappingString(
-                        x2 - ((x2 - (lineX2))/2f),
+                ri.getFr().drawWrappingString(
+                        self.getValueString().replace(" ", "\n"),
+                        (x2 - (lineX2))/2f,
                         y1,
                         0xFFFFFFFE,
-                        0.7f,
-                        self.getValueString().split(" "));
+                        ri.getFr().getScaleModifier(0.7f)
+                );
 
 
                 //draws first bit (uncolored) of line
