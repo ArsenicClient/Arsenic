@@ -35,18 +35,18 @@ public class FontRendererExtension<T extends IFontRenderer>{
 
     public ITwoParamVoidFunction<PosInfo, String> getScaleModifier(float scale) {
         return (posInfo, string) -> {
-            posInfo.setX(posInfo.getX() * scale);
-            posInfo.setY(posInfo.getY() * scale);
+            this.tempScaleReciprocal = 1f/scale;
             this.tempScale = scale;
-            this.tempScaleReciprocal = scale;
+            posInfo.setX(posInfo.getX() * tempScaleReciprocal);
+            posInfo.setY(posInfo.getY() * tempScaleReciprocal);
         };
     }
 
     public final ITwoParamVoidFunction<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f));
     public final ITwoParamVoidFunction<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f));
     private final ITwoParamVoidFunction<PosInfo, String> SCALE = (posInfo, string) -> {
-        posInfo.setX(posInfo.getX() * scale);
-        posInfo.setY(posInfo.getY() * scale);
+        posInfo.setX(posInfo.getX() * scaleReciprocal);
+        posInfo.setY(posInfo.getY() * scaleReciprocal);
     };
 
     public void drawString(String text, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
