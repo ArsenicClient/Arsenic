@@ -12,9 +12,9 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.ESP;
 import arsenic.module.impl.visual.FullBright;
 import arsenic.module.impl.visual.HUD;
-import arsenic.module.impl.world.BridgeAssist;
 import arsenic.module.impl.world.ChestStealer;
 import arsenic.module.impl.world.FastPlace;
+import arsenic.module.impl.world.SafeWalk;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,7 +65,7 @@ public class ModuleManager {
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class),
-        BRIDGEASSIST(BridgeAssist.class),VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
+        SAFEWALK(SafeWalk.class),VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
         AUTOCLICKER(AutoClicker.class);
 
         private Module module;
