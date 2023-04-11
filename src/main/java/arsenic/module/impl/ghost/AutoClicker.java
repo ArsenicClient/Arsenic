@@ -36,7 +36,7 @@ public class AutoClicker extends Module {
             while(Mouse.isButtonDown(event.button)) {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
                 KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
-                SoundUtils.playSound("click");d
+                SoundUtils.playSound("click");
                 sleep(genDownTime());
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
                 sleep(genUpTime());
