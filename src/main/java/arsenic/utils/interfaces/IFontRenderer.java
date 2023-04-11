@@ -22,11 +22,4 @@ public interface IFontRenderer {
         return 11.0F;
     }
 
-    //will make a better implementation of this later
-    default void drawWrappingString(float x, float y, int color, String... texts) {
-        for(String text : texts) {
-            drawString(text, x, y, color);
-            y+= getHeight(text);
-        }
-    }
 }

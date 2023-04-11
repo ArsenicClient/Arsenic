@@ -63,11 +63,12 @@ public class FontRendererExtension<T extends IFontRenderer>{
         finsh();
     }
 
-    public void drawWrappingString(String text, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
-        PosInfo posInfo = new PosInfo(x, y);
-        setup(posInfo, text, modifiers);
-        fontRenderer.drawWrappingString(posInfo.getX(), posInfo.getY(), color, text.split("\n"));
-        finsh();
+    //issues with y values btw
+    public void drawWrappingString(String unSplitText, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
+        for(String text : unSplitText.split("\n")) {
+            drawString(text, x, y, color, modifiers);
+            y += fontRenderer.getHeight(text);
+        }
     }
 
     private void setup(PosInfo posInfo, String text, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
