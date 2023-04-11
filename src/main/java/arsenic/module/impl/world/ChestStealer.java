@@ -30,10 +30,12 @@ public class ChestStealer extends Module {
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
 
-    public ExecutorService executor;
+    private ExecutorService executor;
 
 
     public void onChestOpen() {
+        if(executor != null)
+            executor.shutdownNow();
         executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             ContainerChest chest = (ContainerChest) mc.thePlayer.openContainer;
