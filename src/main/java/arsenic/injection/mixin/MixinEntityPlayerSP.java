@@ -1,5 +1,7 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventMouse;
+import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,6 +15,8 @@ import arsenic.main.Arsenic;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.world.World;
+
+import static arsenic.main.MinecraftAPI.mouseDownLastTick;
 
 @Mixin(priority = 1111, value = EntityPlayerSP.class)
 public class MixinEntityPlayerSP extends AbstractClientPlayer {
@@ -57,6 +61,15 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
     @Inject(method = "onUpdate", at = @At("HEAD"))
     private void onUpdate(CallbackInfo ci) {
         Arsenic.getInstance().getEventManager().post(new EventTick());
+        for(int i = 0; i < 3; i++) {
+            if (Mouse.isButtonDown(i) && !mouseDownLastTick[i]) {
+                mouseDownLastTick[i] = true;
+                Arsenic.getArsenic().getEventManager().post(new EventMouse.Down(i));
+            } else if (!Mouse.isButtonDown(i) && mouseDownLastTick[i]) {
+                mouseDownLastTick[i] = false;
+                Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
+            }
+        }
     }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("RETURN"))

@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventTick;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.world.ChestStealer;
 import net.minecraft.client.gui.GuiScreen;
