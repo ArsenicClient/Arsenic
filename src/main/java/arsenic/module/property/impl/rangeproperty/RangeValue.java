@@ -1,5 +1,7 @@
 package arsenic.module.property.impl.rangeproperty;
 
+import org.lwjgl.Sys;
+
 import java.util.Random;
 
 public class RangeValue {
@@ -18,7 +20,7 @@ public class RangeValue {
 
     private double getCorrectedValue(double value) {
         value = Math.min(Math.max(value, minBound), maxBound);
-        return Math.round(value / inc) * inc;
+        return Math.round(value * (1.0D / inc)) / (1.0D / inc);
     }
 
     public double getMin() { return min; }

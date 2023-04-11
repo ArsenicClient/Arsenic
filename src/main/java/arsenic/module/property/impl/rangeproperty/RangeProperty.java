@@ -68,9 +68,9 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                 ri.getFr().drawString(
                         self.getValueString(),
                         x2 - ((x2 -lineX2)/2f),
-                        y1,
+                        midPointY,
                         0xFFFFFFFE,
-                        ri.getFr().getScaleModifier(0.7f), ri.getFr().CENTREY
+                        ri.getFr().getScaleModifier(0.8f), ri.getFr().CENTREY
                 );
 
 
