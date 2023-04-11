@@ -1,8 +1,12 @@
 package arsenic.injection.mixin;
 
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventKey;
+import arsenic.main.Arsenic;
+import arsenic.main.MinecraftAPI;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.world.ChestStealer;
+import arsenic.module.impl.world.FastPlace;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiChest;
 import org.lwjgl.input.Keyboard;
@@ -14,16 +18,13 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import arsenic.event.impl.EventKey;
-import arsenic.main.Arsenic;
-import arsenic.main.MinecraftAPI;
-import net.minecraft.client.Minecraft;
-
 @Mixin(priority = 1111, value = Minecraft.class)
 public class MixinMinecraft {
 
     @Shadow
     private static Minecraft theMinecraft;
+    @Shadow
+    private int rightClickDelayTimer;
 
     @ModifyArg(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V"), index = 0)
     public int getKeybind(int p_setKeyBindState_0_) {
@@ -58,6 +59,14 @@ public class MixinMinecraft {
             chestStealer.onChestClose();
         if(guiScreenIn instanceof GuiChest)
             chestStealer.onChestOpen();
+    }
+
+    @Inject(method = "rightClickMouse", at = @At("RETURN"))
+    public void rightClickMouse(CallbackInfo ci) {
+        FastPlace fastPlace = (FastPlace) ModuleManager.Modules.FASTPLACE.getModule();
+        if(!fastPlace.isEnabled())
+            return;
+        rightClickDelayTimer = fastPlace.getTickDelay();
     }
 
 }

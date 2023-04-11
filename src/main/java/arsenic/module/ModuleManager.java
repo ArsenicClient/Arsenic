@@ -1,11 +1,5 @@
 package arsenic.module;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
@@ -14,14 +8,19 @@ import arsenic.module.impl.ghost.AutoClicker;
 import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.ghost.Velocity;
 import arsenic.module.impl.misc.Sprint;
-import arsenic.module.impl.misc.TestModule;
-import arsenic.module.impl.misc.TestModule2;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.ESP;
 import arsenic.module.impl.visual.FullBright;
 import arsenic.module.impl.visual.HUD;
 import arsenic.module.impl.world.BridgeAssist;
 import arsenic.module.impl.world.ChestStealer;
+import arsenic.module.impl.world.FastPlace;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ModuleManager {
 
@@ -65,7 +64,7 @@ public class ModuleManager {
 
     public enum Modules {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
-        TESTMODULE(TestModule.class), TESTMODULE2(TestModule2.class), CHESTSTEALER(ChestStealer.class),
+        CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class),
         BRIDGEASSIST(BridgeAssist.class),VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
         AUTOCLICKER(AutoClicker.class);
 
