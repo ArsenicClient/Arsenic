@@ -43,6 +43,8 @@ public class ESP extends Module {
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
         ICamera camera = new Frustum();
         for(EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
+            if(entity == mc.thePlayer)
+                continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();
             double y = (entity.lastTickPosY + (entity.posY - entity.lastTickPosY) * event.partialTicks) - renderManager.getRenderPosY();

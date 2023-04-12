@@ -26,7 +26,7 @@ public class AimAssist extends Module {
             return;
         Entity target = null;
         double distance = range.getValue().getInput();
-        for(Entity entity : mc.theWorld.loadedEntityList) {
+        for(Entity entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if(entity != mc.thePlayer && tempDistance <= distance) {
                 target = entity;
