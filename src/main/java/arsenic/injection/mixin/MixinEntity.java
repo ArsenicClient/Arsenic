@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import static arsenic.main.MinecraftAPI.cachedYawM;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity {
+public class MixinEntity {
 
     @Shadow
     public float rotationYaw;
@@ -42,6 +42,8 @@ public abstract class MixinEntity {
     @ModifyVariable(method = "moveEntity", at = @At(value = "STORE"), ordinal = 0)
     public boolean mixinMoveEntity(boolean flag) {
         //flag = this.onGround && this.isSneaking() && this instanceof EntityPlayer;
+        if((Object) this != Minecraft.getMinecraft().thePlayer)
+            return flag;
         SafeWalk safeWalk = (SafeWalk) ModuleManager.Modules.SAFEWALK.getModule();
         if(!safeWalk.isEnabled())
             return flag;
