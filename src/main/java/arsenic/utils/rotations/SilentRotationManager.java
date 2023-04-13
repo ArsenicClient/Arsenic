@@ -17,7 +17,7 @@ public class SilentRotationManager{
 
 
 
-    @EventLink(Priorities.VERY_LOW)
+    @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
         EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
         Arsenic.getArsenic().getEventManager().post(rotation);
@@ -27,13 +27,7 @@ public class SilentRotationManager{
     };
 
     @EventLink
-    public final Listener<EventKey> eventKeyListener = event -> {
-        if(!modified)
-            return;
-    };
-
-    @EventLink
-    public final Listener<EventUpdate> eventUpdateListener = event -> {
+    public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
         if(!modified)
             return;
         event.setYaw(yaw);

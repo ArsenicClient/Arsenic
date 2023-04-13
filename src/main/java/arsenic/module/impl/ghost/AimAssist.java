@@ -43,7 +43,7 @@ public class AimAssist extends Module {
             yawDiff = (float) (speed.getValue().getInput()/2f) * (yawDiff > 0 ? 1 : -1);
         mc.thePlayer.rotationYaw = MathHelper.wrapAngleTo180_float(mc.thePlayer.rotationYaw + yawDiff);
 
-        float pitchDiff = getPitchDifference(mc.thePlayer.rotationPitch, rotations[1]);
+        float pitchDiff = -getPitchDifference(mc.thePlayer.rotationPitch, rotations[1]);
         if(Math.abs(pitchDiff) > (speed.getValue().getInput()/2f))
             pitchDiff = (float) (speed.getValue().getInput()/2f) * (pitchDiff > 0 ? 1 : -1);
 
