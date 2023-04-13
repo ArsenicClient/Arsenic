@@ -7,7 +7,6 @@
     "accessor.IMixinKeyBinding",
     "accessor.IMixinRenderManager",
     "mixin.MixinEntity",
-    "mixin.MixinEntityLivingBase",
     "mixin.MixinEntityPlayerSP",
     "mixin.MixinEntityRenderer",
     "mixin.MixinFontRenderer",
@@ -16,7 +15,8 @@
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",
     "mixin.MixinMinecraft",
-    "mixin.MixinNetworkManager"
+    "mixin.MixinNetworkManager",
+    "mixin.MixinRendererLivingEntity"
   ],
   "mixins": [
     "accessor.IMixinS12PacketEntityVelocity"

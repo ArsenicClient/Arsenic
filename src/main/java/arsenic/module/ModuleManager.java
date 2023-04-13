@@ -16,6 +16,7 @@ import arsenic.module.impl.visual.HUD;
 import arsenic.module.impl.world.ChestStealer;
 import arsenic.module.impl.world.FastPlace;
 import arsenic.module.impl.world.SafeWalk;
+import arsenic.module.impl.world.ScaffoldTest;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -67,7 +68,7 @@ public class ModuleManager {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
-        AUTOCLICKER(AutoClicker.class);
+        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class);
 
         private Module module;
 

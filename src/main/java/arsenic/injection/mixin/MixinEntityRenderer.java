@@ -1,5 +1,7 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventLook;
+import arsenic.event.impl.EventRenderThirdPerson;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventUpdate;
 import arsenic.main.Arsenic;
@@ -13,12 +15,14 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.util.*;
+import org.lwjgl.util.vector.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +37,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Shadow
     private Minecraft mc;
 
+    private float cYaw, cPitch;
 
     /**
      * @author kv
@@ -43,6 +48,14 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
+            EventLook event = new EventLook(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+            Arsenic.getArsenic().getEventManager().post(event);
+            cYaw = mc.thePlayer.rotationYaw;
+            cPitch = mc.thePlayer.rotationPitch;
+            mc.thePlayer.rotationYawHead = event.getYaw();
+            mc.thePlayer.prevRotationYawHead = event.getYaw();
+            mc.thePlayer.rotationPitch = event.getPitch();
+            mc.thePlayer.prevRotationPitch = event.getPitch();
             Reach reachMod = (Reach) ModuleManager.Modules.REACH.getModule();
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
@@ -109,8 +122,12 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                     this.mc.pointedEntity = this.pointedEntity;
                 }
             }
-
+            mc.thePlayer.rotationYawHead = cYaw;
+            mc.thePlayer.prevRotationYawHead = cYaw;
+            mc.thePlayer.rotationPitch = cPitch;
+            mc.thePlayer.prevRotationPitch = cPitch;
             this.mc.mcProfiler.endSection();
         }
     }
+
 }

@@ -2,11 +2,10 @@ package arsenic.event.impl;
 
 import arsenic.event.types.Event;
 
-public class EventLook implements Event {
-
+public class EventRenderThirdPerson implements Event {
     private float yaw, pitch;
 
-    public EventLook(float yaw, float pitch) {
+    public EventRenderThirdPerson(float yaw, float pitch) {
         this.yaw = yaw;
         this.pitch = pitch;
     }

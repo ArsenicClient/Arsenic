@@ -6,6 +6,7 @@ import java.util.Collection;
 import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +44,7 @@ public class Arsenic implements IContainer<IContainable> {
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
     private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
+    private final SilentRotationManager silentRotationManager = new SilentRotationManager();
 
     private final Property<?> // placeholders rn
     customFontProperty = new BooleanProperty("Custom Font", false),
@@ -55,6 +57,9 @@ public class Arsenic implements IContainer<IContainable> {
 
         MinecraftForge.EVENT_BUS.register(new ForgeEvents());
         logger.info("Hooked forge events");
+
+        getEventManager().subscribe(silentRotationManager);
+        logger.info("Subscribed silent rotation manager");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
 
