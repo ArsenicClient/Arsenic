@@ -19,10 +19,14 @@ public class PlayerUtils {
         addMessageToChat("§7[§cA§7]§r " + msg);
     }
     public static boolean playerOverAir() {
+        return mc.theWorld.isAirBlock(getBlockUnderPlayer());
+    }
+
+    public static BlockPos getBlockUnderPlayer() {
         double x = mc.thePlayer.posX;
         double y = mc.thePlayer.posY - 1.0D;
         double z = mc.thePlayer.posZ;
-        BlockPos p = new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
-        return mc.theWorld.isAirBlock(p);
+        return new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
     }
+
 }

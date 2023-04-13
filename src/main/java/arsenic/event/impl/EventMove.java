@@ -4,7 +4,7 @@ import arsenic.event.types.Event;
 
 public class EventMove implements Event {
 
-    private float strafe, forward, friction, yaw;
+    private float strafe, forward, friction, yaw, strictYaw;
 
     public EventMove(float strafe, float forward, float friction, float yaw) {
         this.strafe = strafe;

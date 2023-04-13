@@ -6,6 +6,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleManager;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -19,7 +20,8 @@ public class Sprint extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        sprintMode.getValue().setSprinting();
+        if(!ModuleManager.Modules.SCAFFOLDTEST.getModule().isEnabled())
+            sprintMode.getValue().setSprinting();
     };
 
     @Override

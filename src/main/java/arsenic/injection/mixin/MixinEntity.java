@@ -17,26 +17,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import static arsenic.main.MinecraftAPI.cachedYawM;
 
 @Mixin(Entity.class)
-public class MixinEntity {
+public abstract class MixinEntity {
 
     @Shadow
     public float rotationYaw;
 
-    @Inject(method = "moveFlying", at = @At("HEAD"))
+    @Shadow public abstract void moveFlying(float strafe, float forward, float friction);
+
+    public boolean secondCall;
+
+    @Inject(method = "moveFlying", at = @At("HEAD"), cancellable = true)
     private void moveFlyingHead(float p_moveFlying_1_, float p_moveFlying_2_, float p_moveFlying_3_, CallbackInfo ci) {
         if ((Object) this == Minecraft.getMinecraft().thePlayer) {
+            if(secondCall) {
+                secondCall = false;
+                return;
+            }
             EventMove e = new EventMove(p_moveFlying_1_, p_moveFlying_2_, p_moveFlying_3_, rotationYaw);
-            p_moveFlying_1_ = e.getStrafe();
-            p_moveFlying_2_ = e.getForward();
-            p_moveFlying_3_ = e.getFriction();
             Arsenic.getArsenic().getEventManager().post(e);
-            cachedYawM = rotationYaw;
+            float cachedYawM = rotationYaw;
+            rotationYaw = e.getYaw();
+            secondCall = true;
+            moveFlying(e.getStrafe(), e.getForward(), e.getFriction());
+            rotationYaw = cachedYawM;
+            ci.cancel();
         }
-    }
-
-    @Inject(method = "moveFlying", at = @At("RETURN"))
-    public void moveFlyingReturn(float strafe, float forward, float friction, CallbackInfo ci) {
-        if ((Object) this == Minecraft.getMinecraft().thePlayer) { rotationYaw = cachedYawM; }
     }
 
     @ModifyVariable(method = "moveEntity", at = @At(value = "STORE"), ordinal = 0)
