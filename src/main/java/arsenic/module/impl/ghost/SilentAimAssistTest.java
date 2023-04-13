@@ -19,7 +19,8 @@ import static arsenic.utils.rotations.RotationUtils.getYawDifference;
 public class SilentAimAssistTest extends Module {
 
     public final DoubleProperty range = new DoubleProperty("range", new DoubleValue(0, 5, 3, 0.1));
-    public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(0, 90, 90, 1));
+    public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(0, 180, 90, 1));
+    public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(0, 180, 20, 1));
 
     @EventLink
     public Listener<EventSilentRotation> eventListener = event -> {
@@ -40,6 +41,7 @@ public class SilentAimAssistTest extends Module {
         if(target == null)
             return;
 
+        event.setSpeed((float) speed.getValue().getInput());
         event.setYaw(rotationsToTarget[0]);
         event.setPitch(rotationsToTarget[1]);
     };

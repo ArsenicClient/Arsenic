@@ -41,6 +41,8 @@ public class ScaffoldTest extends Module {
         float pitchd = ((mc.thePlayer.rotationYaw % 90)/45) * 4f;
         if(pitchd > 4)
             pitchd = 8 - pitchd;
+
+        event.setSpeed(180f);
         event.setPitch(83 - pitchd);
         event.setYaw(MathHelper.wrapAngleTo180_float(event.getYaw() + 180f));
     };

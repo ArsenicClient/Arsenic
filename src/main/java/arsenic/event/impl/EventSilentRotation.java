@@ -6,12 +6,14 @@ public class EventSilentRotation implements Event {
 
     private float initYaw, initPitch;
     private float yaw, pitch;
+    private float speed;
 
-    public EventSilentRotation(float yaw, float pitch) {
+    public EventSilentRotation(float yaw, float pitch,float speed) {
         this.initYaw = yaw;
         this.initPitch = pitch;
         this.yaw = yaw;
         this.pitch = pitch;
+        this.speed = speed;
     }
 
     public boolean hasBeenModified() {
@@ -25,4 +27,13 @@ public class EventSilentRotation implements Event {
     public float getPitch() { return pitch; }
 
     public void setPitch(float pitch) { this.pitch = pitch; }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
 }

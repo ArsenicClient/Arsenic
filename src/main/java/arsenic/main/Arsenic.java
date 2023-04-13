@@ -33,7 +33,7 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 // make the module component enable on left click & open on right click
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
-public class Arsenic implements IContainer<IContainable> {
+public class Arsenic {
 
     private final String clientName = "Arsenic";
     private final long clientVersion = 221020L;
@@ -45,10 +45,6 @@ public class Arsenic implements IContainer<IContainable> {
     private final CommandManager commandManager = new CommandManager();
     private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
-
-    private final Property<?> // placeholders rn
-    customFontProperty = new BooleanProperty("Custom Font", false),
-            blurIntensityProperty = new DoubleProperty("Blur Intensity", new DoubleValue(0D, 10D, 5D, 0.125D));
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
@@ -74,13 +70,6 @@ public class Arsenic implements IContainer<IContainable> {
 
     }
 
-    @Contract(pure = true)
-    @Override
-    public final @NotNull Collection<IContainable> getContents() {
-        return Arrays.asList(customFontProperty, blurIntensityProperty);
-    }
-
-    @Override
     public String getName() { return clientName; }
 
     @Mod.Instance
@@ -105,14 +94,16 @@ public class Arsenic implements IContainer<IContainable> {
 
     public final Fonts getFonts() { return fonts; }
 
-    public final BooleanProperty getCustomFontProperty() { return (BooleanProperty) customFontProperty; }
-
     public final ConfigManager getConfigManager() { return configManager; }
 
     public final CommandManager getCommandManager() { return commandManager; }
 
     public final ClickGuiScreen getClickGuiScreen() {
         return clickGuiScreen;
+    }
+
+    public final SilentRotationManager getSilentRotationManager() {
+        return silentRotationManager;
     }
 
 }
