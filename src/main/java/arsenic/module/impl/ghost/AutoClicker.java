@@ -6,6 +6,7 @@ import arsenic.event.impl.EventMouse;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.java.SoundUtils;
@@ -21,6 +22,7 @@ import java.util.concurrent.Executors;
 public class AutoClicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 0.1d));
+    public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
 
     private ExecutorService executor;
 
@@ -36,10 +38,11 @@ public class AutoClicker extends Module {
             while(Mouse.isButtonDown(event.button)) {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
                 KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
-                SoundUtils.playSound("click");
+                if(playSound.getValue())
+                    SoundUtils.playSound("click");
                 sleep(genDownTime());
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
-                sleep(genUpTime());
+                sleep(genDownTime());
             }
         });
     };

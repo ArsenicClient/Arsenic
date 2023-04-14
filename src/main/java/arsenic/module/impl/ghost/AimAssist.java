@@ -77,7 +77,6 @@ public class AimAssist extends Module {
         try {
             target.entity = targets.stream().min(Comparator.comparingDouble(entity -> getPlayerRotationsToVec(entity.getPositionVector())[0])).get(); //sorts based on yaw
         } catch (NoSuchElementException | NullPointerException e) {
-            e.printStackTrace();
             return null;
         }
 
