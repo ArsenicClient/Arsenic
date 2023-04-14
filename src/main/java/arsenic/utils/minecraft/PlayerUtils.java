@@ -47,7 +47,7 @@ public class PlayerUtils {
 
     public static List<Entity> getClosestPlayersWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
-        for(Entity entity : mc.theWorld.loadedEntityList) {
+        for(Entity entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if(entity != mc.thePlayer && tempDistance <= distance) {
                 targets.add(entity);

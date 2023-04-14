@@ -65,7 +65,7 @@ public class ModuleManager {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
-        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), SILENTAIMASSISTTEST(SilentAimAssistTest.class);
+        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class);
 
         private Module module;
 
