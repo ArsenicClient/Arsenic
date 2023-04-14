@@ -73,7 +73,7 @@ public class ESP extends Module {
     };
 
     public int getBedWarsColor(EntityPlayer entityPlayer) {
-        ItemStack stack = entityPlayer.getHeldItem();
+        ItemStack stack = entityPlayer.getCurrentArmor(2);
         if (stack == null)
             return color.getValue(); // not wearing a chestplate
         NBTTagCompound nbttagcompound = stack.getTagCompound();

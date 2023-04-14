@@ -9,7 +9,13 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.Entity;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 import static arsenic.utils.rotations.RotationUtils.getPlayerRotationsToVec;
 import static arsenic.utils.rotations.RotationUtils.getYawDifference;
@@ -26,21 +32,15 @@ public class SilentAimAssistTest extends Module {
     public Listener<EventSilentRotation> eventListener = event -> {
         if (mc.currentScreen != null)
             return;
+        List<Entity> targets = PlayerUtils.getClosestPlayersWithin(range.getValue().getInput());
         Entity target = null;
-        double distance = range.getValue().getInput();
-        float[] rotationsToTarget = null;
-        for(Entity entity : mc.theWorld.playerEntities) {
-            float[] rotations = getPlayerRotationsToVec(entity.getPositionVector().addVector(0, 1.8, 0));
-            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if(entity != mc.thePlayer && getYawDifference(rotations[0], mc.thePlayer.rotationYaw) < fov.getValue().getInput() && tempDistance <= distance) {
-                rotationsToTarget = rotations;
-                target = entity;
-                distance = tempDistance;
-            }
-        }
-        if(target == null)
+        try {
+            target = targets.stream().min(Comparator.comparingDouble(entity -> getPlayerRotationsToVec(entity.getPositionVector())[0])).get(); //sorts based on yaw
+        } catch (NoSuchElementException e) {
             return;
+        }
 
+        float[] rotationsToTarget = getPlayerRotationsToVec(target.getPositionVector().addVector(0, target.getEyeHeight(), 0));
         event.setSpeed((float) speed.getValue().getInput());
         event.setYaw(rotationsToTarget[0]);
         event.setPitch(rotationsToTarget[1]);

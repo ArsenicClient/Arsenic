@@ -19,7 +19,10 @@ public class SilentRotationManager {
 
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        if(first) {
+        EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
+        Arsenic.getArsenic().getEventManager().post(rotation);
+
+        if(!modified && !rotation.hasBeenModified()) {
             yaw = mc.thePlayer.rotationYaw;
             pitch = mc.thePlayer.rotationPitch;
             first = false;
@@ -27,8 +30,6 @@ public class SilentRotationManager {
         }
 
 
-        EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
-        Arsenic.getArsenic().getEventManager().post(rotation);
         speed = rotation.getSpeed();
 
         float yawDiff = RotationUtils.getYawDifference(rotation.getYaw(), yaw); //prevyaw
@@ -41,7 +42,7 @@ public class SilentRotationManager {
             pitchDiff =  (speed/2f * (pitchDiff > 0 ? 1 : -1))/2f;
         pitch = MathHelper.wrapAngleTo180_float(pitch + pitchDiff);
 
-        modified = rotation.hasBeenModified() || !(Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
+        modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
     };
 
     @EventLink

@@ -1,9 +1,13 @@
 package arsenic.utils.minecraft;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PlayerUtils {
 
@@ -27,6 +31,29 @@ public class PlayerUtils {
         double y = mc.thePlayer.posY - 1.0D;
         double z = mc.thePlayer.posZ;
         return new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
+    }
+
+    public static Entity getClosestPlayerWithin(double distance) {
+        Entity target = null;
+        for(Entity entity : mc.theWorld.loadedEntityList) {
+            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
+            if(entity != mc.thePlayer && tempDistance <= distance) {
+                target = entity;
+                distance = tempDistance;
+            }
+        }
+        return target;
+    }
+
+    public static List<Entity> getClosestPlayersWithin(double distance) {
+        List<Entity> targets = new ArrayList<>();
+        for(Entity entity : mc.theWorld.loadedEntityList) {
+            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
+            if(entity != mc.thePlayer && tempDistance <= distance) {
+                targets.add(entity);
+            }
+        }
+        return targets;
     }
 
 }
