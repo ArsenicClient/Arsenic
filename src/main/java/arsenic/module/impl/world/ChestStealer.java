@@ -1,5 +1,8 @@
 package arsenic.module.impl.world;
 
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventDisplayGuiScreen;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -8,6 +11,7 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.inventory.ContainerChest;
 
 import java.util.ArrayList;
@@ -30,50 +34,57 @@ public class ChestStealer extends Module {
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
 
+    @PropertyInfo(reliesOn = "Close on finish", value = "true")
+    public final BooleanProperty hideGui = new BooleanProperty("HideGui", false);
+
     private ExecutorService executor;
+    public boolean inChest;
 
 
-    public void onChestOpen() {
-        if(executor != null)
-            executor.shutdownNow();
-        executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            ContainerChest chest = (ContainerChest) mc.thePlayer.openContainer;
-            PlayerUtils.addWaterMarkedMessageToChat("opened");
-            sleep((int) startDelay.getValue().getRandomInRange());
-            ArrayList<Slot> path = generatePath(chest);
-            while(true) {
-                if (path.isEmpty()) {
-                    onChestEmpty();
-                    return;
+    @EventLink
+    public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
+        if(event.getGuiScreen() instanceof GuiChest) {
+            if (executor != null)
+                executor.shutdownNow();
+            executor = Executors.newSingleThreadExecutor();
+            executor.execute(() -> {
+                inChest = true;
+                ContainerChest chest = (ContainerChest) mc.thePlayer.openContainer;
+                sleep((int) startDelay.getValue().getRandomInRange());
+                ArrayList<Slot> path = generatePath(chest);
+                while (true) {
+                    if (path.isEmpty()) {
+                        if(closeOnFinish.getValue()) {
+                            sleep((int) closeDelay.getValue().getRandomInRange());
+                            mc.thePlayer.closeScreen();
+                            inChest = false;
+                        }
+                        return;
+                    }
+                    mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
+                    sleep((int) delay.getValue().getRandomInRange());
                 }
-                mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1,mc.thePlayer);
-                sleep((int) delay.getValue().getRandomInRange());
-            }
-        });
-    }
-
-    private void onChestEmpty() {
-        if(closeOnFinish.getValue()) {
-            sleep((int) closeDelay.getValue().getRandomInRange());
-            mc.thePlayer.closeScreen();
+            });
+        } else {
+            onChestClose();
         }
-    }
+    };
 
     private void sleep(int ms) {
         try {Thread.sleep(ms);} catch (InterruptedException ignored) {}
     }
 
     public void onChestClose() {
-        if(executor != null)
+        if(executor != null) {
+            inChest = false;
             executor.shutdownNow();
+        }
     }
 
 
     @Override
     protected void onDisable() {
-        if(executor != null)
-            executor.shutdownNow();
+        onChestClose();
     }
 
     //below is copied from raven b++ i will review this later

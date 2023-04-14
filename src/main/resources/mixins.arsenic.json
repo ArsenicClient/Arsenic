@@ -5,18 +5,22 @@
   "compatibilityLevel": "JAVA_8",
   "client": [
     "accessor.IMixinKeyBinding",
+    "accessor.IMixinPlayerControllerMp",
     "accessor.IMixinRenderManager",
     "mixin.MixinEntity",
     "mixin.MixinEntityPlayerSP",
     "mixin.MixinEntityRenderer",
     "mixin.MixinFontRenderer",
     "mixin.MixinGuiChat",
+    "mixin.MixinGuiContainer",
     "mixin.MixinGuiIngame",
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",
     "mixin.MixinMinecraft",
+    "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
-    "mixin.MixinRendererLivingEntity"
+    "mixin.MixinRendererLivingEntity",
+    "mixin.MixinSessionTemp"
   ],
   "mixins": [
     "accessor.IMixinS12PacketEntityVelocity"

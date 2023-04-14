@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventDisplayGuiScreen;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
@@ -50,15 +51,12 @@ public class MixinMinecraft {
 
 
 
-    @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
+    @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"), cancellable = true)
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
-        ChestStealer chestStealer = ((ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule());
-        if(!chestStealer.isEnabled())
-            return;
-        if(guiScreenIn == null)
-            chestStealer.onChestClose();
-        if(guiScreenIn instanceof GuiChest)
-            chestStealer.onChestOpen();
+        EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
+        Arsenic.getArsenic().getEventManager().post(event);
+        if(event.isCancelled())
+            ci.cancel();
     }
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
