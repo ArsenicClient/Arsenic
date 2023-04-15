@@ -23,6 +23,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
     public float getWidth(String text) {
         return fontRenderer.getWidth(text);
     }
+    public float getHeight(String text) {return fontRenderer.getHeight(text);}
 
     public void scale(float scale) {
         setScale(this.scale * scale);

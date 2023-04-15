@@ -14,7 +14,9 @@ public class MixinGuiContainer {
     @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
     public void drawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         ChestStealer chestStealer = (ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule();
-        if(chestStealer.isEnabled() && chestStealer.hideGui.getValue() && chestStealer.inChest)
+        if(chestStealer.isEnabled() && chestStealer.hideGui.getValue() && chestStealer.inChest) {
+            chestStealer.draw((GuiContainer) (Object) this);
             ci.cancel();
+        }
     }
 }

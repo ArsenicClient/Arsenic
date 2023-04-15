@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 // allow escape to bind to none
 
 public class ClickGuiScreen extends CustomGuiScreen {
-    private ClickGui module;
+    private ClickGui module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
     private List<UICategoryComponent> components;
     private List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
@@ -39,7 +39,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
     //called once
     public void init() {
         logoPath = RenderUtils.getResourcePath("/assets/arsenic/arseniclogo.png");
-        module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
@@ -134,7 +133,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public final FontRendererExtension<?> getFontRenderer() {
-        return module.customFont.getValue() ? Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() : ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+        return module.customFont.getValue() ?
+                Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
+                ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
     }
 
     public void addToRenderLastList(IVoidFunction v) {

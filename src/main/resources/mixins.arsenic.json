@@ -23,6 +23,7 @@
     "mixin.MixinSessionTemp"
   ],
   "mixins": [
-    "accessor.IMixinS12PacketEntityVelocity"
+    "accessor.IMixinS12PacketEntityVelocity",
+    "mixin.MixinWorldTemp"
   ]
 }
