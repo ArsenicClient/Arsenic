@@ -76,11 +76,10 @@ public class ChestStealer extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
-        if(event.getGuiScreen() instanceof GuiChest) {
+        if(event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest) {
             if (executor != null)
                 executor.shutdownNow();
-            EntityPlayerMP entityPlayerMP = this.mc.getIntegratedServer().getConfigurationManager().getPlayerByUUID(this.mc.thePlayer.getUniqueID());
-            entityPlayerMP.playerNetServerHandler.sendPacket(new S29PacketSoundEffect("note.hat", mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ,  3f, 1f));
+            mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, 1f, false);
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 inChest = true;
@@ -90,7 +89,7 @@ public class ChestStealer extends Module {
                 path = generatePath(chest);
                 totalSlots = path.size();
                 sleep((int) startDelay.getValue().getRandomInRange());
-                while (true) {
+                while (mc.thePlayer.openContainer == chest) {
                     if (path.isEmpty()) {
                         if(closeOnFinish.getValue()) {
                             sleep((int) closeDelay.getValue().getRandomInRange());
@@ -100,7 +99,7 @@ public class ChestStealer extends Module {
                         return;
                     }
                     percentStolen = (totalSlots - path.size())/(float) (totalSlots);
-                    entityPlayerMP.playerNetServerHandler.sendPacket(new S29PacketSoundEffect("note.hat", mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ,  3f, 1f));
+                    mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
                     mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
                     sleep((int) delay.getValue().getRandomInRange());
                 }
