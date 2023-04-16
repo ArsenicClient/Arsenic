@@ -45,6 +45,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
 
     public final ITwoParamVoidFunction<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f));
     public final ITwoParamVoidFunction<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f));
+    public final ITwoParamVoidFunction<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)));
     private final ITwoParamVoidFunction<PosInfo, String> SCALE = (posInfo, string) -> {
         posInfo.setX(posInfo.getX() * scaleReciprocal);
         posInfo.setY(posInfo.getY() * scaleReciprocal);
