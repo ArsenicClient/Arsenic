@@ -17,9 +17,7 @@ public class MixinNetworkManager {
     @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
     public void sendPacket(Packet p_sendPacket_1_, CallbackInfo ci) {
         EventPacket e = new EventPacket.OutGoing(p_sendPacket_1_);
-
         Arsenic.getArsenic().getEventManager().post(e);
-
         p_sendPacket_1_ = e.getPacket();
         if (e.isCancelled())
             ci.cancel();
