@@ -133,9 +133,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public final FontRendererExtension<?> getFontRenderer() {
-        return module.customFont.getValue() ?
-                Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
-                ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+        try {
+            return module.customFont.getValue() ?
+                    Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
+                    ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+        } catch (NullPointerException e) {
+            return ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+        }
     }
 
     public void addToRenderLastList(IVoidFunction v) {
