@@ -32,7 +32,7 @@ public class HitBox extends Module {
     //maybe a fix
     public final DoubleProperty expand = new DoubleProperty("Expand", new DoubleValue(0, 2, 0.2, 0.01));
 
-    public final BooleanProperty showNewHitbox = new BooleanProperty("Show new Hitbox", false);
+    public final BooleanProperty showNewHitbox = new BooleanProperty("Show new Hitboxes", false);
     public final BooleanProperty fix = new BooleanProperty("packet fix (WIP)", false);
 
     public double getExpand() {
@@ -42,7 +42,7 @@ public class HitBox extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> eventRenderWorldLastListener = event -> {
         ICamera camera = new Frustum();
-        for(Entity entity : Minecraft.getMinecraft().theWorld.loadedEntityList) {
+        for(Entity entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if(entity == mc.thePlayer)
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();

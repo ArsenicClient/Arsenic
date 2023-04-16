@@ -88,7 +88,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
 
             for (Entity entity1 : list) {
                 float f1 = entity1.getCollisionBorderSize();
-                //if(entity1 instanceof EntityPlayer)
+                if(entity1 instanceof EntityPlayer)
                     f1 += ((float) ((HitBox) ModuleManager.Modules.HITBOX.getModule()).getExpand());
                 AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand(f1, f1, f1);
                 MovingObjectPosition movingobjectposition = axisalignedbb.calculateIntercept(vec3, vec32);
