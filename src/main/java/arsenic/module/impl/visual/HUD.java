@@ -11,6 +11,7 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.BlurUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
+import net.minecraft.client.gui.ScaledResolution;
 import org.lwjgl.input.Keyboard;
 
 import java.awt.*;
@@ -28,10 +29,11 @@ public class HUD extends Module {
     public final Listener<EventRender2D> onRender2D = event -> {
         if(mc.currentScreen != null)
             return;
+        ScaledResolution sr = new ScaledResolution(mc);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
         float yOffSet = 0;
         float yOffSetAmount = fr.getHeight("T");
-        float x = mc.displayWidth/3f - (yOffSetAmount/2f);
+        float x = sr.getScaledWidth() - (yOffSetAmount/2f);
         //sorts it in order of length
         List<ModuleRenderInfo> nameList =
                 Arsenic.getArsenic().getModuleManager().getEnabledModules()
