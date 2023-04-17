@@ -24,6 +24,7 @@
   ],
   "mixins": [
     "accessor.IMixinC02PacketUseEntity",
-    "accessor.IMixinS12PacketEntityVelocity"
+    "accessor.IMixinS12PacketEntityVelocity",
+    "mixin.MixinWorld"
   ]
 }

@@ -1,7 +1,10 @@
 package arsenic.utils.minecraft;
 
+import arsenic.module.ModuleManager;
+import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
@@ -45,9 +48,11 @@ public class PlayerUtils {
         return target;
     }
 
-    public static List<Entity> getClosestPlayersWithin(double distance) {
+    public static List<Entity> getPlayersWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
-        for(Entity entity : mc.theWorld.playerEntities) {
+        for(EntityPlayer entity : mc.theWorld.playerEntities) {
+            if(!((AntiBot) ModuleManager.Modules.ANTIBOT.getModule()).isARealPlayer(entity))
+                continue;
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if(entity != mc.thePlayer && tempDistance <= distance) {
                 targets.add(entity);

@@ -30,7 +30,9 @@ public class HUD extends Module {
         if(mc.currentScreen != null)
             return;
         ScaledResolution sr = new ScaledResolution(mc);
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
+        if(fr == null)
+            return;
         float yOffSet = 0;
         float yOffSetAmount = fr.getHeight("T");
         float x = sr.getScaledWidth() - (yOffSetAmount/2f);

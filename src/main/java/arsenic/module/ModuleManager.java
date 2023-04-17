@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.visual.ClickGui;
@@ -65,7 +66,8 @@ public class ModuleManager {
         FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
-        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class);
+        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
+        ANTIBOT(AntiBot.class);
 
         private Module module;
 

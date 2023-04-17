@@ -7,6 +7,8 @@ import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleManager;
+import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -44,6 +46,8 @@ public class ESP extends Module {
         ICamera camera = new Frustum();
         for(EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if(entity == mc.thePlayer)
+                continue;
+            if(!((AntiBot) ModuleManager.Modules.ANTIBOT.getModule()).isARealPlayer(entity))
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();

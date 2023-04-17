@@ -72,7 +72,7 @@ public class AimAssist extends Module {
     //sorts based on yaw
     //to be improved later
     private EntityAndRots getTargetAndRotations() {
-        List<Entity> targets = PlayerUtils.getClosestPlayersWithin(range.getValue().getInput());
+        List<Entity> targets = PlayerUtils.getPlayersWithin(range.getValue().getInput());
         EntityAndRots target = new EntityAndRots();
         try {
             target.entity = targets.stream().min(Comparator.comparingDouble(entity -> getPlayerRotationsToVec(entity.getPositionVector())[0])).get(); //sorts based on yaw

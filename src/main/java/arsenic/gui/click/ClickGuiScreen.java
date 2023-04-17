@@ -26,14 +26,14 @@ import java.util.stream.Collectors;
 // allow escape to bind to none
 
 public class ClickGuiScreen extends CustomGuiScreen {
-    private ClickGui module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
+    private final ClickGui module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
     private List<UICategoryComponent> components;
-    private List<IVoidFunction> renderLastList = new ArrayList<>();
+    private final List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private ResourceLocation logoPath;
-    private AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
+    private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
     private int vLineX, hLineY, x1, y1;
 
     //called once
@@ -138,7 +138,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
                     Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
                     ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
         } catch (NullPointerException e) {
-            return ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+            return null;
         }
     }
 
