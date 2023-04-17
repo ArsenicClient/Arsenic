@@ -15,7 +15,7 @@ import net.minecraft.network.Packet;
 public class MixinNetworkManager {
 
     @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
-    public void sendPacket(Packet p_sendPacket_1_, CallbackInfo ci) {
+    public void sendPacketHead(Packet p_sendPacket_1_, CallbackInfo ci) {
         EventPacket e = new EventPacket.OutGoing(p_sendPacket_1_);
         Arsenic.getArsenic().getEventManager().post(e);
         p_sendPacket_1_ = e.getPacket();
@@ -24,8 +24,8 @@ public class MixinNetworkManager {
     }
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
-    public void receivePacket(ChannelHandlerContext p_channelRead0_1_, Packet p_channelRead0_2_, CallbackInfo ci) {
-        EventPacket e = new EventPacket.Incoming(p_channelRead0_2_);
+    public void receivePacketHead(ChannelHandlerContext p_channelRead0_1_, Packet p_channelRead0_2_, CallbackInfo ci) {
+        EventPacket e = new EventPacket.Incoming.Pre(p_channelRead0_2_);
 
         Arsenic.getArsenic().getEventManager().post(e);
 
@@ -34,4 +34,8 @@ public class MixinNetworkManager {
             ci.cancel();
     }
 
+    @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V", at = @At("RETURN"))
+    public void receivePacketReturn(ChannelHandlerContext p_channelRead0_1_, Packet p_channelRead0_2_, CallbackInfo ci) {
+        Arsenic.getArsenic().getEventManager().post(new EventPacket.Incoming.Post(p_channelRead0_2_));
+    }
 }

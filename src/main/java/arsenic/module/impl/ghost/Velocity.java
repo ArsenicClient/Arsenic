@@ -37,7 +37,7 @@ public class Velocity extends Module {
                 iVelocityPacket.setMotionZ((int) (velocityPacket.getMotionZ() * (horizontalVelo.getValue().getInput()/100f)));
                 break;
             case Cancel:
-                event.setCancelled();
+                event.cancel();
                 break;
         }
     };

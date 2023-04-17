@@ -1,9 +1,10 @@
 package arsenic.event.impl;
 
+import arsenic.event.types.CancellableEvent;
 import arsenic.event.types.Event;
 import net.minecraft.network.Packet;
 
-public class EventPacket implements Event {
+public class EventPacket extends CancellableEvent {
 
     private final Packet<?> packet;
     private boolean cancelled;
@@ -12,6 +13,9 @@ public class EventPacket implements Event {
         this.packet = packet;
     }
 
+    public Packet getPacket() {return packet;}
+    public void setPacket(Packet<?> packet) {packet = packet;}
+
     public static class OutGoing extends EventPacket {
         public OutGoing(Packet<?> packet) {
             super(packet);
@@ -19,16 +23,24 @@ public class EventPacket implements Event {
     }
 
     public static class Incoming extends EventPacket {
+
         public Incoming(Packet<?> packet) {
             super(packet);
         }
+
+        public static class Pre extends Incoming {
+
+            public Pre(Packet<?> packet) {
+                super(packet);
+            }
+        }
+
+        public static class Post extends Incoming {
+
+            public Post(Packet<?> packet) {
+                super(packet);
+            }
+        }
     }
 
-    public void setCancelled() {
-        cancelled = true;
-    }
-
-    public boolean isCancelled() { return cancelled; }
-
-    public Packet<?> getPacket() { return packet; }
 }
