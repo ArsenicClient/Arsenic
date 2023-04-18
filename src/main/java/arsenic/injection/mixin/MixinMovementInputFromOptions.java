@@ -12,14 +12,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = MovementInputFromOptions.class, priority = 1111)
 public class MixinMovementInputFromOptions extends MovementInput{
 
-    @Inject(method = "updatePlayerMoveState", at = @At(value = "HEAD"), cancellable = true)
+    @Inject(method = "updatePlayerMoveState", at = @At(value = "RETURN"))
     public void updatePlayerMoveState(CallbackInfo ci) {
-        EventMovementInput event = new EventMovementInput();
+        EventMovementInput event = new EventMovementInput(moveForward, moveStrafe, jump);
         Arsenic.getArsenic().getEventManager().post(event);
         if(event.isCancelled()) {
             moveStrafe = 0.0F;
             moveForward = 0.0F;
-            ci.cancel();
+            return;
         }
+
+        moveForward = event.getSpeed();
+        moveStrafe = event.getStrafe();
+        jump = event.isJumping();
     }
 }

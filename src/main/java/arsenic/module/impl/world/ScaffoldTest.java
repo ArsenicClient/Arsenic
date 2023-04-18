@@ -32,7 +32,7 @@ public class ScaffoldTest extends Module {
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         //tower
-        mc.thePlayer.setSprinting(false);
+        event.setYaw(MathHelper.wrapAngleTo180_float(event.getYaw() + 180f));
         if(mc.thePlayer.motionX == 0 && mc.thePlayer.motionZ == 0 && !PlayerUtils.playerOverAir()) {
             //float rotations = RotationUtils.getPlayerRotationsToBlock(PlayerUtils.playerOverAir());
             event.setPitch(90);
@@ -44,6 +44,5 @@ public class ScaffoldTest extends Module {
 
         event.setSpeed(180f);
         event.setPitch(83 - pitchd);
-        event.setYaw(MathHelper.wrapAngleTo180_float(event.getYaw() + 180f));
     };
 }
