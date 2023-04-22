@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventMove;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
@@ -7,6 +8,8 @@ import arsenic.module.impl.world.SafeWalk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.Vec3;
+import net.minecraft.util.Vec3i;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,11 +23,22 @@ import static arsenic.main.MinecraftAPI.cachedYawM;
 public abstract class MixinEntity {
 
     @Shadow
+    public abstract void moveFlying(float strafe, float forward, float friction);
+
+    @Shadow
+    protected abstract Vec3 getVectorForRotation(float pitch, float yaw);
+
+    @Shadow
     public float rotationYaw;
-
-    @Shadow public abstract void moveFlying(float strafe, float forward, float friction);
-
+    @Shadow
+    public float rotationPitch;
+    @Shadow
+    public float prevRotationYaw;
+    @Shadow
+    public float prevRotationPitch;
     public boolean secondCall;
+
+    public Minecraft minecraft = Minecraft.getMinecraft();
 
     @Inject(method = "moveFlying", at = @At("HEAD"), cancellable = true)
     private void moveFlyingHead(float p_moveFlying_1_, float p_moveFlying_2_, float p_moveFlying_3_, CallbackInfo ci) {
@@ -53,5 +67,16 @@ public abstract class MixinEntity {
         if(!safeWalk.isEnabled())
             return flag;
         return safeWalk.mixinResult(flag);
+    }
+
+    @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
+    public Vec3 rayTrace(Vec3 vec31) {
+        if((Object) this != Minecraft.getMinecraft().getRenderViewEntity())
+            return vec31;
+        EventLook eventLook = new EventLook(rotationYaw, rotationPitch);
+        Arsenic.getArsenic().getEventManager().post(eventLook);
+        if(!eventLook.hasBeenModified())
+            return vec31;
+        return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
     }
 }

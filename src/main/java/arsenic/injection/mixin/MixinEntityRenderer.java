@@ -39,8 +39,6 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Shadow
     private Minecraft mc;
 
-    private float cYaw, cPitch;
-
     /**
      * @author kv
      * @reason reach
@@ -50,18 +48,9 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
-            EventLook event = new EventLook(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
-            Arsenic.getArsenic().getEventManager().post(event);
-            cYaw = mc.thePlayer.rotationYaw;
-            cPitch = mc.thePlayer.rotationPitch;
-            mc.thePlayer.rotationYawHead = event.getYaw();
-            mc.thePlayer.prevRotationYawHead = event.getYaw();
-            mc.thePlayer.rotationPitch = event.getPitch();
-            mc.thePlayer.prevRotationPitch = event.getPitch();
             Reach reachMod = (Reach) ModuleManager.Modules.REACH.getModule();
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
-
             double d0 = this.mc.playerController.getBlockReachDistance();
             this.mc.objectMouseOver = entity.rayTrace(Math.max(d0, reachMod.getReach()), p_getMouseOver_1_);
             double d1 = d0;
@@ -126,10 +115,6 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                     this.mc.pointedEntity = this.pointedEntity;
                 }
             }
-            mc.thePlayer.rotationYawHead = cYaw;
-            mc.thePlayer.prevRotationYawHead = cYaw;
-            mc.thePlayer.rotationPitch = cPitch;
-            mc.thePlayer.prevRotationPitch = cPitch;
             this.mc.mcProfiler.endSection();
         }
     }
