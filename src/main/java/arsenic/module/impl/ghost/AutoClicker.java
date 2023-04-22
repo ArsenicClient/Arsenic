@@ -29,7 +29,6 @@ public class AutoClicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 0.1d));
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
-    public final EnumProperty<aMode> autoBlock = new EnumProperty<>("AutoBlock: ", aMode.NONE);
 
     private ExecutorService executor;
 
@@ -43,7 +42,6 @@ public class AutoClicker extends Module {
         executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             while(Mouse.isButtonDown(event.button)) {
-                autoBlock.getValue().onMouseDown();
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
                 KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
                 if(playSound.getValue())
@@ -51,8 +49,7 @@ public class AutoClicker extends Module {
 
                 sleep(genDownTime());
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
-                autoBlock.getValue().onMouseUp();
-                sleep(genDownTime());
+                sleep(genUpTime());
             }
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
         });
@@ -81,69 +78,4 @@ public class AutoClicker extends Module {
     private int genUpTime() {
         return (int) (500/rangeProperty.getValue().getRandomInRange());
     }
-
-    public enum aMode {
-        NONE {
-
-        },
-        LEGIT {
-            @Override
-            void onMouseDown() {
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
-            }
-
-            @Override
-            void onMouseUp() {
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
-                KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
-            }
-
-            @Override
-            void onFinish() {
-                onMouseUp();
-            }
-        },
-        Vanilla {
-            @Override
-            void onMouseDown() {
-                mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
-            }
-
-            @Override
-            void onFinish() {
-                mc.getNetHandler().addToSendQueue(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-            }
-        },
-
-        ItemChange {
-            @Override
-            void onMouseDown() {
-                Vanilla.onMouseDown();
-                mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange((mc.thePlayer.inventory.currentItem + 1) % 9));
-                mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-            }
-
-            @Override
-            void onMouseUp() {
-                Vanilla.onMouseUp();
-            }
-
-            @Override
-            void onFinish() {
-                Vanilla.onFinish();
-            }
-        };
-
-        void onMouseDown() {
-
-        }
-        void onMouseUp() {
-
-        }
-        void onFinish() {
-
-        }
-
-    }
-
 }

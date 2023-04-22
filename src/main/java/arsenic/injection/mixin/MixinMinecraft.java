@@ -5,11 +5,14 @@ import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
 import arsenic.module.ModuleManager;
+import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.world.ChestStealer;
 import arsenic.module.impl.world.FastPlace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiChest;
+import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,12 +23,18 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(priority = 1111, value = Minecraft.class)
-public class MixinMinecraft {
+public abstract class MixinMinecraft {
 
+
+    @Shadow
+    protected abstract void clickMouse();
     @Shadow
     private static Minecraft theMinecraft;
     @Shadow
     private int rightClickDelayTimer;
+
+    @Shadow
+    public GameSettings gameSettings;
 
     @ModifyArg(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V"), index = 0)
     public int getKeybind(int p_setKeyBindState_0_) {
@@ -36,6 +45,17 @@ public class MixinMinecraft {
     @Inject(method = "runTick", at = @At(value = "HEAD"))
     public void runTick(CallbackInfo ci) {
         MinecraftAPI.KEY_CODE = null;
+    }
+
+    @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z", ordinal = 7))
+    public boolean autoblockMixin(KeyBinding instance) {
+        AutoBlock autoBlock = (AutoBlock) ModuleManager.Modules.AUTOBLOCK.getModule();
+        if(this.gameSettings.keyBindAttack.isPressed()) {
+            if(autoBlock.isEnabled())
+                clickMouse();
+            return true;
+        }
+        return false;
     }
 
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Keyboard;getEventKeyState()Z", ordinal = 2))

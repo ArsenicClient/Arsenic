@@ -16,6 +16,7 @@
     "mixin.MixinGuiIngame",
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",
+    "mixin.MixinItemRenderer",
     "mixin.MixinMinecraft",
     "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
