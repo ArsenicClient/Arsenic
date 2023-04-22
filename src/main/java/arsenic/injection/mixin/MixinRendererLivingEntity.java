@@ -19,7 +19,8 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
 
     T cEntity;
 
-    private float cYaw, cPitch, cYawO;
+    private float cYawH, cPYawH, cYawO, cPYawO, cPitch, cPPitch;
+    private boolean touched;
 
     private Minecraft mc = Minecraft.getMinecraft();
 
@@ -34,27 +35,35 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
             return;
         EventRenderThirdPerson event = new EventRenderThirdPerson(entity.rotationYaw, entity.rotationPitch);
         Arsenic.getArsenic().getEventManager().post(event);
-        cYaw = entity.renderYawOffset;
-        cYawO = entity.rotationYawHead;
-        cPitch = entity.rotationPitch;
-        entity.rotationYawHead = event.getYaw();
-        entity.prevRotationYawHead = event.getYaw();
-        entity.renderYawOffset = event.getYaw();
-        entity.prevRenderYawOffset = event.getYaw();
-        entity.rotationPitch = event.getPitch();
-        entity.prevRotationPitch = event.getPitch();
+        if(event.hasBeenTouched()) {
+            touched = true;
+            cYawH = entity.rotationYawHead;
+            cPYawH = entity.prevRotationYawHead;
+            cYawO = entity.renderYawOffset;
+            cPYawO = entity.prevRenderYawOffset;
+            cPitch = entity.rotationPitch;
+            cPPitch = entity.prevRotationPitch;
+            entity.rotationYawHead = event.getYaw();
+            entity.prevRotationYawHead = event.getYaw();
+            entity.renderYawOffset = event.getYaw();
+            entity.prevRenderYawOffset = event.getYaw();
+            entity.rotationPitch = event.getPitch();
+            entity.prevRotationPitch = event.getPitch();
+            return;
+        }
+        touched = false;
     }
 
     @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("RETURN"))
     public void doRenderReturn(T entity, double x, double y, double z, float entityYaw, float partialTicks, CallbackInfo ci) {
-        if(entity != mc.thePlayer)
+        if(entity != mc.thePlayer || !touched)
             return;
-        entity.renderYawOffset = cYaw;
-        entity.prevRenderYawOffset = cYaw;
-        entity.rotationYawHead = cYawO;
-        entity.prevRotationYawHead = cYawO;
+        entity.rotationYawHead = cYawH;
+        entity.prevRotationYawHead = cPYawH;
+        entity.renderYawOffset = cYawO;
+        entity.prevRenderYawOffset = cPYawO;
         entity.rotationPitch = cPitch;
-        entity.prevRotationPitch = cPitch;
+        entity.prevRotationPitch = cPPitch;
     }
 
 
