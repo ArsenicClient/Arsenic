@@ -86,9 +86,9 @@ public class ChestStealer extends Module {
                 ContainerChest chest = (ContainerChest) mc.thePlayer.openContainer;
                 percentStolen = 0;
                 path.clear();
+                sleep((int) startDelay.getValue().getRandomInRange());
                 path = generatePath(chest);
                 totalSlots = path.size();
-                sleep((int) startDelay.getValue().getRandomInRange());
                 while (mc.thePlayer.openContainer == chest) {
                     if (path.isEmpty()) {
                         if(closeOnFinish.getValue()) {
