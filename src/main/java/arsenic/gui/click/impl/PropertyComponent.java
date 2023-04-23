@@ -31,7 +31,12 @@ public abstract class PropertyComponent<T extends Property> extends Component im
 
     @Override
     protected final void  clickComponent(int mouseX, int mouseY, int mouseButton) {
-        if (self.isVisible()) { click(mouseX, mouseY, mouseButton); }
+        if (self.isVisible()) {
+            click(mouseX, mouseY, mouseButton);
+            if(self instanceof SerializableProperty<?>) {
+                ((SerializableProperty<?>) self).onUpdate();
+            }
+        }
     }
 
     protected void click(int mouseX, int mouseY, int mouseButton) {

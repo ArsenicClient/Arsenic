@@ -5,6 +5,7 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.AutoBlock;
+import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.Sprint;
@@ -69,7 +70,7 @@ public class ModuleManager {
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
         AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
-        ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class);
+        ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class);
 
         private Module module;
 
