@@ -15,6 +15,6 @@ public class MixinSessionTemp {
      */
     @Overwrite
     public String getUsername() {
-        return "kotv312978";
+        return "ArsenicDevs";
     }
 }
