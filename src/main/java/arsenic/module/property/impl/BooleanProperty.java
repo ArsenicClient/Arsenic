@@ -32,7 +32,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
 
     @Override
     public void loadFromJson(@NotNull JsonObject obj) {
-        value = obj.get("enabled").getAsBoolean();
+        setValueSilently(obj.get("enabled").getAsBoolean());
     }
 
     @Override
@@ -52,7 +52,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
 
                 @Override
                 protected void setEnabled(boolean enabled) {
-                    setValue(enabled);
+                    setValueSilently(enabled);
                 }
             };
 

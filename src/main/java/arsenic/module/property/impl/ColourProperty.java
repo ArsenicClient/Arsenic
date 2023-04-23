@@ -23,7 +23,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
     @Override
     public void loadFromJson(@NotNull JsonObject obj) {
-        value = (obj.get("value").getAsInt());
+        setValueSilently(obj.get("value").getAsInt());
     }
 
     public void setColor(int i, int newValue) {

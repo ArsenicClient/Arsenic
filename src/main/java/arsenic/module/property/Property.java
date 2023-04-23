@@ -20,7 +20,18 @@ public abstract class Property<T> implements IContainable {
 
     public T getValue() { return value; }
 
-    public void setValue(T value) { this.value = value; }
+    public void setValueSilently(T value) {
+        this.value = value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+        onValueUpdate();
+    }
+
+    public void onValueUpdate() {
+
+    }
 
     public void setVisible(INoParamFunction<Boolean> visible) { this.visible = visible; }
 

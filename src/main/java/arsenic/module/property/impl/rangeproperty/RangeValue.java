@@ -1,7 +1,5 @@
 package arsenic.module.property.impl.rangeproperty;
 
-import org.lwjgl.Sys;
-
 import java.util.Random;
 
 public class RangeValue {
@@ -25,15 +23,33 @@ public class RangeValue {
 
     public double getMin() { return min; }
 
-    public void setMin(double min) { this.min = Math.min(this.max, getCorrectedValue(min)); }
+    public void setMinSilently(double min) {
+        this.min = Math.min(this.max, getCorrectedValue(min));
+    }
+
+    public void setMin(double min) {
+        setMinSilently(min);
+        onUpdate();
+    }
 
     public double getMax() { return max; }
 
-    public void setMax(double max) { this.max = Math.max(this.min, getCorrectedValue(max)); }
+    public void setMaxSilently(double max) {
+        this.max = Math.max(this.min, getCorrectedValue(max));
+    }
+
+    public void setMax(double min) {
+        setMaxSilently(min);
+        onUpdate();
+    }
 
     public double getMaxBound() { return maxBound; }
 
     public double getMinBound() { return minBound; }
 
     public double getRandomInRange() { return getMin() + (random.nextDouble() * (getMax() - getMin())); }
+
+    public void onUpdate() {
+
+    }
 }

@@ -12,14 +12,18 @@ import arsenic.utils.functionalinterfaces.INoParamFunction;
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)
 public class AutoBlock extends Module {
 
-    public EnumProperty<bMode> blockMode = new EnumProperty<>("Mode: ", bMode.HYPIXEL);
+    public EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.HYPIXEL) {
+        @Override
+        public void onValueUpdate() {
+            if(getValue() == bMode.VANILLA)
+                block = true;
+        }
+    };
     private boolean block;
+
     @Override
     protected void postApplyConfig() {
-        blockMode.setOnUpdate(() -> {
-            if(blockMode.getValue() == bMode.VANILLA)
-                block = true;
-        });
+        blockMode.onValueUpdate();
     }
 
     @EventLink
