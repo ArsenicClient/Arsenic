@@ -7,7 +7,9 @@ import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.impl.combat.Criticals;
 import arsenic.module.impl.ghost.*;
+import arsenic.module.impl.misc.Blink;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Speed;
 import arsenic.module.impl.visual.ClickGui;
@@ -70,7 +72,7 @@ public class ModuleManager {
         CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
         AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
-        ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class);
+        ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class),CRITICALS(Criticals.class),BLINK(Blink.class);
 
         private Module module;
 
