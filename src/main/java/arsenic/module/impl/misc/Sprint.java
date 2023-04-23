@@ -9,7 +9,6 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleManager;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
