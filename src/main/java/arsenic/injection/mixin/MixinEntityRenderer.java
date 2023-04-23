@@ -1,9 +1,6 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventLook;
-import arsenic.event.impl.EventRenderThirdPerson;
-import arsenic.event.impl.EventRenderWorldLast;
-import arsenic.event.impl.EventUpdate;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.ghost.HitBox;
@@ -17,14 +14,9 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
-import org.lwjgl.util.vector.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import java.util.Objects;
@@ -67,7 +59,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                 d1 = this.mc.objectMouseOver.hitVec.distanceTo(vec3);
             }
 
-            Vec3 vec31 = entity.getLook(p_getMouseOver_1_);
+            Vec3 vec31 = getLook(entity, p_getMouseOver_1_);
             Vec3 vec32 = vec3.addVector(vec31.xCoord * d0, vec31.yCoord * d0, vec31.zCoord * d0);
             this.pointedEntity = null;
             Vec3 vec33 = null;
@@ -117,6 +109,22 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
             }
             this.mc.mcProfiler.endSection();
         }
+    }
+
+    public Vec3 getLook(Entity entity, float partialTicks) {
+        EventLook eventLook = new EventLook(entity.rotationYaw, entity.rotationPitch);
+        Arsenic.getArsenic().getEventManager().post(eventLook);
+        if(!eventLook.hasBeenModified())
+            return entity.getLook(partialTicks);
+        return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
+    }
+
+    private Vec3 getVectorForRotation(float pitch, float yaw) {
+        float f = MathHelper.cos(-yaw * 0.017453292F - (float)Math.PI);
+        float f1 = MathHelper.sin(-yaw * 0.017453292F - (float)Math.PI);
+        float f2 = -MathHelper.cos(-pitch * 0.017453292F);
+        float f3 = MathHelper.sin(-pitch * 0.017453292F);
+        return new Vec3((f1 * f2), f3, (f * f2));
     }
 
 }

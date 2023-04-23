@@ -62,4 +62,15 @@ public abstract class MixinEntity {
             return flag;
         return safeWalk.mixinResult(flag);
     }
+
+    @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
+    public Vec3 rayTrace(Vec3 vec31) {
+        if((Object) this != Minecraft.getMinecraft().getRenderViewEntity())
+            return vec31;
+        EventLook eventLook = new EventLook(rotationYaw, rotationPitch);
+        Arsenic.getArsenic().getEventManager().post(eventLook);
+        if(!eventLook.hasBeenModified())
+            return vec31;
+        return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
+    }
 }
