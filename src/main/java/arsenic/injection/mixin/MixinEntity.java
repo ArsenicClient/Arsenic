@@ -7,17 +7,15 @@ import arsenic.module.ModuleManager;
 import arsenic.module.impl.world.SafeWalk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.Vec3;
-import net.minecraft.util.Vec3i;
+import org.lwjgl.Sys;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import static arsenic.main.MinecraftAPI.cachedYawM;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -32,10 +30,6 @@ public abstract class MixinEntity {
     public float rotationYaw;
     @Shadow
     public float rotationPitch;
-    @Shadow
-    public float prevRotationYaw;
-    @Shadow
-    public float prevRotationPitch;
     public boolean secondCall;
 
     public Minecraft minecraft = Minecraft.getMinecraft();
@@ -67,16 +61,5 @@ public abstract class MixinEntity {
         if(!safeWalk.isEnabled())
             return flag;
         return safeWalk.mixinResult(flag);
-    }
-
-    @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
-    public Vec3 rayTrace(Vec3 vec31) {
-        if((Object) this != Minecraft.getMinecraft().getRenderViewEntity())
-            return vec31;
-        EventLook eventLook = new EventLook(rotationYaw, rotationPitch);
-        Arsenic.getArsenic().getEventManager().post(eventLook);
-        if(!eventLook.hasBeenModified())
-            return vec31;
-        return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
     }
 }

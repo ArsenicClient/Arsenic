@@ -61,4 +61,15 @@ public class PlayerUtils {
         return targets;
     }
 
+    public static List<Entity> getEntitysWithin(double distance) {
+        List<Entity> targets = new ArrayList<>();
+        for(Entity entity : mc.theWorld.loadedEntityList) {
+            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
+            if(entity != mc.thePlayer && tempDistance <= distance) {
+                targets.add(entity);
+            }
+        }
+        return targets;
+    }
+
 }
