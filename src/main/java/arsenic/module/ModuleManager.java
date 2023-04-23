@@ -10,6 +10,7 @@ import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.combat.Criticals;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.Blink;
+import arsenic.module.impl.misc.CustomFOV;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Flight;
 import arsenic.module.impl.movement.Speed;
@@ -17,10 +18,7 @@ import arsenic.module.impl.visual.ClickGui;
 import arsenic.module.impl.visual.ESP;
 import arsenic.module.impl.visual.FullBright;
 import arsenic.module.impl.visual.HUD;
-import arsenic.module.impl.world.ChestStealer;
-import arsenic.module.impl.world.FastPlace;
-import arsenic.module.impl.world.SafeWalk;
-import arsenic.module.impl.world.ScaffoldTest;
+import arsenic.module.impl.world.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,7 +72,8 @@ public class ModuleManager {
         SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
         AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
         ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class),
-        CRITICALS(Criticals.class),BLINK(Blink.class),FLIGHT(Flight.class);
+        CRITICALS(Criticals.class),BLINK(Blink.class),FLIGHT(Flight.class),CUSTOMFOV(CustomFOV.class),
+        CUSTOMWORLD(CustomWorld.class);
 
         private Module module;
 
