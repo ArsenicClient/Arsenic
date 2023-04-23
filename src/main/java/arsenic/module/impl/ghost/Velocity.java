@@ -25,7 +25,7 @@ public class Velocity extends Module {
     public final DoubleProperty verticalVelo = new DoubleProperty("Vertical", new DoubleValue(0, 100, 80, 1));
 
     @EventLink
-    public final Listener<EventPacket.Incoming> packetEvent = event -> {
+    public final Listener<EventPacket.Incoming.Pre> packetEvent = event -> {
         if(!(event.getPacket() instanceof S12PacketEntityVelocity))
             return;
         switch(veloMode.getValue()) {
