@@ -30,13 +30,4 @@ public abstract class SerializableProperty<T> extends Property<T> implements ISe
     @Override
     public final String getName() { return name; }
 
-    public void setOnUpdate(IVoidFunction onUpdate) {
-        this.onUpdate = onUpdate;
-    }
-
-    public void onUpdate() {
-        if(onUpdate != null)
-            onUpdate.voidFunction();
-    }
-
 }

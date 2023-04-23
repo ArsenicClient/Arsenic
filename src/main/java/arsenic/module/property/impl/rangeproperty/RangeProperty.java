@@ -32,8 +32,8 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
     @Override
     public void loadFromJson(@NotNull JsonObject obj) {
-        value.setMax(obj.get("max").getAsDouble());
-        value.setMin(obj.get("min").getAsDouble());
+        value.setMaxSilently(obj.get("max").getAsDouble());
+        value.setMinSilently(obj.get("min").getAsDouble());
     }
 
     public final @NotNull String getValueString() {

@@ -39,7 +39,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         String mode = obj.get("mode").getAsString();
         for (T opt : modes)
             if (opt.toString().equals(mode))
-                setValue(opt);
+                setValueSilently(opt);
     }
 
     public void nextMode() {

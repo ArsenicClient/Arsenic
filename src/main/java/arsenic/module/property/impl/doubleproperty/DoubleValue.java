@@ -18,9 +18,19 @@ public class DoubleValue {
 
     public double getInput() { return value; }
 
-    public void setInput(double value) { this.value = getCorrectedValue(value); }
+    public void setInputSilently(double value) {
+        this.value = getCorrectedValue(value);
+    }
+    public void setInput(double value) {
+        setInputSilently(value);
+        onUpdate();
+    }
 
     public double getMaxBound() { return maxBound; }
 
     public double getMinBound() { return minBound; }
+
+    public void onUpdate() {
+
+    }
 }
