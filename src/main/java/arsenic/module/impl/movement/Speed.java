@@ -15,6 +15,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.server.S06PacketUpdateHealth;
+import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,28 +37,36 @@ public class Speed extends Module {
             }
         }
     };
+
+    @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
+    public final DoubleProperty bypass = new DoubleProperty("bypass", new DoubleValue(0, 1, 0.1, 0.01));
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
     public final DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
-    public final DoubleProperty speedMulti = new DoubleProperty("Speed multi", new DoubleValue(-2, 2, 0.98, 0.02));
-    public final DoubleProperty friction = new DoubleProperty("Friction multi", new DoubleValue(-2, 2, 1, 0.04));
+    public final DoubleProperty speedMulti = new DoubleProperty("Speed multi", new DoubleValue(-2, 5, 0.98, 0.02));
+    public final DoubleProperty friction = new DoubleProperty("Friction multi", new DoubleValue(-2, 5, 1, 0.04));
 
     private boolean speed;
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
-        if(event.getPacket() instanceof S06PacketUpdateHealth)
-            PlayerUtils.addWaterMarkedMessageToChat(" " + ((S06PacketUpdateHealth) event.getPacket()).getHealth() + mc.thePlayer.getHealth());
-        if(event.getPacket() instanceof S06PacketUpdateHealth && ((S06PacketUpdateHealth) event.getPacket()).getHealth() < mc.thePlayer.getHealth() && mode.getValue() == sMode.ONHIT) {
-            speed = true;
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
-                try {
-                    Thread.sleep((long) time.getValue().getInput());
-                } catch (InterruptedException e) {}
-                if(mode.getValue() == sMode.ONHIT)
-                    speed = false;
-            });
-        }
+        if(!(event.getPacket() instanceof S12PacketEntityVelocity))
+            return;
+        S12PacketEntityVelocity packet = (S12PacketEntityVelocity) event.getPacket();
+        if(packet.getEntityID() != mc.thePlayer.getEntityId() || mode.getValue() != sMode.ONHIT)
+            return;
+
+        if(packet.getMotionX() + packet.getMotionZ() < bypass.getValue().getInput())
+            return;
+
+        speed = true;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            try {
+                Thread.sleep((long) time.getValue().getInput());
+            } catch (InterruptedException e) {}
+            if(mode.getValue() == sMode.ONHIT)
+                speed = false;
+        });
     };
 
     @EventLink

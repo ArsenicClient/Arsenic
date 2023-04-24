@@ -73,7 +73,7 @@ public class ModuleManager {
         AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
         ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class),
         CRITICALS(Criticals.class),BLINK(Blink.class),FLIGHT(Flight.class),CUSTOMFOV(CustomFOV.class),
-        CUSTOMWORLD(CustomWorld.class);
+        CUSTOMWORLD(CustomWorld.class), INVMANAGER(InvManager.class);
 
         private Module module;
 

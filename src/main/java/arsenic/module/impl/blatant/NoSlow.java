@@ -11,6 +11,7 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.network.play.server.S06PacketUpdateHealth;
+import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,7 +45,7 @@ public class NoSlow extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
-        if(event.getPacket() instanceof S06PacketUpdateHealth && ((S06PacketUpdateHealth) event.getPacket()).getHealth() < mc.thePlayer.getHealth() && slowMode.getValue() == sMode.ONHIT) {
+        if(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId() && slowMode.getValue() == sMode.ONHIT) {
             slow = true;
             ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {

@@ -8,16 +8,20 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.network.play.client.C0CPacketInput;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Velocity", category = ModuleCategory.GHOST)
 public class Velocity extends Module {
 
     public final EnumProperty<vMode> veloMode = new EnumProperty<>("Mode:", vMode.Reduce);
+
+    //public final BooleanProperty jumpPacket = new BooleanProperty("Jump Packet", false);
 
     @PropertyInfo(reliesOn = "Mode:", value = "Reduce")
     public final DoubleProperty horizontalVelo = new DoubleProperty("Horizontal", new DoubleValue(0, 100, 80, 1));
@@ -26,7 +30,7 @@ public class Velocity extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> packetEvent = event -> {
-        if(!(event.getPacket() instanceof S12PacketEntityVelocity))
+        if(!(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId()))
             return;
         switch(veloMode.getValue()) {
             case Reduce:
