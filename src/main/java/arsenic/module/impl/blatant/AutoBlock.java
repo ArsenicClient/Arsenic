@@ -41,14 +41,14 @@ public class AutoBlock extends Module {
     public final Listener<EventTick> eventTickListener = eventTick -> {
         switch(blockMode.getValue()) {
             case LEGITSPAM:
-                if(Mouse.isButtonDown(1) || Keyboard.isKeyDown(mc.gameSettings.keyBindUseItem.getKeyCode())) {
+                if(Mouse.isButtonDown(1)) {
                     if(mc.gameSettings.keyBindUseItem.isKeyDown())
                         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
                     KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
                 }
                 break;
             case LEGITSEMI:
-                if(Mouse.isButtonDown(1) || Keyboard.isKeyDown(mc.gameSettings.keyBindUseItem.getKeyCode())) {
+                if(Mouse.isButtonDown(1)) {
                     if(mc.gameSettings.keyBindUseItem.isKeyDown())
                         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
                     if(!mc.gameSettings.keyBindAttack.isKeyDown())

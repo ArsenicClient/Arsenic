@@ -35,7 +35,7 @@ public class AutoClicker extends Module {
 
     @EventLink
     public final Listener<EventMouse.Down> keyEventDown = event -> {
-        if(mc.currentScreen != null && event.button == 0) //lc only
+        if(mc.currentScreen != null || event.button != 0) //lc only
             return;
         if(executor != null)
             executor.shutdownNow();

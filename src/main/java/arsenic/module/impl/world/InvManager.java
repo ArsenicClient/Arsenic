@@ -14,9 +14,7 @@ import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.inventory.ContainerPlayer;
-import net.minecraft.item.ItemArmor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
+import net.minecraft.item.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,15 +67,39 @@ public class InvManager extends Module {
         ArrayList<Slot> slots = new ArrayList<>();
         Slot.Armor[] bestArmour = { new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1) };
         Slot.Sword bestSword = new Slot.Sword(-1);
-        //Slot.Stack mostBlocks = new Slot(-1);
-        //Slot.Stack projectiles = new Slot(-1);
+        Slot.Stack mostBlocks = new Slot.Stack(-1);
+        Slot.Stack projectiles = new Slot.Stack(-1);
         for (int i = 0; i < inv.getInventory().size(); i++) {
-            if (inv.getInventory().get(i) != null && inv.getInventory().get(i).getItem() instanceof ItemArmor
-                    && !(i > 4 && i < 9)) {
+
+            ItemStack stack = inv.getInventory().get(i);
+            if(stack == null)
+                continue;
+            Item item = stack.getItem();
+
+            if (item instanceof ItemArmor && !(i > 4 && i < 9)) {
                 Slot.Armor ia = new Slot.Armor(i);
                 if (bestArmour[ia.type].protectionValue < ia.protectionValue)
                     bestArmour[ia.type] = ia;
             }
+
+            else if(item instanceof ItemSword) {
+                Slot.Sword sword = new Slot.Sword(i);
+                if(sword.attackValue > bestSword.attackValue)
+                    bestSword = sword;
+            }
+
+            else if(item instanceof ItemBlock) {
+                Slot.Stack block = new Slot.Stack(i);
+                if(block.amount > mostBlocks.amount)
+                    mostBlocks = block;
+            }
+
+            else if(item instanceof ItemEgg || item instanceof ItemFishingRod) {
+                Slot.Stack projectile = new Slot.Stack(i);
+                if(projectile.amount > mostBlocks.amount)
+                    projectiles = projectile;
+            }
+
         }
         for (int i = 0; i < 4; i++) {
             try {
@@ -93,20 +115,26 @@ public class InvManager extends Module {
                 slots.add(bestArmour[i]);
             }
         }
-        for (int i = 0; i < inv.getInventory().size(); i++) {
-            if(inv.getInventory().get(i) != null) {
-                PlayerUtils.addWaterMarkedMessageToChat(mc.thePlayer.openContainer.getSlot(i).getStack().getItemDamage() + " " + i);
-            }
-            if (inv.getInventory().get(i) != null && inv.getInventory().get(i).getItem() instanceof ItemSword) {
-                Slot.Sword sword = new Slot.Sword(i);
-                PlayerUtils.addWaterMarkedMessageToChat(i + " " + sword.attackValue + " " + bestSword.attackValue);
-                if(sword.attackValue > bestSword.attackValue)
-                    bestSword = sword;
-            }
+
+
+        if(bestSword.slot != 36) {
+            bestSword.button = 1;
+            bestSword.mode = 2;
+            slots.add(bestSword);
         }
-        bestSword.button = 1;
-        bestSword.mode = 2;
-        slots.add(bestSword);
+
+        if(mostBlocks.slot != 37) {
+            bestSword.button = 2;
+            bestSword.mode = 2;
+            slots.add(mostBlocks);
+        }
+
+        if(projectiles.slot != 38) {
+            bestSword.button = 3;
+            bestSword.mode = 2;
+            slots.add(mostBlocks);
+        }
+
         return slots;
     }
 
