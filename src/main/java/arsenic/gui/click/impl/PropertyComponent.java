@@ -21,7 +21,7 @@ public abstract class PropertyComponent<T extends Property> extends Component im
     protected final float drawComponent(RenderInfo ri) {
         if (self.isVisible()) {
             //name
-            ri.getFr().drawString(name, x1, midPointY, 0xFFFFFFFE, ri.getFr().CENTREY);
+            ri.getFr().drawString(name, x1, midPointY, getWhite(), ri.getFr().CENTREY);
             return draw(ri);
         }
         return 0f;

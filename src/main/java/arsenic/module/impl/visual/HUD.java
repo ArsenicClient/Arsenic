@@ -23,19 +23,18 @@ import java.util.stream.Collectors;
 @ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_Y)
 public class HUD extends Module {
 
-    protected final Color color = new Color(0xFF2ECC71);
-
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
         if(mc.currentScreen != null)
             return;
+        int color = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         ScaledResolution sr = new ScaledResolution(mc);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
         if(fr == null)
             return;
         float yOffSet = 0;
         float yOffSetAmount = fr.getHeight("T");
-        float x = sr.getScaledWidth() - (yOffSetAmount/2f);
+        float x = sr.getScaledWidth();
         //sorts it in order of length
         List<ModuleRenderInfo> nameList =
                 Arsenic.getArsenic().getModuleManager().getEnabledModules()
@@ -46,10 +45,9 @@ public class HUD extends Module {
             float y2 = yOffSet + yOffSetAmount;
             RenderUtils.resetColorText();
             DrawUtils.drawRect(mX, yOffSet, x, y2, 0xAA303030);
-            fr.drawString(m.name, mX, yOffSet, color.getRGB());
+            fr.drawString(m.name, mX, yOffSet, color);
             yOffSet = y2;
         }
-        DrawUtils.drawRect(x, 0, mc.displayWidth/3f, yOffSet, color.darker().getRGB());
     };
 
     

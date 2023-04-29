@@ -83,7 +83,7 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
             expandY = animationTimer.getPercent() * lastHeight;
 
            float barX = x1 - (expandX/2f);
-           DrawUtils.drawRect(barX, y1, barX + 1, y2 + expandY, enabledColor.getRGB());
+           DrawUtils.drawRect(barX, y1, barX + 1, y2 + expandY, getEnabledColor());
 
             float triangleLength = (height - (borderWidth * 2f));
             DrawUtils.drawTriangle(
@@ -91,7 +91,7 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
                     y1 + (borderWidth * 2) + ((height - (borderWidth * 4)) * animationTimer.getPercent()),
                     triangleLength,
                     (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
-                    enabledColor.getRGB()
+                    getEnabledColor()
             );
 
             return height + expandY;

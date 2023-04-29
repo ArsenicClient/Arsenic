@@ -89,13 +89,13 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         boxY2 + maxBoxHeight,
                         boxHeight / 2f,
                         borderWidth,
-                        enabledColor.getRGB(),
-                        disabledColor.getRGB()
+                        getEnabledColor(),
+                        getDisabledColor()
                 );
 
                 //Other value that aren't selected
                 if (animationTimer.getPercent() > 0) {
-                    DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, enabledColor.getRGB());
+                    DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, getEnabledColor());
 
                     ScissorUtils.subScissor((int) boxX1, (int) boxY2, (int) x2, (int) (boxY2 + maxBoxHeight), 2);
 
@@ -117,7 +117,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         boxY1 + (borderWidth * 2) + ((boxHeight - (borderWidth * 4)) * animationTimer.getPercent()),
                         triangleLength,
                         (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
-                        enabledColor.getRGB()
+                        getEnabledColor()
                 );
 
             };

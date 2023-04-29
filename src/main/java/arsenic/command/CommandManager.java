@@ -1,8 +1,6 @@
 package arsenic.command;
 
-import arsenic.command.impl.BindCommand;
-import arsenic.command.impl.BindsCommand;
-import arsenic.command.impl.HelpCommand;
+import arsenic.command.impl.*;
 import arsenic.utils.minecraft.PlayerUtils;
 
 import java.util.*;
@@ -18,7 +16,7 @@ public class CommandManager {
     }
 
     public final int initialize() {
-        commands.addAll(Arrays.asList(new BindCommand(), new HelpCommand(), new BindsCommand()));
+        commands.addAll(Arrays.asList(new BindCommand(), new HelpCommand(), new BindsCommand(), new TestCommand(), new ThemeCommand()));
         return commands.size();
     }
 

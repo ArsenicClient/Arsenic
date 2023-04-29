@@ -22,8 +22,8 @@ public class PlayerUtils {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
 
-    public static void addWaterMarkedMessageToChat(String msg) {
-        addMessageToChat("§7[§cA§7]§r " + msg);
+    public static void addWaterMarkedMessageToChat(Object object) {
+        addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
     public static boolean playerOverAir() {
         return mc.theWorld.isAirBlock(getBlockUnderPlayer());

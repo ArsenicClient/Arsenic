@@ -1,20 +1,22 @@
 package arsenic.config;
 
+import arsenic.main.Arsenic;
+import arsenic.utils.interfaces.ISerializable;
+import arsenic.utils.java.FileUtils;
+import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 
-import arsenic.main.Arsenic;
-import net.minecraft.client.Minecraft;
-
-public class ConfigManager {
+public class ConfigManager implements ISerializable {
 
     private HashMap<String, ModuleConfig> configs = new HashMap<>();
     private ModuleConfig currentConfig;
     private ClientConfig clientConfig;
-    private final File configDirectory = new File(
-            Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs");
+    private final File configDirectory = new File(FileUtils.getArsenicFolderDirAsString() + File.separator + "Configs");
 
     public int initialize() {
         if (!configDirectory.isDirectory()) { configDirectory.mkdirs(); }
@@ -76,6 +78,23 @@ public class ConfigManager {
     public Set<String> getConfigList() { return configs.keySet(); }
 
     public void saveConfig() { currentConfig.saveConfig(); }
+
+    @Override
+    public void loadFromJson(JsonObject obj) {
+        loadConfig(obj.get("currentConfig").getAsString());
+    }
+
+    @Override
+    public JsonObject saveInfoToJson(JsonObject obj) {
+        obj.addProperty("currentConfig", currentConfig.getName());
+        return obj;
+    }
+
+    @Override
+    public String getJsonKey() {
+        return "config";
+    }
+
     // remember to only call this during events that the user can call eg closing
     // the clickgui, using commands etc.
     // if you don't then there is a potential of recursion

@@ -14,10 +14,7 @@ import arsenic.module.impl.misc.CustomFOV;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Flight;
 import arsenic.module.impl.movement.Speed;
-import arsenic.module.impl.visual.ClickGui;
-import arsenic.module.impl.visual.ESP;
-import arsenic.module.impl.visual.FullBright;
-import arsenic.module.impl.visual.HUD;
+import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
 import java.util.Arrays;
@@ -28,10 +25,10 @@ import java.util.stream.Collectors;
 
 public class ModuleManager {
 
-    private final Set<Module> modules = Arrays.stream(Modules.values()).map(Modules::getModule)
-            .collect(Collectors.toSet());
+    private Set<Module> modules;
 
     public final int initialize() {
+        modules = Arrays.stream(Modules.values()).map(Modules::getModule).collect(Collectors.toSet());
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }

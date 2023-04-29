@@ -51,7 +51,6 @@ public class AutoClicker extends Module {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
                 sleep(genUpTime());
             }
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
         });
     };
 

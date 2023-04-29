@@ -36,11 +36,6 @@ public class ESP extends Module {
     public ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
     public BooleanProperty bedWars = new BooleanProperty("BedWars", false);
 
-    @Override
-    protected void onEnable() {
-        PlayerUtils.addWaterMarkedMessageToChat("this does work btw");
-    }
-
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
         ICamera camera = new Frustum();

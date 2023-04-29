@@ -12,8 +12,6 @@ import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.*;
-
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
     private final DisplayMode displayMode;
@@ -75,18 +73,18 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
 
                 //draws first bit (uncolored) of line
-                DrawUtils.drawRect(lineX1, lineY - 0.5f, lineXChangePoint1, lineY + 0.5f, disabledColor.getRGB());
+                DrawUtils.drawRect(lineX1, lineY - 0.5f, lineXChangePoint1, lineY + 0.5f, getDisabledColor());
 
                 //draws third bit (uncolored) of the line
-                DrawUtils.drawRect(lineXChangePoint2, lineY - 0.5f, lineX2, lineY + 0.5f, disabledColor.getRGB());
+                DrawUtils.drawRect(lineXChangePoint2, lineY - 0.5f, lineX2, lineY + 0.5f, getDisabledColor());
 
                 //draws second bit (colored) of the line
-                DrawUtils.drawRect(lineXChangePoint1, lineY - 0.5f, lineXChangePoint2, lineY + 0.5f,enabledColor.getRGB());
+                DrawUtils.drawRect(lineXChangePoint1, lineY - 0.5f, lineXChangePoint2, lineY + 0.5f, getEnabledColor());
 
                 //draws the < signs
                 float thickness = height/3f;
-                customDraw(lineXChangePoint1, lineY, -thickness, -thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMin));
-                customDraw(lineXChangePoint2, lineY, thickness, thickness/4f, RenderUtils.interpolateColours(disabledColor, enabledColor, percentMax));
+                customDraw(lineXChangePoint1, lineY, -thickness, -thickness/4f, RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percentMin));
+                customDraw(lineXChangePoint2, lineY, thickness, thickness/4f, RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percentMax));
                 return height;
             }
 

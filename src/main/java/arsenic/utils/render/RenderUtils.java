@@ -61,4 +61,8 @@ public class RenderUtils extends UtilityClass {
         return interpolateColoursColor(a,b,f).getRGB();
     }
 
+    public static int interpolateColoursInt(int a, int b, float f) {
+        return interpolateColoursColor(new Color(a), new Color(b),f).getRGB();
+    }
+
 }

@@ -8,7 +8,6 @@ import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import net.minecraft.client.renderer.entity.Render;
 import org.jetbrains.annotations.NotNull;
 
 import arsenic.gui.click.Component;
@@ -57,7 +56,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     protected float drawComponent(RenderInfo ri) {
         float expand = width/15f;
 
-        int color = RenderUtils.interpolateColours(disabledColor, enabledColor, enabledAnimationTiemr.getPercent());
+        int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTiemr.getPercent());
 
         //stops the colors leaking
         RenderUtils.resetColorText();
@@ -71,7 +70,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         //bind
         String bindName = binding ? "Press a key...": "[" + Keyboard.getKeyName(self.getKeybind()) + "]";
         bindX = x2 - ((expand) * 3) - ri.getFr().getWidth(bindName);
-        ri.getFr().drawString(bindName, bindX, midPointY, self.getKeybind() == 0 ? disabledColor.getRGB() : enabledColor.getRGB(), ri.getFr().CENTREY);
+        ri.getFr().drawString(bindName, bindX, midPointY, self.getKeybind() == 0 ? getDisabledColor() : getEnabledColor(), ri.getFr().CENTREY);
 
         //draws the properties
         PosInfo pi = new PosInfo(x1 + expand, y2);

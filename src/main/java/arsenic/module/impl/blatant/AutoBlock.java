@@ -9,6 +9,11 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.item.ItemSword;
+import net.minecraft.network.play.client.C07PacketPlayerDigging;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -40,6 +45,12 @@ public class AutoBlock extends Module {
     @EventLink
     public final Listener<EventTick> eventTickListener = eventTick -> {
         switch(blockMode.getValue()) {
+            case VANILLA:
+                if(Mouse.isButtonDown(1)) {
+                    if(mc.gameSettings.keyBindUseItem.isKeyDown())
+                        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
+                }
+                break;
             case LEGITSPAM:
                 if(Mouse.isButtonDown(1)) {
                     if(mc.gameSettings.keyBindUseItem.isKeyDown())
@@ -55,19 +66,22 @@ public class AutoBlock extends Module {
                         KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
                 }
                 break;
+            case HYPIXEL:
+                if(!block && Mouse.isButtonDown(1)) {
+                    block = true;
+                    mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                } else if (block && !Mouse.isButtonDown(1)) {
+                    mc.getNetHandler().addToSendQueue(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+                    block = false;
+                }
+                break;
         }
     };
-
-    @EventLink
-    public final Listener<EventUpdate.Post> eventUpdateListener =  event -> {
-        if(blockMode.getValue() == bMode.HYPIXEL) {
-
-        }
-    };
-
 
     public boolean shouldBlock() {
-        return block;
+        if(mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword)
+            return block;
+        return false;
     }
 
     public enum bMode {

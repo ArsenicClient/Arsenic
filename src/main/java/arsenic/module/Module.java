@@ -17,7 +17,7 @@ import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
 
-public class Module implements IContainable, IContainer<Property<?>>, ISerializable {
+public class Module implements IContainer<Property<?>>, ISerializable {
 
     protected static final Minecraft mc = Minecraft.getMinecraft();
     protected static final Arsenic client = Arsenic.getInstance();
@@ -187,14 +187,6 @@ public class Module implements IContainable, IContainer<Property<?>>, ISerializa
         obj.addProperty("enabled", enabled);
 
         serializableProperties.forEach(property -> property.addToJson(obj));
-        return obj;
-    }
-
-    @Override
-    public final JsonObject addToJson(JsonObject obj) {
-        final JsonObject config = new JsonObject();
-        saveInfoToJson(config);
-        obj.add(name, config);
         return obj;
     }
 

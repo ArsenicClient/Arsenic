@@ -12,6 +12,8 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import ibxm.Player;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.*;
@@ -37,7 +39,7 @@ public class InvManager extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
-        if(mc.thePlayer == null)
+        if(mc.thePlayer == null || !(event.getGuiScreen() instanceof GuiContainer))
             return;
         if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || event.getGuiScreen() == null)
             return;
@@ -50,8 +52,9 @@ public class InvManager extends Module {
                 Slot slot = path.remove(0);
                 if(slot.slot < 0)
                     continue;
-                PlayerUtils.addWaterMarkedMessageToChat( mc.thePlayer.openContainer.getSlot(slot.slot).getStack().getDisplayName() + " ");
-                mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.button, mc.thePlayer);
+                //PlayerUtils.addWaterMarkedMessageToChat(slot.slot);
+                //PlayerUtils.addWaterMarkedMessageToChat( mc.thePlayer.openContainer.getSlot(slot.slot).getStack().getDisplayName() + " ");
+                mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.mode, mc.thePlayer);
                 sleep((int) delay.getValue().getRandomInRange());
             }
         });
@@ -62,7 +65,10 @@ public class InvManager extends Module {
     }
 
 
-    //partly raven code
+    //very repetitive need to fix sooner or later
+    //zzzz... mi mi mi mi...
+    //zzzz... mi mi mi mi...
+    //zzzz...
     public List<Slot> generatePath(ContainerPlayer inv) {
         ArrayList<Slot> slots = new ArrayList<>();
         Slot.Armor[] bestArmour = { new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1) };
@@ -76,63 +82,95 @@ public class InvManager extends Module {
                 continue;
             Item item = stack.getItem();
 
-            if (item instanceof ItemArmor && !(i > 4 && i < 9)) {
-                Slot.Armor ia = new Slot.Armor(i);
-                if (bestArmour[ia.type].protectionValue < ia.protectionValue)
-                    bestArmour[ia.type] = ia;
+            if (item instanceof ItemArmor) {
+                if(!(i > 4 && i < 9)) {
+                    Slot.Armor ia = new Slot.Armor(i);
+                    if (bestArmour[ia.type].protectionValue < ia.protectionValue) {
+                        bestArmour[ia.type].button = 1;
+                        bestArmour[ia.type].mode = 4;
+                        bestArmour[ia.type] = ia;
+                    } else {
+                        ia.button = 1;
+                        ia.mode = 4;
+                        slots.add(ia);
+                    }
+                }
             }
 
             else if(item instanceof ItemSword) {
                 Slot.Sword sword = new Slot.Sword(i);
-                if(sword.attackValue > bestSword.attackValue)
+                if(sword.attackValue > bestSword.attackValue) {
+                    bestSword.button = 1;
+                    bestSword.mode = 4;
                     bestSword = sword;
+                } else {
+                    sword.button = 1;
+                    sword.mode = 4;
+                    slots.add(sword);
+                }
             }
 
             else if(item instanceof ItemBlock) {
                 Slot.Stack block = new Slot.Stack(i);
-                if(block.amount > mostBlocks.amount)
+                if(block.amount > mostBlocks.amount) {
+                    mostBlocks.button = 1;
+                    mostBlocks.mode = 4;
                     mostBlocks = block;
+                } else {
+                    block.button = 1;
+                    block.mode = 4;
+                    slots.add(block);
+                }
             }
 
             else if(item instanceof ItemEgg || item instanceof ItemFishingRod) {
                 Slot.Stack projectile = new Slot.Stack(i);
-                if(projectile.amount > mostBlocks.amount)
+                if(projectile.amount > projectiles.amount)
                     projectiles = projectile;
             }
 
-        }
-        for (int i = 0; i < 4; i++) {
-            try {
-                Slot.Armor s = new Slot.Armor(i + 5);
-                if (s.type < bestArmour[i].type) {
-                    slots.add(s);
-                    slots.add(bestArmour[i]);
-                }
-            } catch (NullPointerException e) {
-                slots.add(bestArmour[i]);
-            } catch (ClassCastException e) {
-                slots.add(new Slot(i + 5));
-                slots.add(bestArmour[i]);
+            else if (item != null) {
+                Slot s = new Slot(i);
+                s.button = 1;
+                s.mode = 4;
+                slots.add(s);
             }
+
         }
 
+        for (int i = 0; i < 4; i++) {
+            int slotId = i + 5;
+            if(mc.thePlayer.openContainer.getSlot(slotId).getStack() != null && mc.thePlayer.openContainer.getSlot(slotId).getStack().getItem() instanceof ItemArmor) {
+                Slot.Armor s = new Slot.Armor(i + 5);
+                PlayerUtils.addWaterMarkedMessageToChat(s.protectionValue + " " + bestArmour[i].protectionValue);
+                if (s.protectionValue < bestArmour[i].protectionValue) {
+                    s.button = 1;
+                    s.mode = 4;
+                    slots.add(s);
+                } else {
+                    bestArmour[i].button = 1;
+                    bestArmour[i].mode = 4;
+                }
+            }
+            slots.add(bestArmour[i]);
+        }
 
         if(bestSword.slot != 36) {
-            bestSword.button = 1;
+            bestSword.button = 0;
             bestSword.mode = 2;
             slots.add(bestSword);
         }
 
         if(mostBlocks.slot != 37) {
-            bestSword.button = 2;
-            bestSword.mode = 2;
+            mostBlocks.button = 1;
+            mostBlocks.mode = 2;
             slots.add(mostBlocks);
         }
 
         if(projectiles.slot != 38) {
-            bestSword.button = 3;
-            bestSword.mode = 2;
-            slots.add(mostBlocks);
+            projectiles.button = 2;
+            projectiles.mode = 2;
+            slots.add(projectiles);
         }
 
         return slots;
@@ -142,8 +180,8 @@ public class InvManager extends Module {
         final int x;
         final int y;
         final int slot;
-        int mode = 0;
-        int button = 1;
+        int mode = 1;
+        int button = 0;
 
         public Slot(int s) {
             this.slot = s;

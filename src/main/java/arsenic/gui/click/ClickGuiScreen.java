@@ -32,13 +32,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
-    private ResourceLocation logoPath;
     private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
     private int vLineX, hLineY, x1, y1;
 
     //called once
     public void init() {
-        logoPath = RenderUtils.getResourcePath("/assets/arsenic/arseniclogo.png");
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
@@ -66,18 +64,20 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
+        int enabledColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+        ResourceLocation logoPath = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
 
         // main container
         RenderUtils.resetColor();
-        DrawUtils.drawBorderedRoundedRect(x, y, x1, y1, 1f, 1f, 0xFF2ECC71, 0xDD0C0C0C);
+        DrawUtils.drawBorderedRoundedRect(x, y, x1, y1, 1f, 1f, enabledColor, 0xDD0C0C0C);
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
 
         // vertical line
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, 0xFF2ECC71);
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, enabledColor);
         // horizontal line
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, 0xFF2ECC71);
+        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, enabledColor);
 
         //logo
         mc.getTextureManager().bindTexture(logoPath);

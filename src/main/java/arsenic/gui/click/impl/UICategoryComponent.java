@@ -9,7 +9,6 @@ import arsenic.gui.click.UICategory;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import net.minecraft.client.renderer.GlStateManager;
 
 public class UICategoryComponent extends Component implements IContainer<ModuleCategoryComponent> {
     private final UICategory self;
@@ -22,7 +21,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        ri.getFr().drawString(getName(), x1, midPointY, enabledColor.getRGB(), ri.getFr().CENTREY);
+        ri.getFr().drawString(getName(), x1, midPointY, getEnabledColor(), ri.getFr().CENTREY);
 
         PosInfo pi = new PosInfo(x1, y2);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) * 1.1f));

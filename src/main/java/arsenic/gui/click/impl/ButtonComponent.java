@@ -28,7 +28,7 @@ public abstract class ButtonComponent extends Component {
         float buttonX = x2 - buttonWidth;
 
         float percent =  animationTimer.getPercent();
-        Color color = RenderUtils.interpolateColoursColor(disabledColor, enabledColor, percent);
+        Color color = new Color(RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percent));
         int darkerColor = color.darker().darker().getRGB();
         int normalColour = color.getRGB();
 

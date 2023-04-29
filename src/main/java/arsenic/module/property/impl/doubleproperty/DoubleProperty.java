@@ -66,14 +66,14 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                         0xFFFFFFFE, ri.getFr().CENTREX, ri.getFr().CENTREY);
 
                 //draws first bit (colored) of line
-                DrawUtils.drawRect(lineX1, midPointY - 0.5f, lineXChangePoint, midPointY + 0.5f, enabledColor.getRGB());
+                DrawUtils.drawRect(lineX1, midPointY - 0.5f, lineXChangePoint, midPointY + 0.5f, getEnabledColor());
 
                 //draws second bit (uncolored) of the line
-                DrawUtils.drawRect(lineXChangePoint, midPointY - 0.5f, lineX2, midPointY + 0.5f, disabledColor.getRGB());
+                DrawUtils.drawRect(lineXChangePoint, midPointY - 0.5f, lineX2, midPointY + 0.5f, getDisabledColor());
 
                 //draws the circle
                 radius = height/5f;
-                Color color = new Color(RenderUtils.interpolateColours(disabledColor, enabledColor, percent));
+                Color color = new Color(RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percent));
                 DrawUtils.drawBorderedCircle(lineXChangePoint, midPointY, radius, radius/3f, color.darker().getRGB(), color.getRGB());
                 if(animationTimer.getPercent() > 0) {
                     DrawUtils.drawCircleOutline(lineXChangePoint, midPointY, radius * animationTimer.getPercent(), radius/3f, 0xFFFFFFFE);

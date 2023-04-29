@@ -9,19 +9,9 @@ public abstract class SerializableProperty<T> extends Property<T> implements ISe
 
     protected String name;
 
-    private IVoidFunction onUpdate;
-
-    public SerializableProperty(String name, T value) {
+    protected SerializableProperty(String name, T value) {
         super(value);
         this.name = name;
-    }
-
-    @Override
-    public final JsonObject addToJson(JsonObject obj) {
-        JsonObject config = new JsonObject();
-        saveInfoToJson(config);
-        obj.add(name, config);
-        return obj;
     }
 
     @Override

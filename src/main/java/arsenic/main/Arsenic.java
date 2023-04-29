@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.common.MinecraftForge;
@@ -44,6 +45,7 @@ public class Arsenic {
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
     private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
+    private final ThemeManager themeManager = new ThemeManager();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
 
     @Mod.EventHandler
@@ -58,6 +60,8 @@ public class Arsenic {
         logger.info("Subscribed silent rotation manager");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
+
+        logger.info("Loaded {} themes...", String.valueOf(themeManager.init()));
 
         logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
 
@@ -106,4 +110,5 @@ public class Arsenic {
         return silentRotationManager;
     }
 
+    public final ThemeManager getThemeManager() { return themeManager; }
 }

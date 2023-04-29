@@ -14,7 +14,6 @@ import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 
@@ -48,9 +47,9 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     protected float drawComponent(RenderInfo ri) {
         expandX = hoverTimer.getPercent() * (width/14f);
 
-        int color = ColorUtils.setColor(enabledColor.getRGB(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
+        int color = ColorUtils.setColor(getEnabledColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
         DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, color);
-        ri.getFr().drawString(getName(), x1 + expandX + (width/7f), midPointY, 0xFFFFFFFE, ri.getFr().CENTREY);
+        ri.getFr().drawString(getName(), x1 + expandX + (width/7f), midPointY, getWhite(), ri.getFr().CENTREY);
         return height;
     }
 

@@ -7,6 +7,8 @@ import arsenic.event.impl.EventSilentRotation;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -25,6 +27,8 @@ import static arsenic.utils.rotations.RotationUtils.*;
 public class AimAssist extends Module {
 
     public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.Silent);
+    @PropertyInfo(reliesOn = "Mode: ", value = "Silent")
+    public final BooleanProperty movementFix = new BooleanProperty("MovementFix", true);
     public final DoubleProperty range = new DoubleProperty("range", new DoubleValue(0, 5, 3, 0.1));
     public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(0, 180, 90, 1));
     public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 50, 20, 0.1));
@@ -64,6 +68,7 @@ public class AimAssist extends Module {
         EntityAndRots target = getTargetAndRotations();
         if(target == null)
             return;
+        event.setDoMovementFix(movementFix.getValue());
         event.setSpeed((float) speed.getValue().getInput());
         event.setYaw(target.yaw);
         event.setPitch(target.pitch);
