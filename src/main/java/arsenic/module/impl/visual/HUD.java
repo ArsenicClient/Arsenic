@@ -7,7 +7,10 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.BlurUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
@@ -23,11 +26,12 @@ import java.util.stream.Collectors;
 @ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_Y)
 public class HUD extends Module {
 
+    public DoubleProperty test = new DoubleProperty("strength", new DoubleValue(0, 100, 5, 1));
+
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
         if(mc.currentScreen != null)
             return;
-        int color = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         ScaledResolution sr = new ScaledResolution(mc);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
         if(fr == null)
@@ -44,8 +48,7 @@ public class HUD extends Module {
             float mX = x - m.length;
             float y2 = yOffSet + yOffSetAmount;
             RenderUtils.resetColorText();
-            DrawUtils.drawRect(mX, yOffSet, x, y2, 0xAA303030);
-            fr.drawString(m.name, mX, yOffSet, color);
+            fr.drawStringWithShadow(m.name, mX, yOffSet, ColorUtils.getRainbowColor((long) (test.getValue().getInput() * yOffSet), 3000L));
             yOffSet = y2;
         }
     };

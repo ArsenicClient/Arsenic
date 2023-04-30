@@ -28,7 +28,7 @@ public class MixinGuiChat extends GuiScreen {
     @Inject(method = "keyTyped", at = @At("RETURN"))
     public void keyTypedReturn(char typedChar, int keyCode, CallbackInfo ci) {
         if (inputField.getText().startsWith(".")) {
-            inputField.setTextColor(0x70FF70);
+            inputField.setTextColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor());
 
             if (keyCode != 15 && keyCode != 1) {
                 Arsenic.getArsenic().getCommandManager().updateAutoCompletions(inputField.getText());
