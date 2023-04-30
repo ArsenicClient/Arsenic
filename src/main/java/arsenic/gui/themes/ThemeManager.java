@@ -8,32 +8,20 @@ import com.google.gson.JsonObject;
 
 import java.awt.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 import java.util.List;
 
 public class ThemeManager implements IConfig<Theme> {
     private Theme currentTheme;
     private List<Theme> themeList = new ArrayList<>();
-    private final File directory = FileUtils.getArsenicFolderDirAsFile();
-    private final File config = new File(directory, "theme.json");
-
     public int init() {
-        if(!directory.exists())
-            directory.mkdirs();
-
-        if(!config.exists())
-            try {
-                config.createNewFile();
-            } catch(Exception e) {;}//ignored
-
         loadConfig();
         if(getContentByJsonKey("Arsenic") == null) {
             themeList.add(new Theme("Arsenic", 0xFF2ECC71, new Color(0xFF2ECC71).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55));
         }
         if(getContentByJsonKey("Lilith") == null) {
             Theme lilith = new Theme("Lilith", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
-            lilith.setLogoPath(RenderUtils.getResourcePath("/assets/arsenic/logos/lilithlogo.png"));
+            lilith.setLogoPath("lilithlogo.png");
             themeList.add(lilith);
         }
         if(getContentByJsonKey("Test") == null) {
@@ -57,11 +45,22 @@ public class ThemeManager implements IConfig<Theme> {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        IConfig.super.loadFromJson(obj);
+        System.out.println("loadfromjson");
+        System.out.println(obj.entrySet().size());
+        obj.entrySet().forEach(entry -> {
+            System.out.println(entry.getKey());
+            if(!entry.getKey().equalsIgnoreCase("currentTheme")) {
+                Theme content = new Theme(entry.getKey());
+                content.loadFromJson(entry.getValue().getAsJsonObject());
+                themeList.add(content);
+            }
+        });
         JsonElement jsonElement = obj.get("currentTheme");
         if(jsonElement != null) {
+            System.out.println(jsonElement.getAsString());
             Theme theme = getContentByJsonKey(jsonElement.getAsString());
             if(theme != null) {
+                System.out.println(theme.getJsonKey());
                 setCurrentTheme(theme);
             }
         }
