@@ -1,12 +1,8 @@
 package arsenic.main;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
-import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
@@ -18,13 +14,7 @@ import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
 import arsenic.module.ModuleManager;
-import arsenic.module.property.Property;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.Fonts;
-import arsenic.utils.interfaces.IContainable;
-import arsenic.utils.interfaces.IContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
@@ -61,7 +51,7 @@ public class Arsenic {
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
 
-        logger.info("Loaded {} themes...", String.valueOf(themeManager.init()));
+        logger.info("Loaded {} themes...", String.valueOf(themeManager.initialize()));
 
         logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
 

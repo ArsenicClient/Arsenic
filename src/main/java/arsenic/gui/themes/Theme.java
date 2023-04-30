@@ -8,8 +8,8 @@ import net.minecraft.util.ResourceLocation;
 public class Theme implements ISerializable {
 
     private final String name;
-    private String logoName = "arseniclogo.png";
-    private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName);
+    private String logoName = "arsenic";
+    private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
     private int mainColor;
     private int darkerColor;
     private int white;
@@ -64,8 +64,9 @@ public class Theme implements ISerializable {
     }
 
     public void setLogoPath(String logoName) {
+        logoName = logoName.toLowerCase();
         this.logoName = logoName;
-        logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName);
+        logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
     }
 
 
@@ -73,7 +74,7 @@ public class Theme implements ISerializable {
     // but this would look strange with obfuscation and honestly not much of a point
     @Override
     public void loadFromJson(JsonObject obj) {
-        logoPath = new ResourceLocation(obj.get("resourcelocation").getAsString());
+        setLogoPath(obj.get("resourcelocation").getAsString());
         white = obj.get("white").getAsInt();
         black = obj.get("black").getAsInt();
         darkerColor = obj.get("dark").getAsInt();

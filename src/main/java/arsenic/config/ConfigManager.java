@@ -20,7 +20,7 @@ public class ConfigManager implements ISerializable {
 
     public int initialize() {
         if (!configDirectory.isDirectory()) { configDirectory.mkdirs(); }
-
+        System.out.println("initialized config manager");
         File clientConfigFile = new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json");
         clientConfig = new ClientConfig(clientConfigFile);
 

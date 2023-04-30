@@ -42,10 +42,15 @@ public class ColourProperty extends SerializableProperty<Integer> {
         value = ColorUtils.setColor(value, i, newValue);
     }
 
-    public int getColor(int i) {
+    @Override
+    public Integer getValue() {
         if(mode == cMode.THEME) {
             return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         }
+        return super.getValue();
+    }
+
+    public int getColor(int i) {
         return ColorUtils.getColor(value, i);
     }
 
@@ -87,7 +92,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                     }
                 } else if (mode == cMode.THEME) {
                     Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
-                    ri.getFr().drawString(theme.getJsonKey(), lineX1, midPointY, theme.getMainColor());
+                    ri.getFr().drawString(theme.getJsonKey(), lineX1, midPointY, theme.getMainColor(), ri.getFr().CENTREY);
                 }
 
                 return height;
@@ -110,7 +115,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                         helping = i;
                     }
                 } else if (mouseButton == 1) {
-                   setMode(cMode.values()[(mode.ordinal() + 1 % 2)]);
+                   setMode(cMode.values()[((mode.ordinal() + 1) % 2)]);
                 }
             }
 

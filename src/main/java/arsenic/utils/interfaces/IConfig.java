@@ -23,7 +23,7 @@ public interface IConfig<T extends ISerializable & IContainable> extends IContai
         } catch (JsonSyntaxException | ClassCastException | IOException | IllegalStateException e) {
 
         }
-        loadFromJson(data);
+        loadContentsFromJson(data);
     }
 
     default void saveConfig() {
@@ -45,11 +45,14 @@ public interface IConfig<T extends ISerializable & IContainable> extends IContai
 
     default String getName() { return getDirectory().getName().replace(".json", ""); }
 
-    default void loadFromJson(JsonObject obj) {
-        obj.entrySet().forEach(entry -> {
-            T content = getContentByJsonKey(entry.getKey());
-            if(content != null)
-                content.loadFromJson(entry.getValue().getAsJsonObject());
+    default void loadContentsFromJson(JsonObject obj) {
+        getContents().forEach(content -> {
+            JsonElement jsonElement = obj.get(content.getJsonKey());
+            try {
+                content.loadFromJson(jsonElement != null ? jsonElement.getAsJsonObject() : new JsonObject());
+            } catch (NullPointerException e){
+                //thrown when the values that it wants doesnt exist
+            }
         });
     }
 

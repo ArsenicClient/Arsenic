@@ -22,6 +22,13 @@ public class ClientConfig implements IConfig<ISerializable> {
     public ClientConfig(File config) {
         this.config = config;
         contents.add(Arsenic.getArsenic().getConfigManager());
+        contents.add(Arsenic.getInstance().getThemeManager());
+    }
+
+    @Override
+    public void loadConfig() {
+        System.out.println("loadingConfig");
+        IConfig.super.loadConfig();
     }
 
     @Override
