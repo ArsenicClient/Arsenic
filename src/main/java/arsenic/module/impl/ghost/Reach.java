@@ -9,7 +9,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 @ModuleInfo(name = "Reach", category = ModuleCategory.GHOST)
 public class Reach extends Module {
 
-    public final DoubleProperty reach = new DoubleProperty("Reach", new DoubleValue(3, 6, 3, 0.1));
+    public final DoubleProperty reach = new DoubleProperty("Reach", new DoubleValue(3, 6, 3, 0.05));
 
 
     public double getReach() {
