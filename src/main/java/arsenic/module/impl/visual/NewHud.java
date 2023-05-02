@@ -12,6 +12,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.RenderUtils;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
@@ -29,6 +30,8 @@ public class NewHud extends Module {
     public DoubleProperty opacity = new DoubleProperty("opacity", new DoubleValue(0, 255, 100, 1));
     public BooleanProperty backbar = new BooleanProperty("backbar", true);
     public BooleanProperty frontbar = new BooleanProperty("frontbar", true);
+    public BooleanProperty info = new BooleanProperty("info", true);
+    public DoubleProperty infoheight = new DoubleProperty("info height", new DoubleValue(650, 700, 8, 1));
 
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
@@ -43,6 +46,12 @@ public class NewHud extends Module {
 
         if(watermark.getValue())
             fr.drawStringWithShadow("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, getRainbow(4, 20L));
+        if (info.getValue()) {
+            //this should actually be at the bottom also the tps is broken
+            fr.drawStringWithShadow("FPS " + EnumChatFormatting.WHITE + Minecraft.getDebugFPS(), 4, (float) infoheight.getValue().getInput() + 8, getRainbow(4, 20));
+            fr.drawStringWithShadow("TPS " + EnumChatFormatting.WHITE + "20", 4, (float) infoheight.getValue().getInput() + 16, getRainbow(4, 20));
+            fr.drawStringWithShadow("XYZ " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getX() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getY() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getZ(), 4,(float) infoheight.getValue().getInput() + 24, getRainbow(4, 20));
+        }
 
         float x = sr.getScaledWidth();
 
