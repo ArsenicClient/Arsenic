@@ -6,6 +6,7 @@ import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.blatant.NoSlow;
+import arsenic.module.impl.blatant.Timer;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.combat.Aura;
 import arsenic.module.impl.combat.Criticals;
@@ -15,7 +16,6 @@ import arsenic.module.impl.misc.CustomFOV;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Flight;
 import arsenic.module.impl.movement.Speed;
-import arsenic.module.impl.movement.TimerModule;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
@@ -72,7 +72,7 @@ public class ModuleManager {
         AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
         ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class),
         CRITICALS(Criticals.class),BLINK(Blink.class),FLIGHT(Flight.class),CUSTOMFOV(CustomFOV.class),
-        CUSTOMWORLD(CustomWorld.class), INVMANAGER(InvManager.class), NEWHUD(NewHud.class),TIMER(TimerModule.class),
+        CUSTOMWORLD(CustomWorld.class), INVMANAGER(InvManager.class), NEWHUD(NewHud.class),TIMER(Timer.class),
         AURA(Aura.class);
 
         private Module module;
