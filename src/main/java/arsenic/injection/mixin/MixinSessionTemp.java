@@ -13,8 +13,9 @@ public class MixinSessionTemp {
      * @author kv
      * @reason temp username chaneg for testing
      */
+    /*
     @Overwrite
     public String getUsername() {
         return "ArsenicClient12";
-    }
+    } */
 }

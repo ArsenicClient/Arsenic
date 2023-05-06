@@ -35,7 +35,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ChestStealer extends Module {
 
     public final RangeProperty startDelay = new RangeProperty("StartDelay", new RangeValue(0, 500, 75, 150, 1));
-
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
     public final BooleanProperty hideGui = new BooleanProperty("HideGui", false);
     public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);

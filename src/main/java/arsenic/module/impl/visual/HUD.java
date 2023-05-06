@@ -11,14 +11,9 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
-import arsenic.utils.render.BlurUtils;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.gui.ScaledResolution;
-import org.lwjgl.input.Keyboard;
 
-import java.awt.*;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,7 +43,7 @@ public class HUD extends Module {
             float mX = x - m.length;
             float y2 = yOffSet + yOffSetAmount;
             RenderUtils.resetColorText();
-            fr.drawStringWithShadow(m.name, mX, yOffSet, ColorUtils.getRainbowColor((long) (test.getValue().getInput() * yOffSet), 3000L));
+            fr.drawStringWithShadow(m.name, mX, yOffSet, ColorUtils.getThemeRainbowColor((long) (test.getValue().getInput() * yOffSet), 3000L));
             yOffSet = y2;
         }
     };

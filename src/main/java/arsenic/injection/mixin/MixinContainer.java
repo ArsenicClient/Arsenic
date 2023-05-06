@@ -12,9 +12,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Container.class)
 public class MixinContainer {
 
+
     @Inject(method = "slotClick", at = @At("HEAD"))
     public void slotClick(int slotId, int clickedButton, int mode, EntityPlayer playerIn, CallbackInfoReturnable<ItemStack> cir) {
         PlayerUtils.addWaterMarkedMessageToChat(slotId + " " + clickedButton + " " + mode);
     }
+
 
 }

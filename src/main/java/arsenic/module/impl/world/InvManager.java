@@ -11,14 +11,15 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.interfaces.IWeapon;
 import arsenic.utils.minecraft.PlayerUtils;
-import ibxm.Player;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,14 +29,15 @@ public class InvManager extends Module {
 
     public final RangeProperty startDelay = new RangeProperty("StartDelay", new RangeValue(0, 500, 75, 150, 1));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
-    public final BooleanProperty hideGui = new BooleanProperty("HideGui", false);
     public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);
+    public final BooleanProperty dontDrop = new BooleanProperty("Don't Drop", true);
 
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Close Delay", new RangeValue(0, 500, 75, 150, 1));
 
     private ExecutorService executor;
 
+    //HEALTH WARNING INCOMING
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
@@ -50,12 +52,20 @@ public class InvManager extends Module {
             List<Slot> path = generatePath(container);
             while(!path.isEmpty()) {
                 Slot slot = path.remove(0);
+                if(slot instanceof Slot.Armor)
+                    PlayerUtils.addWaterMarkedMessageToChat(slot.slot + " " + slot.mode);
                 if(slot.slot < 0)
                     continue;
-                //PlayerUtils.addWaterMarkedMessageToChat(slot.slot);
-                //PlayerUtils.addWaterMarkedMessageToChat( mc.thePlayer.openContainer.getSlot(slot.slot).getStack().getDisplayName() + " ");
+                if(dontDrop.getValue() && slot.mode == 4)
+                    continue;
+                if(slot instanceof Slot.Armor)
+                    PlayerUtils.addWaterMarkedMessageToChat("buddy?");
                 mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.mode, mc.thePlayer);
                 sleep((int) delay.getValue().getRandomInRange());
+            }
+            if(closeOnFinish.getValue()) {
+                sleep((int) closeDelay.getValue().getRandomInRange());
+                mc.thePlayer.closeScreen();
             }
         });
     };
@@ -65,136 +75,100 @@ public class InvManager extends Module {
     }
 
 
-    //very repetitive need to fix sooner or later
-    //zzzz... mi mi mi mi...
-    //zzzz... mi mi mi mi...
-    //zzzz...
     public List<Slot> generatePath(ContainerPlayer inv) {
         ArrayList<Slot> slots = new ArrayList<>();
-        Slot.Armor[] bestArmour = { new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1) };
-        Slot.Sword bestSword = new Slot.Sword(-1);
-        Slot.Stack mostBlocks = new Slot.Stack(-1);
-        Slot.Stack projectiles = new Slot.Stack(-1);
-        for (int i = 0; i < inv.getInventory().size(); i++) {
+        for(ItemType itemType : ItemType.values()) {
+            itemType.clear();
+        }
 
+        for (int i = 0; i < inv.getInventory().size(); i++) {
             ItemStack stack = inv.getInventory().get(i);
             if(stack == null)
                 continue;
             Item item = stack.getItem();
-
-            if (item instanceof ItemArmor) {
-                if(!(i > 4 && i < 9)) {
-                    Slot.Armor ia = new Slot.Armor(i);
-                    if (bestArmour[ia.type].protectionValue < ia.protectionValue) {
-                        bestArmour[ia.type].button = 1;
-                        bestArmour[ia.type].mode = 4;
-                        bestArmour[ia.type] = ia;
+            boolean relevant = false;
+            for(ItemType itemType : ItemType.values()) {
+                if(itemType.isItem(item)) {
+                    relevant = true;
+                    Slot itemSlot = itemType.getSlot(i);
+                    if(itemSlot.value > itemType.getBestItem(itemSlot.type).value) {
+                        Slot prevBestItem = itemType.getBestItem(itemSlot.type);
+                        prevBestItem.setActionDrop();
+                        slots.add(prevBestItem);
+                        itemType.setBestItem(itemSlot, itemSlot.type);
                     } else {
-                        ia.button = 1;
-                        ia.mode = 4;
-                        slots.add(ia);
+                        itemSlot.setActionDrop();
+                        slots.add(itemSlot);
                     }
+                    break;
                 }
             }
+            if(!relevant) {
+                Slot itemSlot = new Slot(i);
+                itemSlot.setActionDrop();
+                slots.add(itemSlot);
+            }
+        }
 
-            else if(item instanceof ItemSword) {
-                Slot.Sword sword = new Slot.Sword(i);
-                if(sword.attackValue > bestSword.attackValue) {
-                    bestSword.button = 1;
-                    bestSword.mode = 4;
-                    bestSword = sword;
-                } else {
-                    sword.button = 1;
-                    sword.mode = 4;
-                    slots.add(sword);
+        //puts each best item into the correct slot
+        for(ItemType itemType : ItemType.values()) {
+            for(Slot slot : itemType.getBestItems()) {
+                if(slot.slot < 0)
+                    continue;
+                if(!slot.isInPrefferedSlot()) {
+                    for(ItemType itemType2 : ItemType.values()) {
+                        PlayerUtils.addWaterMarkedMessageToChat(slot.type + " " + slot.getClass());
+                        Slot slot2 = itemType2.getBestItem(0);
+                        if(slot2.slot == slot.getPrefferedSlot()) {
+                            slot2.slot = slot.slot;
+                        }
+                    }
+                    slot.setActionMoveToPrefferedSlot();
+                    slots.add(slot);
                 }
             }
-
-            else if(item instanceof ItemBlock) {
-                Slot.Stack block = new Slot.Stack(i);
-                if(block.amount > mostBlocks.amount) {
-                    mostBlocks.button = 1;
-                    mostBlocks.mode = 4;
-                    mostBlocks = block;
-                } else {
-                    block.button = 1;
-                    block.mode = 4;
-                    slots.add(block);
-                }
-            }
-
-            else if(item instanceof ItemEgg || item instanceof ItemFishingRod) {
-                Slot.Stack projectile = new Slot.Stack(i);
-                if(projectile.amount > projectiles.amount)
-                    projectiles = projectile;
-            }
-
-            else if (item != null) {
-                Slot s = new Slot(i);
-                s.button = 1;
-                s.mode = 4;
-                slots.add(s);
-            }
-
-        }
-
-        for (int i = 0; i < 4; i++) {
-            int slotId = i + 5;
-            if(mc.thePlayer.openContainer.getSlot(slotId).getStack() != null && mc.thePlayer.openContainer.getSlot(slotId).getStack().getItem() instanceof ItemArmor) {
-                Slot.Armor s = new Slot.Armor(i + 5);
-                PlayerUtils.addWaterMarkedMessageToChat(s.protectionValue + " " + bestArmour[i].protectionValue);
-                if (s.protectionValue < bestArmour[i].protectionValue) {
-                    s.button = 1;
-                    s.mode = 4;
-                    slots.add(s);
-                } else {
-                    bestArmour[i].button = 1;
-                    bestArmour[i].mode = 4;
-                }
-            }
-            slots.add(bestArmour[i]);
-        }
-
-        if(bestSword.slot != 36) {
-            bestSword.button = 0;
-            bestSword.mode = 2;
-            slots.add(bestSword);
-        }
-
-        if(mostBlocks.slot != 37) {
-            mostBlocks.button = 1;
-            mostBlocks.mode = 2;
-            slots.add(mostBlocks);
-        }
-
-        if(projectiles.slot != 38) {
-            projectiles.button = 2;
-            projectiles.mode = 2;
-            slots.add(projectiles);
         }
 
         return slots;
     }
 
     private static class Slot {
-        final int x;
-        final int y;
-        final int slot;
+        int slot;
+        float value;
         int mode = 1;
         int button = 0;
+        int type = 0;
 
         public Slot(int s) {
             this.slot = s;
-            this.x = (s + 1) % 10;
-            this.y = s / 9;
         }
 
+        public void setActionDrop() {
+            button = 1;
+            mode = 4;
+        }
+
+        public void setActionMoveToPrefferedSlot() {
+            mode = 2;
+            button = getPrefferedSlot() - 1;
+        }
+
+        public boolean isInPrefferedSlot() {
+            return slot == getPrefferedSlot() + 35;
+        }
+
+        protected int getPrefferedSlot() {
+            return 5;
+        }
         private static class Armor extends Slot {
-            int type;
-            float protectionValue;
             public Armor(int s) {
                 super(s);
                 setValues();
+            }
+
+            @Override
+            public void setActionMoveToPrefferedSlot() {
+                // keeps action as shift click
             }
 
             public void setValues() {
@@ -213,31 +187,181 @@ public class InvManager extends Module {
                 } catch(Exception e) {
                     pl = 0;
                 }
-                protectionValue = as.damageReduceAmount + (float) (pl * 0.6);
+                value = as.damageReduceAmount + (float) (pl * 0.6);
                 type = as.armorType;
+                PlayerUtils.addWaterMarkedMessageToChat(isInPrefferedSlot() + " " + value);
+            }
+
+            @Override
+            public boolean isInPrefferedSlot() {
+                return slot == 5 + type;
             }
         }
 
         private static class Sword extends Slot {
-            float attackValue;
             public Sword(int s) {
                 super(s);
                 if(s < 0)
                     return;
-                attackValue = ((IMixinItemSword)mc.thePlayer.openContainer.getSlot(s).getStack().getItem()).getAttackDamage();
+                ItemStack itemStack = mc.thePlayer.openContainer.getSlot(slot).getStack();
+                value = ((IWeapon)itemStack.getItem()).getAttackDamage();
+                float sharpLevel;
+                try {
+                    sharpLevel = EnchantmentHelper.getEnchantments(itemStack).get(16);
+                } catch(Exception e) {
+                    sharpLevel = 0;
+                }
+                value += (1.25 * sharpLevel);
+            }
+
+            @Override
+            protected int getPrefferedSlot() {
+                return 1;
             }
         }
 
         private static class Stack extends Slot {
-            float amount;
             public Stack(int s) {
                 super(s);
                 if(s < 0)
                     return;
-                amount = mc.thePlayer.openContainer.getSlot(s).getStack().stackSize;
+                value = mc.thePlayer.openContainer.getSlot(s).getStack().stackSize;
+            }
+
+            private static class Block extends Stack {
+
+                public Block(int s) {
+                    super(s);
+                }
+
+                @Override
+                protected int getPrefferedSlot() {
+                    return 3;
+                }
+            }
+
+            private static class Projectile extends Stack {
+
+                public Projectile(int s) {
+                    super(s);
+                }
+
+                @Override
+                protected int getPrefferedSlot() {
+                    return 2;
+                }
+            }
+        }
+
+        private static class Other extends Slot {
+
+            public Other(int s) {
+                super(s);
+            }
+
+            @Override
+            public void setActionDrop() {
+                if(isInPrefferedSlot())
+                    slot = -1;
+
+                //shift click is default, so it keeps the action as shift click
+            }
+
+            @Override
+            public void setActionMoveToPrefferedSlot() {
+                //shift click is default so it keeps the action as shift click
+            }
+
+            @Override
+            public boolean isInPrefferedSlot() {
+                return slot > 35 && slot < 45;
             }
         }
 
     }
 
+    public enum ItemType {
+        ARMOR {
+            @Override
+            public void clear() {
+                bestItems = new Slot[]{new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1), new Slot.Armor(-1)};
+            }
+
+            @Override
+            public boolean isItem(Item item) {
+                return item instanceof ItemArmor;
+            }
+
+            @Override
+            public Slot getSlot(int slot) {
+                return new Slot.Armor(slot);
+            }
+        },
+        SWORD {
+            @Override
+            public boolean isItem(Item item) {
+                return item instanceof IWeapon;
+            }
+
+            @Override
+            public Slot getSlot(int slot) {
+                return new Slot.Sword(slot);
+            }
+        },
+        BLOCK {
+            @Override
+            public boolean isItem(Item item) {
+                return item instanceof ItemBlock;
+            }
+
+            @Override
+            public Slot getSlot(int slot) {
+                return new Slot.Stack.Block(slot);
+            }
+        },
+        PROJECTILE {
+            @Override
+            public boolean isItem(Item item) {
+                return item instanceof ItemEgg;
+            }
+            @Override
+            public Slot getSlot(int slot) {
+                return new Slot.Stack.Projectile(slot);
+            }
+        },
+
+        OTHER {
+            @Override
+            public boolean isItem(Item item) {
+                return item instanceof ItemAppleGold || item instanceof ItemPotion;
+            }
+            @Override
+            public Slot getSlot(int slot) {
+                return new Slot.Other(slot);
+            }
+        };
+
+        protected Slot[] bestItems;
+
+        public void setBestItem(Slot bestItem, int i) {
+            this.bestItems[i] = bestItem;
+        }
+
+        public Slot getBestItem(int i) {
+            return bestItems[i];
+        }
+
+        public Slot[] getBestItems() {
+            return bestItems;
+        }
+
+        public void clear() {
+            bestItems = new Slot[]{new Slot(-1)};
+        }
+
+        public abstract boolean isItem(Item item);
+
+        public abstract Slot getSlot(int slot);
+
+    }
 }

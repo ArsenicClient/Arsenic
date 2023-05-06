@@ -3,14 +3,22 @@ package arsenic.module.impl.visual;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.injection.accessor.IMixinMinecraft;
+import arsenic.injection.accessor.IMixinTimer;
+import arsenic.injection.mixin.MixinMinecraft;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.functionalinterfaces.IFunction;
+import arsenic.utils.functionalinterfaces.ITwoParamFunction;
+import arsenic.utils.functionalinterfaces.ITwoSetParamVoidFunction;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -26,11 +34,13 @@ import java.util.stream.Collectors;
 
 @ModuleInfo(name = "NewHUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_U)
 public class NewHud extends Module {
-    public BooleanProperty watermark = new BooleanProperty("watermark", true);
-    public DoubleProperty opacity = new DoubleProperty("opacity", new DoubleValue(0, 255, 100, 1));
-    public BooleanProperty backbar = new BooleanProperty("backbar", true);
-    public BooleanProperty frontbar = new BooleanProperty("frontbar", true);
-    public BooleanProperty info = new BooleanProperty("info", true);
+
+    public final EnumProperty<hMode> colorMode = new EnumProperty<>("Color Mode: ", hMode.RAINBOW);
+    public final BooleanProperty watermark = new BooleanProperty("watermark", true);
+    public final DoubleProperty opacity = new DoubleProperty("opacity", new DoubleValue(0, 255, 100, 1));
+    public final BooleanProperty backbar = new BooleanProperty("backbar", true);
+    public final BooleanProperty frontbar = new BooleanProperty("frontbar", true);
+    public final BooleanProperty info = new BooleanProperty("info", true);
 
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
@@ -43,14 +53,17 @@ public class NewHud extends Module {
         if(fr == null)
             return;
 
+        int noDelayColor = colorMode.getValue().getColor(4, 0);
         if(watermark.getValue())
-            fr.drawStringWithShadow("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, getRainbow(4, 20L));
+            fr.drawStringWithShadow("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, noDelayColor);
+
         if (info.getValue()) {
             //this should actually be at the bottom also the tps is broken
-            double y = mc.displayHeight / 2 - 1;
-            fr.drawStringWithShadow("FPS " + EnumChatFormatting.WHITE + Minecraft.getDebugFPS(), 1, (float) y - fr.getHeight("FPS") * 3 , getRainbow(4, 20));
-            fr.drawStringWithShadow("TPS " + EnumChatFormatting.WHITE + "20", 1, (float) y - fr.getHeight("TPS") * 2, getRainbow(4, 20));
-            fr.drawStringWithShadow("XYZ " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getX() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getY() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getZ(), 1,(float) y - fr.getHeight("XYZ") * 1, getRainbow(4, 20));
+            double y = sr.getScaledHeight();
+            double tps = ((IMixinTimer) ((IMixinMinecraft) mc).getTimer()).getTicksPerSecond();
+            fr.drawStringWithShadow("FPS " + EnumChatFormatting.WHITE + Minecraft.getDebugFPS(), 1, (float) y - fr.getHeight("FPS") * 3 , noDelayColor);
+            fr.drawStringWithShadow("TPS " + EnumChatFormatting.WHITE + tps, 1, (float) y - fr.getHeight("TPS") * 2, noDelayColor);
+            fr.drawStringWithShadow("XYZ " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getX() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getY() + " " + EnumChatFormatting.WHITE + mc.thePlayer.getPosition().getZ(), 1,(float) y - fr.getHeight("XYZ") * 1, noDelayColor);
         }
 
         float x = sr.getScaledWidth();
@@ -65,15 +78,15 @@ public class NewHud extends Module {
         for (ModuleRenderInfo m : nameList) {
             float mX = x - m.length;
             RenderUtils.resetColorText();
-
+            int color = colorMode.getValue().getColor(4, i * 20);
             Gui.drawRect((int) x, i, (int) mX - 6, 10 + i, new Color(0, 0, 0, (int)opacity.getValue().getInput()).getRGB());
-            fr.drawStringWithShadow(m.name, mX - 3, i + 1, getRainbow(4, i * 20L));
+            fr.drawStringWithShadow(m.name, mX - 3, i + 1, color);
 
             if(backbar.getValue())
-                Gui.drawRect((int)x, i, (int)x - 1, 10 + i, getRainbow(4, i * 20L));
+                Gui.drawRect((int)x, i, (int)x - 1, 10 + i, color);
 
             if(frontbar.getValue())
-                Gui.drawRect((int) mX - 6, i, (int) mX - 7, 10 + i, getRainbow(4, i * 20L));
+                Gui.drawRect((int) mX - 6, i, (int) mX - 7, 10 + i, color);
 
             i += 10;
         }
@@ -90,7 +103,18 @@ public class NewHud extends Module {
         }
     }
 
-    public static int getRainbow(float seconds, long index) {
-        return Color.HSBtoRGB(((System.currentTimeMillis() + index) % (int)(seconds * 1000)) / (seconds * 1000), 0.6f, 0.86f);
+    public enum hMode {
+        THEME(ColorUtils::getThemeRainbowColor),
+        RAINBOW(ColorUtils::getRainbow);
+
+        private final ITwoParamFunction<Integer> f;
+
+        hMode(ITwoParamFunction<Integer> f) {
+            this.f = f;
+        }
+
+        public int getColor(int speed, int delay) {
+            return f.function(speed, delay);
+        }
     }
 }

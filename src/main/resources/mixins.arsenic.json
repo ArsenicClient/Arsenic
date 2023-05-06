@@ -5,8 +5,10 @@
   "compatibilityLevel": "JAVA_8",
   "client": [
     "accessor.IMixinKeyBinding",
+    "accessor.IMixinMinecraft",
     "accessor.IMixinPlayerControllerMp",
     "accessor.IMixinRenderManager",
+    "accessor.IMixinTimer",
     "mixin.MixinEntity",
     "mixin.MixinEntityPlayerSP",
     "mixin.MixinEntityRenderer",
@@ -28,6 +30,7 @@
     "accessor.IMixinItemSword",
     "accessor.IMixinS12PacketEntityVelocity",
     "mixin.MixinContainer",
+    "mixin.MixinItemTool",
     "mixin.MixinWorld"
   ]
 }

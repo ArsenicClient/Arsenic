@@ -2,9 +2,10 @@ package arsenic.utils.java;
 
 import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.TickMode;
+
+import java.awt.*;
 
 public class ColorUtils extends UtilityClass {
 
@@ -21,11 +22,17 @@ public class ColorUtils extends UtilityClass {
         return (value >> (8 * (3 - i))) & 0xFF;
     }
 
-    public static int getRainbowColor(long delay, long speed) {
+    public static int getThemeRainbowColor(long speed, long delay) {
+        speed *= 1000;
+        delay *= -1;
         float percent = ((System.currentTimeMillis() + delay) % speed)/((float) speed);
         percent =TickMode.SINE.toSmoothPercent(2 * percent);
         Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
         return RenderUtils.interpolateColoursInt(theme.getMainColor(), theme.getWhite(), percent);
+    }
+
+    public static int getRainbow(float speed, long delay) {
+        return Color.HSBtoRGB(((System.currentTimeMillis() + delay) % (int)(speed * 1000)) / (speed * 1000), 0.6f, 0.86f);
     }
 
 }
