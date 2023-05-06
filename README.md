@@ -10,3 +10,5 @@ The bypasses/features are mainly meant for Hypixel
 - Download Arsenic and put it in your mod's folder.
 - Run Forge.
 - Enjoy the best free hybrid client experience
+
+## Looking at the code might cause severe brain-damage or insanity read at your own risk
