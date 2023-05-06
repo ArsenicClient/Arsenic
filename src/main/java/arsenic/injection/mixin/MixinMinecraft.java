@@ -52,7 +52,7 @@ public abstract class MixinMinecraft {
     public boolean autoblockMixin(KeyBinding instance) {
         AutoBlock autoBlock = (AutoBlock) ModuleManager.Modules.AUTOBLOCK.getModule();
         if(this.gameSettings.keyBindAttack.isPressed()) {
-            if(autoBlock.shouldBlock())
+            if(autoBlock.isEnabled() && autoBlock.shouldBlock())
                 clickMouse();
             return true;
         }
