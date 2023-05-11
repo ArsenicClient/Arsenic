@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class RangeValue {
 
-    private Random random = new Random();
+    private final Random random = new Random();
     private final double minBound, maxBound, inc;
     private double min, max;
 

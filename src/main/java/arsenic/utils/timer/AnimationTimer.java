@@ -7,8 +7,8 @@ public class AnimationTimer {
     int maxMs;
     long lastTick;
     long ticksLived;
-    private TickMode tickMode;
-    private INoParamFunction<Boolean> func;
+    private final TickMode tickMode;
+    private final INoParamFunction<Boolean> func;
 
     public AnimationTimer(int maxMs, INoParamFunction<Boolean> func) {
         this(maxMs, func, TickMode.SINE);

@@ -1,7 +1,6 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.Event;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 

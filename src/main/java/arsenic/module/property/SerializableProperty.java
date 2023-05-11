@@ -1,8 +1,5 @@
 package arsenic.module.property;
 
-import arsenic.utils.functionalinterfaces.IVoidFunction;
-import com.google.gson.JsonObject;
-
 import arsenic.utils.interfaces.ISerializable;
 
 public abstract class SerializableProperty<T> extends Property<T> implements ISerializable {

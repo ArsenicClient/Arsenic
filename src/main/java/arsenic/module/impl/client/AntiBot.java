@@ -49,11 +49,8 @@ public class AntiBot extends Module {
         if(!map.containsKey(entityPlayer))
             return true;
 
-        if(Math.abs(map.get(entityPlayer).distanceSq(entityPlayer.getPosition())) < 5) { //mostly for the player above you
-            return false;
-        }
-
-        return true;
+        //mostly for the player above you
+        return !(Math.abs(map.get(entityPlayer).distanceSq(entityPlayer.getPosition())) < 5);
     }
 
 
@@ -66,7 +63,8 @@ public class AntiBot extends Module {
                 if (entity instanceof EntityPlayer)
                     map.put((EntityPlayer) entity, entity.getPosition());
             }
-        } catch (Exception e) {;}
+        } catch (Exception e) {
+        }
     };
 
     /*

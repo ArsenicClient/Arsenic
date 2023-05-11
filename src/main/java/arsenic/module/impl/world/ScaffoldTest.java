@@ -2,7 +2,6 @@ package arsenic.module.impl.world;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventKey;
 import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.module.Module;
@@ -10,16 +9,13 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
-import org.lwjgl.input.Keyboard;
 
 
 @ModuleInfo(name = "scaffoldTest", category = ModuleCategory.WORLD)

@@ -3,7 +3,6 @@ package arsenic.module.impl.world;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
-import arsenic.injection.accessor.IMixinItemSword;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -19,7 +18,6 @@ import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,8 +41,11 @@ public class InvManager extends Module {
     public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
         if(mc.thePlayer == null || !(event.getGuiScreen() instanceof GuiContainer))
             return;
-        if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || event.getGuiScreen() == null)
+        if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || event.getGuiScreen() == null) {
+            onDisable();
             return;
+        }
+        onDisable();
         ContainerPlayer container = (ContainerPlayer) mc.thePlayer.openContainer;
         executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
@@ -69,6 +70,12 @@ public class InvManager extends Module {
             }
         });
     };
+
+    @Override
+    protected void onDisable() {
+        if(executor != null)
+            executor.shutdownNow();
+    }
 
     private void sleep(int ms) {
         try {Thread.sleep(ms);} catch (InterruptedException ignored) {}

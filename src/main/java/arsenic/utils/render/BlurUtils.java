@@ -2,7 +2,6 @@ package arsenic.utils.render;
 
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.MathHelper;
 import org.lwjgl.opengl.GL20;
@@ -12,14 +11,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import static org.lwjgl.opengl.Display.getHeight;
 import static org.lwjgl.opengl.Display.update;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 
 public class BlurUtils extends UtilityClass {
 
-    private static int gaussianProgram = createProgram("/assets/arsenic/blur/blur.frag", "/assets/arsenic/blur/vertex.vsh");
+    private static final int gaussianProgram = createProgram("/assets/arsenic/blur/blur.frag", "/assets/arsenic/blur/vertex.vsh");
     private static Framebuffer blurredBuffer;
 
     /**

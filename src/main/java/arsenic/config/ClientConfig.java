@@ -6,10 +6,7 @@ import java.util.Collection;
 import java.util.List;
 
 import arsenic.utils.interfaces.IConfig;
-import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.ISerializable;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 import arsenic.main.Arsenic;
 

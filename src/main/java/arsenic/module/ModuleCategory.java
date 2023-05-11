@@ -1,14 +1,11 @@
 package arsenic.module;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import arsenic.main.Arsenic;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public enum ModuleCategory implements IContainer<Module>, IContainable {
     PLAYERS("Players"), WORLD("World"), CLIENT("Client"), GHOST("Ghost"), BLATANT("Blatant"), OTHER("Other"),
@@ -22,9 +19,8 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
 
     public String getName() { return name; }
 
-    @Contract(" -> new")
     @Override
-    public @NotNull Collection<Module> getContents() {
+    public Collection<Module> getContents() {
         return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModulesByCategory(this));
     }
 

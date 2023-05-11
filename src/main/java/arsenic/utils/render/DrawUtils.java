@@ -2,10 +2,6 @@ package arsenic.utils.render;
 
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.java.UtilityClass;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import org.lwjgl.opengl.GL11;
 
 public class DrawUtils extends UtilityClass {

@@ -4,7 +4,6 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.blatant.Timer;
 import arsenic.module.impl.client.AntiBot;
@@ -15,38 +14,67 @@ import arsenic.module.impl.misc.Blink;
 import arsenic.module.impl.misc.CustomFOV;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Flight;
-import arsenic.module.impl.movement.Speed;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Set;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class ModuleManager {
 
-    private Set<Module> modules;
+    private final HashMap<Class<? extends Module>, Module> modules = new HashMap<>();
 
     public final int initialize() {
-        modules = Arrays.stream(Modules.values()).map(Modules::getModule).collect(Collectors.toSet());
+        addModule(FullBright.class,
+                Sprint.class,
+                HUD.class,
+                ClickGui.class,
+                ChestStealer.class,
+                FastPlace.class,
+                AimAssist.class,
+                SafeWalk.class,
+                Velocity.class,
+                Reach.class,
+                ESP.class,
+                AutoClicker.class,
+                ScaffoldTest.class,
+                HitBox.class,
+                AntiBot.class,
+                Sprint.class,
+                AutoClicker.class,
+                NoSlow.class,
+                Criticals.class,
+                Blink.class,
+                Flight.class,
+                CustomFOV.class,
+                CustomWorld.class,
+                InvManager.class,
+                NewHud.class,
+                Timer.class,
+                Aura.class);
+
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }
 
-    public final Set<Module> getModulesSet() { return modules; }
+    public final Collection<Module> getModules() { return modules.values(); }
 
     public final Collection<Module> getEnabledModules() {
-        return modules.stream().filter(Module::isEnabled).collect(Collectors.toList());
+        return getModules().stream().filter(Module::isEnabled).collect(Collectors.toList());
     }
 
     public final Collection<Module> getModulesByCategory(ModuleCategory category) {
-        return modules.stream().filter(m -> m.getCategory() == category).collect(Collectors.toList());
+        return getModules().stream().filter(m -> m.getCategory() == category).collect(Collectors.toList());
+    }
+
+    public <T extends Module> T getModuleByClass(Class<T> moduleClass) {
+        return (T) modules.get(moduleClass);
     }
 
     public final Module getModuleByName(String str) {
-        for (Module module : modules) {
+        for (Module module : getModules()) {
             if (module.getName().equalsIgnoreCase(str))
                 return module;
         }
@@ -56,7 +84,7 @@ public class ModuleManager {
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
-        modules.forEach(module -> {
+        getModules().forEach(module -> {
             if (event.getKeycode() == module.getKeybind()) {
                 module.setEnabled(!module.isEnabled());
                 saveConfig.set(true);
@@ -65,27 +93,15 @@ public class ModuleManager {
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
     };
 
-    public enum Modules {
-        FULLBRIGHT(FullBright.class), SPRINT(Sprint.class), HUD(HUD.class), CLICKGUI(ClickGui.class),
-        CHESTSTEALER(ChestStealer.class), FASTPLACE(FastPlace.class), AIMASSIST(AimAssist.class),
-        SAFEWALK(SafeWalk.class), VELOCITY(Velocity.class), REACH(Reach.class), ESP(ESP.class),
-        AUTOCLICKER(AutoClicker.class), SCAFFOLDTEST(ScaffoldTest.class), HITBOX(HitBox.class),
-        ANTIBOT(AntiBot.class), SPEED(Speed.class), AUTOBLOCK(AutoBlock.class), NOSLOW(NoSlow.class),
-        CRITICALS(Criticals.class),BLINK(Blink.class),FLIGHT(Flight.class),CUSTOMFOV(CustomFOV.class),
-        CUSTOMWORLD(CustomWorld.class), INVMANAGER(InvManager.class), NEWHUD(NewHud.class),TIMER(Timer.class),
-        AURA(Aura.class);
-
-        private Module module;
-
-        Modules(Class<? extends Module> module) {
+    private void addModule(Class<? extends Module>... moduleClassArray) {
+        for(Class<? extends Module> moduleClass : moduleClassArray) {
             try {
-                this.module = module.newInstance();
-                this.module.registerProperties();
-            } catch (Exception e) {
+                Module module = moduleClass.newInstance();
+                module.registerProperties();
+                modules.put(moduleClass, module);
+            } catch(Exception e) {
                 e.printStackTrace();
             }
         }
-
-        public Module getModule() { return module; }
     }
 }

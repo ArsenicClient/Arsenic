@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.injection.accessor.IMixinRenderManager;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -11,8 +12,6 @@ import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
-import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -21,7 +20,6 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -42,7 +40,7 @@ public class ESP extends Module {
         for(EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if(entity == mc.thePlayer)
                 continue;
-            if(!((AntiBot) ModuleManager.Modules.ANTIBOT.getModule()).isARealPlayer(entity))
+            if(!(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class)).isARealPlayer(entity))
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();

@@ -2,7 +2,6 @@ package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventLook;
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.ghost.HitBox;
 import arsenic.module.impl.ghost.Reach;
 import com.google.common.base.Predicates;
@@ -40,7 +39,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
-            Reach reachMod = (Reach) ModuleManager.Modules.REACH.getModule();
+            Reach reachMod = Arsenic.getArsenic().getModuleManager().getModuleByClass(Reach.class);
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
             double d0 = this.mc.playerController.getBlockReachDistance();
@@ -70,7 +69,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
             for (Entity entity1 : list) {
                 float f1 = entity1.getCollisionBorderSize();
                 if(entity1 instanceof EntityPlayer)
-                    f1 += ((float) ((HitBox) ModuleManager.Modules.HITBOX.getModule()).getExpand());
+                    f1 += (float) (Arsenic.getArsenic().getModuleManager().getModuleByClass(HitBox.class).getExpand());
                 AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand(f1, f1, f1);
                 MovingObjectPosition movingobjectposition = axisalignedbb.calculateIntercept(vec3, vec32);
                 if (axisalignedbb.isVecInside(vec3)) {

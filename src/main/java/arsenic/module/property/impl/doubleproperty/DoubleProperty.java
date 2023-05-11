@@ -45,7 +45,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             private boolean hovered;
             private float lineWidth, lineX1, radius, lineXChangePoint;
             private boolean clicked;
-            private AnimationTimer animationTimer = new AnimationTimer(120, () -> hovered || clicked, TickMode.ROOT);
+            private final AnimationTimer animationTimer = new AnimationTimer(120, () -> hovered || clicked, TickMode.ROOT);
 
             @Override
             protected float draw(RenderInfo ri) {

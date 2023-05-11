@@ -4,20 +4,15 @@ import arsenic.event.impl.EventDisplayGuiScreen;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.blatant.AutoBlock;
-import arsenic.module.impl.world.ChestStealer;
 import arsenic.module.impl.world.FastPlace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.util.Timer;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -50,7 +45,7 @@ public abstract class MixinMinecraft {
 
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z", ordinal = 7))
     public boolean autoblockMixin(KeyBinding instance) {
-        AutoBlock autoBlock = (AutoBlock) ModuleManager.Modules.AUTOBLOCK.getModule();
+        AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
         if(this.gameSettings.keyBindAttack.isPressed()) {
             if(autoBlock.isEnabled() && autoBlock.shouldBlock())
                 clickMouse();
@@ -82,7 +77,7 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMouse(CallbackInfo ci) {
-        FastPlace fastPlace = (FastPlace) ModuleManager.Modules.FASTPLACE.getModule();
+        FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
         if(!fastPlace.isEnabled())
             return;
         rightClickDelayTimer = fastPlace.getTickDelay();

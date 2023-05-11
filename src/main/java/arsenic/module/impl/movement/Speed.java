@@ -8,13 +8,10 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.network.play.server.S06PacketUpdateHealth;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 import java.util.concurrent.ExecutorService;
@@ -85,7 +82,7 @@ public class Speed extends Module {
 
     public enum sMode {
         NORMAL,
-        ONHIT;
+        ONHIT
     }
 
 }

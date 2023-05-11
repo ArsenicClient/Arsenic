@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiScreen;
 
 public class EventDisplayGuiScreen extends CancellableEvent {
 
-    private GuiScreen guiScreen;
+    private final GuiScreen guiScreen;
 
     public EventDisplayGuiScreen(GuiScreen guiScreen) {
         this.guiScreen = guiScreen;

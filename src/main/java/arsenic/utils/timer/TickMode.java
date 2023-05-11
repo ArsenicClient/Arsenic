@@ -9,7 +9,7 @@ public enum TickMode {
     ROOT(input -> (float) Math.sqrt(input)),
     SQR(input -> input * input);
 
-    private IFunction<Float> i;
+    private final IFunction<Float> i;
 
     TickMode(IFunction<Float> i) {
         this.i = i;

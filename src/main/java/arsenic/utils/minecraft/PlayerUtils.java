@@ -1,5 +1,6 @@
 package arsenic.utils.minecraft;
 
+import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.Minecraft;
@@ -16,7 +17,7 @@ public class PlayerUtils {
 
     private PlayerUtils() { throw new IllegalStateException("Utility class should not be initialised");}
 
-    private static Minecraft mc = Minecraft.getMinecraft();
+    private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void addMessageToChat(String msg) {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));
@@ -51,7 +52,7 @@ public class PlayerUtils {
     public static List<Entity> getPlayersWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
         for(EntityPlayer entity : mc.theWorld.playerEntities) {
-            if(!((AntiBot) ModuleManager.Modules.ANTIBOT.getModule()).isARealPlayer(entity))
+            if(!(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isARealPlayer(entity)))
                 continue;
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if(entity != mc.thePlayer && tempDistance <= distance) {

@@ -9,8 +9,6 @@ import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 
-import java.awt.*;
-
 public abstract class Component implements IContainable {
 
     protected float x1, y1, x2, y2, width, height, expandY, expandX, midPointY;

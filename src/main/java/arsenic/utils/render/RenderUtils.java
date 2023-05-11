@@ -13,7 +13,6 @@ import org.lwjgl.opengl.GL11;
 
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.ResourceLocation;
 

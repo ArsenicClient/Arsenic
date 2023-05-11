@@ -21,7 +21,6 @@ import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;

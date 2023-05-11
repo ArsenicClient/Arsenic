@@ -14,7 +14,7 @@ import net.minecraft.client.gui.GuiScreen;
 public class MixinGuiScreen {
 
     @Shadow
-    Minecraft mc;
+    public Minecraft mc;
 
     @Inject(method = "sendChatMessage(Ljava/lang/String;Z)V", at = @At(value = "HEAD"), cancellable = true)
     public void sendChatMessage(String msg, boolean addToChat, CallbackInfo ci) {

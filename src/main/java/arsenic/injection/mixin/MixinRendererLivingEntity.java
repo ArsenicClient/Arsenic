@@ -1,6 +1,5 @@
 package arsenic.injection.mixin;
 
-import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRenderThirdPerson;
 import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
@@ -11,7 +10,6 @@ import net.minecraft.entity.EntityLivingBase;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = RendererLivingEntity.class, priority = 1111)
@@ -22,7 +20,7 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
     private float cYawH, cPYawH, cYawO, cPYawO, cPitch, cPPitch;
     private boolean touched;
 
-    private Minecraft mc = Minecraft.getMinecraft();
+    private final Minecraft mc = Minecraft.getMinecraft();
 
     protected MixinRendererLivingEntity(RenderManager renderManager) {
         super(renderManager);

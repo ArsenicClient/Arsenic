@@ -3,14 +3,13 @@ package arsenic.utils.render;
 import java.awt.Color;
 
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.interfaces.IFontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 
 public class RenderInfo {
     private int index = 0;
     private final int mouseX, mouseY;
     private final FontRendererExtension<?> fr;
-    private GuiScreen guiScreen;
+    private final GuiScreen guiScreen;
     public final float[] STACK = new float[16];
 
     public RenderInfo(int mouseX, int mouseY, FontRendererExtension<?> fr, GuiScreen guiScreen) {

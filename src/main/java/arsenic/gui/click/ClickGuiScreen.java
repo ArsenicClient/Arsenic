@@ -3,7 +3,6 @@ package arsenic.gui.click;
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 // allow escape to bind to none
 
 public class ClickGuiScreen extends CustomGuiScreen {
-    private final ClickGui module = (ClickGui) ModuleManager.Modules.CLICKGUI.getModule();
+    private ClickGui module;
     private List<UICategoryComponent> components;
     private final List<IVoidFunction> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
@@ -36,11 +35,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private int vLineX, hLineY, x1, y1;
 
     //called once
-    public void init() {
+    public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
+        this.module = clickGui;
     }
 
     //called every time the ui is created

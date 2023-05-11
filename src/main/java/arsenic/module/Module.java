@@ -12,7 +12,6 @@ import arsenic.module.property.IReliable;
 import arsenic.module.property.Property;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.SerializableProperty;
-import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;

@@ -10,7 +10,6 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import net.minecraft.network.play.server.S06PacketUpdateHealth;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 import java.util.concurrent.ExecutorService;
@@ -64,6 +63,6 @@ public class NoSlow extends Module {
 
     public enum sMode {
         VANILLA,
-        ONHIT;
+        ONHIT
     }
 }

@@ -14,13 +14,10 @@ import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.ContainerChest;
-import net.minecraft.network.play.server.S29PacketSoundEffect;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -49,8 +46,6 @@ public class ChestStealer extends Module {
     private int totalSlots;
     private float percentStolen;
 
-    private final String text = "Stealing (press escape to leave)";
-
     public void draw(GuiContainer container) {
         if(!inChest)
             return;
@@ -60,6 +55,7 @@ public class ChestStealer extends Module {
         int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
         GlStateManager.color(1f,1f,1f, 1f);
         RenderUtils.resetColorText();
+        String text = "Stealing (press escape to leave)";
         fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
         float fontWidth = fr.getWidth(text);
         float fontHeight = fr.getHeight(text);
@@ -70,7 +66,7 @@ public class ChestStealer extends Module {
         float radius = (y2 - y1);
         x2 = Math.max(x1 + radius, x2);
         DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, color);
-    };
+    }
 
 
     @EventLink
@@ -78,7 +74,7 @@ public class ChestStealer extends Module {
         if(event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest) {
             if (executor != null)
                 executor.shutdownNow();
-            mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, 1f, false);
+            //mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, 1f, false);
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 inChest = true;

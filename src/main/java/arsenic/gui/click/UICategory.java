@@ -14,8 +14,8 @@ public enum UICategory implements IContainer<ModuleCategory> {
     VISUAL("Visual", ModuleCategory.PLAYERS, ModuleCategory.CLIENT, ModuleCategory.WORLD),
     MISC("Misc", ModuleCategory.OTHER);
 
-    private String name;
-    private List<ModuleCategory> childCategories = new ArrayList<>();
+    private final String name;
+    private final List<ModuleCategory> childCategories = new ArrayList<>();
 
     UICategory(String name, ModuleCategory... childCategories) {
         this.name = name;

@@ -3,7 +3,6 @@ package arsenic.module.impl.blatant;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
-import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -14,7 +13,6 @@ import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)

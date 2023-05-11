@@ -12,7 +12,7 @@ public class BindsCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-        Arsenic.getArsenic().getModuleManager().getModulesSet().forEach(module -> {
+        Arsenic.getArsenic().getModuleManager().getModules().forEach(module -> {
             if (module.getKeybind() != 0) {
                 PlayerUtils.addWaterMarkedMessageToChat(
                         module.getName() + " is bound to " + Keyboard.getKeyName(module.getKeybind()));

@@ -6,12 +6,9 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
-
-import java.util.concurrent.ExecutorService;
 
 
 @ModuleInfo(name = "SafeWalk", category = ModuleCategory.WORLD)
@@ -25,10 +22,7 @@ public class SafeWalk extends Module {
     public boolean mixinResult(boolean flag) {
         if(flag)
             return true;
-        if(mc.thePlayer.onGround && mode.getValue() == sMode.NO_SHIFT)
-            return true;
-
-        return false;
+        return mc.thePlayer.onGround && mode.getValue() == sMode.NO_SHIFT;
     }
     @Override
     public void onDisable() {

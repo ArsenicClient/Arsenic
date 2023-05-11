@@ -14,7 +14,6 @@ public class SilentRotationManager {
     private float yaw  = 0;
     private float pitch  = 0;
     private boolean modified;
-    private boolean first = true;
     private boolean doMovementFix;
     private float speed = 10f;
 
@@ -26,7 +25,6 @@ public class SilentRotationManager {
         if(!modified && !rotation.hasBeenModified()) {
             yaw = mc.thePlayer.rotationYaw;
             pitch = mc.thePlayer.rotationPitch;
-            first = false;
             return;
         }
 

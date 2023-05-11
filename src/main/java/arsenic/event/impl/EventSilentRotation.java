@@ -4,7 +4,8 @@ import arsenic.event.types.Event;
 
 public class EventSilentRotation implements Event {
 
-    private float initYaw, initPitch;
+    private final float initYaw;
+    private final float initPitch;
     private float yaw, pitch;
     private float speed;
     private boolean doMovementFix = true;

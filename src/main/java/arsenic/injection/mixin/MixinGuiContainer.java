@@ -1,6 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.module.ModuleManager;
+import arsenic.main.Arsenic;
 import arsenic.module.impl.world.ChestStealer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,7 +13,7 @@ public class MixinGuiContainer {
 
     @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
     public void drawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        ChestStealer chestStealer = (ChestStealer) ModuleManager.Modules.CHESTSTEALER.getModule();
+        ChestStealer chestStealer = Arsenic.getArsenic().getModuleManager().getModuleByClass(ChestStealer.class);
         if(chestStealer.isEnabled() && chestStealer.hideGui.getValue() && chestStealer.inChest) {
             chestStealer.draw((GuiContainer) (Object) this);
             ci.cancel();

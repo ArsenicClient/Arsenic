@@ -2,7 +2,6 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.module.property.Property;
-import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainable;
 import arsenic.utils.render.RenderInfo;
 

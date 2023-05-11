@@ -3,6 +3,7 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventMouse;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.blatant.NoSlow;
+import arsenic.module.impl.world.SafeWalk;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -77,7 +78,7 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
 
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
     private boolean noSlowMixin(EntityPlayerSP instance) {
-        NoSlow noSlow = (NoSlow) ModuleManager.Modules.NOSLOW.getModule();
+        NoSlow noSlow = Arsenic.getArsenic().getModuleManager().getModuleByClass(NoSlow.class);
         if(noSlow.shouldNotSlow() && noSlow.isEnabled())
             return false;
         return instance.isUsingItem();

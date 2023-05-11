@@ -8,7 +8,6 @@ import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 
 public class ColourProperty extends SerializableProperty<Integer> {

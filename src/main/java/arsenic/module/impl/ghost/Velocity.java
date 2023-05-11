@@ -8,12 +8,9 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.network.play.client.C0CPacketInput;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Velocity", category = ModuleCategory.GHOST)
@@ -48,7 +45,7 @@ public class Velocity extends Module {
 
     public enum vMode {
         Reduce,
-        Cancel;
+        Cancel
     }
 
 }

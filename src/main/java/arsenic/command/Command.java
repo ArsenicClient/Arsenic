@@ -9,7 +9,7 @@ public abstract class Command {
 
     protected String name;
     protected String help;
-    private int minArgs;
+    private final int minArgs;
     protected String[] aliases;
     protected String[] args;
     protected String usage;

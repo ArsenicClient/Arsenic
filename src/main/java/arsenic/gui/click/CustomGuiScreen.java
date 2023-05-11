@@ -19,7 +19,7 @@ public class CustomGuiScreen extends GuiScreen {
 
 
 
-    public void doInit() {};
+    public void doInit() {}
 
     public void drawScr(int mouseX, int mouseY, float partialTicks) {}
 

@@ -27,7 +27,7 @@ public class ScissorUtils extends UtilityClass {
             ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠓⠀⠀⠀⠀⠀⠀⠀⠀
         he will cut your balls off
      */
-    private static List<int[]> rahhh = new ArrayList<>();
+    private static final List<int[]> rahhh = new ArrayList<>();
 
     static {
         resetScissor();

@@ -101,7 +101,7 @@ public class AimAssist extends Module {
 
     public enum aaMode {
         Silent,
-        NotSilent;
+        NotSilent
     }
 
 

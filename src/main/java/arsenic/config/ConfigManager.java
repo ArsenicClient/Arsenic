@@ -13,7 +13,7 @@ import java.util.Set;
 
 public class ConfigManager implements ISerializable {
 
-    private HashMap<String, ModuleConfig> configs = new HashMap<>();
+    private final HashMap<String, ModuleConfig> configs = new HashMap<>();
     private ModuleConfig currentConfig;
     private ClientConfig clientConfig;
     private final File configDirectory = new File(FileUtils.getArsenicFolderDirAsString() + File.separator + "Configs");

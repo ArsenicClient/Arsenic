@@ -1,12 +1,11 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.CancellableEvent;
-import arsenic.event.types.Event;
 import net.minecraft.network.Packet;
 
 public class EventPacket extends CancellableEvent {
 
-    private final Packet<?> packet;
+    private Packet<?> packet;
     private boolean cancelled;
 
     public EventPacket(Packet<?> packet) {
@@ -14,7 +13,7 @@ public class EventPacket extends CancellableEvent {
     }
 
     public Packet getPacket() {return packet;}
-    public void setPacket(Packet<?> packet) {packet = packet;}
+    public void setPacket(Packet<?> packet) {this.packet = packet;}
 
     public static class OutGoing extends EventPacket {
         public OutGoing(Packet<?> packet) {

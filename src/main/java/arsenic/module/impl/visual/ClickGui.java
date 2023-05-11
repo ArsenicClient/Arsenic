@@ -22,7 +22,7 @@ public class ClickGui extends Module {
     protected void onEnable() {
         if (screen == null) {
             screen = Arsenic.getArsenic().getClickGuiScreen();
-            screen.init();
+            screen.init(this);
         }
 
         mc.displayGuiScreen(screen);

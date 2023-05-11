@@ -3,6 +3,7 @@ package arsenic.module.impl.misc;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -19,7 +20,7 @@ public class Sprint extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if(!ModuleManager.Modules.SCAFFOLDTEST.getModule().isEnabled())
+        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(Sprint.class).isEnabled())
             sprintMode.getValue().setSprinting();
     };
 
@@ -33,7 +34,7 @@ public class Sprint extends Module {
         Omni(() -> mc.thePlayer.setSprinting(true)),
         Legit(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true));
 
-        private IVoidFunction v;
+        private final IVoidFunction v;
         sMode(IVoidFunction v) {
             this.v = v;
         }

@@ -1,6 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.module.ModuleManager;
+import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
@@ -29,7 +29,8 @@ public abstract class MixinItemRenderer {
 
     @Redirect(method = "renderItemInFirstPerson", at = @At(value ="INVOKE", target = "Lnet/minecraft/client/renderer/ItemRenderer;transformFirstPersonItem(FF)V"))
     public void mixinBlockHit(ItemRenderer instance, float equipProgress, float swingProgress) {
-        if(mc.thePlayer.isBlocking() && ((AutoBlock)ModuleManager.Modules.AUTOBLOCK.getModule()).shouldBlock())
+        AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
+        if(mc.thePlayer.isBlocking() && autoBlock.isEnabled())
             swingProgress = TickMode.SINE.toSmoothPercent(mc.thePlayer.getSwingProgress(partialTicks));
         transformFirstPersonItem(equipProgress, swingProgress);
     }

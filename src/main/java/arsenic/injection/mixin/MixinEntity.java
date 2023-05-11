@@ -8,14 +8,12 @@ import arsenic.module.impl.world.SafeWalk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Vec3;
-import org.lwjgl.Sys;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -57,7 +55,7 @@ public abstract class MixinEntity {
         //flag = this.onGround && this.isSneaking() && this instanceof EntityPlayer;
         if((Object) this != Minecraft.getMinecraft().thePlayer)
             return flag;
-        SafeWalk safeWalk = (SafeWalk) ModuleManager.Modules.SAFEWALK.getModule();
+        SafeWalk safeWalk = Arsenic.getArsenic().getModuleManager().getModuleByClass(SafeWalk.class);
         if(!safeWalk.isEnabled())
             return flag;
         return safeWalk.mixinResult(flag);

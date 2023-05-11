@@ -7,18 +7,10 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.java.SoundUtils;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.network.play.client.C07PacketPlayerDigging;
-import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
-import net.minecraft.network.play.client.C09PacketHeldItemChange;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumFacing;
-import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 
 import java.util.concurrent.ExecutorService;
