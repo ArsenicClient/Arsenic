@@ -38,7 +38,7 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
         super(p_i45074_1_, p_i45074_2_);
     }
 
-    @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"))
+    @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerPre(CallbackInfo ci) {
         cachedX = posX;
         cachedY = posY;
@@ -51,6 +51,10 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
 
         EventUpdate event = new EventUpdate.Pre(posX, posY, posZ, rotationYaw, rotationPitch, onGround);
         Arsenic.getInstance().getEventManager().post(event);
+        if(event.isCancelled()) {
+            ci.cancel();
+            return;
+        }
 
         posX = event.getX();
         posY = event.getY();

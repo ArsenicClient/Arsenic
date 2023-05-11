@@ -1,8 +1,8 @@
 package arsenic.event.impl;
 
-import arsenic.event.types.Event;
+import arsenic.event.types.CancellableEvent;
 
-public class EventUpdate implements Event {
+public class EventUpdate extends CancellableEvent {
 
     private double x, y, z;
     private float yaw, pitch;
