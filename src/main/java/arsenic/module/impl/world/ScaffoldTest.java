@@ -46,17 +46,5 @@ public class ScaffoldTest extends Module {
 
         event.setSpeed(180f);
         event.setPitch(83 - pitchd);
-
-        if (place.getValue()) {
-            BlockPos placePos = new BlockPos((int) Math.floor(mc.thePlayer.getPositionVector().xCoord),(int) Math.floor(mc.thePlayer.getPositionVector().yCoord) - 1,(int) Math.floor(mc.thePlayer.getPositionVector().zCoord));
-            if (mc.thePlayer.getHeldItem() != null) {
-                ItemStack heldItem = mc.thePlayer.getHeldItem();
-                if (PlayerUtils.playerOverAir() && heldItem.getItem() instanceof ItemBlock) {
-                    C08PacketPlayerBlockPlacement packet = new C08PacketPlayerBlockPlacement(
-                            placePos, EnumFacing.UP.getIndex(), null, 0, 0, 0);
-                    Minecraft.getMinecraft().getNetHandler().addToSendQueue(packet);
-                }
-            }
-        }
     };
 }

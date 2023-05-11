@@ -29,9 +29,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             themeList.add(lilith);
         }
         if(getContentByJsonKey("Test") == null) {
-            Theme test = new Theme("Test", 0xFFFFFFFF, new Color(0xFFFFFFFF, true).darker().getRGB(), 0xFFFFFFFF, 0xFF494949);
+            Theme test = new Theme("Test", 0xFFFFFFFF, new Color(0xFFFFFFFF, true).darker().getRGB(), 0xFF494949, 0xFFFFFFFF);
             themeList.add(test);
         }
+        currentTheme = getContentByJsonKey("Arsenic");
         return themeList.size();
     }
 
@@ -52,21 +53,12 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        System.out.println("loading theme manager from json");
         JsonElement jsonElement = obj.get("currentTheme");
         if(jsonElement != null) {
-            System.out.println("setting current theme to " + jsonElement.getAsString());
             Theme theme = getContentByJsonKey(jsonElement.getAsString());
             if(theme != null) {
-                System.out.println("set current theme to " + jsonElement.getAsString() + "!");
                 setCurrentTheme(theme);
             }
-        }
-        if(currentTheme == null) {
-            System.out.println("setting current theme to Arsenic");
-            System.out.println(getContents().stream().map(Theme::getJsonKey).collect(Collectors.toList()));
-            setCurrentTheme(getContentByJsonKey("Arsenic"));
-            System.out.println("set current theme to + " + currentTheme.getJsonKey());
         }
     }
 

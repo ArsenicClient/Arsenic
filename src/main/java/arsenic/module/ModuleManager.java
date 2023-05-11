@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.blatant.Timer;
 import arsenic.module.impl.client.AntiBot;
@@ -14,6 +15,7 @@ import arsenic.module.impl.misc.Blink;
 import arsenic.module.impl.misc.CustomFOV;
 import arsenic.module.impl.misc.Sprint;
 import arsenic.module.impl.movement.Flight;
+import arsenic.module.impl.movement.Speed;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
@@ -53,7 +55,9 @@ public class ModuleManager {
                 InvManager.class,
                 NewHud.class,
                 Timer.class,
-                Aura.class);
+                Aura.class,
+                AutoBlock.class,
+                Speed.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();

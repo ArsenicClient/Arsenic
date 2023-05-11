@@ -47,11 +47,11 @@ public class NoSlow extends Module {
     }
 
     @EventLink
-    public final Listener<EventUpdate.Pre> eventPacketPre = event -> {
-        if(slowMode.getValue() != sMode.HYPIXEL && mc.thePlayer.isUsingItem() && mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword)
+    public final Listener<EventUpdate.Post> eventPacketPre = event -> {
+        if(slowMode.getValue() != sMode.HYPIXEL || !mc.thePlayer.isUsingItem() || mc.thePlayer.getHeldItem() == null || !(mc.thePlayer.getHeldItem().getItem() instanceof ItemSword))
             return;
-        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange((mc.thePlayer.inventory.currentItem + 1) % 9));
-        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem + 1));
+        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem % 8 + 1));
+        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
     };
 
     @EventLink

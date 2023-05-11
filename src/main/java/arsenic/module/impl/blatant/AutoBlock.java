@@ -18,14 +18,13 @@ import org.lwjgl.input.Mouse;
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)
 public class AutoBlock extends Module {
 
-    public EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.HYPIXEL) {
+    public EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.VANILLA) {
         @Override
         public void onValueUpdate() {
             switch(getValue()) {
                 case VANILLA:
                     block = true;
                     break;
-                case HYPIXEL:
                 case LEGITSEMI:
                 case LEGITSPAM:
                     block = false;
@@ -44,33 +43,24 @@ public class AutoBlock extends Module {
     public final Listener<EventTick> eventTickListener = eventTick -> {
         switch(blockMode.getValue()) {
             case VANILLA:
-                if(Mouse.isButtonDown(1)) {
-                    if(mc.gameSettings.keyBindUseItem.isKeyDown())
+                if (Mouse.isButtonDown(1)) {
+                    if (mc.gameSettings.keyBindUseItem.isKeyDown())
                         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
                 }
                 break;
             case LEGITSPAM:
-                if(Mouse.isButtonDown(1)) {
-                    if(mc.gameSettings.keyBindUseItem.isKeyDown())
+                if (Mouse.isButtonDown(1)) {
+                    if (mc.gameSettings.keyBindUseItem.isKeyDown())
                         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
                     KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
                 }
                 break;
             case LEGITSEMI:
-                if(Mouse.isButtonDown(1)) {
-                    if(mc.gameSettings.keyBindUseItem.isKeyDown())
+                if (Mouse.isButtonDown(1)) {
+                    if (mc.gameSettings.keyBindUseItem.isKeyDown())
                         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
-                    if(!mc.gameSettings.keyBindAttack.isKeyDown())
+                    if (!mc.gameSettings.keyBindAttack.isKeyDown())
                         KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
-                }
-                break;
-            case HYPIXEL:
-                if(!block && Mouse.isButtonDown(1)) {
-                    block = true;
-                    mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
-                } else if (block && !Mouse.isButtonDown(1)) {
-                    mc.getNetHandler().addToSendQueue(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-                    block = false;
                 }
                 break;
         }
@@ -84,7 +74,6 @@ public class AutoBlock extends Module {
 
     public enum bMode {
         VANILLA,
-        HYPIXEL,
         LEGITSPAM,
         LEGITSEMI
     }
