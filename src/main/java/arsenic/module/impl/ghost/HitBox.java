@@ -33,9 +33,17 @@ public class HitBox extends Module {
 
     public final BooleanProperty showNewHitbox = new BooleanProperty("Show new Hitboxes", false);
     public final BooleanProperty fix = new BooleanProperty("packet fix (WIP)", false);
+    public final BooleanProperty AntiRetard = new BooleanProperty("Warning", true);
 
     public double getExpand() {
         return isEnabled() ? expand.getValue().getInput() : 0;
+    }
+
+    @Override
+    protected void onEnable() {
+        if (AntiRetard.getValue()) {
+            PlayerUtils.addWaterMarkedMessageToChat("HITBOXES BAN ON HYPIXEL DO NOT USE THEM ON THERE");
+        }
     }
 
     @EventLink
@@ -80,7 +88,7 @@ public class HitBox extends Module {
                 PlayerUtils.addWaterMarkedMessageToChat(packet.getHitVec().xCoord + " " + packet.getHitVec().yCoord + " " + packet.getHitVec().zCoord);
                 //Should check if the entity is a player
                 //then restrict x & z to +-0.4 and y to 0-2
-                //kinda strange tho since you can only tell if its a right click not if its an attack lol
+                //kinda strange tho since you can only tell if it's a right click not if it's an attack lol
                 //iPacket.setHitVec(new Vec3(x,y,z));
             }
         }
