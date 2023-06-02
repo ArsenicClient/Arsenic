@@ -55,8 +55,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
 
-        // makes whole screen slightly darker
-        // to be replaced with a blur
+        // blurs the bg
         BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent(), height, width);
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 

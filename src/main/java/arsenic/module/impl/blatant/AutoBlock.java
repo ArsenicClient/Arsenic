@@ -3,10 +3,18 @@ package arsenic.module.impl.blatant;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.ghost.AutoClicker;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.functionalinterfaces.INoParamFunction;
+import arsenic.utils.functionalinterfaces.IOneParamVoidFunction;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
@@ -18,7 +26,7 @@ import org.lwjgl.input.Mouse;
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)
 public class AutoBlock extends Module {
 
-    public EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.VANILLA) {
+    public final EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.VANILLA) {
         @Override
         public void onValueUpdate() {
             switch(getValue()) {
@@ -32,8 +40,12 @@ public class AutoBlock extends Module {
             }
         }
     };
-    private boolean block;
 
+    public final EnumProperty<bMode2> downMode = new EnumProperty<>("DownMode: ", bMode2.ONCLICK);
+    public final DoubleProperty distance = new DoubleProperty("Distance", new DoubleValue(0, 6, 4, 0.1));
+
+
+    private boolean block;
     @Override
     protected void postApplyConfig() {
         blockMode.onValueUpdate();
@@ -42,12 +54,6 @@ public class AutoBlock extends Module {
     @EventLink
     public final Listener<EventTick> eventTickListener = eventTick -> {
         switch(blockMode.getValue()) {
-            case VANILLA:
-                if (Mouse.isButtonDown(1)) {
-                    if (mc.gameSettings.keyBindUseItem.isKeyDown())
-                        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
-                }
-                break;
             case LEGITSPAM:
                 if (Mouse.isButtonDown(1)) {
                     if (mc.gameSettings.keyBindUseItem.isKeyDown())
@@ -64,17 +70,36 @@ public class AutoBlock extends Module {
                 }
                 break;
         }
+        if(isHoldingSword())
+            downMode.getValue().doThing();
     };
 
+    public boolean isHoldingSword() {
+        return mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword;
+    }
+
     public boolean shouldBlock() {
-        if(mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemSword)
-            return block;
-        return false;
+        return isHoldingSword() && block;
     }
 
     public enum bMode {
         VANILLA,
         LEGITSPAM,
         LEGITSEMI
+    }
+
+    public enum bMode2 {
+        ONCLICK(() -> {}),
+        ONLMB(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), Mouse.isButtonDown(0))),
+        DISTANCE(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), PlayerUtils.getClosestPlayerWithin(Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class).distance.getValue().getInput()) != null));
+
+        private final IVoidFunction b;
+        bMode2(IVoidFunction b) {
+            this.b = b;
+        }
+
+        public void doThing() {
+            b.voidFunction();
+        }
     }
 }

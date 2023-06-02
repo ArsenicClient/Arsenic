@@ -20,7 +20,8 @@ public class PlayerUtils {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void addMessageToChat(String msg) {
-        mc.thePlayer.addChatMessage(new ChatComponentText(msg));
+        if(mc.thePlayer != null)
+            mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
 
     public static void addWaterMarkedMessageToChat(Object object) {
@@ -37,9 +38,9 @@ public class PlayerUtils {
         return new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
     }
 
-    public static Entity getClosestPlayerWithin(double distance) {
-        Entity target = null;
-        for(Entity entity : mc.theWorld.loadedEntityList) {
+    public static EntityPlayer getClosestPlayerWithin(double distance) {
+        EntityPlayer target = null;
+        for(EntityPlayer entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if(entity != mc.thePlayer && tempDistance <= distance) {
                 target = entity;

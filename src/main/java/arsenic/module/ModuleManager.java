@@ -9,6 +9,7 @@ import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.blatant.Timer;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.combat.Aura;
+import arsenic.module.impl.combat.AutoSpacer;
 import arsenic.module.impl.combat.Criticals;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.Blink;
@@ -57,7 +58,8 @@ public class ModuleManager {
                 Timer.class,
                 Aura.class,
                 AutoBlock.class,
-                Speed.class);
+                Speed.class,
+                AutoSpacer.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
