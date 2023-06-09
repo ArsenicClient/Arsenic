@@ -5,6 +5,15 @@ public class Timer {
     private long coolDownTime;
     private boolean finishChecked;
 
+    public Timer() {
+        this.coolDownTime = 1000; //arbitrary number
+    }
+
+    public Timer(long coolDownTime) {
+        this.coolDownTime = coolDownTime;
+    }
+
+
     public void start() {
         startTime = System.currentTimeMillis();
         finishChecked = false;
@@ -15,12 +24,13 @@ public class Timer {
     }
 
     public boolean firstFinish() {
-        if (hasFinished() || finishChecked) {
+        if (hasFinished() && !finishChecked) {
             finishChecked = true;
             return true;
         }
         return false;
     }
+
 
     public void setCooldown(long coolDownTime) { this.coolDownTime = coolDownTime; }
 

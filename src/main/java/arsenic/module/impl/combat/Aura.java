@@ -3,6 +3,7 @@ package arsenic.module.impl.combat;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -24,25 +25,36 @@ public class Aura extends Module {
     public final EnumProperty<rotMode> mode = new EnumProperty<>("Mode: ", rotMode.Silent);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(0, 6, 3, 0.1));
     public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
+
+    private final Timer attackTimer = new Timer(1000);
     //public final DoubleProperty rotSpeed = new DoubleProperty("Rotation speed", new DoubleValue(0, 20, 10, 1));
     @EventLink
-    public final Listener<EventRender2D> eventRender2DListenerk = event -> {
-        if (mc.thePlayer != null && mc.theWorld != null) {
-            Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
-            if (rotate.getValue() && target != null) {
-                float[] rotations = RotationUtils.getRotations(mc.thePlayer.getPositionVector(), target.getPositionVector());
-                if (mode.equals(rotMode.LockView)) {
+    public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
+        if(mc.thePlayer == null || mc.theWorld == null)
+            return;
+
+        Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
+
+        if (target == null)
+            return;
+
+        if(rotate.getValue()) {
+            float[] rotations = RotationUtils.getRotations(mc.thePlayer.getPositionVector(), target.getPositionVector());
+            switch(mode.getValue()) {
+                case Silent:
+                    event.setYaw(rotations[0]);
+                    event.setPitch(rotations[1]);
+                    break;
+                case LockView:
                     mc.thePlayer.rotationYaw = rotations[0];
                     mc.thePlayer.rotationPitch = rotations[1];
-                }
-                if (mode.equals(rotMode.Silent)) {
-                    mc.getNetHandler().addToSendQueue(new S08PacketPlayerPosLook());
-                }
             }
-            if (target != null) {
-                mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
-                mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
-            }
+        }
+
+        if(attackTimer.firstFinish()) {
+            mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
+            mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
+            attackTimer.start();
         }
     };
 
