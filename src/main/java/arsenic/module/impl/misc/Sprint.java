@@ -7,7 +7,6 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.ModuleManager;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import net.minecraft.client.settings.KeyBinding;

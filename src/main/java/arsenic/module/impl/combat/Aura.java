@@ -12,6 +12,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
+import arsenic.utils.timer.Timer;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C0APacketAnimation;
@@ -22,13 +23,10 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 public class Aura extends Module {
     public final EnumProperty<rotMode> mode = new EnumProperty<>("Mode: ", rotMode.Silent);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(0, 6, 3, 0.1));
-    public final DoubleProperty delay = new DoubleProperty("Delay", new DoubleValue(0, 1000, 300, 1));
     public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
     //public final DoubleProperty rotSpeed = new DoubleProperty("Rotation speed", new DoubleValue(0, 20, 10, 1));
     @EventLink
     public final Listener<EventRender2D> eventRender2DListenerk = event -> {
-        double time = 0;
-        double delaytime = time + delay.getValue().getInput() / 1000;
         if (mc.thePlayer != null && mc.theWorld != null) {
             Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
             if (rotate.getValue() && target != null) {
@@ -41,13 +39,13 @@ public class Aura extends Module {
                     mc.getNetHandler().addToSendQueue(new S08PacketPlayerPosLook());
                 }
             }
-            if (target != null && time <= delaytime) {
+            if (target != null) {
                 mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
                 mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
-                time = System.currentTimeMillis();
             }
         }
     };
+
     public enum rotMode {
         Silent,
         LockView
