@@ -59,7 +59,8 @@ public class ModuleManager {
                 Aura.class,
                 AutoBlock.class,
                 Speed.class,
-                AutoSpacer.class);
+                AutoSpacer.class,
+                TargetHud.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
