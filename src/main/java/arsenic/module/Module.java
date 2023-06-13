@@ -55,14 +55,14 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     //sigmas gonna kill me
     public final void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
-            try {
-                Property<?> property = (Property<?>) field.get(this);
-                if(property == null) continue;
-                properties.add(property);
+            Object fieldObject = field.get(this);
+            if(!(fieldObject instanceof Property<?>) || fieldObject == null)
+                continue;
+
+            Property<?> property = (Property<?>) fieldObject;
+            properties.add(property);
+            if(property instanceof SerializableProperty<?>)
                 serializableProperties.add((SerializableProperty<?>) property);
-            } catch (ClassCastException e) {
-                //ignored
-            }
         }
         for (final Field field : getClass().getDeclaredFields()) {
             try {

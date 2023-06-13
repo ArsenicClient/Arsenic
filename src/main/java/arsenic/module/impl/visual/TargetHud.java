@@ -8,6 +8,8 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.combat.Aura;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -17,8 +19,6 @@ import net.minecraft.util.EnumChatFormatting;
 
 @ModuleInfo(name = "TargetHud", category = ModuleCategory.CLIENT)
 public class TargetHud extends Module {
-
-    int enabledColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
 
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
@@ -31,7 +31,7 @@ public class TargetHud extends Module {
             return;
         }
 
-        DrawUtils.drawRect(12.5f, 25, 25, 1 , enabledColor);
+        DrawUtils.drawRect(12.5f, 25, 25, 1 , Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor());
         fr.drawStringWithShadow("HP: " + EnumChatFormatting.WHITE + target.getName(), 1, 30 , ColorUtils.getThemeRainbowColor(4,0));
     };
 }
