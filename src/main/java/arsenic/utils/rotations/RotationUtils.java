@@ -17,7 +17,7 @@ public class RotationUtils extends UtilityClass {
         final float diffX = (float) (from.xCoord - to.xCoord);
         final float diffZ = (float) (from.zCoord - to.zCoord);
         final float dist = MathHelper.sqrt_double((diffX * diffX) + (diffZ * diffZ));
-        final float pitch = 90f - (float) Math.abs(Math.toDegrees(Math.atan(dist/diffY)));
+        final float pitch = (float) Math.toDegrees(Math.atan2(diffY, dist));
         final float yaw = (float) MathHelper.wrapAngleTo180_double(Math.toDegrees(Math.atan2(diffZ, diffX)) + 90f);
         return new float[] {yaw, pitch};
     }
