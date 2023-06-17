@@ -2,7 +2,8 @@ package arsenic.utils.render;
 
 import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.java.UtilityClass;
-import org.lwjgl.opengl.GL11;
+
+import static org.lwjgl.opengl.GL11.*;
 
 public class DrawUtils extends UtilityClass {
 
@@ -15,16 +16,16 @@ public class DrawUtils extends UtilityClass {
         float finalY1 = y1 * 2f;
 
         drawCustom(color, () -> {
-            GL11.glVertex2d(finalX, finalY1);
-            GL11.glVertex2d(finalX1, finalY1);
-            GL11.glVertex2d(finalX1, finalY);
-            GL11.glVertex2d(finalX, finalY);
+            glVertex2d(finalX, finalY1);
+            glVertex2d(finalX1, finalY1);
+            glVertex2d(finalX1, finalY);
+            glVertex2d(finalX, finalY);
         });
     }
 
     public static void drawCustom(int color, IVoidFunction v) {
         setup(color);
-        GL11.glBegin(9);
+        glBegin(9);
         v.voidFunction();
         finish();
     }
@@ -62,7 +63,7 @@ public class DrawUtils extends UtilityClass {
     private static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
                                     int finalRotation) {
         for (int i = originalRotation; i <= finalRotation; i += 1)
-            GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * Math.PI) / 180.0) * radius * pn),
+            glVertex2d(x + (radius * -pn) + (Math.sin((i * Math.PI) / 180.0) * radius * pn),
                     y + (radius * pn2) + (Math.cos((i * Math.PI) / 180.0) * radius * pn));
     }
 
@@ -70,22 +71,22 @@ public class DrawUtils extends UtilityClass {
         if (round[0])
             roundHelper(x, y, radius, -1, 1, 0, 90);
         else
-            GL11.glVertex2d(x, y);
+            glVertex2d(x, y);
 
         if (round[1])
             roundHelper(x, y1, radius, -1, -1, 90, 180);
         else
-            GL11.glVertex2d(x, y1);
+            glVertex2d(x, y1);
 
         if (round[2])
             roundHelper(x1, y1, radius, 1, -1, 0, 90);
         else
-            GL11.glVertex2d(x1, y1);
+            glVertex2d(x1, y1);
 
         if (round[3])
             roundHelper(x1, y, radius, 1, 1, 90, 180);
         else
-            GL11.glVertex2d(x1, y);
+            glVertex2d(x1, y);
     }
 
     public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color) {
@@ -136,44 +137,44 @@ public class DrawUtils extends UtilityClass {
         final float realHeight = (float) ((height)*Math.sqrt(3));
         DrawUtils.drawCustom(colour, () -> {
             if(realHeight > 0) {
-                GL11.glVertex2d(realX1, realY1);
-                GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
-                GL11.glVertex2d(realX1 + realWidth, realY1);
+                glVertex2d(realX1, realY1);
+                glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
+                glVertex2d(realX1 + realWidth, realY1);
             } else {
-                GL11.glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
-                GL11.glVertex2d(realX1, realY1);
-                GL11.glVertex2d(realX1 + realWidth, realY1);
+                glVertex2d(realX1 + (realWidth/2f), realY1 + realHeight);
+                glVertex2d(realX1, realY1);
+                glVertex2d(realX1 + realWidth, realY1);
             }
         });
     }
 
     private static void setup(int color) {
-        GL11.glScaled(0.5, 0.5, 0.5);
-        GL11.glPushAttrib(0);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glEnable(GL11.GL_LINE_SMOOTH);
+        glScaled(0.5, 0.5, 0.5);
+        glPushAttrib(0);
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
+        glEnable(GL_LINE_SMOOTH);
         RenderUtils.setColor(color);
     }
 
     private static void finish() {
-        GL11.glEnd();
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDisable(GL11.GL_LINE_SMOOTH);
-        GL11.glScalef(2f, 2f, 2f);
-        GL11.glPopAttrib();
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+        glDisable(GL_BLEND);
+        glDisable(GL_LINE_SMOOTH);
+        glScalef(2f, 2f, 2f);
+        glPopAttrib();
         RenderUtils.resetColor();
     }
 
     private static void setupOutline(int color, float borderSize) {
         setup(color);
-        GL11.glLineWidth(borderSize);
-        GL11.glBegin(2);
+        glLineWidth(borderSize);
+        glBegin(2);
     }
     private static void finishOutline() {
         finish();
-        GL11.glLineWidth(1.0f);
+        glLineWidth(1.0f);
     }
 
 }
