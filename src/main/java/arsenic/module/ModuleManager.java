@@ -4,30 +4,24 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.blatant.AutoBlock;
-import arsenic.module.impl.blatant.NoSlow;
-import arsenic.module.impl.blatant.Timer;
-import arsenic.module.impl.client.AntiBot;
-import arsenic.module.impl.combat.Aura;
-import arsenic.module.impl.combat.AutoSpacer;
-import arsenic.module.impl.combat.Criticals;
+import arsenic.module.impl.blatant.*;
+import arsenic.module.impl.client.*;
+import arsenic.module.impl.combat.*;
 import arsenic.module.impl.ghost.*;
-import arsenic.module.impl.misc.Blink;
-import arsenic.module.impl.misc.CustomFOV;
-import arsenic.module.impl.misc.Sprint;
-import arsenic.module.impl.movement.Flight;
-import arsenic.module.impl.movement.Speed;
+import arsenic.module.impl.misc.*;
+import arsenic.module.impl.movement.*;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class ModuleManager {
 
-    private final HashMap<Class<? extends Module>, Module> modules = new HashMap<>();
+    private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
 
     public final int initialize() {
 	if(modules.size() != 0)
