@@ -14,10 +14,6 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-
 @ModuleInfo(name = "Speed", category = ModuleCategory.MOVEMENT)
 public class Speed extends Module {
 
@@ -42,7 +38,7 @@ public class Speed extends Module {
     public final DoubleProperty speedMulti = new DoubleProperty("Speed multi", new DoubleValue(-2, 5, 0.98, 0.02));
     public final DoubleProperty friction = new DoubleProperty("Friction multi", new DoubleValue(-2, 5, 1, 0.04));
 
-    private boolean speed;
+    private long timeToDisable;
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
@@ -55,27 +51,19 @@ public class Speed extends Module {
         if(packet.getMotionX() + packet.getMotionZ() < bypass.getValue().getInput())
             return;
 
-        speed = true;
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            try {
-                Thread.sleep((long) time.getValue().getInput());
-            } catch (InterruptedException e) {}
-            if(mode.getValue() == sMode.ONHIT)
-                speed = false;
-        });
+	timeToDisable = System.currentTimeMillis() + ((long) time.getValue().getInput());
     };
 
     @EventLink
     public final Listener<EventMovementInput> eventMovementInputListener = event -> {
-        if(!speed || !mc.gameSettings.keyBindForward.isKeyDown())
+        if((mode.getValue() != sMode.ONHIT || System.currentTimeMillis() <= timeToDisable) || !mc.gameSettings.keyBindForward.isKeyDown())
             return;
         event.setSpeed((float) speedMulti.getValue().getInput());
     };
 
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
-        if(!speed)
+        if(mode.getValue() != sMode.ONHIT || System.curretTimeMills() <= timeToDisable)
             return;
         event.setFriction((float) (event.getFriction() * friction.getValue().getInput()));
     };
