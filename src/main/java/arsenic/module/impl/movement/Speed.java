@@ -12,25 +12,14 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.timer.Timer;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Speed", category = ModuleCategory.MOVEMENT)
 public class Speed extends Module {
 
-    public final EnumProperty<sMode> mode = new EnumProperty<sMode>("Mode: ", sMode.ONHIT) {
-        @Override
-        public void onValueUpdate() {
-            switch (getValue()) {
-                case NORMAL:
-                    speed = true;
-                    break;
-                case ONHIT:
-                    speed = false;
-                    break;
-            }
-        }
-    };
-
+    public final EnumProperty<sMode> mode = new EnumProperty<sMode>("Mode: ", sMode.ONHIT);
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
     public final DoubleProperty bypass = new DoubleProperty("bypass", new DoubleValue(0, 1, 0.1, 0.01));
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
@@ -38,7 +27,7 @@ public class Speed extends Module {
     public final DoubleProperty speedMulti = new DoubleProperty("Speed multi", new DoubleValue(-2, 5, 0.98, 0.02));
     public final DoubleProperty friction = new DoubleProperty("Friction multi", new DoubleValue(-2, 5, 1, 0.04));
 
-    private long timeToDisable;
+    private final Timer disableTimer = new Timer();
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
@@ -51,19 +40,22 @@ public class Speed extends Module {
         if(packet.getMotionX() + packet.getMotionZ() < bypass.getValue().getInput())
             return;
 
-	timeToDisable = System.currentTimeMillis() + ((long) time.getValue().getInput());
+	disableTimer.setCooldown((long) time.getValue().getInput());
+    disableTimer.start();
     };
 
     @EventLink
     public final Listener<EventMovementInput> eventMovementInputListener = event -> {
-        if((mode.getValue() != sMode.ONHIT || System.currentTimeMillis() <= timeToDisable) || !mc.gameSettings.keyBindForward.isKeyDown())
+        if(!mc.gameSettings.keyBindForward.isKeyDown())
+            return;
+        if(mode.getValue() == sMode.ONHIT && disableTimer.hasFinished())
             return;
         event.setSpeed((float) speedMulti.getValue().getInput());
     };
 
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
-        if(mode.getValue() != sMode.ONHIT || System.curretTimeMills() <= timeToDisable)
+        if(mode.getValue() == sMode.ONHIT && disableTimer.hasFinished())
             return;
         event.setFriction((float) (event.getFriction() * friction.getValue().getInput()));
     };
