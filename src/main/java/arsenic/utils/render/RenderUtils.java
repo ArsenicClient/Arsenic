@@ -16,6 +16,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.ResourceLocation;
 
+import static net.minecraft.client.renderer.GlStateManager.color;
+import static org.lwjgl.opengl.GL11.glColor4f;
+
 public class RenderUtils extends UtilityClass {
 
     public static void setColor(final int color) {
@@ -23,15 +26,15 @@ public class RenderUtils extends UtilityClass {
         final float r = ((color >> 16) & 0xFF) / 255.0f;
         final float g = ((color >> 8) & 0xFF) / 255.0f;
         final float b = (color & 0xFF) / 255.0f;
-        GL11.glColor4f(r, g, b, a);
+        glColor4f(r, g, b, a);
     }
 
     public static void resetColorText() {
-        GlStateManager.color(1f, 1f, 1f, 1f);
+        color(1f, 1f, 1f, 1f);
     }
 
     public static void resetColor() {
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        glColor4f(1f, 1f, 1f, 1f);
     }
 
     public static ResourceLocation getResourcePath(String s) {
