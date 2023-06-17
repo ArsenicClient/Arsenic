@@ -30,6 +30,9 @@ public class ModuleManager {
     private final HashMap<Class<? extends Module>, Module> modules = new HashMap<>();
 
     public final int initialize() {
+	if(modules.size() != 0)
+	    throw new RuntimeException("Double initialization of Module Manager.");
+
         addModule(FullBright.class,
                 Sprint.class,
                 HUD.class,
@@ -92,12 +95,13 @@ public class ModuleManager {
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
-        getModules().forEach(module -> {
-            if (event.getKeycode() == module.getKeybind()) {
-                module.setEnabled(!module.isEnabled());
-                saveConfig.set(true);
-            }
-        });
+
+	getModules().stream().filter(m -> m.getKeybind() == event.getKeycode())
+	    .forEach(m -> {
+		m.setEnabled(!m.isEnabled());
+		saveConfig.set(true);
+	    });
+
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
     };
 
