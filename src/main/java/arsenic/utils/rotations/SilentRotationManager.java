@@ -28,8 +28,7 @@ public class SilentRotationManager {
             return;
         }
 
-        if(rotation.hasBeenModified())
-            doMovementFix = rotation.doMovementFix();
+        doMovementFix = rotation.doMovementFix();
         speed = rotation.getSpeed();
 
         float yawDiff = RotationUtils.getYawDifference(rotation.getYaw(), yaw); //prevyaw

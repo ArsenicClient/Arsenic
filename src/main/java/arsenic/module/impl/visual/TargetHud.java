@@ -8,8 +8,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.combat.Aura;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.minecraft.PlayerUtils;
