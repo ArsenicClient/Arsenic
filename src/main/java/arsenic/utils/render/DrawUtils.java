@@ -62,8 +62,8 @@ public class DrawUtils extends UtilityClass {
     private static void roundHelper(float x, float y, float radius, int pn, int pn2, int originalRotation,
                                     int finalRotation) {
         for (int i = originalRotation; i <= finalRotation; i += 1)
-            GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * 3.141592653589793) / 180.0) * radius * pn),
-                    y + (radius * pn2) + (Math.cos((i * 3.141592653589793) / 180.0) * radius * pn));
+            GL11.glVertex2d(x + (radius * -pn) + (Math.sin((i * Math.PI) / 180.0) * radius * pn),
+                    y + (radius * pn2) + (Math.cos((i * Math.PI) / 180.0) * radius * pn));
     }
 
     private static void round(float x, float y, float x1, float y1, float radius, final boolean[] round) {
@@ -150,17 +150,17 @@ public class DrawUtils extends UtilityClass {
     private static void setup(int color) {
         GL11.glScaled(0.5, 0.5, 0.5);
         GL11.glPushAttrib(0);
-        GL11.glDisable(3553);
-        GL11.glEnable(3042);
-        GL11.glEnable(2848);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
         RenderUtils.setColor(color);
     }
 
     private static void finish() {
         GL11.glEnd();
-        GL11.glEnable(3553);
-        GL11.glDisable(3042);
-        GL11.glDisable(2848);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
         GL11.glScalef(2f, 2f, 2f);
         GL11.glPopAttrib();
         RenderUtils.resetColor();
