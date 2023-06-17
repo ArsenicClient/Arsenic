@@ -13,7 +13,7 @@ import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "Sprint",category = ModuleCategory.OTHER, keybind = Keyboard.KEY_V)
-//KEY_V more like KV
+//KEY_V more like KV // kv pls stop i beg
 public class Sprint extends Module {
     public final EnumProperty<sMode> sprintMode = new EnumProperty<>("Mode: ", sMode.Legit);
 
