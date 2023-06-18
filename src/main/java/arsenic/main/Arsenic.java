@@ -3,7 +3,9 @@ package arsenic.main;
 import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
+import arsenic.utils.render.NVGWrapper;
 import arsenic.utils.rotations.SilentRotationManager;
+import lombok.Getter;
 import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,9 @@ import arsenic.module.ModuleManager;
 import arsenic.utils.font.Fonts;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import org.lwjgl.nanovg.NanoVGGL3;
+
+import java.io.IOException;
 
 //to do
 // make velo have chance
@@ -37,6 +42,8 @@ public class Arsenic {
     private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
     private final ThemeManager themeManager = new ThemeManager();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
+    @Getter
+    private final NVGWrapper nvg = new NVGWrapper();
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
@@ -62,6 +69,19 @@ public class Arsenic {
 
         logger.info("Loaded {}.", clientName);
 
+        nvg.init();
+        try {
+//            nvg.initImage("arseniclogo", "png");
+//            nvg.initImage("lilithlogo", "png");
+
+            for (String font : new String[]{"black","bold","extrabold","extralight","light","medium","regular","semibold","thin"}) {
+                nvg.initFont(font, "ttf");
+            }
+            nvg.initFont("minecraft", "otf");
+            nvg.initFont("icons", "ttf");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getName() { return clientName; }
