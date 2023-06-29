@@ -96,6 +96,16 @@ dependencies {
         transitive = false
     }
 
+    implementation ("org.lwjgl:lwjgl:3.3.0:natives-macos") {
+        transitive = false
+    }
+    implementation ("org.lwjgl:lwjgl-tinyfd:3.3.0:natives-macos") {
+        transitive = false
+    }
+    implementation ("org.lwjgl:lwjgl-nanovg:3.3.0:natives-macos") {
+        transitive = false
+    }
+
     implementation 'org.jetbrains:annotations:23.0.0'
 
 }
