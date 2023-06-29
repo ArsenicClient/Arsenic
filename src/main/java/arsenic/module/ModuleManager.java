@@ -61,7 +61,8 @@ public class ModuleManager {
                 Speed.class,
                 AutoSpacer.class,
                 TargetHud.class,
-                ScaffoldTest2.class);
+                ScaffoldTest2.class,
+                FunnyModule.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
