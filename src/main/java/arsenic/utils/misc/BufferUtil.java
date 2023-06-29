@@ -1,8 +1,5 @@
 package arsenic.utils.misc;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.ResourceLocation;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -16,7 +13,12 @@ public class BufferUtil {
     public static ByteBuffer getResourceBytes(String resource, int bufferSize) throws IOException {
         ByteBuffer buffer;
         InputStream source = BufferUtil.class.getResourceAsStream("/assets/arsenic/" + resource);
-        ReadableByteChannel rbc = Channels.newChannel(source);
+        ReadableByteChannel rbc;
+        try {
+            rbc = Channels.newChannel(source);
+        } catch (Exception e) {
+            return null;
+        }
 
         buffer = createByteBuffer(bufferSize);
 

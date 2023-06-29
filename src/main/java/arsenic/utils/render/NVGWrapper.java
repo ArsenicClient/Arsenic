@@ -1,5 +1,6 @@
 package arsenic.utils.render;
 
+import arsenic.main.Arsenic;
 import arsenic.utils.misc.BufferUtil;
 import lombok.Getter;
 import org.lwjgl.input.Keyboard;
@@ -33,6 +34,10 @@ public class NVGWrapper {
 
     public void initFont(String fontName, String ext) throws IOException {
         ByteBuffer buff = BufferUtil.getResourceBytes("fonts/"+fontName+"."+ext, 1024);
+        if(buff == null) {
+            Arsenic.getArsenic().getLogger().info("Error loading {} font", fontName);
+            return;
+        }
         nvgCreateFontMem(cx, fontName, buff, 0);
         fonts.put(fontName,buff);
     }
