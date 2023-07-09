@@ -3,6 +3,7 @@ package arsenic.module.impl.world;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
+import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -10,8 +11,9 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IWeapon;
-import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.timer.Timer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.inventory.ContainerPlayer;
@@ -19,8 +21,6 @@ import net.minecraft.item.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @ModuleInfo(name = "InvManager", category = ModuleCategory.OTHER)
 public class InvManager extends Module {
@@ -33,52 +33,73 @@ public class InvManager extends Module {
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Close Delay", new RangeValue(0, 500, 75, 150, 1));
 
-    private ExecutorService executor;
+    private Timer timer = new Timer();
+    private boolean shouldSteal;
+    private List<Slot> path;
+
+    private IVoidFunction nextAction;
+
+    private final IVoidFunction closeAction = () -> {
+        if(closeOnFinish.getValue()) {
+            mc.thePlayer.closeScreen();
+        }
+    };
+    private final IVoidFunction stealAction = () -> {
+        if(!path.isEmpty()) {
+            Slot slot = path.remove(0);
+            if(slot.slot < 0) {
+                getStealAction().voidFunction();
+                return;
+            }
+            if(dontDrop.getValue() && slot.mode == 4) {
+                getStealAction().voidFunction();
+                return;
+            }
+            mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.mode, mc.thePlayer);
+            timer.setCooldown((int) delay.getValue().getRandomInRange());
+            nextAction = getStealAction();
+        } else {
+            timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
+            nextAction = closeAction;
+        }
+    };
+
+
+    //smh java trying to stop me from being an idiot >:(
+    private IVoidFunction getStealAction() {
+        return stealAction;
+    }
 
     //HEALTH WARNING INCOMING
 
     @EventLink
-    public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
-        if(mc.thePlayer == null || !(event.getGuiScreen() instanceof GuiContainer))
+    public final Listener<EventDisplayGuiScreen> guiDisplayListener = event -> {
+        if(mc.thePlayer == null || event.getGuiScreen() == null || mc.thePlayer.openContainer == null)
             return;
-        if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || event.getGuiScreen() == null) {
-            onDisable();
+        if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || !(event.getGuiScreen() instanceof GuiContainer))
             return;
-        }
-        onDisable();
+
         ContainerPlayer container = (ContainerPlayer) mc.thePlayer.openContainer;
-        executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            sleep((int) startDelay.getValue().getRandomInRange());
-            List<Slot> path = generatePath(container);
-            while(!path.isEmpty()) {
-                Slot slot = path.remove(0);
-                if(slot instanceof Slot.Armor)
-                    PlayerUtils.addWaterMarkedMessageToChat(slot.slot + " " + slot.mode);
-                if(slot.slot < 0)
-                    continue;
-                if(dontDrop.getValue() && slot.mode == 4)
-                    continue;
-                if(slot instanceof Slot.Armor)
-                    PlayerUtils.addWaterMarkedMessageToChat("buddy?");
-                mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.mode, mc.thePlayer);
-                sleep((int) delay.getValue().getRandomInRange());
-            }
-            if(closeOnFinish.getValue()) {
-                sleep((int) closeDelay.getValue().getRandomInRange());
-                mc.thePlayer.closeScreen();
-            }
-        });
+        path = generatePath(container);
+        shouldSteal = true;
+        timer.start();
+        timer.setCooldown((int) startDelay.getValue().getRandomInRange());
+        nextAction = stealAction;
+    };
+
+    @EventLink
+    public final Listener<EventTick> tickListener = event -> {
+        if(!shouldSteal)
+            return;
+        if(!timer.firstFinish())
+            return;
+        nextAction.voidFunction();
+        timer.start();
     };
 
     @Override
     protected void onDisable() {
-        if(executor != null)
-            executor.shutdownNow();
-    }
-
-    private void sleep(int ms) {
-        try {Thread.sleep(ms);} catch (InterruptedException ignored) {}
+        shouldSteal = false;
     }
 
 
@@ -124,7 +145,6 @@ public class InvManager extends Module {
                     continue;
                 if(!slot.isInPrefferedSlot()) {
                     for(ItemType itemType2 : ItemType.values()) {
-                        PlayerUtils.addWaterMarkedMessageToChat(slot.type + " " + slot.getClass());
                         Slot slot2 = itemType2.getBestItem(0);
                         if(slot2.slot == slot.getPrefferedSlot()) {
                             slot2.slot = slot.slot;
@@ -196,7 +216,6 @@ public class InvManager extends Module {
                 }
                 value = as.damageReduceAmount + (float) (pl * 0.6);
                 type = as.armorType;
-                PlayerUtils.addWaterMarkedMessageToChat(isInPrefferedSlot() + " " + value);
             }
 
             @Override

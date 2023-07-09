@@ -29,7 +29,6 @@
     "accessor.IMixinC02PacketUseEntity",
     "accessor.IMixinItemSword",
     "accessor.IMixinS12PacketEntityVelocity",
-    "mixin.MixinContainer",
     "mixin.MixinItemTool",
     "mixin.MixinWorld"
   ]
