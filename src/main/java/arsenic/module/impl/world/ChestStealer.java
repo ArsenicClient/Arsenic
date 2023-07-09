@@ -3,6 +3,7 @@ package arsenic.module.impl.world;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
+import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -12,8 +13,11 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.timer.Timer;
+import lombok.Getter;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -35,90 +39,73 @@ public class ChestStealer extends Module {
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
     public final BooleanProperty hideGui = new BooleanProperty("HideGui", false);
     public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);
-
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Close Delay", new RangeValue(0, 500, 75, 150, 1));
 
-
-    private ExecutorService executor;
-    public boolean inChest;
+    @Getter
+    private boolean inChest;
     private ArrayList<Slot> path = new ArrayList<>();
     private int totalSlots;
     private float percentStolen;
+    private final Timer timer = new Timer();
+    private ContainerChest chest;
 
-    public void draw(GuiContainer container) {
-        if(!inChest)
+    private IVoidFunction nextAction;
+    private final IVoidFunction closeAction = () -> {
+        mc.thePlayer.closeScreen();
+        inChest = false;
+    };
+
+    private final IVoidFunction stealAction = () -> {
+        if (path.isEmpty()) {
+            if(closeOnFinish.getValue()) {
+                timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
+                nextAction = closeAction;
+            }
+            inChest = false;
             return;
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        float textX = (container.width)/2f;
-        float textY = 2 * (container.height/3f);
-        int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
-        GlStateManager.color(1f,1f,1f, 1f);
-        RenderUtils.resetColorText();
-        String text = "Stealing (press escape to leave)";
-        fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
-        float fontWidth = fr.getWidth(text);
-        float fontHeight = fr.getHeight(text);
-        float x1 = textX - fontWidth/2f;
-        float y1 = textY + fontHeight;
-        float x2 = x1 + 1 + (fontWidth * percentStolen);
-        float y2 = textY + (2 * fontHeight);
-        float radius = (y2 - y1);
-        x2 = Math.max(x1 + radius, x2);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, color);
-    }
+        }
+        percentStolen = (totalSlots - path.size())/(float) (totalSlots);
+        mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
+        mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
+        timer.setCooldown((int) delay.getValue().getRandomInRange());
+    };
+
+    private final IVoidFunction startAction = () -> {
+        path = generatePath(chest);
+        totalSlots = path.size();
+        nextAction = stealAction;
+    };
 
 
     @EventLink
-    public final Listener<EventDisplayGuiScreen> eventDisplayGuiScreenListener = event -> {
-        if(event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest) {
-            if (executor != null)
-                executor.shutdownNow();
-            //mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, 1f, false);
-            executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
-                inChest = true;
-                ContainerChest chest = (ContainerChest) mc.thePlayer.openContainer;
-                percentStolen = 0;
-                path.clear();
-                sleep((int) startDelay.getValue().getRandomInRange());
-                path = generatePath(chest);
-                totalSlots = path.size();
-                while (mc.thePlayer.openContainer == chest) {
-                    if (path.isEmpty()) {
-                        if(closeOnFinish.getValue()) {
-                            sleep((int) closeDelay.getValue().getRandomInRange());
-                            mc.thePlayer.closeScreen();
-                            inChest = false;
-                        }
-                        return;
-                    }
-                    percentStolen = (totalSlots - path.size())/(float) (totalSlots);
-                    mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
-                    mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
-                    sleep((int) delay.getValue().getRandomInRange());
-                }
-            });
-        } else {
-            onChestClose();
+    public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
+        inChest = (event.getGuiScreen()instanceof GuiChest &&mc.thePlayer.openContainer instanceof ContainerChest);;
+        if(!inChest)
+            return;
+        chest = (ContainerChest) mc.thePlayer.openContainer;
+        percentStolen = 0;
+        path.clear();
+        timer.setCooldown((int) startDelay.getValue().getRandomInRange());
+        timer.start();
+        nextAction = startAction;
+    };
+
+
+    @EventLink
+    public final Listener<EventTick> tickListener = event -> {
+        if(!inChest)
+            return;
+
+        if(timer.hasFinished()) {
+            nextAction.voidFunction();
+            timer.start();
         }
     };
 
-    private void sleep(int ms) {
-        try {Thread.sleep(ms);} catch (InterruptedException ignored) {}
-    }
-
-    public void onChestClose() {
-        if(executor != null) {
-            inChest = false;
-            executor.shutdownNow();
-        }
-    }
-
-
     @Override
     protected void onDisable() {
-        onChestClose();
+        inChest = false;
     }
 
     //below is copied from raven b++ i will review this later
@@ -129,7 +116,7 @@ public class ChestStealer extends Module {
                 slots.add(new Slot(i));
         }
         Slot[] ss = sort(slots.toArray(new Slot[slots.size()]));
-        ArrayList<Slot> newSlots = new ArrayList<Slot>();
+        ArrayList<Slot> newSlots = new ArrayList<>();
         Collections.addAll(newSlots, ss);
         return newSlots;
     }
@@ -174,5 +161,27 @@ public class ChestStealer extends Module {
         public void visit() {
             visited = true;
         }
+    }
+
+    public void draw(GuiContainer container) {
+        if (!inChest)
+            return;
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        float textX = (container.width) / 2f;
+        float textY = 2 * (container.height / 3f);
+        int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        RenderUtils.resetColorText();
+        String text = "Stealing (press escape to leave)";
+        fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
+        float fontWidth = fr.getWidth(text);
+        float fontHeight = fr.getHeight(text);
+        float x1 = textX - fontWidth / 2f;
+        float y1 = textY + fontHeight;
+        float x2 = x1 + 1 + (fontWidth * percentStolen);
+        float y2 = textY + (2 * fontHeight);
+        float radius = (y2 - y1);
+        x2 = Math.max(x1 + radius, x2);
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, color);
     }
 }

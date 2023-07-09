@@ -56,7 +56,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         getFontRenderer().setScale(height/450f);
 
         // blurs the bg
-        BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent(), height, width);
+        //BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent(), height, width);
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
