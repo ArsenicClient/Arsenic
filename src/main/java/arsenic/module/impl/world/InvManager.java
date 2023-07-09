@@ -42,6 +42,7 @@ public class InvManager extends Module {
     private final IVoidFunction closeAction = () -> {
         if(closeOnFinish.getValue()) {
             mc.thePlayer.closeScreen();
+            mc.currentScreen = null;
         }
     };
     private final IVoidFunction stealAction = () -> {
@@ -74,6 +75,7 @@ public class InvManager extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> guiDisplayListener = event -> {
+        shouldSteal = false;
         if(mc.thePlayer == null || event.getGuiScreen() == null || mc.thePlayer.openContainer == null)
             return;
         if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || !(event.getGuiScreen() instanceof GuiContainer))
