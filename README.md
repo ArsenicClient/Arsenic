@@ -32,4 +32,6 @@ The bypasses/features are mainly meant for Hypixel
 - gradlew build
 - done!
 
-
+# everying broke please help
+contact either Kv (`@kv.dev`) or lily (`@nyaaaaaaaaaaaaaaaaaaa`) on discord and expect to get screamed at and/or called an idiot
+ 
