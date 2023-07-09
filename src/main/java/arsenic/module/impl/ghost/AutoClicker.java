@@ -15,11 +15,8 @@ import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.timer.Timer;
 import net.minecraft.client.settings.KeyBinding;
-import org.lwjgl.input.Mouse;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @ModuleInfo(name = "AutoClicker", category = ModuleCategory.GHOST)
 public class AutoClicker extends Module {
@@ -28,7 +25,6 @@ public class AutoClicker extends Module {
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
 
     private boolean mouseDown;
-    private int clickbutton;
     private Timer timer = new Timer();
     private ExecutorService executor;
     private IVoidFunction nextAction;
@@ -52,16 +48,13 @@ public class AutoClicker extends Module {
         return up;
     }
 
-    private int getKeyBindNeeded() {
-        return clickbutton == 0 ? mc.gameSettings.keyBindAttack.getKeyCode() : mc.gameSettings.keyBindUseItem.getKeyCode();
-    }
+    private int getKeyBindNeeded() { return mc.gameSettings.keyBindAttack.getKeyCode();}
 
     @EventLink
     public final Listener<EventMouse.Down> downEvent = event -> {
-        if(mc.currentScreen != null)
+        if(mc.currentScreen != null || event.button != 0)
             return;
         mouseDown = true;
-        clickbutton = event.button;
         nextAction = up;
         timer.start();
     };
@@ -71,7 +64,7 @@ public class AutoClicker extends Module {
 
     @EventLink
     public final Listener<EventMouse.Up> upEvent = event -> {
-        if(event.button != clickbutton)
+        if(event.button != 0)
             return;
         mouseDown = false;
     };
