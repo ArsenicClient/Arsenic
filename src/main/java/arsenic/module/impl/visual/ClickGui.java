@@ -19,14 +19,14 @@ public class ClickGui extends Module {
     private ClickGuiScreen screen;
 
     @Override
+    protected void postApplyConfig() {
+        screen = Arsenic.getArsenic().getClickGuiScreen();
+        screen.init(this);
+    }
+
+    @Override
     protected void onEnable() {
-        if (screen == null) {
-            screen = Arsenic.getArsenic().getClickGuiScreen();
-            screen.init(this);
-        }
-
         mc.displayGuiScreen(screen);
-
         setEnabled(false);
     }
 
