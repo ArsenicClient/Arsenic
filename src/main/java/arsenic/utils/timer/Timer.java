@@ -6,11 +6,12 @@ public class Timer {
     private boolean finishChecked;
 
     public Timer() {
-        this.coolDownTime = 1000; //arbitrary number
+        this(1000);
     }
 
     public Timer(long coolDownTime) {
         this.coolDownTime = coolDownTime;
+        startTime = Long.MAX_VALUE - coolDownTime;
     }
 
 
