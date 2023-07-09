@@ -61,8 +61,9 @@ public class ChestStealer extends Module {
             if(closeOnFinish.getValue()) {
                 timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
                 nextAction = closeAction;
+            } else {
+                inChest = false;
             }
-            inChest = false;
             return;
         }
         percentStolen = (totalSlots - path.size())/(float) (totalSlots);
