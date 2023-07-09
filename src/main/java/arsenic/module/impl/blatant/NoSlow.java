@@ -11,9 +11,12 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.functionalinterfaces.INoParamFunction;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import arsenic.utils.timer.Timer;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,25 +24,30 @@ import java.util.concurrent.Executors;
 @ModuleInfo(name = "NoSlow", category = ModuleCategory.BLATANT)
 public class NoSlow extends Module {
 
-    public EnumProperty<sMode> slowMode = new EnumProperty<sMode>("Mode: ", sMode.VANILLA) {
+    public final EnumProperty<sMode> slowMode = new EnumProperty<sMode>("Mode: ", sMode.VANILLA) {
         @Override
         public void onValueUpdate() {
             switch (getValue()) {
                 case ONHIT:
-                    slow = false;
+                    slow = () -> !timer.hasFinished();
                     break;
-                case VANILLA:
                 case HYPIXEL:
-                    slow = true;
+                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
+                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
+                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
+                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
+                case VANILLA:
+                    slow = () -> true;
                     break;
             }
         }
     };
 
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
-    public DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
+    public final DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
 
-    private boolean slow;
+    private INoParamFunction<Boolean> slow;
+    private final Timer timer = new Timer();
 
     @Override
     protected void postApplyConfig() {
@@ -57,20 +65,13 @@ public class NoSlow extends Module {
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
         if(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId() && slowMode.getValue() == sMode.ONHIT) {
-            slow = true;
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
-                try {
-                    Thread.sleep((long) time.getValue().getInput());
-                } catch (InterruptedException e) {}
-                if(slowMode.getValue() == sMode.ONHIT)
-                    slow = false;
-            });
+            timer.setCooldown((long) time.getValue().getInput());
+            timer.start();
         }
     };
 
     public boolean shouldNotSlow() {
-        return slow;
+        return slow.getValue();
     }
 
     public enum sMode {
