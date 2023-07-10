@@ -20,11 +20,11 @@ public class Timer extends Module {
 
     @Override
     protected void onEnable() {
-        ((IMixinMinecraft) mc).getTimer().timerSpeed = (float) multiplier.getValue().getInput();
+        mc.timer.timerSpeed = (float) multiplier.getValue().getInput();
     }
 
     @Override
     protected void onDisable() {
-        ((IMixinMinecraft) mc).getTimer().timerSpeed = 1f;
+        mc.timer.timerSpeed = 1f;
     }
 }
