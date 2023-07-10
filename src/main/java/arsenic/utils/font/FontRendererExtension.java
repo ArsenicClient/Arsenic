@@ -1,9 +1,10 @@
 package arsenic.utils.font;
 
-import arsenic.utils.functionalinterfaces.ITwoParamVoidFunction;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.render.PosInfo;
 import org.lwjgl.opengl.GL11;
+
+import java.util.function.BiConsumer;
 
 public class FontRendererExtension<T extends IFontRenderer>{
 
@@ -34,7 +35,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
         scaleReciprocal = 1f/scale;
     }
 
-    public ITwoParamVoidFunction<PosInfo, String> getScaleModifier(float scale) {
+    public BiConsumer<PosInfo, String> getScaleModifier(float scale) {
         return (posInfo, string) -> {
             this.tempScaleReciprocal = 1f/scale;
             this.tempScale = scale;
@@ -43,22 +44,22 @@ public class FontRendererExtension<T extends IFontRenderer>{
         };
     }
 
-    public final ITwoParamVoidFunction<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f));
-    public final ITwoParamVoidFunction<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f));
-    public final ITwoParamVoidFunction<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)));
-    private final ITwoParamVoidFunction<PosInfo, String> SCALE = (posInfo, string) -> {
+    public final BiConsumer<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f));
+    public final BiConsumer<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f));
+    public final BiConsumer<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)));
+    private final BiConsumer<PosInfo, String> SCALE = (posInfo, string) -> {
         posInfo.setX(posInfo.getX() * scaleReciprocal);
         posInfo.setY(posInfo.getY() * scaleReciprocal);
     };
 
-    public void drawString(String text, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
+    public void drawString(String text, float x, float y, int color, BiConsumer<PosInfo, String> ... modifiers) {
         PosInfo posInfo = new PosInfo(x, y);
         setup(posInfo, text, modifiers);
         fontRenderer.drawString(text, posInfo.getX(), posInfo.getY(), color);
         finsh();
     }
 
-    public void drawStringWithShadow(String text, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
+    public void drawStringWithShadow(String text, float x, float y, int color, BiConsumer<PosInfo, String> ... modifiers) {
         PosInfo posInfo = new PosInfo(x, y);
         setup(posInfo, text, modifiers);
         fontRenderer.drawStringWithShadow(text, posInfo.getX(), posInfo.getY(), color);
@@ -66,20 +67,20 @@ public class FontRendererExtension<T extends IFontRenderer>{
     }
 
     //issues with y values btw
-    public void drawWrappingString(String unSplitText, float x, float y, int color, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
+    public void drawWrappingString(String unSplitText, float x, float y, int color, BiConsumer<PosInfo, String> ... modifiers) {
         for(String text : unSplitText.split("\n")) {
             drawString(text, x, y, color, modifiers);
             y += fontRenderer.getHeight(text);
         }
     }
 
-    private void setup(PosInfo posInfo, String text, ITwoParamVoidFunction<PosInfo, String> ... modifiers) {
-        for(ITwoParamVoidFunction<PosInfo, String> modifier : modifiers) {
-            modifier.function(posInfo, text);
+    private void setup(PosInfo posInfo, String text, BiConsumer<PosInfo, String> ... modifiers) {
+        for(BiConsumer<PosInfo, String> modifier : modifiers) {
+            modifier.accept(posInfo, text);
         }
         float scale = tempScale * this.scale;
         if(scale != 1f) {
-            SCALE.function(posInfo, text);
+            SCALE.accept(posInfo, text);
             GL11.glScalef(scale, scale, scale);
         }
     }

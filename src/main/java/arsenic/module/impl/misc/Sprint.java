@@ -8,7 +8,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
@@ -33,13 +32,13 @@ public class Sprint extends Module {
         Omni(() -> mc.thePlayer.setSprinting(true)),
         Legit(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true));
 
-        private final IVoidFunction v;
-        sMode(IVoidFunction v) {
+        private final Runnable v;
+        sMode(Runnable v) {
             this.v = v;
         }
 
         public void setSprinting() {
-            v.voidFunction();
+            v.run();
         }
     }
 }

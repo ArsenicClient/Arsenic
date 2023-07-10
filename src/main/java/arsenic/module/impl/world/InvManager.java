@@ -11,7 +11,6 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IWeapon;
 import arsenic.utils.timer.Timer;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -37,23 +36,23 @@ public class InvManager extends Module {
     private boolean shouldSteal;
     private List<Slot> path;
 
-    private IVoidFunction nextAction;
+    private Runnable nextAction;
 
-    private final IVoidFunction closeAction = () -> {
+    private final Runnable closeAction = () -> {
         if(closeOnFinish.getValue()) {
             mc.thePlayer.closeScreen();
             mc.currentScreen = null;
         }
     };
-    private final IVoidFunction stealAction = () -> {
+    private final Runnable stealAction = () -> {
         if(!path.isEmpty()) {
             Slot slot = path.remove(0);
             if(slot.slot < 0) {
-                getStealAction().voidFunction();
+                getStealAction().run();
                 return;
             }
             if(dontDrop.getValue() && slot.mode == 4) {
-                getStealAction().voidFunction();
+                getStealAction().run();
                 return;
             }
             mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, slot.slot, slot.button, slot.mode, mc.thePlayer);
@@ -67,7 +66,7 @@ public class InvManager extends Module {
 
 
     //smh java trying to stop me from being an idiot >:(
-    private IVoidFunction getStealAction() {
+    private Runnable getStealAction() {
         return stealAction;
     }
 
@@ -95,7 +94,7 @@ public class InvManager extends Module {
             return;
         if(!timer.firstFinish())
             return;
-        nextAction.voidFunction();
+        nextAction.run();
         timer.start();
     };
 

@@ -10,7 +10,6 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemSword;
@@ -91,13 +90,13 @@ public class AutoBlock extends Module {
         ONLMB(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), Mouse.isButtonDown(0))),
         DISTANCE(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), PlayerUtils.getClosestPlayerWithin(Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class).distance.getValue().getInput()) != null));
 
-        private final IVoidFunction b;
-        bMode2(IVoidFunction b) {
+        private final Runnable b;
+        bMode2(Runnable b) {
             this.b = b;
         }
 
         public void doThing() {
-            b.voidFunction();
+            b.run();
         }
     }
 }

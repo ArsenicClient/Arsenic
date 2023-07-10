@@ -1,6 +1,5 @@
 package arsenic.utils.render;
 
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.java.UtilityClass;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -23,21 +22,21 @@ public class DrawUtils extends UtilityClass {
         });
     }
 
-    public static void drawCustom(int color, IVoidFunction v) {
+    public static void drawCustom(int color, Runnable v) {
         setup(color);
         glBegin(9);
-        v.voidFunction();
+        v.run();
         finish();
     }
 
 
     //no worke :(
-    public static void drawCustomOutline(int color, float borderWidth, IVoidFunction v) {
+    public static void drawCustomOutline(int color, float borderWidth, Runnable v) {
         setupOutline(color, borderWidth);
-        v.voidFunction();
+        v.run();
         finishOutline();
     }
-    public static void drawCustomWithOutline(int fillColour, int borderColour, float borderWidth, IVoidFunction v) {
+    public static void drawCustomWithOutline(int fillColour, int borderColour, float borderWidth, Runnable v) {
         drawCustom(fillColour, v);
         drawCustomOutline(borderColour, borderWidth, v);
     }

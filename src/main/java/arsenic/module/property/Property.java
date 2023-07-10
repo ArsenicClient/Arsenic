@@ -2,14 +2,15 @@ package arsenic.module.property;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.Module;
-import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.interfaces.IContainable;
+
+import java.util.function.Supplier;
 
 public abstract class Property<T> implements IContainable {
 
     protected T value;
     protected Module parent;
-    protected INoParamFunction<Boolean> visible = () -> true;
+    protected Supplier<Boolean> visible = () -> true;
 
     public final void setParent(Module parent) {
         this.parent = parent;
@@ -33,9 +34,9 @@ public abstract class Property<T> implements IContainable {
 
     }
 
-    public void setVisible(INoParamFunction<Boolean> visible) { this.visible = visible; }
+    public void setVisible(Supplier<Boolean> visible) { this.visible = visible; }
 
-    public boolean isVisible() { return visible.getValue(); }
+    public boolean isVisible() { return visible.get(); }
 
     public abstract PropertyComponent<?> createComponent();
 

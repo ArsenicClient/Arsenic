@@ -14,7 +14,6 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.functionalinterfaces.ITwoParamFunction;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
@@ -27,6 +26,7 @@ import org.lwjgl.input.Keyboard;
 import java.awt.*;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 @ModuleInfo(name = "NewHUD", category = ModuleCategory.CLIENT, keybind = Keyboard.KEY_U)
@@ -104,14 +104,14 @@ public class NewHud extends Module {
         THEME(ColorUtils::getThemeRainbowColor),
         RAINBOW(ColorUtils::getRainbow);
 
-        private final ITwoParamFunction<Integer> f;
+        private final BinaryOperator<Integer> f;
 
-        hMode(ITwoParamFunction<Integer> f) {
+        hMode(BinaryOperator<Integer> f) {
             this.f = f;
         }
 
         public int getColor(int speed, int delay) {
-            return f.function(speed, delay);
+            return f.apply(speed, delay);
         }
     }
 }

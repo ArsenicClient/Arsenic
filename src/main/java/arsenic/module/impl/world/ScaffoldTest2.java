@@ -10,7 +10,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -27,6 +26,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 
 @ModuleInfo(name = "scaffoldTest2", category = ModuleCategory.WORLD)
@@ -77,7 +77,7 @@ public class ScaffoldTest2 extends Module {
         if(lastOverBlock == null)
             return;
 
-        final HashMap<Double, INoParamFunction<float[]>> map = new HashMap<>();
+        final HashMap<Double, Supplier<float[]>> map = new HashMap<>();
 
         for(EnumFacing enumFacing : EnumFacing.values()) {
             if(enumFacing == EnumFacing.UP || enumFacing == EnumFacing.DOWN)
@@ -86,7 +86,7 @@ public class ScaffoldTest2 extends Module {
         }
 
         double lowestVal = map.keySet().stream().min(Comparator.naturalOrder()).get();
-        float[] rotations = map.get(lowestVal).getValue();
+        float[] rotations = map.get(lowestVal).get();
 
         if(Keyboard.isKeyDown(Keyboard.KEY_B)) {
             rotations = RotationUtils.getPlayerRotationsToBlock(lastOverBlock, EnumFacing.NORTH);
@@ -97,7 +97,7 @@ public class ScaffoldTest2 extends Module {
         event.setYaw(rotations[0]);
     };
 
-    private void helper2(HashMap<Double, INoParamFunction<float[]>> map, EnumFacing f) {
+    private void helper2(HashMap<Double, Supplier<float[]>> map, EnumFacing f) {
         map.put(helper(f), () -> RotationUtils.getPlayerRotationsToBlock(lastOverBlock, f));
     }
 

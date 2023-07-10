@@ -4,8 +4,6 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
-import arsenic.utils.functionalinterfaces.INoParamFunction;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
@@ -13,6 +11,8 @@ import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
+
+import java.util.function.Supplier;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
@@ -51,7 +51,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     }
 
     @Override
-    public INoParamFunction<Boolean> valueCheck(String value) {
+    public Supplier<Boolean> valueCheck(String value) {
         return () -> value.equals(this.value.name()) && isVisible();
     }
 
@@ -79,8 +79,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             boxHeight = boxY2 - boxY1;
             float maxBoxHeight = animationTimer.getPercent() * ((modes.length)  * boxHeight);
 
-            IVoidFunction render = () -> {
-
+            Runnable render = () -> {
                 //box
                 DrawUtils.drawBorderedRoundedRect(
                         boxX1,
@@ -125,7 +124,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             if(animationTimer.getPercent() > 0) {
                 Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList(render);
             } else {
-                render.voidFunction();
+                render.run();
             }
 
             return height;

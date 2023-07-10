@@ -5,7 +5,6 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
@@ -27,7 +26,7 @@ import java.util.stream.Collectors;
 public class ClickGuiScreen extends CustomGuiScreen {
     private ClickGui module;
     private List<UICategoryComponent> components;
-    private final List<IVoidFunction> renderLastList = new ArrayList<>();
+    private final List<Runnable> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
@@ -95,7 +94,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc.drawRight(piR, ri);
         cmcc.subtractFromMaxScrollHeight(y1 - hLineY);
 
-        renderLastList.forEach(IVoidFunction::voidFunction);
+        renderLastList.forEach(Runnable::run);
         renderLastList.clear();
 
         ScissorUtils.endSubScissor();
@@ -141,7 +140,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
     }
 
-    public void addToRenderLastList(IVoidFunction v) {
+    public void addToRenderLastList(Runnable v) {
         renderLastList.add(v);
     }
 

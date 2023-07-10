@@ -1,6 +1,6 @@
 package arsenic.utils.timer;
 
-import arsenic.utils.functionalinterfaces.IFunction;
+import java.util.function.UnaryOperator;
 
 public enum TickMode {
 
@@ -9,14 +9,14 @@ public enum TickMode {
     ROOT(input -> (float) Math.sqrt(input)),
     SQR(input -> input * input);
 
-    private final IFunction<Float> i;
+    private final UnaryOperator<Float> i;
 
-    TickMode(IFunction<Float> i) {
+    TickMode(UnaryOperator<Float> i) {
         this.i = i;
     }
 
     public float toSmoothPercent(float f) {
-        return i.getValue(f);
+        return i.apply(f);
     }
 
 }

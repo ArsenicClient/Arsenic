@@ -11,7 +11,6 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.timer.Timer;
 import net.minecraft.client.settings.KeyBinding;
@@ -27,9 +26,9 @@ public class AutoClicker extends Module {
     private boolean mouseDown;
     private Timer timer = new Timer();
     private ExecutorService executor;
-    private IVoidFunction nextAction;
+    private Runnable nextAction;
 
-    private IVoidFunction down =  () -> {
+    private Runnable down =  () -> {
         KeyBinding.setKeyBindState(getKeyBindNeeded(), true);
         KeyBinding.onTick(getKeyBindNeeded());
         if(playSound.getValue())
@@ -37,14 +36,14 @@ public class AutoClicker extends Module {
         nextAction = getUp();
         timer.setCooldown(genUpTime());
     };
-    private IVoidFunction up = () -> {
+    private Runnable up = () -> {
         KeyBinding.setKeyBindState(getKeyBindNeeded(), false);
         nextAction = down;
         timer.setCooldown(genDownTime());
     };
 
     //bypass forward referance aahhhh
-    private IVoidFunction getUp() {
+    private Runnable getUp() {
         return up;
     }
 
@@ -75,7 +74,7 @@ public class AutoClicker extends Module {
             return;
 
         if(timer.firstFinish()) {
-            nextAction.voidFunction();
+            nextAction.run();
             timer.start();
         }
     };

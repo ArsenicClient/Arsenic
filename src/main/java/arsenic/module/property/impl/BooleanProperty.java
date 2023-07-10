@@ -1,7 +1,6 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.ButtonComponent;
-import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.render.PosInfo;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,6 +10,8 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.render.RenderInfo;
+
+import java.util.function.Supplier;
 
 public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
 
@@ -30,7 +31,7 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     }
 
     @Override
-    public INoParamFunction<Boolean> valueCheck(String value) {
+    public Supplier<Boolean> valueCheck(String value) {
         return () -> Boolean.parseBoolean(value) == this.value && isVisible();
     }
 

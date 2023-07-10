@@ -13,7 +13,6 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.functionalinterfaces.IVoidFunction;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.Timer;
@@ -28,8 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 @ModuleInfo(name = "ChestStealer", category = ModuleCategory.WORLD)
@@ -50,13 +47,13 @@ public class ChestStealer extends Module {
     private final Timer timer = new Timer();
     private ContainerChest chest;
 
-    private IVoidFunction nextAction;
-    private final IVoidFunction closeAction = () -> {
+    private Runnable nextAction;
+    private final Runnable closeAction = () -> {
         mc.thePlayer.closeScreen();
         inChest = false;
     };
 
-    private final IVoidFunction stealAction = () -> {
+    private final Runnable stealAction = () -> {
         if (path.isEmpty()) {
             if(closeOnFinish.getValue()) {
                 timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
@@ -72,7 +69,7 @@ public class ChestStealer extends Module {
         timer.setCooldown((int) delay.getValue().getRandomInRange());
     };
 
-    private final IVoidFunction startAction = () -> {
+    private final Runnable startAction = () -> {
         path = generatePath(chest);
         totalSlots = path.size();
         nextAction = stealAction;
@@ -99,7 +96,7 @@ public class ChestStealer extends Module {
             return;
 
         if(timer.hasFinished()) {
-            nextAction.voidFunction();
+            nextAction.run();
             timer.start();
         }
     };

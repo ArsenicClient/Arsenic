@@ -11,15 +11,13 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.functionalinterfaces.INoParamFunction;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import arsenic.utils.timer.Timer;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 @ModuleInfo(name = "NoSlow", category = ModuleCategory.BLATANT)
 public class NoSlow extends Module {
@@ -46,7 +44,7 @@ public class NoSlow extends Module {
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
     public final DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
 
-    private INoParamFunction<Boolean> slow;
+    private Supplier<Boolean> slow;
     private final Timer timer = new Timer();
 
     @Override
@@ -71,7 +69,7 @@ public class NoSlow extends Module {
     };
 
     public boolean shouldNotSlow() {
-        return slow.getValue();
+        return slow.get();
     }
 
     public enum sMode {

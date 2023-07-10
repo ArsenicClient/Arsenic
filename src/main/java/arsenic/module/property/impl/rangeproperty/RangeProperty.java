@@ -3,7 +3,6 @@ package arsenic.module.property.impl.rangeproperty;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
-import arsenic.utils.functionalinterfaces.ITwoParamVoidFunction;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -11,6 +10,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.opengl.GL11;
+
+import java.util.function.BiConsumer;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
@@ -132,14 +133,14 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         MIN((rangeProperty, value) -> rangeProperty.getValue().setMin(value)),
         MAX((rangeProperty, value) -> rangeProperty.getValue().setMax(value));
 
-        private final ITwoParamVoidFunction<RangeProperty, Double> v;
+        private final BiConsumer<RangeProperty, Double> v;
 
-        Helping(ITwoParamVoidFunction<RangeProperty, Double> f) {
+        Helping(BiConsumer<RangeProperty, Double> f) {
             v = f;
         }
 
         private void setValue(RangeProperty r, double value) {
-            v.function(r,value);
+            v.accept(r,value);
         }
     }
 }
