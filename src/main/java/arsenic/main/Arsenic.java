@@ -1,36 +1,28 @@
 package arsenic.main;
 
+import arsenic.command.CommandManager;
+import arsenic.config.ConfigManager;
+import arsenic.event.EventManager;
 import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
+import arsenic.module.ModuleManager;
+import arsenic.utils.font.Fonts;
 import arsenic.utils.rotations.SilentRotationManager;
-import lombok.Getter;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import arsenic.command.CommandManager;
-import arsenic.config.ConfigManager;
-import arsenic.event.EventManager;
-import arsenic.module.ModuleManager;
-import arsenic.utils.font.Fonts;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
-//to do
-// make velo have chance
-// make custom font better
-// make the module component enable on left click & open on right click
-
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true)
+@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
 
     private final String clientName = "Arsenic";

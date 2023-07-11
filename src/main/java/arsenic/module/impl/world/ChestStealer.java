@@ -16,7 +16,6 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.Timer;
-import lombok.Getter;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -38,8 +37,6 @@ public class ChestStealer extends Module {
     public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);
     @PropertyInfo(reliesOn = "Close on finish", value = "true")
     public final RangeProperty closeDelay = new RangeProperty("Close Delay", new RangeValue(0, 500, 75, 150, 1));
-
-    @Getter
     private boolean inChest;
     private ArrayList<Slot> path = new ArrayList<>();
     private int totalSlots;
@@ -181,5 +178,9 @@ public class ChestStealer extends Module {
         float radius = (y2 - y1);
         x2 = Math.max(x1 + radius, x2);
         DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, color);
+    }
+
+    public boolean isInChest() {
+        return inChest;
     }
 }

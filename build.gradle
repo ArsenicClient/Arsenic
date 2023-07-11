@@ -68,18 +68,10 @@ configurations {
 }
 
 dependencies {
-
-    implementation 'org.jetbrains:annotations:23.0.0'
     embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
         exclude module: 'launchwrapper'
     }
-
-    compileOnly 'org.projectlombok:lombok:1.18.26'
-    annotationProcessor 'org.projectlombok:lombok:1.18.26'
-
-    testCompileOnly 'org.projectlombok:lombok:1.18.26'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
-
+    implementation 'org.jetbrains:annotations:23.0.0'
 }
 
 processResources {
@@ -103,8 +95,8 @@ mixin {
 
 shadowJar {
     dependencies {
-        include(dependency('org.spongepowered:mixin'))
-        include(dependency('org.jetbrains:annotations'))
+        include('org.spongepowered:mixin')
+        include('org.jetbrains:annotations')
     }
 
     classifier = 'full'
