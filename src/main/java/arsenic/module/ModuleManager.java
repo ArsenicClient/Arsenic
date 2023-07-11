@@ -3,7 +3,6 @@ package arsenic.module;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
-import arsenic.gui.demo.ScreenDemo;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.*;
 import arsenic.module.impl.client.*;
@@ -92,9 +91,6 @@ public class ModuleManager {
 
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
-        if(event.getKeycode() == Keyboard.KEY_RCONTROL)
-            Minecraft.getMinecraft().displayGuiScreen(new ScreenDemo());
-
         AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
 
 	getModules().stream().filter(m -> m.getKeybind() == event.getKeycode())

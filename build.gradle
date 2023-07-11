@@ -38,9 +38,6 @@ apply plugin: "com.github.johnrengelman.shadow"
 repositories {
     mavenLocal()
     mavenCentral()
-    maven {
-        url 'https://jitpack.io'
-    }
 
     maven {
         name = 'spongepowered-repo'
@@ -68,13 +65,11 @@ configurations {
     embed
     // Grabs what's extended/added on from/to embed and compiles it into the jar when being built.
     compile.extendsFrom embed
-    lwjgl
-    lwjglNative {
-        transitive = false
-    }
 }
 
 dependencies {
+
+    implementation 'org.jetbrains:annotations:23.0.0'
     embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
         exclude module: 'launchwrapper'
     }
@@ -84,29 +79,6 @@ dependencies {
 
     testCompileOnly 'org.projectlombok:lombok:1.18.26'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
-
-    implementation("com.github.Sol-Client:LWJGL-Patched:bf1d105853")
-    implementation ("org.lwjgl:lwjgl:3.3.0:natives-windows") {
-        transitive = false
-    }
-    implementation ("org.lwjgl:lwjgl-tinyfd:3.3.0:natives-windows") {
-        transitive = false
-    }
-    implementation ("org.lwjgl:lwjgl-nanovg:3.3.0:natives-windows") {
-        transitive = false
-    }
-
-    implementation ("org.lwjgl:lwjgl:3.3.0:natives-macos") {
-        transitive = false
-    }
-    implementation ("org.lwjgl:lwjgl-tinyfd:3.3.0:natives-macos") {
-        transitive = false
-    }
-    implementation ("org.lwjgl:lwjgl-nanovg:3.3.0:natives-macos") {
-        transitive = false
-    }
-
-    implementation 'org.jetbrains:annotations:23.0.0'
 
 }
 

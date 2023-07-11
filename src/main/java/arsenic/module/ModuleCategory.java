@@ -21,7 +21,7 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
     private
 
     ModuleCategory() {
-        name = name().substring(0, 1).toUpperCase() + name().substring(1);
+        name = name().substring(0, 1).toUpperCase() + name().substring(1).toLowerCase();
     }
 
     @Override
