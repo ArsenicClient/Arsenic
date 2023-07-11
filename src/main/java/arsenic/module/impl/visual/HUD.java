@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT)
 public class HUD extends Module {
 
-    public DoubleProperty test = new DoubleProperty("strength", new DoubleValue(0, 100, 5, 1));
+    public DoubleProperty test = new DoubleProperty("strength", new DoubleValue(1, 100, 5, 1));
 
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
