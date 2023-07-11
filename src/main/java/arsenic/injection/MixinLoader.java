@@ -17,7 +17,7 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 @IFMLLoadingPlugin.MCVersion(value = "1.8.9")
 public class MixinLoader implements IFMLLoadingPlugin {
     public MixinLoader() {
-        //unlockLwjgl();
+        unlockLwjgl();
         MixinBootstrap.init();
         Mixins.addConfiguration("mixins.arsenic.json");
         MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);

@@ -77,7 +77,7 @@ public class Arsenic {
 
         logger.info("Loaded {}.", clientName);
 
-        /*
+
         nvg.init();
         try {
 //            nvg.initImage("arseniclogo", "png");
@@ -90,7 +90,7 @@ public class Arsenic {
             nvg.initFont("icons", "ttf");
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } */
+        } 
     }
 
     public String getName() { return clientName; }
