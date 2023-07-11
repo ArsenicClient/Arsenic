@@ -22,6 +22,10 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.lwjgl.nanovg.NanoVGGL3;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 //to do
 // make velo have chance
@@ -48,12 +52,16 @@ public class Arsenic {
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
 
+        logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
+        logger.info("This is to get a guide on how many people are using the client it records zero data");
+
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         MinecraftForge.EVENT_BUS.register(new ForgeEvents());
         logger.info("Hooked forge events");
 
         getEventManager().subscribe(silentRotationManager);
+
         logger.info("Subscribed silent rotation manager");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
@@ -69,6 +77,7 @@ public class Arsenic {
 
         logger.info("Loaded {}.", clientName);
 
+        /*
         nvg.init();
         try {
 //            nvg.initImage("arseniclogo", "png");
@@ -81,7 +90,7 @@ public class Arsenic {
             nvg.initFont("icons", "ttf");
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        } */
     }
 
     public String getName() { return clientName; }
@@ -121,4 +130,17 @@ public class Arsenic {
     }
 
     public final ThemeManager getThemeManager() { return themeManager; }
+
+    //downloads an empty file lol
+    public boolean trackLaunch() {
+        AtomicBoolean success = new AtomicBoolean(true);
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                new URL("https://github.com/K-ov/LaunchTracker/releases/download/publish/ArsenicLaunch").openStream();
+            } catch (IOException e) {
+                success.set(false);
+            }
+        });
+        return success.get();
+    }
 }
