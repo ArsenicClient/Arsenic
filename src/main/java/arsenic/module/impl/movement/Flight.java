@@ -12,19 +12,42 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 @ModuleInfo(name = "Flight", category = ModuleCategory.MOVEMENT)
 
 public class Flight extends Module {
-    public final DoubleProperty speed = new DoubleProperty("Fly speed", new DoubleValue(0, 1, 0.05, 0.01));
+    public final DoubleProperty speed = new DoubleProperty("Horizontal speed", new DoubleValue(0, 10, 0.5, 0.1));
+    public final DoubleProperty speedy = new DoubleProperty("Vertical speed", new DoubleValue(0, 10, 0.5, 0.1));
+    private boolean move = false;
     @EventLink
     public final Listener<EventTick> onTick = event -> {
         if (mc.thePlayer != null) {
-            mc.thePlayer.capabilities.isFlying = true;
-            mc.thePlayer.capabilities.setFlySpeed((float) speed.getValue().getInput());
+            double a = getYaw(mc.thePlayer.moveForward, mc.thePlayer.moveStrafing) + 90;
+            double pit = Math.sin(Math.toRadians(a));
+            double yaw = Math.cos(Math.toRadians(a));
+
+            if (move){
+                mc.thePlayer.motionX = speed.getValue().getInput() *  yaw;
+                mc.thePlayer.motionZ = speed.getValue().getInput() * pit;
+            }
+            if (mc.gameSettings.keyBindJump.isKeyDown() && !mc.gameSettings.keyBindSneak.isKeyDown()) {
+                mc.thePlayer.motionY = speedy.getValue().getInput();
+            }
+            else mc.thePlayer.motionY = 0;
+
+            if (mc.gameSettings.keyBindSneak.isKeyDown() && !mc.gameSettings.keyBindJump.isKeyDown()) {
+                mc.thePlayer.motionY = -speedy.getValue().getInput();
+            }
         }
     };
-    @Override
-    protected void onDisable() {
-        if (mc.thePlayer != null) {
-            mc.thePlayer.capabilities.isFlying = false;
-            mc.thePlayer.capabilities.setFlySpeed((float) 0.05);
+    private double getYaw(double f, double s) {
+        double yaw = mc.thePlayer.rotationYaw;
+        if (f > 0) {
+            move = true;
+            yaw += s > 0 ? -45 : s < 0 ? 45 : 0;
+        } else if (f < 0) {
+            move = true;
+            yaw += s > 0 ? -135 : s < 0 ? 135 : 180;
+        } else {
+            move = s != 0;
+            yaw += s > 0 ? -90 : s < 0 ? 90 : 0;
         }
+        return yaw;
     }
 }
