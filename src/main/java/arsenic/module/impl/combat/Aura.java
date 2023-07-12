@@ -29,8 +29,10 @@ public class Aura extends Module {
 
     // If the Aura works well thank KassuK if it doesn't blame KV.
 
+    // This is not the best way to do the rots probably
+
     @EventLink
-    public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
+    public final Listener<EventUpdate.Pre> eventPreUpdateListener = event -> {
         if(mc.thePlayer == null || mc.theWorld == null)
             return;
 
@@ -42,14 +44,29 @@ public class Aura extends Module {
 
         if(rotate.getValue()) {
             float[] rotations = RotationUtils.getRotations(mc.thePlayer.getPositionVector(), target.getPositionVector());
-            switch(mode.getValue()) {
-                case Silent:
-                    event.setYaw(rotations[0]);
-                    event.setPitch(rotations[1]);
-                    break;
-                case LockView:
-                    mc.thePlayer.rotationYaw = rotations[0];
-                    mc.thePlayer.rotationPitch = rotations[1];
+            if (mode.getValue() == rotMode.Silent){
+                event.setYaw(rotations[0]);
+                event.setPitch(rotations[1]);
+            }
+        }
+    };
+
+    @EventLink
+    public final Listener<EventUpdate.Post> eventPostUpdateListener = event -> {
+        if(mc.thePlayer == null || mc.theWorld == null)
+            return;
+
+        Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
+
+        if (target == null) {
+            return;
+        }
+
+        if(rotate.getValue()) {
+            float[] rotations = RotationUtils.getRotations(mc.thePlayer.getPositionVector(), target.getPositionVector());
+            if (mode.getValue() == rotMode.LockView){
+                mc.thePlayer.rotationYaw = rotations[0];
+                mc.thePlayer.rotationPitch = rotations[1];
             }
         }
     };

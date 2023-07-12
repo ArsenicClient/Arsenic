@@ -12,8 +12,6 @@ import arsenic.module.impl.misc.*;
 import arsenic.module.impl.movement.*;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
-import net.minecraft.client.Minecraft;
-import org.lwjgl.input.Keyboard;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +27,8 @@ public class ModuleManager {
 	if(modules.size() != 0)
 	    throw new RuntimeException("Double initialization of Module Manager.");
 
-        addModule(FullBright.class,
+        addModule(
+                FullBright.class,
                 Sprint.class,
                 HUD.class,
                 ClickGui.class,
@@ -61,6 +60,7 @@ public class ModuleManager {
                 AutoSpacer.class,
                 TargetHud.class,
                 ScaffoldTest2.class,
+                AutoGG.class,
                 FunnyModule.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
