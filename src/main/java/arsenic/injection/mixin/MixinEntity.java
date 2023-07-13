@@ -19,6 +19,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinEntity {
 
     @Shadow
+    public double motionY;
+    @Shadow
+    public double motionZ;
+    @Shadow
+    public double motionX;
+    @Shadow
+    public boolean isAirBorne;
+
+    @Shadow
+    public abstract boolean isSprinting();
+    @Shadow
     public abstract void moveFlying(float strafe, float forward, float friction);
 
     @Shadow

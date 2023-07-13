@@ -6,6 +6,7 @@ import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
 import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.world.FastPlace;
+import arsenic.module.impl.world.ScaffoldTest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
@@ -76,9 +77,11 @@ public abstract class MixinMinecraft {
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMouse(CallbackInfo ci) {
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
-        if(!fastPlace.isEnabled())
-            return;
-        rightClickDelayTimer = fastPlace.getTickDelay();
+        ScaffoldTest scaffoldTest = Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class);
+        if(!fastPlace.isEnabled() && !scaffoldTest.isEnabled()) return;
+
+        rightClickDelayTimer = scaffoldTest.isEnabled() ? 0 : fastPlace.getTickDelay();
+
     }
 
 }

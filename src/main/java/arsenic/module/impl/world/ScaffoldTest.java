@@ -4,12 +4,14 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
@@ -18,14 +20,29 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 
 
-@ModuleInfo(name = "scaffoldTest", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Scaffold", category = ModuleCategory.WORLD)
 public class ScaffoldTest extends Module {
 
-    public BooleanProperty bool = new BooleanProperty("test", false);
-    public BooleanProperty place = new BooleanProperty("Place", false);
+    public BooleanProperty funny = new BooleanProperty("Invert Move Keys", false);
+    public static BooleanProperty sprint = new BooleanProperty("Sprint", false);
+
+    protected void onEnable(){
+        if (!sprint.getValue()){
+            mc.thePlayer.setSprinting(false);
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(),false);
+        }
+    }
+
+    @EventLink
+    public final Listener<EventTick> eventTickListener = event -> {
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(),true);
+        setShift(PlayerUtils.playerOverAir()
+                && mc.thePlayer.onGround
+                || PlayerUtils.playerOverAir()); //shift on jump
+    };
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
-        if(bool.getValue())
+        if(!funny.getValue())
             return;
         event.setForward(-event.getForward());
         event.setStrafe(-event.getStrafe());
@@ -40,11 +57,27 @@ public class ScaffoldTest extends Module {
             event.setPitch(90);
             return;
         }
-        float pitchd = ((mc.thePlayer.rotationYaw % 90)/45) * 4f;
-        if(pitchd > 4)
+
+        float pitchd = ((mc.thePlayer.rotationYaw % 90) / 45) * 4f;
+        if (pitchd > 4) {
             pitchd = 8 - pitchd;
+        }
+        //Fix for negative values
+        if (pitchd < 0){ //horrid code imo but atleast it works :p
+            pitchd = Math.abs(pitchd);
+            pitchd = 8 - pitchd;
+            if (Math.abs(pitchd) > 5){
+                pitchd = 0;
+            }
+        }
 
         event.setSpeed(180f);
-        event.setPitch(83 - pitchd);
+        event.setPitch(82 - pitchd);
     };
+    protected void onDisable(){
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(),false);
+    }
+    private void setShift(boolean sh) {
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), sh);
+    }
 }

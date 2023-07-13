@@ -204,7 +204,7 @@ public class InvManager extends Module {
                     return;
 
                 ItemStack itemStack = mc.thePlayer.openContainer.getSlot(slot).getStack();
-                net.minecraft.item.Item is = itemStack.getItem();
+                Item is = itemStack.getItem();
                 if (!(is instanceof ItemArmor))
                     return;
 

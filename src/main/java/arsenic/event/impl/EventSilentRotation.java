@@ -9,7 +9,7 @@ public class EventSilentRotation implements Event {
     private float yaw, pitch;
     private float speed;
     private boolean doMovementFix = true;
-
+    private boolean doJumpFix = true;
     public EventSilentRotation(float yaw, float pitch,float speed) {
         this.initYaw = yaw;
         this.initPitch = pitch;
@@ -40,6 +40,14 @@ public class EventSilentRotation implements Event {
 
     public boolean doMovementFix() {
         return doMovementFix;
+    }
+
+    public boolean doJumpFix(){
+        return doJumpFix;
+    }
+
+    public void setJumpFix(boolean doJumpFix){
+        this.doJumpFix = doJumpFix;
     }
 
     public void setDoMovementFix(boolean doMovementFix) {

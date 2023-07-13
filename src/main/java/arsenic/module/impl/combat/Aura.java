@@ -3,6 +3,7 @@ package arsenic.module.impl.combat;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -22,22 +23,28 @@ public class Aura extends Module {
     public final EnumProperty<rotMode> mode = new EnumProperty<>("Mode: ", rotMode.Silent);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(0, 6, 3, 0.1));
     public final DoubleProperty aps = new DoubleProperty("APS", new DoubleValue(0, 20, 14, 1));
+    public final DoubleProperty rps = new DoubleProperty("Rotation Speed", new DoubleValue(1, 180, 70, 1));
+    public final BooleanProperty fixs = new BooleanProperty("Rotation Fix", true);
+    public final BooleanProperty weaponOnly = new BooleanProperty("WeaponOnly", true);
     public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
     public final BooleanProperty noGui = new BooleanProperty("Don't hit in gui's", true);
 
     private long lastAttack = 0;
 
     // If the Aura works well thank KassuK if it doesn't blame KV.
+    //WHO MADE THIS AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
     // This is not the best way to do the rots probably
 
     @EventLink
-    public final Listener<EventUpdate.Pre> eventPreUpdateListener = event -> {
+    public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         if(mc.thePlayer == null || mc.theWorld == null)
             return;
 
         Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
-
+        if (weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon()) {
+            target = null;
+        }
         if (target == null) {
             return;
         }
@@ -45,6 +52,9 @@ public class Aura extends Module {
         if(rotate.getValue()) {
             float[] rotations = RotationUtils.getRotations(mc.thePlayer.getPositionVector(), target.getPositionVector());
             if (mode.getValue() == rotMode.Silent){
+                event.setJumpFix(fixs.getValue());
+                event.setDoMovementFix(fixs.getValue());
+                event.setSpeed((float) rps.getValue().getInput());
                 event.setYaw(rotations[0]);
                 event.setPitch(rotations[1]);
             }

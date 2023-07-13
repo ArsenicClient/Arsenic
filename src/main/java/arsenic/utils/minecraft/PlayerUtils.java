@@ -6,6 +6,9 @@ import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemAxe;
+import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
@@ -23,7 +26,14 @@ public class PlayerUtils {
         if(mc.thePlayer != null)
             mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
-
+    public static boolean isPlayerHoldingWeapon() {
+        if (mc.thePlayer.getCurrentEquippedItem() == null) {
+            return false;
+        } else {
+            Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
+            return item instanceof ItemSword || item instanceof ItemAxe;
+        }
+    }
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }

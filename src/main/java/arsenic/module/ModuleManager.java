@@ -30,6 +30,7 @@ public class ModuleManager {
         addModule(
                 FullBright.class,
                 Sprint.class,
+                InvMove.class,
                 HUD.class,
                 ClickGui.class,
                 ChestStealer.class,
