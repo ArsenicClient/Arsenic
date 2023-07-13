@@ -1,4 +1,4 @@
-package arsenic.module.impl.world;
+package arsenic.module.impl.players;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +21,7 @@ import net.minecraft.item.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "InvManager", category = ModuleCategory.OTHER)
+@ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYERS)
 public class InvManager extends Module {
 
     public final RangeProperty startDelay = new RangeProperty("StartDelay", new RangeValue(0, 500, 75, 150, 1));

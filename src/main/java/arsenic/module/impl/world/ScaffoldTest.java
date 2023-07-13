@@ -35,7 +35,17 @@ public class ScaffoldTest extends Module {
 
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(),true);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(),PlayerUtils.isPlayerHoldingBlocks());
+        if (!PlayerUtils.isPlayerHoldingBlocks()) {
+            for (int slot = 0; slot <= 8; slot++) {
+                ItemStack itemInSlot = mc.thePlayer.inventory.getStackInSlot(slot);
+                if (itemInSlot != null && itemInSlot.getItem() instanceof ItemBlock && !itemInSlot.getItem().getRegistryName().equalsIgnoreCase("minecraft:tnt") && (((ItemBlock) itemInSlot.getItem()).getBlock().isFullBlock() || ((ItemBlock) itemInSlot.getItem()).getBlock().isFullCube())) {
+                    if (mc.thePlayer.inventory.currentItem != slot) {
+                        mc.thePlayer.inventory.currentItem = slot;
+                    }
+                }
+            }
+        }
         setShift(PlayerUtils.playerOverAir()
                 && mc.thePlayer.onGround
                 || PlayerUtils.playerOverAir()); //shift on jump
@@ -75,6 +85,7 @@ public class ScaffoldTest extends Module {
         event.setPitch(82 - pitchd);
     };
     protected void onDisable(){
+        setShift(false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(),false);
     }
     private void setShift(boolean sh) {

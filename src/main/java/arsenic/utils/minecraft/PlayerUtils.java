@@ -8,6 +8,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
@@ -32,6 +33,14 @@ public class PlayerUtils {
         } else {
             Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
             return item instanceof ItemSword || item instanceof ItemAxe;
+        }
+    }
+    public static boolean isPlayerHoldingBlocks() {
+        if (mc.thePlayer.getCurrentEquippedItem() == null) {
+            return false;
+        } else {
+            Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
+            return item instanceof ItemBlock;
         }
     }
     public static void addWaterMarkedMessageToChat(Object object) {

@@ -1,4 +1,4 @@
-package arsenic.module.impl.misc;
+package arsenic.module.impl.players;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -11,7 +11,7 @@ import net.minecraft.network.play.client.C03PacketPlayer;
 
 import java.util.ArrayList;
 
-@ModuleInfo(name = "Blink",category = ModuleCategory.OTHER)
+@ModuleInfo(name = "Blink",category = ModuleCategory.PLAYERS)
 public class Blink extends Module {
 
     private ArrayList<Packet> packets = new ArrayList<>();
@@ -20,6 +20,7 @@ public class Blink extends Module {
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
         if(mc.theWorld == null)
             return;
+        event.cancel(); //bro forgor to cancel :skull:
         packets.add(event.getPacket());
     };
 

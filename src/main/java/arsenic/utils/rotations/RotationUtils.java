@@ -1,5 +1,6 @@
 package arsenic.utils.rotations;
 
+import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
@@ -17,7 +18,8 @@ public class RotationUtils extends UtilityClass {
         final float diffX = (float) (from.xCoord - to.xCoord);
         final float diffZ = (float) (from.zCoord - to.zCoord);
         final float dist = MathHelper.sqrt_double((diffX * diffX) + (diffZ * diffZ));
-        final float pitch = (float) Math.toDegrees(Math.atan2(diffY, dist));
+        float pitch = (float) Math.toDegrees(Math.atan2(diffY, dist));
+        pitch += JavaUtils.getRandom(-1,1);
         final float yaw = (float) MathHelper.wrapAngleTo180_double(Math.toDegrees(Math.atan2(diffZ, diffX)) + 90f);
         return new float[] {yaw, pitch};
     }
