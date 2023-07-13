@@ -31,5 +31,8 @@ Arsenic_Client.launch
 .idea/workspace.xml
 .idea/sonarlint
 
+builder.bat
+.idea/
+.gradle/
 # kv pls
 .DS_Store
