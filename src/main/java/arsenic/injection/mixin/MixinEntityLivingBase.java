@@ -2,6 +2,7 @@ package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventJump;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.movement.NoJumpDelay;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
@@ -55,6 +56,7 @@ public abstract class MixinEntityLivingBase extends MixinEntity {
 
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
     private void headLiving(CallbackInfo callbackInfo) {
-        jumpTicks = 0;
+        if (Arsenic.getInstance().getModuleManager().getModuleByClass(NoJumpDelay.class).isEnabled())
+            jumpTicks = 0;
     }
 }

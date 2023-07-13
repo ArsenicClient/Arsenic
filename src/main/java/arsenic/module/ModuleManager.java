@@ -31,6 +31,7 @@ public class ModuleManager {
                 FullBright.class,
                 Sprint.class,
                 InvMove.class,
+                NoJumpDelay.class,
                 HUD.class,
                 ClickGui.class,
                 ChestStealer.class,
