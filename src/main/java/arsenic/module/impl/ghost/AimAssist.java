@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -16,7 +17,6 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.MathHelper;
-import org.lwjgl.input.Mouse;
 
 import java.util.Comparator;
 import java.util.List;
@@ -27,7 +27,7 @@ import static arsenic.utils.rotations.RotationUtils.*;
 @ModuleInfo(name = "AimAssist", category = ModuleCategory.GHOST)
 public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.Silent);
+    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.SILENT);
     @PropertyInfo(reliesOn = "Mode: ", value = "Silent")
     public final BooleanProperty movementFix = new BooleanProperty("MovementFix", true);
     public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
@@ -38,12 +38,11 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
 
     @EventLink
     public Listener<EventRender2D> eventRender2DListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.NotSilent)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.NOTSILENT)
             return;
-
+        if (clickOnly.getValue() && !Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoClicker.class).isEnabled())
+            return;
         EntityAndRots target = getTargetAndRotations();
-        if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown())
-            target = null;
         if(target == null)
             return;
 
@@ -66,7 +65,7 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
 
     @EventLink
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.Silent)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.SILENT)
             return;
         EntityAndRots target = getTargetAndRotations();
         if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown())
@@ -99,15 +98,15 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
         return target;
     }
 
-    private class EntityAndRots {
+    private static class EntityAndRots {
         public Entity entity;
         public float yaw, pitch;
     }
 
 
     public enum aaMode {
-        Silent,
-        NotSilent
+        SILENT,
+        NOTSILENT
     }
 
 
