@@ -21,12 +21,6 @@ public abstract class MixinEntityLivingBase extends MixinEntity {
     protected abstract float getJumpUpwardsMotion();
 
     @Shadow
-    public abstract PotionEffect getActivePotionEffect(Potion potionIn);
-
-    @Shadow
-    public abstract boolean isPotionActive(Potion potionIn);
-
-    @Shadow
     private int jumpTicks;
 
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
