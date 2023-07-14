@@ -88,7 +88,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
-        if(mouseX < bindX && mouseButton == 1) {
+        if(mouseX < bindX) {
             open = !open;
             return;
         } else if (mouseX > bindX && mouseX < x1 + (width * 0.85)) {

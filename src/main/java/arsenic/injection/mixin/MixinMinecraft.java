@@ -2,7 +2,6 @@ package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventDisplayGuiScreen;
 import arsenic.event.impl.EventKey;
-import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
 import arsenic.module.impl.blatant.AutoBlock;
@@ -73,11 +72,6 @@ public abstract class MixinMinecraft {
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
         Arsenic.getArsenic().getEventManager().post(event);
-    }
-
-    @Inject(method = "runTick", at = @At("HEAD"))
-    public void onRunTick(CallbackInfo ci) {
-        Arsenic.getInstance().getEventManager().post(new EventRunTick());
     }
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))

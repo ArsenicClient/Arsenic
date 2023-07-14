@@ -5,6 +5,7 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventRunTick;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -84,7 +85,7 @@ public class Aura extends Module { //TODO: add raycasting, add rotation modes (b
     };
 
     @EventLink
-    public final Listener<EventRunTick> eventRunTickListener = event -> {
+    public final Listener<EventTick> eventTick = event -> {
         double delay = 1000 / aps.getValue().getRandomInRange();
 
         Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
