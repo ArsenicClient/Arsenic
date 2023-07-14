@@ -27,31 +27,13 @@ public abstract class MixinEntityLivingBase extends MixinEntity {
     public abstract boolean isPotionActive(Potion potionIn);
 
     @Shadow
-    public int jumpTicks;
+    private int jumpTicks;
 
-    /**
-     * @author CosmicSC
-     * @reason EventJump
-     */
-    @Overwrite
-    protected void jump() {
-        final EventJump e = new EventJump(this.rotationYaw, this.getJumpUpwardsMotion());
-        Arsenic.getInstance().getEventManager().post(e);
-
-        if (e.isCancelled()) return;
-
-        this.motionY = e.getMotion();
-        if (this.isPotionActive(Potion.jump)) {
-            this.motionY += ((float) (this.getActivePotionEffect(Potion.jump).getAmplifier() + 1) * 0.1F);
-        }
-
-        if (this.isSprinting()) {
-            float funny = e.getYaw() * 0.017453292F;
-            this.motionX -= MathHelper.sin(funny) * 0.2F;
-            this.motionZ += MathHelper.cos(funny) * 0.2F;
-        }
-
-        this.isAirBorne = true;
+    @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
+    private void jump2(CallbackInfo ci) {
+        EventJump event = new EventJump(this.rotationYaw, this.getJumpUpwardsMotion());
+        if (event.isCancelled())
+            ci.cancel();
     }
 
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
