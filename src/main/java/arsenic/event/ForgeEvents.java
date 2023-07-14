@@ -15,9 +15,4 @@ public class ForgeEvents {
     public void onRenderWorldLast(RenderWorldLastEvent event) {
         Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(event.context, event.partialTicks));
     }
-
-    @SubscribeEvent
-    public void onAttackEntityEvent(AttackEntityEvent event){
-        Arsenic.getInstance().getEventManager().post(new EventAttack(event.target));
-    }
 }
