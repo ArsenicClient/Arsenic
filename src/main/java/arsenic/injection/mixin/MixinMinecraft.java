@@ -77,11 +77,9 @@ public abstract class MixinMinecraft {
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMouse(CallbackInfo ci) {
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
-        ScaffoldTest scaffoldTest = Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class);
-        if(!fastPlace.isEnabled() && !scaffoldTest.isEnabled()) return;
-
-        rightClickDelayTimer = scaffoldTest.isEnabled() ? 0 : fastPlace.getTickDelay();
-
+        if(!fastPlace.isEnabled())
+            return;
+        rightClickDelayTimer = fastPlace.getTickDelay();
     }
 
 }
