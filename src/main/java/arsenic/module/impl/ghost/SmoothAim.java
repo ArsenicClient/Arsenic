@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -23,23 +24,24 @@ import java.util.NoSuchElementException;
 
 import static arsenic.utils.rotations.RotationUtils.*;
 
-@ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
-public class SmoothAim extends Module {
+@ModuleInfo(name = "AimAssist", category = ModuleCategory.GHOST)
+public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.Silent);
+    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.SILENT);
     @PropertyInfo(reliesOn = "Mode: ", value = "Silent")
     public final BooleanProperty movementFix = new BooleanProperty("MovementFix", true);
+    public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
     public final DoubleProperty range = new DoubleProperty("range", new DoubleValue(0, 5, 3, 0.1));
-    public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(0, 180, 90, 1));
+    public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(1, 360, 90, 1));
     public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 50, 20, 0.1));
-
     private float lastPartialTicks;
 
     @EventLink
     public Listener<EventRender2D> eventRender2DListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.NotSilent)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.NOTSILENT)
             return;
-
+        if (clickOnly.getValue() && !Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoClicker.class).isEnabled())
+            return;
         EntityAndRots target = getTargetAndRotations();
         if(target == null)
             return;
@@ -63,12 +65,15 @@ public class SmoothAim extends Module {
 
     @EventLink
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.Silent)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.SILENT)
             return;
         EntityAndRots target = getTargetAndRotations();
+        if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown())
+            target = null;
         if(target == null)
             return;
         event.setDoMovementFix(movementFix.getValue());
+        event.setJumpFix(movementFix.getValue());
         event.setSpeed((float) speed.getValue().getInput());
         event.setYaw(target.yaw);
         event.setPitch(target.pitch);
@@ -85,7 +90,7 @@ public class SmoothAim extends Module {
             return null;
         }
 
-        float[] rotationsToTarget = getPlayerRotationsToVec(target.entity.getPositionVector().addVector(0, target.entity.getEyeHeight(), 0));
+        float[] rotationsToTarget = getPlayerRotationsToVec(target.entity.getPositionVector().addVector(0, target.entity.getEyeHeight() - 0.3, 0));
         if(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, rotationsToTarget[0]) > fov.getValue().getInput())
             return null;
         target.yaw = rotationsToTarget[0];
@@ -93,15 +98,15 @@ public class SmoothAim extends Module {
         return target;
     }
 
-    private class EntityAndRots {
+    private static class EntityAndRots {
         public Entity entity;
         public float yaw, pitch;
     }
 
 
     public enum aaMode {
-        Silent,
-        NotSilent
+        SILENT,
+        NOTSILENT
     }
 
 

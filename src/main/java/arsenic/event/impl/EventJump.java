@@ -5,9 +5,9 @@ import arsenic.event.types.Event;
 
 public class EventJump extends CancellableEvent implements Event {
     private float yaw;
-    private double motion;
+    private float motion;
 
-    public EventJump(float yaw, double motion){
+    public EventJump(float yaw, float motion){
         this.yaw = yaw;
         this.motion = motion;
     }
@@ -20,11 +20,11 @@ public class EventJump extends CancellableEvent implements Event {
         this.yaw = yaw;
     }
 
-    public double getMotion(){
+    public float getMotion(){
         return this.motion;
     }
 
-    public void setMotion(double motion){
+    public void setMotion(float motion){
         this.motion = motion;
     }
 }

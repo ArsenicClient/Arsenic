@@ -1,6 +1,7 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventDisplayGuiScreen;
+import arsenic.event.impl.EventGameLoop;
 import arsenic.event.impl.EventKey;
 import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
@@ -42,6 +43,7 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "runTick", at = @At(value = "HEAD"))
     public void runTick(CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventGameLoop());
         MinecraftAPI.KEY_CODE = null;
     }
 

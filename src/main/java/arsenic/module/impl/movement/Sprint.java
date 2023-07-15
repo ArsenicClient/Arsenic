@@ -1,4 +1,4 @@
-package arsenic.module.impl.movement;
+package arsenic.module.impl.misc;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -12,21 +12,16 @@ import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "Sprint",category = ModuleCategory.MOVEMENT, keybind = Keyboard.KEY_V)
+@ModuleInfo(name = "Sprint",category = ModuleCategory.OTHER, keybind = Keyboard.KEY_V)
 //KEY_V more like KV // kv pls stop i beg
 public class Sprint extends Module {
     public final EnumProperty<sMode> sprintMode = new EnumProperty<>("Mode: ", sMode.Legit);
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (isScaffold()){
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
-            mc.thePlayer.setSprinting(false);
+        if(scaffoldDisabler())
             return;
-        }
-        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(Sprint.class).isEnabled()) {
-            sprintMode.getValue().setSprinting();
-        }
+        sprintMode.getValue().setSprinting();
     };
 
     @Override
@@ -35,7 +30,7 @@ public class Sprint extends Module {
         mc.thePlayer.setSprinting(false);
     }
 
-    private boolean isScaffold(){
+    private boolean scaffoldDisabler(){
         return Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class).isEnabled() && !ScaffoldTest.sprint.getValue();
     }
     public enum sMode {

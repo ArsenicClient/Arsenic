@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
-
     @Shadow
     public double motionY;
     @Shadow
@@ -63,7 +62,6 @@ public abstract class MixinEntity {
 
     @ModifyVariable(method = "moveEntity", at = @At(value = "STORE"), ordinal = 0)
     public boolean mixinMoveEntity(boolean flag) {
-        //flag = this.onGround && this.isSneaking() && this instanceof EntityPlayer;
         if((Object) this != Minecraft.getMinecraft().thePlayer)
             return flag;
         SafeWalk safeWalk = Arsenic.getArsenic().getModuleManager().getModuleByClass(SafeWalk.class);

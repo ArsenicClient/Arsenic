@@ -10,6 +10,7 @@
     "accessor.IMixinRenderManager",
     "accessor.IMixinTimer",
     "mixin.MixinEntity",
+    "mixin.MixinEntityLivingBase",
     "mixin.MixinEntityPlayerSP",
     "mixin.MixinEntityRenderer",
     "mixin.MixinFontRenderer",
@@ -30,6 +31,7 @@
     "accessor.IMixinC02PacketUseEntity",
     "accessor.IMixinItemSword",
     "accessor.IMixinS12PacketEntityVelocity",
+    "mixin.MixinEntityPlayer",
     "mixin.MixinItemTool",
     "mixin.MixinWorld"
   ]
