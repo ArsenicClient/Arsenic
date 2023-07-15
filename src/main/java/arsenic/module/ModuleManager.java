@@ -10,10 +10,7 @@ import arsenic.module.impl.combat.*;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.*;
 import arsenic.module.impl.movement.*;
-import arsenic.module.impl.players.Blink;
-import arsenic.module.impl.players.ChestStealer;
-import arsenic.module.impl.players.FastPlace;
-import arsenic.module.impl.players.InvManager;
+import arsenic.module.impl.players.*;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
@@ -43,6 +40,7 @@ public class ModuleManager {
                 AimAssist.class,
                 SafeWalk.class,
                 Velocity.class,
+                NoHurtCam.class,
                 Reach.class,
                 ESP.class,
                 AutoClicker.class,

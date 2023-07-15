@@ -24,17 +24,7 @@ public class InvMove extends Module {
 
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
-        if (guiOnly.getValue() && (mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen())) {
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(),sprint.getValue());
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindForward.getKeyCode()));
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindBack.getKeyCode()));
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindRight.getKeyCode()));
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.getKeyCode()));
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode()));
-            EntityPlayerSP var1;
-        }
-
-        if (mc.currentScreen != null && !guiOnly.getValue()) {
+        if ((guiOnly.getValue() && mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen()) || (mc.currentScreen != null && !guiOnly.getValue())) {
             if (mc.currentScreen instanceof GuiChat) {
                 return;
             }
@@ -45,6 +35,5 @@ public class InvMove extends Module {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.getKeyCode()));
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode()));
         }
-
     };
 }
