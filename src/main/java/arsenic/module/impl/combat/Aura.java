@@ -2,10 +2,8 @@ package arsenic.module.impl.combat;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRender2D;
-import arsenic.event.impl.EventRunTick;
+import arsenic.event.impl.EventGameLoop;
 import arsenic.event.impl.EventSilentRotation;
-import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -20,7 +18,6 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.play.client.C02PacketUseEntity;
 
 
 @ModuleInfo(name = "Aura",category = ModuleCategory.BLATANT)
@@ -85,7 +82,7 @@ public class Aura extends Module { //TODO: add raycasting, add rotation modes (b
     };
 
     @EventLink
-    public final Listener<EventTick> eventTick = event -> {
+    public final Listener<EventGameLoop> eventTick = event -> {
         double delay = 1000 / aps.getValue().getRandomInRange();
 
         Entity target = PlayerUtils.getClosestPlayerWithin(range.getValue().getInput());
