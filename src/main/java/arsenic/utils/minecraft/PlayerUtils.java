@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerUtils extends UtilityClass {
-    
+
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void addMessageToChat(String msg) {
@@ -27,20 +27,16 @@ public class PlayerUtils extends UtilityClass {
             mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
     public static boolean isPlayerHoldingWeapon() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null) {
+        if (mc.thePlayer.getCurrentEquippedItem() == null)
             return false;
-        } else {
-            Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-            return item instanceof ItemSword || item instanceof ItemAxe;
-        }
+        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
+        return item instanceof ItemSword || item instanceof ItemAxe;
     }
     public static boolean isPlayerHoldingBlocks() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null) {
+        if (mc.thePlayer.getCurrentEquippedItem() == null)
             return false;
-        } else {
-            Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-            return item instanceof ItemBlock;
-        }
+        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
+        return item instanceof ItemBlock;
     }
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
