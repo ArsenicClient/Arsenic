@@ -12,14 +12,13 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.Timer;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Speed", category = ModuleCategory.MOVEMENT)
 public class Speed extends Module {
 
-    public final EnumProperty<sMode> mode = new EnumProperty<sMode>("Mode: ", sMode.ONHIT);
+    public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.ONHIT);
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
     public final DoubleProperty bypass = new DoubleProperty("bypass", new DoubleValue(0, 1, 0.1, 0.01));
     @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
@@ -64,5 +63,4 @@ public class Speed extends Module {
         NORMAL,
         ONHIT
     }
-
 }

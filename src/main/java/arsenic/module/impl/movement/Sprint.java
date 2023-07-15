@@ -1,4 +1,4 @@
-package arsenic.module.impl.misc;
+package arsenic.module.impl.movement;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -11,7 +11,7 @@ import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "Sprint",category = ModuleCategory.OTHER, keybind = Keyboard.KEY_V)
+@ModuleInfo(name = "Sprint",category = ModuleCategory.MOVEMENT, keybind = Keyboard.KEY_V)
 //KEY_V more like KV // kv pls stop i beg
 public class Sprint extends Module {
     public final EnumProperty<sMode> sprintMode = new EnumProperty<>("Mode: ", sMode.Legit);

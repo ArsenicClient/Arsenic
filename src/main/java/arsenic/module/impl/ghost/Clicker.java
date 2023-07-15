@@ -17,8 +17,8 @@ import net.minecraft.client.settings.KeyBinding;
 
 import java.util.concurrent.ExecutorService;
 
-@ModuleInfo(name = "AutoClicker", category = ModuleCategory.GHOST)
-public class AutoClicker extends Module {
+@ModuleInfo(name = "Clicker", category = ModuleCategory.GHOST)
+public class Clicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 0.1d));
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);

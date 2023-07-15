@@ -13,6 +13,7 @@ import org.lwjgl.input.Keyboard;
 @ModuleInfo(name = "ClickGUI", category = ModuleCategory.CLIENT, hidden = true, keybind = Keyboard.KEY_RSHIFT)
 public class ClickGui extends Module {
 
+    // What is this even supposed to do
     public final DoubleProperty expandTop = new DoubleProperty("Expand Top", new DoubleValue(2D, 0D, 3D, 0.5D));
     public final BooleanProperty customFont = new BooleanProperty("Custom Font", false);
 

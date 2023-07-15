@@ -23,8 +23,8 @@ import java.util.NoSuchElementException;
 
 import static arsenic.utils.rotations.RotationUtils.*;
 
-@ModuleInfo(name = "AimAssist", category = ModuleCategory.GHOST)
-public class AimAssist extends Module {
+@ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
+public class SmoothAim extends Module {
 
     public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.Silent);
     @PropertyInfo(reliesOn = "Mode: ", value = "Silent")
