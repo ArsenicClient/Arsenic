@@ -10,6 +10,7 @@ import arsenic.module.impl.combat.*;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.*;
 import arsenic.module.impl.movement.*;
+import arsenic.module.impl.players.*;
 import arsenic.module.impl.visual.*;
 import arsenic.module.impl.world.*;
 
@@ -30,21 +31,25 @@ public class ModuleManager {
         addModule(
                 FullBright.class,
                 Sprint.class,
+                InvMove.class,
+                NoJumpDelay.class,
                 HUD.class,
                 ClickGui.class,
                 ChestStealer.class,
                 FastPlace.class,
-                SmoothAim.class,
+                AimAssist.class,
                 SafeWalk.class,
                 Velocity.class,
+                NoHurtCam.class,
                 Reach.class,
                 ESP.class,
-                Clicker.class,
+                AutoClicker.class,
                 ScaffoldTest.class,
                 HitBox.class,
                 AntiBot.class,
                 Sprint.class,
-                Clicker.class,
+                WTap.class,
+                AutoClicker.class,
                 NoSlow.class,
                 Criticals.class,
                 Blink.class,

@@ -7,6 +7,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.world.ScaffoldTest;
 import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
@@ -18,8 +19,14 @@ public class Sprint extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(Sprint.class).isEnabled())
+        if (isScaffold()){
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+            mc.thePlayer.setSprinting(false);
+            return;
+        }
+        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(Sprint.class).isEnabled()) {
             sprintMode.getValue().setSprinting();
+        }
     };
 
     @Override
@@ -28,6 +35,9 @@ public class Sprint extends Module {
         mc.thePlayer.setSprinting(false);
     }
 
+    private boolean isScaffold(){
+        return Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class).isEnabled() && !ScaffoldTest.sprint.getValue();
+    }
     public enum sMode {
         Omni(() -> mc.thePlayer.setSprinting(true)),
         Legit(() -> KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true));

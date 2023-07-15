@@ -7,12 +7,11 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.players.Blink;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.entity.Entity;
-
-import java.util.EventListener;
 
 @ModuleInfo(name = "FunnyModule", category = ModuleCategory.OTHER)
 public class FunnyModule extends Module {

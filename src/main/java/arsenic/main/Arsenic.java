@@ -17,11 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
 
@@ -38,9 +33,6 @@ public class Arsenic {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
-
-        logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
-        logger.info("This is to get a guide on how many people are using the client it records zero data");
 
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
@@ -103,16 +95,4 @@ public class Arsenic {
 
     public final ThemeManager getThemeManager() { return themeManager; }
 
-    //downloads an empty file lol
-    public boolean trackLaunch() {
-        AtomicBoolean success = new AtomicBoolean(true);
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                new URL("https://github.com/K-ov/LaunchTracker/releases/download/publish/ArsenicLaunch").openStream();
-            } catch (IOException e) {
-                success.set(false);
-            }
-        });
-        return success.get();
-    }
 }

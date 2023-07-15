@@ -15,6 +15,7 @@ public class SilentRotationManager {
     private float pitch  = 0;
     private boolean modified;
     private boolean doMovementFix;
+    private boolean doJumpFix;
     private float speed = 10f;
 
     @EventLink
@@ -29,6 +30,7 @@ public class SilentRotationManager {
         }
 
         doMovementFix = rotation.doMovementFix();
+        doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
 
         float yawDiff = RotationUtils.getYawDifference(rotation.getYaw(), yaw); //prevyaw
@@ -71,6 +73,13 @@ public class SilentRotationManager {
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
         if(!modified || !doMovementFix)
+            return;
+        event.setYaw(yaw);
+    };
+
+    @EventLink
+    public final Listener<EventJump> eventJumpListener = event -> {
+        if(!modified || !doJumpFix)
             return;
         event.setYaw(yaw);
     };
