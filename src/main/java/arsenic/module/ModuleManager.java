@@ -10,6 +10,7 @@ import arsenic.module.impl.combat.*;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.*;
 import arsenic.module.impl.misc.Sprint;
+import arsenic.module.impl.misc.chargetp.ChargeTp;
 import arsenic.module.impl.movement.*;
 import arsenic.module.impl.players.*;
 import arsenic.module.impl.visual.*;
@@ -64,7 +65,8 @@ public class ModuleManager {
                 TargetHud.class,
                 ScaffoldTest2.class,
                 AutoGG.class,
-                FunnyModule.class);
+                FunnyModule.class,
+                ChargeTp.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
