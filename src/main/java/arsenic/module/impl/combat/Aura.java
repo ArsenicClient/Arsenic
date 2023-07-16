@@ -89,7 +89,7 @@ public class Aura extends Module { //TODO: add raycasting, add rotation modes (b
         if (weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon()) {
             target = null;
         }
-
+        // i really love the broken and useless blockmodes thank you for adding these
         if (mc.thePlayer != null && mc.theWorld != null){
             if (target != null && !blockMode.getValue().equals(m.None)) {
                 if (PlayerUtils.isPlayerHoldingWeapon()) {
@@ -128,6 +128,7 @@ public class Aura extends Module { //TODO: add raycasting, add rotation modes (b
             if(System.currentTimeMillis() - lastAttack >= delay) {
                 mc.thePlayer.swingItem();
                 //why send c02 it does not bypass anything
+                // a fucking packet does not flag if you somehow make that flag please stop making block game cheats
                 //mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
                 mc.playerController.attackEntity(mc.thePlayer,target);
                 lastAttack = System.currentTimeMillis();

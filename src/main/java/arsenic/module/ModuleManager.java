@@ -10,7 +10,6 @@ import arsenic.module.impl.combat.*;
 import arsenic.module.impl.ghost.*;
 import arsenic.module.impl.misc.*;
 import arsenic.module.impl.misc.Sprint;
-import arsenic.module.impl.misc.chargetp.ChargeTp;
 import arsenic.module.impl.movement.*;
 import arsenic.module.impl.players.*;
 import arsenic.module.impl.visual.*;
@@ -39,13 +38,13 @@ public class ModuleManager {
                 ClickGui.class,
                 ChestStealer.class,
                 FastPlace.class,
-                AimAssist.class,
+                SmoothAim.class,
                 SafeWalk.class,
                 Velocity.class,
                 NoHurtCam.class,
                 Reach.class,
                 ESP.class,
-                AutoClicker.class,
+                Clicker.class,
                 ScaffoldTest.class,
                 HitBox.class,
                 AntiBot.class,
@@ -65,8 +64,8 @@ public class ModuleManager {
                 TargetHud.class,
                 ScaffoldTest2.class,
                 AutoGG.class,
-                FunnyModule.class,
-                ChargeTp.class);
+                WTap.class,
+                FunnyModule.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
