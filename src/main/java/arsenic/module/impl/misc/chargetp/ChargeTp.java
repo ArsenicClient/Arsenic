@@ -5,16 +5,13 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventUpdate;
-import arsenic.event.types.CancellableEvent;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.Packet;
-import net.minecraft.stats.StatFileWriter;
 import net.minecraft.util.MovementInput;
 
 import java.util.ArrayList;
@@ -60,7 +57,10 @@ public class ChargeTp extends Module {
     };
 
     @EventLink
-    public final Listener<EventUpdate.Post> eventUpdate = event -> ticks++;
+    public final Listener<EventUpdate.Post> eventUpdate = event -> {
+
+        ticks++;
+    };
 
     @EventLink
     public final Listener<EventMove> eventMove = event -> {
@@ -77,13 +77,17 @@ public class ChargeTp extends Module {
 
         mc.theWorld.addEntityToWorld(9999, customPlayer);
         customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
+        customPlayer.setSprinting(mc.thePlayer.isSprinting());
         for(int i = 0; i < ticks; i++) {
             customPlayer.update();
         }
-
-
+        customPlayer.setSprinting(mc.thePlayer.isSprinting());
         mc.thePlayer.setPosition(customPlayer.posX, customPlayer.posY, customPlayer.posZ);
         mc.theWorld.removeEntity(customPlayer);
-        packets.forEach(packet -> mc.getNetHandler().addToSendQueue(packet));
+        System.out.println(packets.size());
+        packets.forEach(packet -> {
+            mc.getNetHandler().addToSendQueue(packet);
+            PlayerUtils.addWaterMarkedMessageToChat(packet.getClass().getName());
+        });
     }
 }

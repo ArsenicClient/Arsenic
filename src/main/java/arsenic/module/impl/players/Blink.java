@@ -6,6 +6,7 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C03PacketPlayer;
 
@@ -31,8 +32,9 @@ public class Blink extends Module {
 
     @Override
     protected void onDisable() {
-        for(Packet packet : packets) {
+        for(Packet<?> packet : packets) {
             mc.getNetHandler().addToSendQueue(packet);
+            PlayerUtils.addWaterMarkedMessageToChat(packet.getClass().getName());
         }
     }
 }

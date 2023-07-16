@@ -17,6 +17,7 @@ public class CustomNetworkHandler extends NetworkManager {
 
     @Override
     public void sendPacket(Packet packetIn) {
+        Arsenic.getArsenic().getModuleManager().getModuleByClass(ChargeTp.class).addToPacketList(packetIn);
         super.sendPacket(packetIn);
     }
 
@@ -27,7 +28,6 @@ public class CustomNetworkHandler extends NetworkManager {
 
     @Override
     protected void channelRead0(ChannelHandlerContext p_channelRead0_1_, Packet p_channelRead0_2_) throws Exception {
-        Arsenic.getArsenic().getModuleManager().getModuleByClass(ChargeTp.class).addToPacketList(p_channelRead0_2_);
         super.channelRead0(p_channelRead0_1_, p_channelRead0_2_);
     }
 
