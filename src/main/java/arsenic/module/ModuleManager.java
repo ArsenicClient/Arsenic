@@ -67,6 +67,7 @@ public class ModuleManager {
                 ScaffoldTest2.class,
                 AutoGG.class,
                 WTap.class,
+                ChargeTp.class,
                 FunnyModule.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
