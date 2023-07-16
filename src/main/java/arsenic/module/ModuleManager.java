@@ -38,13 +38,13 @@ public class ModuleManager {
                 ClickGui.class,
                 ChestStealer.class,
                 FastPlace.class,
-                AimAssist.class,
+                SmoothAim.class,
                 SafeWalk.class,
                 Velocity.class,
                 NoHurtCam.class,
                 Reach.class,
                 ESP.class,
-                AutoClicker.class,
+                Clicker.class,
                 ScaffoldTest.class,
                 HitBox.class,
                 AntiBot.class,
@@ -64,6 +64,7 @@ public class ModuleManager {
                 TargetHud.class,
                 ScaffoldTest2.class,
                 AutoGG.class,
+                WTap.class,
                 FunnyModule.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);

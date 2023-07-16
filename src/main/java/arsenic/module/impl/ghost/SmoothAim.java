@@ -24,10 +24,10 @@ import java.util.NoSuchElementException;
 
 import static arsenic.utils.rotations.RotationUtils.*;
 
-@ModuleInfo(name = "AimAssist", category = ModuleCategory.GHOST)
-public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+@ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
+public class SmoothAim extends Module { //TODO: Recode this coz its just AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.SILENT);
+    public final EnumProperty<aaMode> mode = new EnumProperty<>("Mode: ", aaMode.Silent);
     @PropertyInfo(reliesOn = "Mode: ", value = "Silent")
     public final BooleanProperty movementFix = new BooleanProperty("MovementFix", true);
     public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
@@ -38,9 +38,9 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
 
     @EventLink
     public Listener<EventRender2D> eventRender2DListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.NOTSILENT)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.Normal)
             return;
-        if (clickOnly.getValue() && !Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoClicker.class).isEnabled())
+        if (clickOnly.getValue() && !Arsenic.getArsenic().getModuleManager().getModuleByClass(Clicker.class).isEnabled())
             return;
         EntityAndRots target = getTargetAndRotations();
         if(target == null)
@@ -65,7 +65,7 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
 
     @EventLink
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if(mc.currentScreen != null || mode.getValue() != aaMode.SILENT)
+        if(mc.currentScreen != null || mode.getValue() != aaMode.Silent)
             return;
         EntityAndRots target = getTargetAndRotations();
         if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown())
@@ -103,11 +103,8 @@ public class AimAssist extends Module { //TODO: Recode this coz its just AHHHHHH
         public float yaw, pitch;
     }
 
-
     public enum aaMode {
-        SILENT,
-        NOTSILENT
+        Silent,
+        Normal
     }
-
-
 }
