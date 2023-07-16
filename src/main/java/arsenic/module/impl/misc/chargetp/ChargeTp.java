@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventUpdate;
 import arsenic.event.types.CancellableEvent;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -23,17 +24,16 @@ import java.util.List;
 @ModuleInfo(name = "ChargeTp", category = ModuleCategory.MOVEMENT)
 public class ChargeTp extends Module {
 
-    private CustomNetworkHandler customNetworkManager = new CustomNetworkHandler(EnumPacketDirection.SERVERBOUND);
+    private final CustomNetworkHandler customNetworkManager = new CustomNetworkHandler(EnumPacketDirection.SERVERBOUND);
 
-    private NetHandlerPlayClient customNetHandler = null;
-
-    private MovementInput customMovementInput = new MovementInput() {
+    private final MovementInput customMovementInput = new MovementInput() {
+        @Override
         public void updatePlayerMoveState() {
             moveForward = 1;
+            jump = true;
         }
     };
-
-    private EntityPlayerSP customPlayer = null;
+    private int ticks;
 
     private final List<Packet<?>> packets = new ArrayList<>();
 
@@ -43,24 +43,13 @@ public class ChargeTp extends Module {
 
     @Override
     protected void postApplyConfig() {
-        onDisable();
+        setEnabled(false);
     }
 
     @Override
     protected void onEnable() {
+        ticks = 0;
         packets.clear();
-        customNetHandler = new NetHandlerPlayClient(mc, mc.currentScreen, customNetworkManager, mc.thePlayer.getGameProfile());
-        customNetworkManager.setNetHandler(customNetHandler);
-        customPlayer = new EntityPlayerSP(mc, mc.thePlayer.worldObj, customNetHandler, new StatFileWriter()) {
-            @Override
-            protected boolean isCurrentViewEntity() {
-                return true;
-            }
-        };
-        customPlayer.movementInput = customMovementInput;
-
-        mc.theWorld.addEntityToWorld(9999, customPlayer);
-        customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
     }
 
     @EventLink
@@ -71,6 +60,9 @@ public class ChargeTp extends Module {
     };
 
     @EventLink
+    public final Listener<EventUpdate.Post> eventUpdate = event -> ticks++;
+
+    @EventLink
     public final Listener<EventMove> eventMove = event -> {
         event.setForward(0);
         event.setStrafe(0);
@@ -78,8 +70,18 @@ public class ChargeTp extends Module {
 
     @Override
     protected void onDisable() {
-        if(customPlayer == null)
-            return;
+        NetHandlerPlayClient customNetHandler = new NetHandlerPlayClient(mc, mc.currentScreen, customNetworkManager, mc.thePlayer.getGameProfile());
+        customNetworkManager.setNetHandler(customNetHandler);
+        CustomPlayer customPlayer = new CustomPlayer(customNetHandler);
+        customPlayer.movementInput = customMovementInput;
+
+        mc.theWorld.addEntityToWorld(9999, customPlayer);
+        customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
+        for(int i = 0; i < ticks; i++) {
+            customPlayer.update();
+        }
+
+
         mc.thePlayer.setPosition(customPlayer.posX, customPlayer.posY, customPlayer.posZ);
         mc.theWorld.removeEntity(customPlayer);
         packets.forEach(packet -> mc.getNetHandler().addToSendQueue(packet));
