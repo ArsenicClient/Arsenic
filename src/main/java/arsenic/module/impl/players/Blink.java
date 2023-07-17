@@ -15,7 +15,7 @@ import java.util.ArrayList;
 @ModuleInfo(name = "Blink",category = ModuleCategory.PLAYERS)
 public class Blink extends Module {
 
-    private ArrayList<Packet> packets = new ArrayList<>();
+    private final ArrayList<Packet<?>> packets = new ArrayList<>();
 
     @EventLink
     public final Listener<EventPacket.OutGoing> onPacket = event -> {

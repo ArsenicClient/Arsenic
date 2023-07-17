@@ -15,9 +15,15 @@ public class CustomNetworkHandler extends NetworkManager {
         super(packetDirection);
     }
 
+    private CustomPlayer customPlayer;
+
+    public void setCustomPlayer(CustomPlayer customPlayer) {
+        this.customPlayer = customPlayer;
+    }
+
     @Override
     public void sendPacket(Packet packetIn) {
-        Arsenic.getArsenic().getModuleManager().getModuleByClass(ChargeTp.class).addToPacketList(packetIn);
+        Arsenic.getArsenic().getModuleManager().getModuleByClass(ChargeTp.class).addToPacketList(packetIn, customPlayer.getTicks());
         super.sendPacket(packetIn);
     }
 
