@@ -4,6 +4,7 @@
   "refmap": "mixins.arsenic.refmap.json",
   "compatibilityLevel": "JAVA_8",
   "client": [
+    "accessor.IMixinEntityPlayerSP",
     "accessor.IMixinKeyBinding",
     "accessor.IMixinMinecraft",
     "accessor.IMixinPlayerControllerMp",
@@ -16,7 +17,6 @@
     "mixin.MixinFontRenderer",
     "mixin.MixinGuiChat",
     "mixin.MixinGuiContainer",
-    "mixin.MixinEntityLivingBase",
     "mixin.MixinGuiIngame",
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",

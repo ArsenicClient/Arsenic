@@ -9,6 +9,7 @@ import arsenic.injection.accessor.IMixinMinecraft;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.utils.java.PlayerInfo;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.network.EnumPacketDirection;
@@ -20,6 +21,8 @@ import net.minecraft.util.MovementInput;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
+import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.*;
 
 
 @ModuleInfo(name = "ChargeTp", category = ModuleCategory.MOVEMENT)
@@ -42,6 +45,8 @@ public class ChargeTp extends Module {
         packets.add(new PacketTick(p, ticks));
     }
 
+    private PlayerInfo chachePlayerInfo;
+
     @Override
     protected void postApplyConfig() {
         setEnabled(false);
@@ -49,8 +54,13 @@ public class ChargeTp extends Module {
 
     @Override
     protected void onEnable() {
+        if(mc.thePlayer == null) {
+            setEnabled(false);
+            return;
+        }
         ticks = 0;
         packets.clear();
+        chachePlayerInfo = getPlayerInfo(mc.thePlayer);
     }
 
     @EventLink
@@ -83,16 +93,18 @@ public class ChargeTp extends Module {
         mc.theWorld.addEntityToWorld(9999, customPlayer);
         customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
         customPlayer.setSprinting(mc.thePlayer.isSprinting());
+        setPlayerInfo(customPlayer, chachePlayerInfo);
         for(int i = 0; i < ticks; i++) {
             customPlayer.update();
         }
         customPlayer.setSprinting(mc.thePlayer.isSprinting());
         mc.thePlayer.setPosition(customPlayer.posX, customPlayer.posY, customPlayer.posZ);
         mc.theWorld.removeEntity(customPlayer);
+        setPlayerInfo(mc.thePlayer, getPlayerInfo(customPlayer));
         packets.sort(Comparator.comparingDouble(PacketTick::getTick));
         packets.forEach(packet -> {
             mc.getNetHandler().addToSendQueue(packet.getPacket());
-            PlayerUtils.addWaterMarkedMessageToChat(packet.getPacket().getClass().getName());
+            PlayerUtils.addWaterMarkedMessageToChat(packet.getPacket().getClass().getName() + " " + packet.getTick());
         });
     }
 

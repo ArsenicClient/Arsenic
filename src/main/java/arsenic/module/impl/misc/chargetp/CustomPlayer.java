@@ -31,4 +31,6 @@ public class CustomPlayer extends EntityPlayerSP {
     public int getTicks() {
         return ticks;
     }
+
+
 }

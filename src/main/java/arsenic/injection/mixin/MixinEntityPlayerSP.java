@@ -4,8 +4,11 @@ import arsenic.event.impl.EventMouse;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.blatant.NoSlow;
 import arsenic.module.impl.world.SafeWalk;
+import arsenic.utils.java.PlayerInfo;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -23,7 +26,7 @@ import net.minecraft.world.World;
 import static arsenic.main.MinecraftAPI.mouseDownLastTick;
 
 @Mixin(priority = 1111, value = EntityPlayerSP.class)
-public class MixinEntityPlayerSP extends AbstractClientPlayer {
+public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
 
     private double cachedX;
     private double cachedY;
@@ -102,5 +105,4 @@ public class MixinEntityPlayerSP extends AbstractClientPlayer {
         Arsenic.getInstance().getEventManager()
                 .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
     }
-
 }
