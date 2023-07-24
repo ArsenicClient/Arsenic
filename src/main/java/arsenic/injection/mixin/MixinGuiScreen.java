@@ -1,5 +1,7 @@
 package arsenic.injection.mixin;
 
+import net.minecraft.client.gui.ScaledResolution;
+import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,6 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
+
+import static arsenic.utils.render.ShaderUtils.cursorProgram;
+import static arsenic.utils.render.ShaderUtils.drawShader;
 
 @Mixin(value = GuiScreen.class)
 public class MixinGuiScreen {

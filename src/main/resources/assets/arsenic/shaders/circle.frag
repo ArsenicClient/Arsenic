@@ -10,6 +10,7 @@ precision highp float;
 // glslsandbox uniforms
 uniform float time;
 uniform vec2 resolution;
+uniform vec4 tint;
 
 // shadertoy emulation
 #define iTime time
@@ -68,7 +69,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
     }
 
-    fragColor = vec4(tonemap(col), 1.);
+    fragColor = tint * vec4(tonemap(col), 1.);
 }
 // --------[ Original ShaderToy ends here ]---------- //
 

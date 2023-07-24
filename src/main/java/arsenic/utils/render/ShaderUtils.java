@@ -10,11 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.Display.update;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL11.glEnd;
 import static org.lwjgl.opengl.GL20.*;
 
 public class ShaderUtils extends UtilityClass {
@@ -23,6 +21,15 @@ public class ShaderUtils extends UtilityClass {
             (program, params) -> {
                 GL20.glUniform2f(glGetUniformLocation(program, "resolution"), Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
                 GL20.glUniform1f(glGetUniformLocation(program, "time"), (float) params[0]);
+                GL20.glUniform4f(glGetUniformLocation(program, "tint"), ((float) params[1])/16f, ((float) params[2])/16f, ((float) params[3])/16f, 1.0f);
+            });
+
+    public static final Program cursorProgram = new Program("cursortrail",
+            (program, params) -> {
+                float scaleFactor = (float) params[3];
+                GL20.glUniform2f(glGetUniformLocation(program, "resolution"), Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
+                GL20.glUniform1f(glGetUniformLocation(program, "time"), (float) params[0]);
+                GL20.glUniform2f(glGetUniformLocation(program, "mouse"), scaleFactor * (float) params[1], mc.displayHeight - ((float) params[2]) * scaleFactor);
             });
 
     private static Framebuffer blurredBuffer;

@@ -7,6 +7,8 @@ import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.players.NoHurtCam;
 import com.google.common.base.Predicates;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.entity.Entity;
@@ -14,15 +16,22 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
+import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.common.MinecraftForge;
+import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Objects;
+
+import static arsenic.utils.render.ShaderUtils.cursorProgram;
+import static arsenic.utils.render.ShaderUtils.drawShader;
 
 @Mixin(value = EntityRenderer.class, priority = 995)
 public abstract class MixinEntityRenderer implements IResourceManagerReloadListener {
@@ -135,5 +144,16 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
         float f3 = MathHelper.sin(-pitch * 0.017453292F);
         return new Vec3((f1 * f2), f3, (f * f2));
     }
+
+
+    @Redirect(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/client/ForgeHooksClient;drawScreen(Lnet/minecraft/client/gui/GuiScreen;IIF)V"))
+    public void drawScreen(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
+        ForgeHooksClient.drawScreen(screen, mouseX, mouseY, partialTicks);
+        if(!Keyboard.isKeyDown(Keyboard.KEY_B))
+            return;
+        float time = (System.currentTimeMillis() % 100000) / 1000f;
+        drawShader(cursorProgram, time, (float) mouseX, (float) mouseY, (float) new ScaledResolution(mc).getScaleFactor());
+    }
+
 
 }

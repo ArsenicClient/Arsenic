@@ -22,8 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static arsenic.utils.render.ShaderUtils.drawShader;
-import static arsenic.utils.render.ShaderUtils.mainMenuProgram;
+import static arsenic.utils.render.ShaderUtils.*;
 
 // allow escape to bind to none
 
@@ -57,10 +56,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
-
-        // blurs the bg
-        float time = (System.currentTimeMillis() % 100000) / 1000f;
-        drawShader(mainMenuProgram, time);
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;
