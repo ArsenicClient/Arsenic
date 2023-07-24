@@ -68,7 +68,8 @@ public class NewHud extends Module {
         //sorts it in order of length
         List<ModuleRenderInfo> nameList =
                 Arsenic.getArsenic().getModuleManager().getEnabledModules()
-                        .stream().map(module -> new ModuleRenderInfo(fr.getWidth(module.getName()), module.getName()))
+                        .stream().filter(module -> !isHidden())
+                        .map(module -> new ModuleRenderInfo(fr.getWidth(module.getName()), module.getName()))
                         .sorted(Comparator.comparingDouble(ri -> -ri.length)).collect(Collectors.toList());
 
         int i = 0;

@@ -144,7 +144,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
-    public final boolean isHidden() { return hidden; }
+    public boolean isHidden() { return hidden; }
 
     public final void setHidden(boolean hidden) { this.hidden = hidden; }
 

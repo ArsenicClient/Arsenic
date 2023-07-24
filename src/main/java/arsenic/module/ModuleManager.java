@@ -14,6 +14,7 @@ import arsenic.module.impl.misc.chargetp.ChargeTp;
 import arsenic.module.impl.movement.*;
 import arsenic.module.impl.players.*;
 import arsenic.module.impl.visual.*;
+import arsenic.module.impl.visual.custommainmenu.CustomMainMenu;
 import arsenic.module.impl.world.*;
 
 import java.util.Collection;
@@ -68,7 +69,8 @@ public class ModuleManager {
                 AutoGG.class,
                 WTap.class,
                 ChargeTp.class,
-                FunnyModule.class);
+                FunnyModule.class,
+                CustomMainMenu.class);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
