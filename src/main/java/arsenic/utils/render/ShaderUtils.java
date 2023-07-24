@@ -9,33 +9,34 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-import static java.lang.Math.abs;
 import static org.lwjgl.opengl.Display.update;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL11.glEnd;
 import static org.lwjgl.opengl.GL20.*;
 
-public class BlurUtils extends UtilityClass {
+public class ShaderUtils extends UtilityClass {
 
-    private static final int gaussianProgram = createProgram("/assets/arsenic/shaders/circle.frag", "/assets/arsenic/shaders/vertex.vsh");
+    public static final Program mainMenuProgram = new Program("circle",
+            (program, params) -> {
+                GL20.glUniform2f(glGetUniformLocation(program, "resolution"), Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
+                GL20.glUniform1f(glGetUniformLocation(program, "time"), (float) params[0]);
+            });
+
     private static Framebuffer blurredBuffer;
 
-    /**
-     * Render the blur effect.
-     * @param _radius the radius of the blur.
-     * @param _compression the compression of the blur.
-     */
-
-    public static void blur(float time, double height, double width) {
+    private static void start() {
         update();
         if(blurredBuffer != null)
             blurredBuffer.deleteFramebuffer();
         blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
+    }
 
-        glUseProgram(gaussianProgram);
-
-        GL20.glUniform2f(glGetUniformLocation(gaussianProgram, "resolution"), Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
-        GL20.glUniform1f(glGetUniformLocation(gaussianProgram, "time"), time);
+    private static void end(Program program) {
+        float height = mc.currentScreen.height;
+        float width = mc.currentScreen.width;
         blurredBuffer.bindFramebuffer(false);
         glBindTexture(GL_TEXTURE_2D, Minecraft.getMinecraft().getFramebuffer().framebufferTexture);
 
@@ -43,15 +44,15 @@ public class BlurUtils extends UtilityClass {
         glTexCoord2f(0, 1);
         glVertex2f(0, 0);
         glTexCoord2f(0, 0);
-        glVertex2f(0, (float) height);
+        glVertex2f(0, height);
         glTexCoord2f(1, 0);
-        glVertex2f((float) width, (float) height);
+        glVertex2f(width, height);
         glTexCoord2f(1, 1);
-        glVertex2f((float) width, 0);
+        glVertex2f(width, 0);
         glEnd();
         blurredBuffer.unbindFramebuffer();
 
-        glUseProgram(gaussianProgram);
+        glUseProgram(program.getProgram());
 
         Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(false);
         glBindTexture(GL_TEXTURE_2D, blurredBuffer.framebufferTexture);
@@ -60,17 +61,28 @@ public class BlurUtils extends UtilityClass {
         glTexCoord2f(0, 1);
         glVertex2f(0, 0);
         glTexCoord2f(0, 0);
-        glVertex2f(0, (float) height);
+        glVertex2f(0, height);
         glTexCoord2f(1, 0);
-        glVertex2f((float) width, (float) height);
+        glVertex2f(width, height);
         glTexCoord2f(1, 1);
-        glVertex2f((float) width, 0);
+        glVertex2f(width, 0);
         glEnd();
 
         glUseProgram(0);
     }
 
-    public static int createProgram(final String fragmentShaderPath, final String vertexShaderPath) {
+
+    public static void drawShader(Program program, Object... o) {
+        start();
+        glUseProgram(program.getProgram());
+        program.runnable.accept(program.getProgram(), o);
+        end(program);
+    }
+
+
+
+
+    private static int createProgram(final String fragmentShaderPath, final String vertexShaderPath) {
         int program = glCreateProgram();
 
         try {
@@ -113,13 +125,32 @@ public class BlurUtils extends UtilityClass {
      * @param type the type of shader.
      * @return shader program.
      */
-    public static int createShader(final InputStream input, final int type) throws IOException {
+    private static int createShader(final InputStream input, final int type) throws IOException {
         int shader = glCreateShader(type);
 
         glShaderSource(shader, readShader(input));
         glCompileShader(shader);
 
         return shader;
+    }
+
+
+    public static class Program {
+
+        public int getProgram() {
+            return program;
+        }
+
+        public BiConsumer<Integer, Object[]> getRunnable() {
+            return runnable;
+        }
+
+        private final int program;
+        private final BiConsumer<Integer, Object[]> runnable;
+        public Program(String name, BiConsumer<Integer, Object[]> runnable) {
+            this.program = createProgram("/assets/arsenic/shaders/" + name + ".frag", "/assets/arsenic/shaders/vertex.vsh");;
+            this.runnable = runnable;
+        }
     }
 
 

@@ -13,6 +13,7 @@ import arsenic.utils.timer.AnimationTimer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -20,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static arsenic.utils.render.ShaderUtils.drawShader;
+import static arsenic.utils.render.ShaderUtils.mainMenuProgram;
 
 // allow escape to bind to none
 
@@ -55,7 +59,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         getFontRenderer().setScale(height/450f);
 
         // blurs the bg
-        //BlurUtils.blur(4 * blurTimer.getPercent(),3 * blurTimer.getPercent(), height, width);
+        float time = (System.currentTimeMillis() % 100000) / 1000f;
+        drawShader(mainMenuProgram, time);
         DrawUtils.drawRect(0, 0, width, height, 0x35000000);
 
         int x = width / 8;

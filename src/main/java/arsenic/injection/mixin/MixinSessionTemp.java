@@ -13,8 +13,8 @@ public class MixinSessionTemp {
      * @author kv
      * @reason temp username chaneg for testing
      */
-    //@Overwrite
-    //public String getUsername() {
-//        return "ArsenicTesting4";
-  //  }
+    @Overwrite
+    public String getUsername() {
+        return "ArsenicTesting4";
+    }
 }
