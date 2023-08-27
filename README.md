@@ -33,5 +33,6 @@ The bypasses/features are mainly meant for Hypixel
 - done!
 
 # everying broke please help
+create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord 
 contact either Kv (`@kv.dev`) or lily (`@trans.catgirl`) on discord and expect to get screamed at and/or called an idiot
- 
+
