@@ -16,7 +16,7 @@ public class CommandManager {
     }
 
     public final int initialize() {
-        commands.addAll(Arrays.asList(new BindCommand(), new HelpCommand(), new BindsCommand(), new TestCommand(), new ThemeCommand()));
+        commands.addAll(Arrays.asList(new BindCommand(), new HelpCommand(), new BindsCommand(), new TestCommand(), new ThemeCommand(), new ConfigCommand()));
         return commands.size();
     }
 
