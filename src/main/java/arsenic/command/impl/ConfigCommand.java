@@ -14,6 +14,7 @@ public class ConfigCommand extends Command {
         ConfigManager configManager = Arsenic.getArsenic().getConfigManager();
         if (args[0].equalsIgnoreCase("load")){
             try {
+                configManager.saveConfig(); // save the current config before we load another one
                 configManager.loadConfig(args[1]);
                 PlayerUtils.addWaterMarkedMessageToChat( "loaded " + args[1]);
             } catch (NullPointerException e){
