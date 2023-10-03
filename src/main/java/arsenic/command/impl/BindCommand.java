@@ -30,9 +30,6 @@ public class BindCommand extends Command {
 
     @Override
     public List<String> getAutoComplete(String str, int arg, List<String> list) {
-        return arg == 0 ? Arsenic.getArsenic().getModuleManager().getModules().stream()
-                .filter(m -> m.getName().toLowerCase().startsWith(str.toLowerCase())
-                        && m.getName().length() > str.length())
-                .map(Module::getName).collect(Collectors.toList()) : list;
+        return arg == 0 ? autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getModules().stream().map(Module::getName).collect(Collectors.toList()), str) : list;
     }
 }
