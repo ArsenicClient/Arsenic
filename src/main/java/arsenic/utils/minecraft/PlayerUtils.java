@@ -88,4 +88,8 @@ public class PlayerUtils extends UtilityClass {
         return targets;
     }
 
+    public static boolean isPlayerInGame() {
+        return !(mc.thePlayer == null && mc.theWorld == null && mc.currentScreen != null);
+    }
+
 }
