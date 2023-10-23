@@ -1,15 +1,11 @@
 package arsenic.asm;
 
-import org.objectweb.asm.util.ASMifier;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;
 
 import java.io.FileOutputStream;
-import java.io.PrintStream;
 
-import static jdk.nashorn.internal.runtime.regexp.joni.constants.OPCode.RETURN;
-import static org.objectweb.asm.Opcodes.IFEQ;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.*;
 
 public class ClassTransformer implements IClassTransformer {
     @Override
@@ -24,23 +20,20 @@ public class ClassTransformer implements IClassTransformer {
                 return new MethodVisitor(Opcodes.ASM5, super.visitMethod(access, name, descriptor, signature, exceptions)) {
                     @Override
                     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                        System.out.println(descriptor);
-                        if(descriptor.equals("Larsenic/asm/AgentInject;")) {
-                            System.out.println("frucj");
+                        if(descriptor.equals("Larsenic/asm/RequiresPlayer;")) {
                             this.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
                             this.visitLdcInsn("Wow this method (" + name + ")" + " was just called and has a @Agent inject annotation");
                             this.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
 
-                            //doesntt work
-                            //should inject
-                            //if(isPlayerInGame)
+
+                            //if(isPlayerNotLoaded)
                             // return;
-                            /*this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/minecraft/PlayerUtils", "isPlayerInGame", "()Z", false);
+                            this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/minecraft/PlayerUtils", "isPlayerNotLoaded", "()Z", false);
                             Label l0 = new Label();
                             this.visitJumpInsn(IFEQ, l0);
                             this.visitInsn(RETURN);
                             this.visitLabel(l0);
-                            this.visitFrame(Opcodes.F_SAME, 0, null, 0, null); */
+                            this.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
                         }
                         return super.visitAnnotation(descriptor, visible);
                     }
@@ -64,17 +57,5 @@ public class ClassTransformer implements IClassTransformer {
         }
 
         return classWriter.toByteArray();
-    }
-
-    public static void h() {
-        /*
-        classReader.accept(classVisitor, 0);
-
-
-        try {
-            ASMifier.main(new String[]{"Arsenic.class"});
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }*/
     }
 }

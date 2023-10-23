@@ -1,7 +1,6 @@
 package arsenic.utils.minecraft;
 
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
@@ -88,7 +87,8 @@ public class PlayerUtils extends UtilityClass {
         return targets;
     }
 
-    public static boolean isPlayerInGame() {
+    public static boolean isPlayerNotLoaded() {
+        System.out.println("isPlayerInGame has been called");
         return !(mc.thePlayer == null && mc.theWorld == null && mc.currentScreen != null);
     }
 

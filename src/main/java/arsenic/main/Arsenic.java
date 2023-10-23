@@ -1,6 +1,5 @@
 package arsenic.main;
 
-import arsenic.asm.AgentInject;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
@@ -9,9 +8,7 @@ import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.utils.font.Fonts;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -24,7 +21,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
@@ -43,40 +39,8 @@ public class Arsenic {
 
     private final Executor executor = Executors.newSingleThreadExecutor();
 
-    @AgentInject
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
-        executor.execute(() -> {
-            logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
-            logger.info("This is to get a guide on how many people are using the client it records zero data");
-        });
-
-        logger.info("Loading {}, version {}...", clientName, getClientVersionString());
-
-        MinecraftForge.EVENT_BUS.register(new ForgeEvents());
-        logger.info("Hooked forge events");
-
-        getEventManager().subscribe(silentRotationManager);
-
-        logger.info("Subscribed silent rotation manager");
-
-        logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
-
-        logger.info("Loaded {} themes...", String.valueOf(themeManager.initialize()));
-
-        logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
-
-        logger.info("Loaded {} commands...", String.valueOf(commandManager.initialize()));
-
-        fonts.initTextures();
-        logger.info("Loaded fonts.");
-
-        logger.info("Loaded {}.", clientName);
-    }
-
-    public final void init2(FMLInitializationEvent event) {
-        if(arsenic.utils.minecraft.PlayerUtils.isPlayerInGame())
-            return;
         executor.execute(() -> {
             logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
             logger.info("This is to get a guide on how many people are using the client it records zero data");
