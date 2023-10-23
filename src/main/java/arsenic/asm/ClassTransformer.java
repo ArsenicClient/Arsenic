@@ -26,6 +26,7 @@ public class ClassTransformer implements IClassTransformer {
                             this.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
 
 
+                            //injects
                             //if(isPlayerNotLoaded)
                             // return;
                             this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/minecraft/PlayerUtils", "isPlayerNotLoaded", "()Z", false);
@@ -42,20 +43,6 @@ public class ClassTransformer implements IClassTransformer {
         };
 
         classReader.accept(classVisitor, 0);
-
-        if(classname.equals("arsenic.main.Arsenic")) {
-            try {
-                FileOutputStream fos = new FileOutputStream("Arsenic.class");
-
-                fos.write(classWriter.toByteArray());
-
-                fos.close();
-
-            } catch (final Exception e) {
-                e.printStackTrace();
-            }
-        }
-
         return classWriter.toByteArray();
     }
 }
