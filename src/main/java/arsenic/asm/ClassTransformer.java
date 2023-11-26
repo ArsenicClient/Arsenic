@@ -3,8 +3,6 @@ package arsenic.asm;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;
 
-import java.io.FileOutputStream;
-
 import static org.objectweb.asm.Opcodes.*;
 
 public class ClassTransformer implements IClassTransformer {

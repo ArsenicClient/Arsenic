@@ -18,9 +18,10 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
     T cEntity;
 
     private float cYawH, cPYawH, cYawO, cPYawO, cPitch, cPPitch;
-    private boolean touched;
 
     private final Minecraft mc = Minecraft.getMinecraft();
+
+    private EventRenderThirdPerson thirdPersonEvent;
 
     protected MixinRendererLivingEntity(RenderManager renderManager) {
         super(renderManager);
@@ -31,30 +32,27 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
     public void doRender(T entity, double x, double y, double z, float entityYaw, float partialTicks, CallbackInfo ci) {
         if(entity != mc.thePlayer)
             return;
-        EventRenderThirdPerson event = new EventRenderThirdPerson(entity.rotationYaw, entity.rotationPitch);
-        Arsenic.getArsenic().getEventManager().post(event);
-        if(event.hasBeenTouched()) {
-            touched = true;
-            cYawH = entity.rotationYawHead;
-            cPYawH = entity.prevRotationYawHead;
-            cYawO = entity.renderYawOffset;
-            cPYawO = entity.prevRenderYawOffset;
-            cPitch = entity.rotationPitch;
-            cPPitch = entity.prevRotationPitch;
-            entity.rotationYawHead = event.getYaw();
-            entity.prevRotationYawHead = event.getYaw();
-            entity.renderYawOffset = event.getYaw();
-            entity.prevRenderYawOffset = event.getYaw();
-            entity.rotationPitch = event.getPitch();
-            entity.prevRotationPitch = event.getPitch();
+        thirdPersonEvent = new EventRenderThirdPerson(entity.rotationYaw, entity.rotationPitch, entity.prevRotationYaw, entity.prevRotationPitch);
+        Arsenic.getArsenic().getEventManager().post(thirdPersonEvent);
+        if(!thirdPersonEvent.getAccepted())
             return;
-        }
-        touched = false;
+        cYawH = entity.rotationYawHead;
+        cPYawH = entity.prevRotationYawHead;
+        cYawO = entity.renderYawOffset;
+        cPYawO = entity.prevRenderYawOffset;
+        cPitch = entity.rotationPitch;
+        cPPitch = entity.prevRotationPitch;
+        entity.rotationYawHead = thirdPersonEvent.getYaw();
+        entity.prevRotationYawHead = thirdPersonEvent.getPrevYaw();
+        entity.renderYawOffset = thirdPersonEvent.getYaw();
+        entity.prevRenderYawOffset = thirdPersonEvent.getPrevYaw();
+        entity.rotationPitch = thirdPersonEvent.getPitch();
+        entity.prevRotationPitch = thirdPersonEvent.getPrevPitch();
     }
 
     @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("RETURN"))
     public void doRenderReturn(T entity, double x, double y, double z, float entityYaw, float partialTicks, CallbackInfo ci) {
-        if(entity != mc.thePlayer || !touched)
+        if(entity != mc.thePlayer || !thirdPersonEvent.getAccepted())
             return;
         entity.rotationYawHead = cYawH;
         entity.prevRotationYawHead = cPYawH;
