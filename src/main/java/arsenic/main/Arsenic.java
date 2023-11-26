@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
@@ -42,7 +41,6 @@ public class Arsenic {
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
-
         executor.execute(() -> {
             logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
             logger.info("This is to get a guide on how many people are using the client it records zero data");

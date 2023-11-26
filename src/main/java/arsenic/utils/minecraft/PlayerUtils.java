@@ -1,7 +1,7 @@
 package arsenic.utils.minecraft;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
@@ -22,9 +22,9 @@ public class PlayerUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
+    @RequiresPlayer
     public static void addMessageToChat(String msg) {
-        if(mc.thePlayer != null)
-            mc.thePlayer.addChatMessage(new ChatComponentText(msg));
+        mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
     public static boolean isPlayerHoldingWeapon() {
         if (mc.thePlayer.getCurrentEquippedItem() == null)
@@ -86,6 +86,11 @@ public class PlayerUtils extends UtilityClass {
             }
         }
         return targets;
+    }
+
+    public static boolean isPlayerNotLoaded() {
+        System.out.println("isPlayerInGame has been called");
+        return !(mc.thePlayer == null && mc.theWorld == null && mc.currentScreen != null);
     }
 
 }
