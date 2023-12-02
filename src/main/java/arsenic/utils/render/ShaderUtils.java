@@ -35,7 +35,8 @@ public class ShaderUtils extends UtilityClass {
     private static Framebuffer blurredBuffer;
 
     private static void start() {
-        update();
+        //fix for eye cancer
+        //update(); pls dont update screen like crazy
         if(blurredBuffer != null)
             blurredBuffer.deleteFramebuffer();
         blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
