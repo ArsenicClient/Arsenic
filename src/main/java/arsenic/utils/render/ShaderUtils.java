@@ -35,7 +35,6 @@ public class ShaderUtils extends UtilityClass {
     private static Framebuffer blurredBuffer;
 
     private static void start() {
-        update();
         if(blurredBuffer != null)
             blurredBuffer.deleteFramebuffer();
         blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
@@ -93,10 +92,10 @@ public class ShaderUtils extends UtilityClass {
         int program = glCreateProgram();
 
         try {
-            int fragShader = createShader(BlurUtils.class.getResourceAsStream(fragmentShaderPath), GL_FRAGMENT_SHADER);
+            int fragShader = createShader(ShaderUtils.class.getResourceAsStream(fragmentShaderPath), GL_FRAGMENT_SHADER);
             glAttachShader(program, fragShader);
 
-            int vertexShader = createShader(BlurUtils.class.getResourceAsStream(vertexShaderPath), GL_VERTEX_SHADER);
+            int vertexShader = createShader(ShaderUtils.class.getResourceAsStream(vertexShaderPath), GL_VERTEX_SHADER);
             glAttachShader(program, vertexShader);
         } catch (IOException ignored) {
             return 0;

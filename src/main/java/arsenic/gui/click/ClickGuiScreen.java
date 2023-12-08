@@ -10,11 +10,15 @@ import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL20;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static arsenic.utils.render.ShaderUtils.*;
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 // allow escape to bind to none
 
@@ -33,8 +38,25 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
-    private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true);
+    private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true, TickMode.SQR);
     private int vLineX, hLineY, x1, y1;
+
+    private Framebuffer blurredBuffer;
+
+    //params are radius , compression
+    public final Program blurProgram = new Program("blur",
+            (program, params) -> {
+                if(blurredBuffer != null)
+                    blurredBuffer.deleteFramebuffer();
+                blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
+
+                GL20.glUniform1i(glGetUniformLocation(program, "texture"), 0);
+                GL20.glUniform2f(glGetUniformLocation(program, "texelSize"), 1.0f / Minecraft.getMinecraft().displayWidth, 1.0f / Minecraft.getMinecraft().displayHeight);
+                GL20.glUniform1f(glGetUniformLocation(program, "radius"), MathHelper.ceiling_float_int(2 * (float) params[0]));
+                blurredBuffer.framebufferClear();
+                GL20.glUniform2f(glGetUniformLocation(program, "direction"), (float) params[1], 0.0f);
+            }
+    );
 
     //called once
     public void init(ClickGui clickGui) {
@@ -56,7 +78,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
-        DrawUtils.drawRect(0, 0, width, height, 0x35000000);
+
+        drawShader(blurProgram,1.3f * blurTimer.getPercent(), 2.5f * blurTimer.getPercent());
 
         int x = width / 8;
         int y = height / 6;
