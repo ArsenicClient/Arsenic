@@ -35,8 +35,10 @@ public class ConfigCommand extends Command {
                 break;
             case "save":
                 try {
+                    String prevConfig = configManager.getCurrentConfig().getName(); //get the current config (before saving)
                     configManager.createConfig(args[1]);
                     PlayerUtils.addWaterMarkedMessageToChat("created/saved " + args[1]);
+                    configManager.loadConfig(prevConfig); //load the previous config again cuz config manager just loads the saved config for no reason
                 } catch (ArrayIndexOutOfBoundsException r){
                     PlayerUtils.addWaterMarkedMessageToChat("could not create/save a config with the name "+args[1]);
                 }
