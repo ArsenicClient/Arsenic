@@ -21,11 +21,13 @@ public class ConfigCommand extends Command {
         ConfigManager configManager = Arsenic.getArsenic().getConfigManager();
         switch(args[0].toLowerCase()) {
             case "load":
+                String lastConfig = configManager.getCurrentConfig().getName(); //gets the last config before trying to load another one
                 try {
                     configManager.saveConfig(); // save the current config before we load another one
                     configManager.loadConfig(args[1]);
                     PlayerUtils.addWaterMarkedMessageToChat( "loaded " + args[1]);
                 } catch (NullPointerException e){
+                    configManager.loadConfig(lastConfig); //applies lastConfig if the passed args were invalid/config was null
                     PlayerUtils.addWaterMarkedMessageToChat(args[1] + " does not exist");
                 }
                 break;
