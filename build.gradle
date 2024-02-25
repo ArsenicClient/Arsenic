@@ -72,7 +72,7 @@ dependencies {
         exclude module: 'launchwrapper'
     }
     implementation 'org.jetbrains:annotations:23.0.0'
-    //implementation 'org.ow2.asm:asm:9.1'
+    implementation 'org.reflections:reflections:0.10.2'
 }
 
 processResources {
