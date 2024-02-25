@@ -19,11 +19,6 @@ public class ClassTransformer implements IClassTransformer {
                     @Override
                     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                         if(descriptor.equals("Larsenic/asm/RequiresPlayer;")) {
-                            this.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-                            this.visitLdcInsn("Wow this method (" + name + ")" + " was just called and has a @Agent inject annotation");
-                            this.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-
-
                             //injects
                             //if(isPlayerNotLoaded)
                             // return;
