@@ -1,22 +1,30 @@
 package arsenic.utils.font;
 
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.io.IOException;
-import java.util.Objects;
-
 import org.jetbrains.annotations.Nullable;
 
-public class Fonts {
+import java.awt.*;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Objects;
 
+public class Fonts {
     public final TTFontRenderer FR = new TTFontRenderer(getFontFromLocation("font.ttf", 21), true, true);
     public final TTFontRenderer MEDIUM_FR = new TTFontRenderer(getFontFromLocation("font.ttf", 20), true, true);
+    public final TTFontRenderer BIG_FR = new TTFontRenderer(getFontFromLocation("font.ttf", 32), true, true);
     public final TTFontRenderer SMALL_FR = new TTFontRenderer(getFontFromLocation("font.ttf", 18), true, true);
 
     public void initTextures() {
-        FR.generateTextures();
-        MEDIUM_FR.generateTextures();
-        SMALL_FR.generateTextures();
+        Field[] fields = Fonts.class.getDeclaredFields();
+        for (Field field : fields) {
+            if (field.getType() == TTFontRenderer.class) {
+                try {
+                    field.setAccessible(true);
+                    ((TTFontRenderer) field.get(this)).generateTextures();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     private @Nullable Font getFontFromLocation(String fileName, int size) {

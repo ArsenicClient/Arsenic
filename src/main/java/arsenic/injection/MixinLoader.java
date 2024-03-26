@@ -17,42 +17,37 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 @IFMLLoadingPlugin.MCVersion(value = "1.8.9")
 public class MixinLoader implements IFMLLoadingPlugin {
     public MixinLoader() {
-        unlockLwjgl();
         MixinBootstrap.init();
         Mixins.addConfiguration("mixins.arsenic.json");
         MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
     }
 
-    private void unlockLwjgl() {
-        try {
-            Field transformerExceptions = LaunchClassLoader.class.getDeclaredField("classLoaderExceptions");
-            transformerExceptions.setAccessible(true);
-            Object o = transformerExceptions.get(Launch.classLoader);
-            ((Set<String>) o).remove("org.lwjgl.");
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
     @NotNull
     @Override
     public String[] getASMTransformerClass() {
-        return new String[]{"arsenic.asm.ClassTransformer"};
+        return null;
     }
 
     @Nullable
     @Override
-    public String getModContainerClass() { return null; }
+    public String getModContainerClass() {
+        return null;
+    }
 
     @Nullable
     @Override
-    public String getSetupClass() { return null; }
+    public String getSetupClass() {
+        return null;
+    }
 
     @Override
-    public void injectData(Map<String, Object> data) {}
+    public void injectData(Map<String, Object> data) {
+    }
 
     @Nullable
     @Override
-    public String getAccessTransformerClass() { return null; }
+    public String getAccessTransformerClass() {
+        return null;
+    }
 
 }
