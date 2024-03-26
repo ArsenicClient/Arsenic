@@ -11,6 +11,7 @@ import arsenic.module.impl.players.FastPlace;
 import arsenic.module.impl.world.ScaffoldTest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
@@ -27,6 +28,7 @@ public abstract class MixinMinecraft {
 
     @Shadow
     protected abstract void clickMouse();
+
     @Shadow
     private static Minecraft theMinecraft;
     @Shadow
@@ -34,6 +36,12 @@ public abstract class MixinMinecraft {
 
     @Shadow
     public GameSettings gameSettings;
+
+    @Shadow
+    public GuiScreen currentScreen;
+
+    @Shadow
+    public boolean skipRenderWorld;
 
     @ModifyArg(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V"), index = 0)
     public int getKeybind(int p_setKeyBindState_0_) {
@@ -50,8 +58,8 @@ public abstract class MixinMinecraft {
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z", ordinal = 7))
     public boolean autoblockMixin(KeyBinding instance) {
         AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
-        if(this.gameSettings.keyBindAttack.isPressed()) {
-            if(autoBlock.isEnabled() && autoBlock.shouldBlock())
+        if (this.gameSettings.keyBindAttack.isPressed()) {
+            if (autoBlock.isEnabled() && autoBlock.shouldBlock())
                 clickMouse();
             return true;
         }
@@ -70,7 +78,6 @@ public abstract class MixinMinecraft {
     }
 
 
-
     @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
@@ -86,10 +93,7 @@ public abstract class MixinMinecraft {
     public void rightClickMouse(CallbackInfo ci) {
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
         ScaffoldTest scaffoldTest = Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class);
-        if(!fastPlace.isEnabled() && !scaffoldTest.isEnabled()) return;
-
+        if (!fastPlace.isEnabled() && !scaffoldTest.isEnabled()) return;
         rightClickDelayTimer = scaffoldTest.isEnabled() ? 0 : fastPlace.getTickDelay();
-
     }
-
 }
