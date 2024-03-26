@@ -3,15 +3,11 @@ package arsenic.main;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
-import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -22,34 +18,41 @@ import java.net.URL;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
-
     private final String clientName = "Arsenic";
     private final long clientVersion = 221020L;
-    private final Logger logger = LogManager.getLogger(clientName);
-    private final EventManager eventManager = new EventManager();
-    private final ModuleManager moduleManager = new ModuleManager();
-    private final Fonts fonts = new Fonts();
-    private final ConfigManager configManager = new ConfigManager();
-    private final CommandManager commandManager = new CommandManager();
-    private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
-    private final ThemeManager themeManager = new ThemeManager();
-    private final SilentRotationManager silentRotationManager = new SilentRotationManager();
-
+    private Logger logger;
+    private EventManager eventManager;
+    private ModuleManager moduleManager;
+    private Fonts fonts;
+    private ConfigManager configManager;
+    private CommandManager commandManager;
+    private ClickGuiScreen clickGuiScreen;
+    private ThemeManager themeManager;
+    private SilentRotationManager silentRotationManager;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
-    @Mod.EventHandler
-    public final void init(FMLInitializationEvent event) {
+    public Arsenic() {
+        instance = this;
+    }
+
+    public final void init() {
+        clickGuiScreen = new ClickGuiScreen();
+        logger = LogManager.getLogger(clientName);
+        eventManager = new EventManager();
+        moduleManager = new ModuleManager();
+        fonts = new Fonts();
+        configManager = new ConfigManager();
+        commandManager = new CommandManager();
+        themeManager = new ThemeManager();
+        silentRotationManager = new SilentRotationManager();
+
         executor.execute(() -> {
             logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
             logger.info("This is to get a guide on how many people are using the client it records zero data");
         });
 
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
-
-        MinecraftForge.EVENT_BUS.register(new ForgeEvents());
-        logger.info("Hooked forge events");
 
         getEventManager().subscribe(silentRotationManager);
 
@@ -69,33 +72,56 @@ public class Arsenic {
         logger.info("Loaded {}.", clientName);
     }
 
-    public String getName() { return clientName; }
+    public String getName() {
+        return clientName;
+    }
 
-    @Mod.Instance
     private static Arsenic instance;
 
-    public static Arsenic getInstance() { return instance; }
+    public static Arsenic getInstance() {
+        return instance;
+    }
 
-    public static Arsenic getArsenic() { return instance; }
+    public static Arsenic getArsenic() {
+        return instance;
+    }
 
-    public final String getClientName() { return clientName; }
+    public final String getClientName() {
+        return clientName;
+    }
 
-    public final long getClientVersion() { return clientVersion; }
+    public final long getClientVersion() {
+        return clientVersion;
+    }
 
     @Contract(pure = true)
-    public final @NotNull String getClientVersionString() { return String.valueOf(clientVersion); }
+    public final @NotNull String getClientVersionString() {
+        return String.valueOf(clientVersion);
+    }
 
-    public final Logger getLogger() { return logger; }
+    public final Logger getLogger() {
+        return logger;
+    }
 
-    public final EventManager getEventManager() { return eventManager; }
+    public final EventManager getEventManager() {
+        return eventManager;
+    }
 
-    public final ModuleManager getModuleManager() { return moduleManager; }
+    public final ModuleManager getModuleManager() {
+        return moduleManager;
+    }
 
-    public final Fonts getFonts() { return fonts; }
+    public final Fonts getFonts() {
+        return fonts;
+    }
 
-    public final ConfigManager getConfigManager() { return configManager; }
+    public final ConfigManager getConfigManager() {
+        return configManager;
+    }
 
-    public final CommandManager getCommandManager() { return commandManager; }
+    public final CommandManager getCommandManager() {
+        return commandManager;
+    }
 
     public final ClickGuiScreen getClickGuiScreen() {
         return clickGuiScreen;
@@ -105,14 +131,17 @@ public class Arsenic {
         return silentRotationManager;
     }
 
-    public final ThemeManager getThemeManager() { return themeManager; }
+    public final ThemeManager getThemeManager() {
+        return themeManager;
+    }
 
     //downloads an empty file lol
     public boolean trackLaunch() {
         try {
             new URL("https://github.com/K-ov/LaunchTracker/releases/download/publish/ArsenicLaunch").openStream().close();
             return true;
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
         return false;
     }
 }

@@ -17,7 +17,7 @@ import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 import net.minecraftforge.client.ForgeHooksClient;
-import net.minecraftforge.common.MinecraftForge;
+import arsenic.event.impl.EventRenderWorldLast;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -43,6 +43,12 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Shadow
     private Minecraft mc;
 
+
+    @Inject(method = "renderWorldPass", at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderHand:Z", shift = At.Shift.BEFORE))
+    private void renderWorldPass(int pass, float partialTicks, long finishTimeNano, CallbackInfo callbackInfo) {
+        Arsenic.getInstance().getEventManager().getBus().post(new EventRenderWorldLast(mc.renderGlobal, partialTicks));
+    }
+
     /**
      * @author kv
      * @reason reach
@@ -51,7 +57,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Overwrite
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
-        if(entity != null && this.mc.theWorld != null) {
+        if (entity != null && this.mc.theWorld != null) {
             Reach reachMod = Arsenic.getArsenic().getModuleManager().getModuleByClass(Reach.class);
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
@@ -60,14 +66,14 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
             double d1 = d0;
             Vec3 vec3 = entity.getPositionEyes(p_getMouseOver_1_);
             boolean flag = false;
-            if(this.mc.playerController.extendedReach()) {
+            if (this.mc.playerController.extendedReach()) {
                 d0 = 6.0D;
                 d1 = 6.0D;
-            } else if(d0 > reachMod.getReach()) {
+            } else if (d0 > reachMod.getReach()) {
                 flag = true;
             }
 
-            if(this.mc.objectMouseOver != null) {
+            if (this.mc.objectMouseOver != null) {
                 d1 = this.mc.objectMouseOver.hitVec.distanceTo(vec3);
             }
 
@@ -81,7 +87,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
 
             for (Entity entity1 : list) {
                 float f1 = entity1.getCollisionBorderSize();
-                if(entity1 instanceof EntityPlayer)
+                if (entity1 instanceof EntityPlayer)
                     f1 += (float) (Arsenic.getArsenic().getModuleManager().getModuleByClass(HitBox.class).getExpand());
                 AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand(f1, f1, f1);
                 MovingObjectPosition movingobjectposition = axisalignedbb.calculateIntercept(vec3, vec32);
@@ -113,9 +119,9 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                 this.mc.objectMouseOver = new MovingObjectPosition(MovingObjectPosition.MovingObjectType.MISS, Objects.requireNonNull(vec33), null, new BlockPos(vec33));
             }
 
-            if(this.pointedEntity != null && (d2 < d1 || this.mc.objectMouseOver == null)) {
+            if (this.pointedEntity != null && (d2 < d1 || this.mc.objectMouseOver == null)) {
                 this.mc.objectMouseOver = new MovingObjectPosition(this.pointedEntity, vec33);
-                if(this.pointedEntity instanceof EntityLivingBase || this.pointedEntity instanceof EntityItemFrame) {
+                if (this.pointedEntity instanceof EntityLivingBase || this.pointedEntity instanceof EntityItemFrame) {
                     this.mc.pointedEntity = this.pointedEntity;
                 }
             }
@@ -132,14 +138,14 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public Vec3 getLook(Entity entity, float partialTicks) {
         EventLook eventLook = new EventLook(entity.rotationYaw, entity.rotationPitch);
         Arsenic.getArsenic().getEventManager().post(eventLook);
-        if(!eventLook.hasBeenModified())
+        if (!eventLook.hasBeenModified())
             return entity.getLook(partialTicks);
         return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
     }
 
     private Vec3 getVectorForRotation(float pitch, float yaw) {
-        float f = MathHelper.cos(-yaw * 0.017453292F - (float)Math.PI);
-        float f1 = MathHelper.sin(-yaw * 0.017453292F - (float)Math.PI);
+        float f = MathHelper.cos(-yaw * 0.017453292F - (float) Math.PI);
+        float f1 = MathHelper.sin(-yaw * 0.017453292F - (float) Math.PI);
         float f2 = -MathHelper.cos(-pitch * 0.017453292F);
         float f3 = MathHelper.sin(-pitch * 0.017453292F);
         return new Vec3((f1 * f2), f3, (f * f2));
@@ -149,7 +155,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Redirect(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/client/ForgeHooksClient;drawScreen(Lnet/minecraft/client/gui/GuiScreen;IIF)V"))
     public void drawScreen(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
         ForgeHooksClient.drawScreen(screen, mouseX, mouseY, partialTicks);
-        if(!Keyboard.isKeyDown(Keyboard.KEY_B))
+        if (!Keyboard.isKeyDown(Keyboard.KEY_B))
             return;
         float time = (System.currentTimeMillis() % 100000) / 1000f;
         drawShader(cursorProgram, time, (float) mouseX, (float) mouseY, (float) new ScaledResolution(mc).getScaleFactor());

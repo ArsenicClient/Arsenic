@@ -11,7 +11,7 @@ import arsenic.module.impl.players.FastPlace;
 import arsenic.module.impl.world.ScaffoldTest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.main.GameConfiguration;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
@@ -42,6 +42,16 @@ public abstract class MixinMinecraft {
 
     @Shadow
     public boolean skipRenderWorld;
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    private void minecraftConstructor(GameConfiguration gameConfig, CallbackInfo ci) {
+        new Arsenic(); //initializing nexus instance DO NOT MESS WITH THIS
+    }
+
+    @Inject(method = "startGame", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;ingameGUI:Lnet/minecraft/client/gui/GuiIngame;", shift = At.Shift.AFTER))
+    private void startGame(CallbackInfo ci) {
+        Arsenic.getInstance().init(); //main initialization of the client DO NOT MESS WITH THIS
+    }
 
     @ModifyArg(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V"), index = 0)
     public int getKeybind(int p_setKeyBindState_0_) {
