@@ -16,7 +16,7 @@ public class DoubleValue {
         return Math.min(Math.max(value, minBound), maxBound);
     }
 
-    public double getInput() { return value; }
+    public Double getInput() { return value; }
 
     public void setInputSilently(double value) {
         this.value = getCorrectedValue(value);
