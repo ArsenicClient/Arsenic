@@ -6,9 +6,7 @@ import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import org.reflections.Reflections;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -33,6 +31,13 @@ public class ModuleManager {
 
     public final Collection<Module> getEnabledModules() {
         return getModules().stream().filter(Module::isEnabled).collect(Collectors.toList());
+    }
+
+
+    public List<String> getClosestModuleName(String name) {
+        return Arsenic.getArsenic().getModuleManager().getModules()
+                .stream().map(Module::getName).filter(cName -> cName.toLowerCase().startsWith(name.toLowerCase()))
+                .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
     }
 
     public final Collection<Module> getModulesByCategory(ModuleCategory category) {
