@@ -4,7 +4,7 @@
 Arsenic client is brought to you by Shitcode inc.   
 Arsenic features modules for closet and blatant cheating    
 The bypasses/features are mainly meant for Hypixel
-
+ - note: there are almost no bypasses or features 
 ### How to use Arsenic:
 - Install Forge 1.8.9.
 - Download Arsenic and put it in your mod's folder.
