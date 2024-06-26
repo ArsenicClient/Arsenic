@@ -26,7 +26,7 @@ public class Velocity extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> packetEvent = event -> {
-        if (!(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId()) || (Arsenic.getInstance().getModuleManager().getModuleByClass(Speed.class).isEnabled() && (Arsenic.getInstance().getModuleManager().getModuleByClass(Speed.class).mode.getValue() == Speed.Mode.BOOST))) {
+        if (!(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId())) {
             return;
         }
 
