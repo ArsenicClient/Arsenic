@@ -21,7 +21,7 @@ public class Blink extends Module {
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
         if(mc.theWorld == null)
             return;
-        event.cancel(); //bro forgor to cancel :skull:
+        event.cancel();
         packets.add(event.getPacket());
     };
 
@@ -32,9 +32,8 @@ public class Blink extends Module {
 
     @Override
     protected void onDisable() {
-        for(Packet<?> packet : packets) {
+        for (Packet<?> packet : packets) {
             mc.getNetHandler().addToSendQueue(packet);
-            PlayerUtils.addWaterMarkedMessageToChat(packet.getClass().getName());
         }
     }
 }

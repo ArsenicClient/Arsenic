@@ -24,13 +24,14 @@
     "mixin.MixinMinecraft",
     "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
-    "mixin.MixinRendererLivingEntity",
-    "mixin.MixinSessionTemp"
+    "mixin.MixinRendererLivingEntity"
   ],
   "mixins": [
     "accessor.IMixinC02PacketUseEntity",
     "accessor.IMixinItemSword",
+    "accessor.IMixinNetworkManager",
     "accessor.IMixinS12PacketEntityVelocity",
+    "accessor.S03PacketTimeUpdateAccessor",
     "mixin.MixinEntityPlayer",
     "mixin.MixinItemTool",
     "mixin.MixinWorld"

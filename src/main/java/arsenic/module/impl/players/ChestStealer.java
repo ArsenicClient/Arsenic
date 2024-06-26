@@ -52,7 +52,7 @@ public class ChestStealer extends Module {
 
     private final Runnable stealAction = () -> {
         if (path.isEmpty()) {
-            if(closeOnFinish.getValue()) {
+            if (closeOnFinish.getValue()) {
                 timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
                 nextAction = closeAction;
             } else {
@@ -60,7 +60,7 @@ public class ChestStealer extends Module {
             }
             return;
         }
-        percentStolen = (totalSlots - path.size())/(float) (totalSlots);
+        percentStolen = (totalSlots - path.size()) / (float) (totalSlots);
         mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
         mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
         timer.setCooldown((int) delay.getValue().getRandomInRange());
@@ -75,8 +75,9 @@ public class ChestStealer extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
-        inChest = (event.getGuiScreen()instanceof GuiChest &&mc.thePlayer.openContainer instanceof ContainerChest);;
-        if(!inChest)
+        inChest = (event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest);
+        ;
+        if (!inChest)
             return;
         chest = (ContainerChest) mc.thePlayer.openContainer;
         percentStolen = 0;
@@ -89,10 +90,10 @@ public class ChestStealer extends Module {
 
     @EventLink
     public final Listener<EventTick> tickListener = event -> {
-        if(!inChest)
+        if (!inChest)
             return;
 
-        if(timer.hasFinished()) {
+        if (timer.hasFinished()) {
             nextAction.run();
             timer.start();
         }

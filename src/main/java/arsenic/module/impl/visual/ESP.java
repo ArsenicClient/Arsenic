@@ -8,7 +8,6 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
@@ -40,7 +39,7 @@ public class ESP extends Module {
         for(EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if(entity == mc.thePlayer)
                 continue;
-            if(!(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class)).isARealPlayer(entity))
+            if(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isBot(entity))
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();

@@ -1,11 +1,10 @@
 package arsenic.utils.minecraft;
 
 import arsenic.asm.RequiresPlayer;
-import arsenic.main.Arsenic;
-import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
@@ -21,26 +20,49 @@ import java.util.List;
 public class PlayerUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
+    private static int onGroundTicks, inAirTicks;
+
+    public static int onGroundTicks() {
+        return onGroundTicks;
+    }
+
+    public static int offGroundTicks() {
+        return inAirTicks;
+    }
+
+    public static void updateTicks(boolean onGround) {
+        if (onGround) {
+            onGroundTicks++;
+            inAirTicks = 0;
+        } else {
+            inAirTicks++;
+            onGroundTicks = 0;
+        }
+    }
 
     @RequiresPlayer
     public static void addMessageToChat(String msg) {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }
+
     public static boolean isPlayerHoldingWeapon() {
         if (mc.thePlayer.getCurrentEquippedItem() == null)
             return false;
         Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
         return item instanceof ItemSword || item instanceof ItemAxe;
     }
+
     public static boolean isPlayerHoldingBlocks() {
         if (mc.thePlayer.getCurrentEquippedItem() == null)
             return false;
         Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
         return item instanceof ItemBlock;
     }
+
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
+
     public static boolean playerOverAir() {
         return mc.theWorld.isAirBlock(getBlockUnderPlayer());
     }
@@ -54,9 +76,9 @@ public class PlayerUtils extends UtilityClass {
 
     public static EntityPlayer getClosestPlayerWithin(double distance) {
         EntityPlayer target = null;
-        for(EntityPlayer entity : mc.theWorld.playerEntities) {
+        for (EntityPlayer entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if(entity != mc.thePlayer && tempDistance <= distance) {
+            if (entity != mc.thePlayer && tempDistance <= distance) {
                 target = entity;
                 distance = tempDistance;
             }
@@ -66,11 +88,9 @@ public class PlayerUtils extends UtilityClass {
 
     public static List<Entity> getPlayersWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
-        for(EntityPlayer entity : mc.theWorld.playerEntities) {
-            if(!(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isARealPlayer(entity)))
-                continue;
+        for (EntityPlayer entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if(entity != mc.thePlayer && tempDistance <= distance) {
+            if (entity != mc.thePlayer && tempDistance <= distance) {
                 targets.add(entity);
             }
         }
@@ -79,9 +99,9 @@ public class PlayerUtils extends UtilityClass {
 
     public static List<Entity> getEntitysWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
-        for(Entity entity : mc.theWorld.loadedEntityList) {
+        for (Entity entity : mc.theWorld.loadedEntityList) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if(entity != mc.thePlayer && tempDistance <= distance) {
+            if (entity != mc.thePlayer && tempDistance <= distance) {
                 targets.add(entity);
             }
         }
@@ -93,4 +113,14 @@ public class PlayerUtils extends UtilityClass {
         return !(mc.thePlayer == null && mc.theWorld == null && mc.currentScreen != null);
     }
 
+    public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target) {
+        try {
+            Entity teamMate = target;
+            if (mc.thePlayer.isOnSameTeam(target) || mc.thePlayer.getDisplayName().getUnformattedText().startsWith(teamMate.getDisplayName().getUnformattedText().substring(0, 2))) {
+                return true;
+            }
+        } catch (Exception e) {
+        }
+        return false;
+    }
 }

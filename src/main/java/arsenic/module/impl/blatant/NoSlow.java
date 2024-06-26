@@ -2,79 +2,53 @@ package arsenic.module.impl.blatant;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.MoveUtil;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.item.ItemSword;
-import net.minecraft.network.play.client.C09PacketHeldItemChange;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import arsenic.utils.timer.Timer;
+import net.minecraft.item.ItemBow;
+import net.minecraft.item.ItemFood;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.util.BlockPos;
 
-import java.util.function.Supplier;
-
-@ModuleInfo(name = "NoSlow", category = ModuleCategory.BLATANT)
+@ModuleInfo(name = "NoSlow", category = ModuleCategory.MOVEMENT)
 public class NoSlow extends Module {
-
-    public final EnumProperty<sMode> slowMode = new EnumProperty<sMode>("Mode: ", sMode.VANILLA) {
+    public final EnumProperty<nMode> mode = new EnumProperty<nMode>("Mode", nMode.VANILLA) {
         @Override
         public void onValueUpdate() {
             switch (getValue()) {
-                case ONHIT:
-                    slow = () -> !timer.hasFinished();
-                    break;
                 case HYPIXEL:
-                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
-                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
-                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
-                    PlayerUtils.addWaterMarkedMessageToChat("This Does Not Work Do Not Use");
-                case VANILLA:
-                    slow = () -> true;
+                    // wtf kv why does this not work
+                    PlayerUtils.addWaterMarkedMessageToChat("NoSlow only works with Food and Bows!");
                     break;
             }
         }
     };
 
-    @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
-    public final DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
-
-    private Supplier<Boolean> slow;
-    private final Timer timer = new Timer();
-
-    @Override
-    protected void postApplyConfig() {
-        slowMode.onValueUpdate();
-    }
+    public final BooleanProperty swordNoSlow = new BooleanProperty("Sword", true);
+    public final BooleanProperty foodNoSlow = new BooleanProperty("Food", true);
+    public final BooleanProperty potionNoSlow = new BooleanProperty("Potion", true);
+    public final BooleanProperty bowNoSlow = new BooleanProperty("Bow", true);
 
     @EventLink
-    public final Listener<EventUpdate.Post> eventPacketPre = event -> {
-        if(slowMode.getValue() != sMode.HYPIXEL || !mc.thePlayer.isUsingItem() || mc.thePlayer.getHeldItem() == null || !(mc.thePlayer.getHeldItem().getItem() instanceof ItemSword))
+    public final Listener<EventUpdate.Pre> preListener = event -> {
+        if (nullCheck()) {
             return;
-        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem % 8 + 1));
-        mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-    };
-
-    @EventLink
-    public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
-        if(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId() && slowMode.getValue() == sMode.ONHIT) {
-            timer.setCooldown((long) time.getValue().getInput());
-            timer.start();
+        }
+        if (mode.getValue() == nMode.HYPIXEL && mc.thePlayer.isUsingItem() && MoveUtil.isMoving()) {
+            if (mc.thePlayer.getCurrentEquippedItem() != null && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemFood || mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemBow)) {
+                mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(new BlockPos(-1, -1, -1), 0, null, 0, 0, 0));
+            }
         }
     };
 
-    public boolean shouldNotSlow() {
-        return slow.get();
-    }
 
-    public enum sMode {
+    public enum nMode {
         VANILLA,
-        HYPIXEL,
-        ONHIT
+        HYPIXEL
     }
 }

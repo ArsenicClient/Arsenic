@@ -11,9 +11,9 @@ import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C03PacketPlayer;
 
-@ModuleInfo(name = "Criticals",category = ModuleCategory.BLATANT)
+@ModuleInfo(name = "Criticals", category = ModuleCategory.BLATANT)
 public class Criticals extends Module {
-    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ",CritMode.Offset);
+    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ", CritMode.Offset);
 
     private boolean attack = false;
 
@@ -34,7 +34,7 @@ public class Criticals extends Module {
                 }
                 case Jump: {
                     if (event.getPacket() instanceof C02PacketUseEntity && ((C02PacketUseEntity) event.getPacket()).getAction() == C02PacketUseEntity.Action.ATTACK) {
-                     attack = true;
+                        attack = true;
                     }
                 }
             }
