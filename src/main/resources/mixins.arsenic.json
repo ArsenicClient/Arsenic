@@ -27,6 +27,7 @@
     "mixin.MixinRendererLivingEntity"
   ],
   "mixins": [
+    "accessor.C03PacketPlayerAccessor",
     "accessor.IMixinC02PacketUseEntity",
     "accessor.IMixinItemSword",
     "accessor.IMixinNetworkManager",

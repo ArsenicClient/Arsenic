@@ -70,17 +70,14 @@ public class RotationUtils extends UtilityClass {
         return fixedRots;
     }
 
-    public static float[] getRotations(final BlockPos blockPos) {
-        final double x = blockPos.getX() + 0.45 - mc.thePlayer.posX;
-        final double y = blockPos.getY() + 0.45 - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
-        final double z = blockPos.getZ() + 0.45 - mc.thePlayer.posZ;
-        float[] targetRots = new float[]{mc.thePlayer.rotationYaw + MathHelper.wrapAngleTo180_float((float) (Math.atan2(z, x) * 57.295780181884766) - 90.0f - mc.thePlayer.rotationYaw), clamp(mc.thePlayer.rotationPitch + MathHelper.wrapAngleTo180_float((float) (-(Math.atan2(y, MathHelper.sqrt_double(x * x + z * z)) * 57.295780181884766)) - mc.thePlayer.rotationPitch))};
-
+    public static float[] getRotations(BlockPos position, EnumFacing facing) {
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
+        float[] rots = new float[]{mc.thePlayer.rotationYaw + 180, 77};
 
+        // Smooth out the rotations using patchGCD method
         float[] lastRots = new float[]{currentYaw, currentPitch};
-        float[] fixedRots = patchGCD(lastRots, targetRots);
+        float[] fixedRots = patchGCD(lastRots, rots);
         return fixedRots;
     }
 
@@ -93,10 +90,6 @@ public class RotationUtils extends UtilityClass {
                 pitch = prevRotation[1] + Math.round(deltaPitch / gcd) * gcd;
 
         return new float[]{yaw, pitch};
-    }
-
-    public static float clamp(final float n) {
-        return MathHelper.clamp_float(n, -90.0f, 90.0f);
     }
 
     public static Vec3 getBestHitVec(final Entity entity) {
@@ -168,5 +161,23 @@ public class RotationUtils extends UtilityClass {
 
     public static float getPitchDifference(float pitch1, float pitch2) {
         return (pitch1 - pitch2);
+    }
+
+    public static float[] getRotations(final BlockPos blockPos) {
+        final double x = blockPos.getX() + 0.45 - mc.thePlayer.posX;
+        final double y = blockPos.getY() + 0.45 - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        final double z = blockPos.getZ() + 0.45 - mc.thePlayer.posZ;
+        float[] targetRots = new float[]{mc.thePlayer.rotationYaw + MathHelper.wrapAngleTo180_float((float) (Math.atan2(z, x) * 57.295780181884766) - 90.0f - mc.thePlayer.rotationYaw), clamp(mc.thePlayer.rotationPitch + MathHelper.wrapAngleTo180_float((float) (-(Math.atan2(y, MathHelper.sqrt_double(x * x + z * z)) * 57.295780181884766)) - mc.thePlayer.rotationPitch))};
+
+        float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
+        float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
+
+        float[] lastRots = new float[]{currentYaw, currentPitch};
+        float[] fixedRots = patchGCD(lastRots, targetRots);
+        return fixedRots;
+    }
+
+    public static float clamp(final float n) {
+        return MathHelper.clamp_float(n, -90.0f, 90.0f);
     }
 }

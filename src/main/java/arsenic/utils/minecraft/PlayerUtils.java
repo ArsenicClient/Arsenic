@@ -40,7 +40,6 @@ public class PlayerUtils extends UtilityClass {
         }
     }
 
-    @RequiresPlayer
     public static void addMessageToChat(String msg) {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));
     }

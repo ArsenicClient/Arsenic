@@ -18,7 +18,6 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.utils.minecraft.RaytraceUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
@@ -44,7 +43,6 @@ public class KillAura extends Module {
     public DoubleProperty smooth = new DoubleProperty("Smoothness", new DoubleValue(1, 10, 2, 1));
 
     public BooleanProperty moveFix = new BooleanProperty("MoveFix", false);
-    public BooleanProperty raycast = new BooleanProperty("Raycast", true);
 
     public BooleanProperty troughWalls = new BooleanProperty("Through Walls", false);
     public BooleanProperty attackTeamates = new BooleanProperty("Attack TeamMates", false);
@@ -146,11 +144,9 @@ public class KillAura extends Module {
 
         if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput()) {
             swing();
-            if (raycast.getValue() && !RaytraceUtil.isMouseOver(Arsenic.getInstance().getSilentRotationManager().yaw, Arsenic.getInstance().getSilentRotationManager().pitch, target, (float) attackRange.getValue().getInput())) {
-                return;
-            }
 
             mc.playerController.attackEntity(mc.thePlayer, target);
+
             if (interact) {
                 mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.INTERACT));
             }

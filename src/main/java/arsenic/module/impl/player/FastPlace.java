@@ -1,16 +1,14 @@
-package arsenic.module.impl.players;
+package arsenic.module.impl.player;
 
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import net.minecraft.item.ItemBlock;
 
-@ModuleInfo(name = "Fastplace", category = ModuleCategory.PLAYERS)
+@ModuleInfo(name = "Fastplace", category = ModuleCategory.PLAYER)
 public class FastPlace extends Module {
 
     public final RangeProperty ticks = new RangeProperty("Tick Delay", new RangeValue(0, 4, 0, 4,1));

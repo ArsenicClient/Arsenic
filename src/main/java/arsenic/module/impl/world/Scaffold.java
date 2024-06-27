@@ -33,6 +33,7 @@ public class Scaffold extends Module {
     public DoubleProperty slowDown = new DoubleProperty("Motion", new DoubleValue(0, 100, 100, 1));
     public BooleanProperty moveFix = new BooleanProperty("MoveFix", false);
     public BooleanProperty hypixckel = new BooleanProperty("Hypixel Keep-Y", false);
+    public BooleanProperty raycast = new BooleanProperty("Raycast", false);
 
     //scaffold variables
     private BlockData blockData;
@@ -57,6 +58,7 @@ public class Scaffold extends Module {
         checkGround = false;
         wasEnabled = false;
         blockData = null;
+        lastBlockData = null;
         scaffoldYCoord = 0;
         blocksPlaced = 0;
         super.onEnable();
@@ -116,8 +118,8 @@ public class Scaffold extends Module {
             blocksPlaced = 0;
             return;
         } else if (wasEnabled) {
-            wasEnabled= false;
-            checkGround =false;
+            wasEnabled = false;
+            checkGround = false;
             MoveUtil.stop();
         }
 
@@ -155,12 +157,12 @@ public class Scaffold extends Module {
             rots = RotationUtils.getRotations(ScaffoldUtil.getBlockData().getPosition());
         }
 
-        if (lastBlockData == null) {
-            return;
+        if (lastBlockData == null || mc.gameSettings.keyBindJump.isKeyDown()) {
+            rots = new float[]{mc.thePlayer.rotationYaw + 180, 75};
         }
         event.setJumpFix(moveFix.getValue());
         event.setDoMovementFix(moveFix.getValue());
-        event.setYaw(mc.thePlayer.rotationYaw + 180);
+        event.setYaw(rots[0]);
         event.setPitch(rots[1]);
         event.setSpeed(180f);
     };
@@ -185,7 +187,14 @@ public class Scaffold extends Module {
         if (blockData == null) {
             return;
         }
+        if (raycast.getValue()) {
+            MovingObjectPosition objectOver = mc.objectMouseOver;
+            BlockPos blockpos = mc.objectMouseOver.getBlockPos();
 
+            if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
+                return;
+            }
+        }
         mc.playerController.onPlayerRightClick(
                 mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(),
                 blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData)
@@ -197,10 +206,10 @@ public class Scaffold extends Module {
 
     private void setSprint() {
         if (hypixckel.getValue()) {
-            if(mc.gameSettings.keyBindJump.isKeyDown()) {
+            if (mc.gameSettings.keyBindJump.isKeyDown()) {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true);
                 mc.thePlayer.setSprinting(true);
-            }else{
+            } else {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), hypixelStartSprint);
                 mc.thePlayer.setSprinting(hypixelStartSprint);
 

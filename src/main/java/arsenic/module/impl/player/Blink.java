@@ -1,4 +1,4 @@
-package arsenic.module.impl.players;
+package arsenic.module.impl.player;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -6,13 +6,11 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.Packet;
-import net.minecraft.network.play.client.C03PacketPlayer;
 
 import java.util.ArrayList;
 
-@ModuleInfo(name = "Blink",category = ModuleCategory.PLAYERS)
+@ModuleInfo(name = "Blink",category = ModuleCategory.PLAYER)
 public class Blink extends Module {
 
     private final ArrayList<Packet<?>> packets = new ArrayList<>();

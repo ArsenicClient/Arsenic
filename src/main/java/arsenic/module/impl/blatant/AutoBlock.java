@@ -7,20 +7,15 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.players.Blink;
+import arsenic.module.impl.player.Blink;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PacketUtil;
-import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
-import org.lwjgl.input.Mouse;
 
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)
 public class AutoBlock extends Module {
