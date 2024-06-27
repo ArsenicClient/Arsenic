@@ -6,13 +6,10 @@ import arsenic.event.impl.EventKey;
 import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
-import arsenic.module.impl.blatant.AutoBlock;
-import arsenic.module.impl.players.FastPlace;
-import arsenic.module.impl.world.ScaffoldTest;
+import arsenic.module.impl.player.FastPlace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
-import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -47,17 +44,6 @@ public abstract class MixinMinecraft {
         MinecraftAPI.KEY_CODE = null;
     }
 
-    @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z", ordinal = 7))
-    public boolean autoblockMixin(KeyBinding instance) {
-        AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
-        if(this.gameSettings.keyBindAttack.isPressed()) {
-            if(autoBlock.isEnabled() && autoBlock.shouldBlock())
-                clickMouse();
-            return true;
-        }
-        return false;
-    }
-
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Keyboard;getEventKeyState()Z", ordinal = 2))
     public boolean redirectGetKeyState() {
         boolean state = Keyboard.getEventKeyState();
@@ -85,10 +71,9 @@ public abstract class MixinMinecraft {
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMouse(CallbackInfo ci) {
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
-        ScaffoldTest scaffoldTest = Arsenic.getArsenic().getModuleManager().getModuleByClass(ScaffoldTest.class);
-        if(!fastPlace.isEnabled() && !scaffoldTest.isEnabled()) return;
+         if(!fastPlace.isEnabled() ) return;
 
-        rightClickDelayTimer = scaffoldTest.isEnabled() ? 0 : fastPlace.getTickDelay();
+        rightClickDelayTimer = fastPlace.getTickDelay();
 
     }
 

@@ -1,11 +1,11 @@
-![Lines of code](https://img.shields.io/tokei/lines/github/ArsenicClient/Arsenic?color=blue&label=lines%20of%20code&style=for-the-badge)
-
 # Arsenic
-Arsenic client is brought to you by Shitcode inc.   
-Arsenic features modules for closet and blatant cheating    
-The bypasses/features are mainly meant for Hypixel
- - note: there are almost no bypasses or features 
+
+Arsenic client is brought to you by Shitcode INC©.
+Arsenic features modules for closet and blatant cheating.
+The bypasses/features are mainly meant for Hypixel.
+
 ### How to use Arsenic:
+
 - Install Forge 1.8.9.
 - Download Arsenic and put it in your mod's folder.
 - Run Forge.
@@ -14,26 +14,15 @@ The bypasses/features are mainly meant for Hypixel
 ## Looking at the code might cause severe brain-damage or insanity read at your own risk
 
 ## How To Build/Edit
+
 - clone repo
-- open terminal
-- set directory to the repo
-- sacrifice a goat (sheep are acceptable)
-- gradlew setupDevWorkspace
-- gradlew idea
-- gradlew genIntellijRuns
-- open arsenic.ipr with intellij
-- use this as your run config (Dfml.coreMods.load=arsenic.injection.MixinLoader) (if vm options (the dmfl.coremods shit) doesn't show click on the modify options button)
-  
-<img width="1034" alt="Screenshot 2023-07-10 at 7 51 30 am" src="https://github.com/ArsenicClient/Arsenic/assets/58765519/42cf9200-33a5-4280-a9fb-566451164389">
+- run setup.bat
+- open Arsenic.ipr
+- load gradle project
 
-- make your edits
-- gradlew build
-- sacrifice a human
-- gradlew build
-- done!
+# Everying broke please help
 
-# everying broke please help
-create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord 
+create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord
 
-contact either Kv (`@kv.dev`) or lily (`@trans.catgirl`) on discord and expect to get screamed at and/or called an idiot
-
+contact either Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`) on discord and expect to get screamed
+at and/or called an idiot

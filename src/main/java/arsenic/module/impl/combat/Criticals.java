@@ -4,16 +4,20 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventUpdate;
+import arsenic.injection.accessor.C03PacketPlayerAccessor;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C03PacketPlayer;
 
-@ModuleInfo(name = "Criticals",category = ModuleCategory.BLATANT)
+@ModuleInfo(name = "Criticals", category = ModuleCategory.BLATANT)
 public class Criticals extends Module {
-    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ",CritMode.Offset);
+    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ", CritMode.Offset);
 
     private boolean attack = false;
 
@@ -34,9 +38,17 @@ public class Criticals extends Module {
                 }
                 case Jump: {
                     if (event.getPacket() instanceof C02PacketUseEntity && ((C02PacketUseEntity) event.getPacket()).getAction() == C02PacketUseEntity.Action.ATTACK) {
-                     attack = true;
+                        attack = true;
                     }
                 }
+                case NoGround:
+                    if (event.getPacket() instanceof C03PacketPlayer) {
+                        if (Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).target != null) {
+                            ((C03PacketPlayerAccessor) event.getPacket()).setOnGround(false);
+                            PlayerUtils.addWaterMarkedMessageToChat("spoof");
+                        }
+                    }
+                    break;
             }
         }
     };
@@ -52,6 +64,7 @@ public class Criticals extends Module {
     };
 
     public enum CritMode {
+        NoGround,
         Offset,
         Jump,
     }

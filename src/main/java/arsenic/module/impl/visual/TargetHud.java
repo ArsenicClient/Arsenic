@@ -7,7 +7,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.combat.Aura;
+import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
@@ -27,20 +27,21 @@ public class TargetHud extends Module {
     public final DoubleProperty y = new DoubleProperty("Y", new DoubleValue(0, 1000, 30, 1));
 
     @EventLink
-    public final Listener<EventRender2D> onRender2D = event -> {
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
+    public final Listener<EventRender2D> eventRender2DListener = event -> {
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
-        if(fr == null)
+        if (fr == null)
             return;
-        EntityPlayer target = PlayerUtils.getClosestPlayerWithin(Arsenic.getArsenic().getModuleManager().getModuleByClass(Aura.class).range.getValue().getInput());
+        EntityPlayer target = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class).target;
 
         if (target == null) {
             return;
         }
         // This code is absolutely beautiful and so easy to read
-        DrawUtils.drawRect((float) x.getValue().getInput(), (float) y.getValue().getInput(), fr.getWidth("Name:" + target.getName()) + 6 + (float) x.getValue().getInput(), (float) y.getValue().getInput() + 21 , new Color(0, 0, 0, (int)opacity.getValue().getInput()).getRGB());
-        DrawUtils.drawRect((float) x.getValue().getInput(), (float) y.getValue().getInput(), fr.getWidth("Name:" + target.getName()) + 6 + (float) x.getValue().getInput(), (float) y.getValue().getInput() + 1 , ColorUtils.getThemeRainbowColor(4, 0));
-        fr.drawStringWithShadow("Name: " + EnumChatFormatting.WHITE + target.getName(), (float) x.getValue().getInput() + 1, (float) y.getValue().getInput() + 2 , ColorUtils.getThemeRainbowColor(4,0));
-        fr.drawStringWithShadow("HP: " + EnumChatFormatting.WHITE + Math.floor(target.getHealth()), (float) x.getValue().getInput() + 1, (float) y.getValue().getInput() + 2 + fr.getHeight("N") , ColorUtils.getThemeRainbowColor(4,0));
+        // my balls
+        DrawUtils.drawRect((float) x.getValue().getInput(), (float) y.getValue().getInput(), fr.getWidth("Name:" + target.getName()) + 6 + (float) x.getValue().getInput(), (float) y.getValue().getInput() + 21, new Color(0, 0, 0, (int) opacity.getValue().getInput()).getRGB());
+        DrawUtils.drawRect((float) x.getValue().getInput(), (float) y.getValue().getInput(), fr.getWidth("Name:" + target.getName()) + 6 + (float) x.getValue().getInput(), (float) y.getValue().getInput() + 1, ColorUtils.getThemeRainbowColor(4, 0));
+        fr.drawStringWithShadow("Name: " + EnumChatFormatting.WHITE + target.getName(), (float) x.getValue().getInput() + 1, (float) y.getValue().getInput() + 2, ColorUtils.getThemeRainbowColor(4, 0));
+        fr.drawStringWithShadow("HP: " + EnumChatFormatting.WHITE + Math.floor(target.getHealth()), (float) x.getValue().getInput() + 1, (float) y.getValue().getInput() + 2 + fr.getHeight("N"), ColorUtils.getThemeRainbowColor(4, 0));
     };
 }

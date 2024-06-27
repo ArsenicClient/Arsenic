@@ -2,65 +2,49 @@ package arsenic.module.impl.movement;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventMove;
-import arsenic.event.impl.EventMovementInput;
-import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.*;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.timer.Timer;
+import arsenic.utils.minecraft.MoveUtil;
+import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Speed", category = ModuleCategory.MOVEMENT)
 public class Speed extends Module {
+    public EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.GROUND);
+    public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(0, 0.4, 0.27, 0.01));
 
-    public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.ONHIT);
-    @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
-    public final DoubleProperty bypass = new DoubleProperty("bypass", new DoubleValue(0, 1, 0.1, 0.01));
-    @PropertyInfo(reliesOn = "Mode: ", value = "ONHIT")
-    public final DoubleProperty time = new DoubleProperty("length", new DoubleValue(0, 1000, 200, 1));
-    public final DoubleProperty speedMulti = new DoubleProperty("Speed multi", new DoubleValue(-2, 5, 0.98, 0.02));
-    public final DoubleProperty friction = new DoubleProperty("Friction multi", new DoubleValue(-2, 5, 1, 0.04));
-
-    private final Timer disableTimer = new Timer();
 
     @EventLink
-    public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
-        if(!(event.getPacket() instanceof S12PacketEntityVelocity))
+    public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
+        if (nullCheck()) {
             return;
-        S12PacketEntityVelocity packet = (S12PacketEntityVelocity) event.getPacket();
-        if(packet.getEntityID() != mc.thePlayer.getEntityId() || mode.getValue() != sMode.ONHIT)
+        }
+        if (!MoveUtil.isMoving()) {
             return;
-
-        if(packet.getMotionX() + packet.getMotionZ() < bypass.getValue().getInput())
-            return;
-
-	disableTimer.setCooldown((long) time.getValue().getInput());
-    disableTimer.start();
+        }
+        switch (mode.getValue()) {
+            case GROUND:
+                if (mc.thePlayer.onGround) {
+                    MoveUtil.strafe(0.28F);
+                }
+                break;
+        }
     };
 
     @EventLink
-    public final Listener<EventMovementInput> eventMovementInputListener = event -> {
-        if(!mc.gameSettings.keyBindForward.isKeyDown())
-            return;
-        if(mode.getValue() == sMode.ONHIT && disableTimer.hasFinished())
-            return;
-        event.setSpeed((float) speedMulti.getValue().getInput());
+    public final Listener<EventMovementInput> movementInputListener = eventMovementInput -> {
+        if (MoveUtil.isMoving() && mc.thePlayer.onGround) {
+            eventMovementInput.setJump(true);
+
+        }
     };
 
-    @EventLink
-    public final Listener<EventMove> eventMoveListener = event -> {
-        if(mode.getValue() == sMode.ONHIT && disableTimer.hasFinished())
-            return;
-        event.setFriction((float) (event.getFriction() * friction.getValue().getInput()));
-    };
-
-    public enum sMode {
-        NORMAL,
-        ONHIT
+    public enum Mode {
+        GROUND
     }
 }

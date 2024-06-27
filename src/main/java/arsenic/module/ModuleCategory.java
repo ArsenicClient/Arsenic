@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public enum ModuleCategory implements IContainer<Module>, IContainable {
-    PLAYERS,
+    PLAYER,
     WORLD,
     CLIENT,
     GHOST,

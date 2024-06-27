@@ -11,9 +11,9 @@ public class SilentRotationManager {
 
 
     private final Minecraft mc = Minecraft.getMinecraft();
-    private float yaw  = 0;
+    public float yaw  = 0;
     private float prevYaw = 0;
-    private float pitch  = 0;
+    public float pitch  = 0;
     private float prevPitch = 0;
     private boolean modified;
     private boolean doMovementFix;

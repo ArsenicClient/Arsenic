@@ -48,7 +48,9 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         hidden = info.hidden();
         keybind = info.keybind();
 
-        if (info.enabled()) { setEnabledSilently(true); }
+        if (info.enabled()) {
+            setEnabledSilently(true);
+        }
     }
 
     //so fucked but works
@@ -56,12 +58,12 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public final void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
             Object fieldObject = field.get(this);
-            if(!(fieldObject instanceof Property<?>) || fieldObject == null)
+            if (!(fieldObject instanceof Property<?>) || fieldObject == null)
                 continue;
 
             Property<?> property = (Property<?>) fieldObject;
             properties.add(property);
-            if(property instanceof SerializableProperty<?>)
+            if (property instanceof SerializableProperty<?>)
                 serializableProperties.add((SerializableProperty<?>) property);
         }
         for (final Field field : getClass().getDeclaredFields()) {
@@ -75,7 +77,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
                         if (!field2.isAccessible())
                             field2.setAccessible(true);
                         Object obj = field2.get(this);
-                        if(!(obj instanceof SerializableProperty))
+                        if (!(obj instanceof SerializableProperty))
                             continue;
                         SerializableProperty<?> p = (SerializableProperty<?>) field2.get(this);
                         if (p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
@@ -91,21 +93,33 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     //triggers when the module is enabled
-    protected void onEnable() {}
+    protected void onEnable() {
+    }
 
     //triggers when the module is disabled
-    protected void onDisable() {}
+    protected void onDisable() {
+    }
 
     @Override
-    public final String getName() { return name; }
+    public final String getName() {
+        return name;
+    }
 
-    public final String getDescription() { return description; }
+    public final String getDescription() {
+        return description;
+    }
 
-    public final ModuleCategory getCategory() { return category; }
+    public final ModuleCategory getCategory() {
+        return category;
+    }
 
-    public final boolean isEnabled() { return enabled; }
+    public final boolean isEnabled() {
+        return enabled;
+    }
 
-    public final void toggle() {setEnabled(!enabled);}
+    public final void toggle() {
+        setEnabled(!enabled);
+    }
 
     public final void setEnabled(boolean enabled) {
         if (this.enabled != enabled) {
@@ -144,22 +158,38 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
-    public boolean isHidden() { return hidden; }
+    public boolean isHidden() {
+        return hidden;
+    }
 
-    public final void setHidden(boolean hidden) { this.hidden = hidden; }
+    public final void setHidden(boolean hidden) {
+        this.hidden = hidden;
+    }
 
-    public final String getDisplayName() { return displayName; }
+    public final String getDisplayName() {
+        return displayName;
+    }
 
-    public final void setDisplayName(String displayName) { this.displayName = displayName; }
+    public final void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
-    public final int getKeybind() { return keybind; }
+    public final int getKeybind() {
+        return keybind;
+    }
 
-    public final void setKeybind(int keybind) { this.keybind = keybind; }
+    public final void setKeybind(int keybind) {
+        this.keybind = keybind;
+    }
 
     @Override
-    public final Collection<Property<?>> getContents() { return properties; }
+    public final Collection<Property<?>> getContents() {
+        return properties;
+    }
 
-    public final List<? extends Property<?>> getProperties() { return properties; }
+    public final List<? extends Property<?>> getProperties() {
+        return properties;
+    }
 
     @Override
     public final void loadFromJson(JsonObject obj) {
@@ -177,7 +207,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     //triggers after the config has been applied
-    protected void postApplyConfig() {}
+    protected void postApplyConfig() {
+    }
 
     @Override
     public final JsonObject saveInfoToJson(JsonObject obj) {
@@ -190,5 +221,11 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     @Override
-    public final String getJsonKey() { return name; }
+    public final String getJsonKey() {
+        return name;
+    }
+
+    public final boolean nullCheck() {
+        return mc.thePlayer == null || mc.theWorld == null;
+    }
 }

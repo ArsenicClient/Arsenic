@@ -15,37 +15,44 @@ import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "Velocity", category = ModuleCategory.GHOST)
 public class Velocity extends Module {
-
-    public final EnumProperty<vMode> veloMode = new EnumProperty<>("Mode:", vMode.Reduce);
-
-    //public final BooleanProperty jumpPacket = new BooleanProperty("Jump Packet", false);
-
-    @PropertyInfo(reliesOn = "Mode:", value = "Reduce")
+    public final EnumProperty<vMode> veloMode = new EnumProperty<>("Mode:", vMode.PACKET);
+    @PropertyInfo(reliesOn = "Mode:", value = "PACKET")
     public final DoubleProperty horizontalVelo = new DoubleProperty("Horizontal", new DoubleValue(0, 100, 80, 1));
-    @PropertyInfo(reliesOn = "Mode:", value = "Reduce")
+    @PropertyInfo(reliesOn = "Mode:", value = "PACKET")
     public final DoubleProperty verticalVelo = new DoubleProperty("Vertical", new DoubleValue(0, 100, 80, 1));
+
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> packetEvent = event -> {
-        if(!(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId()))
+        if (!(event.getPacket() instanceof S12PacketEntityVelocity && ((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId())) {
             return;
-        switch(veloMode.getValue()) {
-            case Reduce:
-                S12PacketEntityVelocity velocityPacket = (S12PacketEntityVelocity) event.getPacket();
-                IMixinS12PacketEntityVelocity iVelocityPacket = (IMixinS12PacketEntityVelocity) velocityPacket;
-                iVelocityPacket.setMotionX((int) (velocityPacket.getMotionX() * (horizontalVelo.getValue().getInput()/100f)));
-                iVelocityPacket.setMotionY((int) (velocityPacket.getMotionY() * (verticalVelo.getValue().getInput()/100f)));
-                iVelocityPacket.setMotionZ((int) (velocityPacket.getMotionZ() * (horizontalVelo.getValue().getInput()/100f)));
+        }
+
+        S12PacketEntityVelocity velocityPacket = (S12PacketEntityVelocity) event.getPacket();
+        IMixinS12PacketEntityVelocity iVelocityPacket = (IMixinS12PacketEntityVelocity) velocityPacket;
+
+        switch (veloMode.getValue()) {
+            case PACKET:
+                iVelocityPacket.setMotionX((int) (velocityPacket.getMotionX() * (horizontalVelo.getValue().getInput() / 100f)));
+                iVelocityPacket.setMotionY((int) (velocityPacket.getMotionY() * (verticalVelo.getValue().getInput() / 100f)));
+                iVelocityPacket.setMotionZ((int) (velocityPacket.getMotionZ() * (horizontalVelo.getValue().getInput() / 100f)));
                 break;
-            case Cancel:
+            case CANCEL:
+                event.cancel();
+                break;
+            case HYPIXEL:
+                if (mc.thePlayer.onGround) {
+                    mc.thePlayer.motionY = velocityPacket.getMotionY() / 8000.0;
+                }
                 event.cancel();
                 break;
         }
     };
 
     public enum vMode {
-        Reduce,
-        Cancel
+        PACKET,
+        HYPIXEL,
+        CANCEL
     }
 
 }
