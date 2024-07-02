@@ -3,21 +3,17 @@ package arsenic.main;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.event.EventManager;
-import arsenic.event.ForgeEvents;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -41,9 +37,6 @@ public class Arsenic {
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
-
-        MinecraftForge.EVENT_BUS.register(new ForgeEvents());
-        logger.info("Hooked forge events");
 
         getEventManager().subscribe(silentRotationManager);
 

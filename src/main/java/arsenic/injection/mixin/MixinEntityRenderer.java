@@ -1,6 +1,7 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventLook;
+import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.ghost.HitBox;
 import arsenic.module.impl.ghost.Reach;
@@ -42,6 +43,10 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Shadow
     private Minecraft mc;
 
+    @Inject(method = "renderWorldPass", at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderHand:Z", shift = At.Shift.BEFORE))
+    private void renderWorldPass(int pass, float partialTicks, long finishTimeNano, CallbackInfo callbackInfo) {
+        Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(mc.renderGlobal, partialTicks));
+    }
     /**
      * @author kv
      * @reason reach
