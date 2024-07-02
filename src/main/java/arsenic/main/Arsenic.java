@@ -18,7 +18,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -41,11 +40,6 @@ public class Arsenic {
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
-        executor.execute(() -> {
-            logger.info("{} logged launch", trackLaunch() ? "Successfully" : "Unsuccessfully");
-            logger.info("This is to get a guide on how many people are using the client it records zero data");
-        });
-
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         MinecraftForge.EVENT_BUS.register(new ForgeEvents());
@@ -107,12 +101,4 @@ public class Arsenic {
 
     public final ThemeManager getThemeManager() { return themeManager; }
 
-    //downloads an empty file lol
-    public boolean trackLaunch() {
-        try {
-            new URL("https://github.com/K-ov/LaunchTracker/releases/download/publish/ArsenicLaunch").openStream().close();
-            return true;
-        } catch (IOException ignored) {}
-        return false;
-    }
 }
