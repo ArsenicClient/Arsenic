@@ -7,6 +7,7 @@ import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.utils.font.Fonts;
+import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -31,7 +32,7 @@ public class Arsenic {
     private final ClickGuiScreen clickGuiScreen = new ClickGuiScreen();
     private final ThemeManager themeManager = new ThemeManager();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
-
+    private final ServerInfo serverInfo = new ServerInfo();
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     @Mod.EventHandler
@@ -39,7 +40,7 @@ public class Arsenic {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         getEventManager().subscribe(silentRotationManager);
-
+        getEventManager().subscribe(serverInfo);
         logger.info("Subscribed silent rotation manager");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
@@ -94,4 +95,5 @@ public class Arsenic {
 
     public final ThemeManager getThemeManager() { return themeManager; }
 
+    public final ServerInfo getServerInfo() { return serverInfo; }
 }

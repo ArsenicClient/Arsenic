@@ -57,7 +57,10 @@ public class PlayerUtils extends UtilityClass {
         Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
         return item instanceof ItemBlock;
     }
-
+    public static boolean isPlayerHoldingSword() {
+        return (mc.thePlayer.getCurrentEquippedItem() != null)
+                && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword);
+    }
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
