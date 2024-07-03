@@ -1,5 +1,6 @@
 package arsenic.module.impl.combat;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
@@ -25,6 +26,7 @@ public class WTap extends Module {
         }
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventMovementInput> movementInputListener = event -> {
         if (mc.thePlayer.isSprinting()) {
