@@ -3,32 +3,34 @@ package arsenic.module.impl.combat;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventMovementInput;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.network.play.client.C0BPacketEntityAction;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import net.minecraft.entity.EntityLivingBase;
 
 @ModuleInfo(name = "WTap",category = ModuleCategory.GHOST)
 public class WTap extends Module {
-
-    int ticks = 0;
+    public final DoubleProperty hurtTime = new DoubleProperty("HurtTime",new DoubleValue(1,10,10,1));
+    boolean stop;
 
     @EventLink
-    public final Listener<EventAttack> eventAttackListener = eventAttack -> {
-        ticks = 0;
+    public final Listener<EventAttack> eventAttackListener = event -> {
+        if (event.getTarget() != null && event.getTarget() instanceof EntityLivingBase) {
+            if (((EntityLivingBase) event.getTarget()).hurtTime == hurtTime.getValue().getInput()){
+                stop = true;
+            }
+        }
     };
 
     @EventLink
-    public final Listener<EventTick> onTick = event -> {
+    public final Listener<EventMovementInput> movementInputListener = event -> {
         if (mc.thePlayer.isSprinting()) {
-            ticks++;
-            switch (ticks) {
-                case 2:
-                    mc.thePlayer.setSprinting(false);
-                case 3:
-                    mc.thePlayer.setSprinting(true);
+            if (stop) {
+                event.setSpeed(0);
+                stop = false;
             }
         }
     };
