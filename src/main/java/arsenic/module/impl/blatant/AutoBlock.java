@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
@@ -39,11 +40,9 @@ public class AutoBlock extends Module {
         super.onEnable();
     }
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = eventTick -> {
-        if (nullCheck()) {
-            return;
-        }
         if (Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).target != null && isHoldingSword()) {
             if (blockMode.getValue() == bMode.HYPIXEL) {
                 renderBlock = true;

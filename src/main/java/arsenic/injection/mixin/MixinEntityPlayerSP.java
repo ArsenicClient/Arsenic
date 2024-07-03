@@ -57,7 +57,6 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerPre(CallbackInfo ci) {
-        PlayerUtils.updateTicks(this.onGround);
         cachedX = posX;
         cachedY = posY;
         cachedZ = posZ;

@@ -98,7 +98,7 @@ public class Scaffold extends Module {
         if (mc.gameSettings.keyBindJump.isKeyDown()) {
             setSprint();
             if (hypixckel.getValue()) {
-                int inAirTicks = PlayerUtils.offGroundTicks();
+                int inAirTicks = Arsenic.getInstance().getServerInfo().offGroundTicks;
                 if (MoveUtil.isMoving()) {
                     if (mc.thePlayer.onGround) {
                         mc.thePlayer.motionY = 0.4196;
@@ -127,7 +127,7 @@ public class Scaffold extends Module {
             if (mc.thePlayer.onGround) {
                 mc.thePlayer.jump();
             }
-            if (!mc.thePlayer.onGround && PlayerUtils.offGroundTicks() == 4) {
+            if (!mc.thePlayer.onGround && Arsenic.getInstance().getServerInfo().offGroundTicks == 4) {
                 MovingObjectPosition objectOver = mc.objectMouseOver;
                 BlockPos blockpos = mc.objectMouseOver.getBlockPos();
                 ItemStack itemstack = mc.thePlayer.inventory.getCurrentItem();

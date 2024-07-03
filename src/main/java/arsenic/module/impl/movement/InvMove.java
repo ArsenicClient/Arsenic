@@ -1,5 +1,6 @@
 package arsenic.module.impl.movement;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
@@ -24,11 +25,9 @@ public class InvMove extends Module {
     public EnumProperty<iMode> mode = new EnumProperty<>("Mode", iMode.vanilla);
     public BooleanProperty sprint = new BooleanProperty("Sprint", false);
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventGameLoop> eventGameLoopListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         switch (mode.getValue()) {
             case vanilla:
                 if (isInInventory()) allowMove();
@@ -42,12 +41,9 @@ public class InvMove extends Module {
         }
     };
 
-
+    @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> preListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (isInInventory()) {
             if (mc.currentScreen instanceof GuiInventory) {
                 if (mode.getValue() == iMode.hypixel) {
@@ -59,11 +55,9 @@ public class InvMove extends Module {
         }
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (isInInventory()) {
             if (mc.currentScreen instanceof GuiInventory) {
                 if (mode.getValue() == iMode.hypixel) {

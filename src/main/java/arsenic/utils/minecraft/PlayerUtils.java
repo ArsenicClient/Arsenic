@@ -1,6 +1,5 @@
 package arsenic.utils.minecraft;
 
-import arsenic.asm.RequiresPlayer;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -20,25 +19,6 @@ import java.util.List;
 public class PlayerUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static int onGroundTicks, inAirTicks;
-
-    public static int onGroundTicks() {
-        return onGroundTicks;
-    }
-
-    public static int offGroundTicks() {
-        return inAirTicks;
-    }
-
-    public static void updateTicks(boolean onGround) {
-        if (onGround) {
-            onGroundTicks++;
-            inAirTicks = 0;
-        } else {
-            inAirTicks++;
-            onGroundTicks = 0;
-        }
-    }
 
     public static void addMessageToChat(String msg) {
         mc.thePlayer.addChatMessage(new ChatComponentText(msg));

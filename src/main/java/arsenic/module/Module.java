@@ -224,8 +224,4 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public final String getJsonKey() {
         return name;
     }
-
-    public final boolean nullCheck() {
-        return mc.thePlayer == null || mc.theWorld == null;
-    }
 }

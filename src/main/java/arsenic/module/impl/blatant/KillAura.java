@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
@@ -81,11 +82,9 @@ public class KillAura extends Module {
         return mc.thePlayer.canEntityBeSeen(target);
     }
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (target == null || Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled()) {
             return;
         }
@@ -97,11 +96,9 @@ public class KillAura extends Module {
         event.setSpeed(180f);
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled()) {
             return;
         }
@@ -126,11 +123,9 @@ public class KillAura extends Module {
         }
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (target == null || !esp.getValue()) {
             return;
         }
