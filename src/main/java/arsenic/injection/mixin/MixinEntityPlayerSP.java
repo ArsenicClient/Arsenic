@@ -1,7 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.event.impl.EventAttack;
-import arsenic.event.impl.EventMouse;
+import arsenic.event.impl.*;
 import arsenic.module.impl.blatant.NoSlow;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
@@ -31,8 +30,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import com.mojang.authlib.GameProfile;
 
-import arsenic.event.impl.EventTick;
-import arsenic.event.impl.EventUpdate;
 import arsenic.main.Arsenic;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -96,7 +93,10 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
             }
         }
     }
-
+    @Inject(method = "onLivingUpdate", at = @At("HEAD"))
+    public void onLivingUpdate(CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventLiving());
+    }
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
     private boolean noSlowMixin(EntityPlayerSP instance) {
         NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);

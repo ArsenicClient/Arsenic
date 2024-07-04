@@ -46,20 +46,22 @@ public class CommandManager {
     public Set<String> getCommands() { return commands.stream().map(Command::getName).collect(Collectors.toSet()); }
 
     public void updateAutoCompletions(String str) {
-        str = str.substring(1);
-        String name = str.split(" ")[0];
-        String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
-                : new String[] {};
-        if (args.length == 0) {
-            setAutoCompletions(getClosestCommandName(name));
-            return;
-        }
-        Command command = getCommandByName(name);
-        if (command == null) {
-            autoCompletions.clear();
-            return;
-        }
-        setAutoCompletions(command.getAutoComplete(args[args.length - 1], args.length - 1));
+        try {
+            str = str.substring(1);
+            String name = str.split(" ")[0];
+            String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
+                    : new String[]{};
+            if (args.length == 0) {
+                setAutoCompletions(getClosestCommandName(name));
+                return;
+            }
+            Command command = getCommandByName(name);
+            if (command == null) {
+                autoCompletions.clear();
+                return;
+            }
+            setAutoCompletions(command.getAutoComplete(args[args.length - 1], args.length - 1));
+        } catch (ArrayIndexOutOfBoundsException ignored){} //crashes if you try to autocomplete a command that does not exist
     }
 
     // sorts alphabetically

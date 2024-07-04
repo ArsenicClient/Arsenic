@@ -21,7 +21,7 @@ public class SilentRotationManager {
     private float speed;
 
     @EventLink
-    public final Listener<EventTick> eventTickListener = event -> {
+    public final Listener<EventLiving> eventTickListener = event -> {
         EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
         Arsenic.getArsenic().getEventManager().post(rotation);
         prevYaw = yaw;
@@ -37,17 +37,11 @@ public class SilentRotationManager {
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
 
-        float yawDiff = RotationUtils.getYawDifference(rotation.getYaw(), yaw); //prevyaw
-        if(Math.abs(yawDiff) > speed)
-            yawDiff = (speed * (yawDiff > 0 ? 1 : -1))/2f;
-        float cappedPYaw = MathHelper.wrapAngleTo180_float(yaw + yawDiff);
-
-        float pitchDiff = RotationUtils.getYawDifference(rotation.getPitch(), pitch); //prevpitch
-        if(Math.abs(pitchDiff) > speed/2f)
-            pitchDiff =  (speed/2f * (pitchDiff > 0 ? 1 : -1))/2f;
-        float cappedPitch = MathHelper.wrapAngleTo180_float(pitch + pitchDiff);
-
-        float[] patchedRots = RotationUtils.patchGCD(new float[]{prevYaw,prevPitch},new float[]{cappedPYaw,cappedPitch});
+        float[] patchedRots = RotationUtils.getPatchedAndCappedRots(
+                new float[]{prevYaw,prevPitch},
+                new float[]{rotation.getYaw(), rotation.getPitch()},
+                speed
+        );
         yaw = patchedRots[0];
         pitch = patchedRots[1];
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);

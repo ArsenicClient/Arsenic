@@ -32,7 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.BLATANT)
-public class KillAura extends Module {
+public class KillAura extends Module {//todo: recode without breaking this
 
     public BooleanProperty switchAura = new BooleanProperty("Switch", false);
     @PropertyInfo(reliesOn = "Switch", value = "true")
@@ -41,7 +41,7 @@ public class KillAura extends Module {
     public DoubleProperty attackRange = new DoubleProperty("Attack Range", new DoubleValue(1, 6, 4.5, 0.1));
     public DoubleProperty findRange = new DoubleProperty("Find Range", new DoubleValue(1, 6, 4.5, 0.1));
 
-    public DoubleProperty smooth = new DoubleProperty("Smoothness", new DoubleValue(1, 10, 2, 1));
+    public DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 100, 50, 1));
 
     public BooleanProperty moveFix = new BooleanProperty("MoveFix", false);
 
@@ -88,12 +88,12 @@ public class KillAura extends Module {
         if (target == null || Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled()) {
             return;
         }
-        float[] rots = RotationUtils.getRotationsToEntity(target, (int) smooth.getValue().getInput());
+        float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
         event.setJumpFix(moveFix.getValue());
         event.setDoMovementFix(moveFix.getValue());
-        event.setSpeed(180f);
+        event.setSpeed((float) speed.getValue().getInput());
     };
 
     @RequiresPlayer
