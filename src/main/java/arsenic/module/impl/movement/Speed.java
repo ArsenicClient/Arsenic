@@ -16,8 +16,6 @@ import net.minecraft.network.play.server.S12PacketEntityVelocity;
 @ModuleInfo(name = "Speed", category = ModuleCategory.MOVEMENT)
 public class Speed extends Module {
     public EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.GROUND);
-    public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(0, 0.4, 0.27, 0.01));
-
 
     @EventLink
     public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
