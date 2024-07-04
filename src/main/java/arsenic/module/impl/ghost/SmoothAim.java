@@ -3,24 +3,18 @@ package arsenic.module.impl.ghost;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventSilentRotation;
-import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import java.util.Comparator;
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import static arsenic.utils.rotations.RotationUtils.*;
 
 @ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
 public class SmoothAim extends Module {
@@ -31,9 +25,7 @@ public class SmoothAim extends Module {
     public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
     public final BooleanProperty fovBased = new BooleanProperty("FovBased",true);
     public final BooleanProperty pitchAssist = new BooleanProperty("PitchAssist",true);
-    public final DoubleProperty range = new DoubleProperty("range", new DoubleValue(0, 5, 3, 0.1));
-    public final DoubleProperty fov = new DoubleProperty("fov", new DoubleValue(1, 360, 90, 1));
-    public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 50, 20, 0.1));
+    public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 100, 20, 1));
 
     @EventLink
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
@@ -61,20 +53,11 @@ public class SmoothAim extends Module {
         }
     };
 
-    //sorts based on yaw
-    //to be improved later
     private EntityAndRots getTargetAndRotations() {
-        List<Entity> targets = PlayerUtils.getPlayersWithin(range.getValue().getInput());
         EntityAndRots target = new EntityAndRots();
-        try {
-            target.entity = targets.stream().min(Comparator.comparingDouble(entity -> getRotationsToEntity((EntityLivingBase) entity)[0])).get(); //sorts based on yaw
-        } catch (NoSuchElementException | NullPointerException e) {
-            return null;
-        }
-
-        float[] rotationsToTarget = getRotationsToEntity((EntityLivingBase) target.entity);
-        if(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, rotationsToTarget[0]) > fov.getValue().getInput())
-            return null;
+        target.entity = TargetManager.getTarget();
+        if (target.entity == null) return null;
+        float[] rotationsToTarget = RotationUtils.getRotationsToEntity((EntityLivingBase) target.entity);
         target.yaw = rotationsToTarget[0];
         target.pitch = rotationsToTarget[1];
         return target;

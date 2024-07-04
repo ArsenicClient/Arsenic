@@ -1,6 +1,7 @@
 package arsenic.utils.minecraft;
 
 import arsenic.utils.java.UtilityClass;
+import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -67,9 +68,22 @@ public class PlayerUtils extends UtilityClass {
         }
         return target;
     }
+    public static boolean isPlayerWearingArmour(EntityPlayer en) {
+        for (int armorPiece = 0; armorPiece < 4; armorPiece++)
+            if (en.getCurrentArmor(armorPiece) == null)
+                return true;
+        return false;
+    }
+    public static boolean withinFov(Entity entity, float fov) {
+        float f = fov * 0.5f;
+        float angle = RotationUtils.fovToEntity(entity);
+        float yaw = mc.thePlayer.rotationYaw;
+        float angleDiff = ((yaw - angle) % 360 + 540) % 360 - 180;
+        return angleDiff > -f && angleDiff < f;
+    }
 
-    public static List<Entity> getPlayersWithin(double distance) {
-        List<Entity> targets = new ArrayList<>();
+    public static List<EntityPlayer> getPlayersWithin(double distance) {
+        List<EntityPlayer> targets = new ArrayList<>();
         for (EntityPlayer entity : mc.theWorld.playerEntities) {
             float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
             if (entity != mc.thePlayer && tempDistance <= distance) {
