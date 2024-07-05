@@ -3,6 +3,7 @@ package arsenic.utils.rotations;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.UtilityClass;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -12,64 +13,34 @@ public class RotationUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    public static float[] getRotationsToEntity(EntityLivingBase e, int smooth) {
+    //dont bloat this method again. Let it be the way it was when i first made it
+    public static float[] getRotationsToEntity(EntityLivingBase e) {
         if (e == null) return null;
-
         double x = e.posX - mc.thePlayer.posX;
         double y = e.getPositionVector().yCoord - mc.thePlayer.getPositionVector().yCoord;
         double z = e.posZ - mc.thePlayer.posZ;
         double distance = MathHelper.sqrt_double((x * x) + (z * z));
-
         float targetYaw = (float) ((Math.toDegrees(Math.atan2(z, x))) - 90);
         float targetPitch = (float) (-Math.toDegrees(Math.atan2(y, distance)));
-
-        float random1 = (float) JavaUtils.getRandom(-1, 1);
-        float random2 = (float) JavaUtils.getRandom(-1, 1);
-
-        if (random1 == random2) {
-            while (random1 == random2) {
-                random1 = (float) JavaUtils.getRandom(-1, 1);
-            }
-        }
-
-        targetYaw += random1;
-        targetPitch += random2;
-
-        // Get current player rotations
-        float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
-        float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
-
-        // Smoothing based on FOV
-        float smoothingSpeed = smooth; // Base smoothing speed
-        if (smoothingSpeed == 1) { // 1 means no smoothing
-            float[] rots = new float[]{targetYaw, targetPitch};
-            float[] lastRots = new float[]{currentYaw, currentPitch};
-            float[] fixedRots = patchGCD(lastRots, rots);
-
-            return fixedRots;
-        }
-
-        // Calculate the FOV diffrence
-        float yawDifference = MathHelper.wrapAngleTo180_float(targetYaw - currentYaw);
-        float pitchDifference = targetPitch - currentPitch;
-
-        double fovToEntity = fovFromEntity(e);
-
-        float fovFactor = (float) (1.0 + Math.abs(fovToEntity) / 180.0); // More FOV difference means more speed
-
-        float finalYaw = currentYaw + yawDifference * fovFactor / smoothingSpeed;
-        float finalPitch = currentPitch + pitchDifference * fovFactor / smoothingSpeed;
-
-        // Create the rotations array
-        float[] rots = new float[]{finalYaw, finalPitch};
-
-        // Smooth out the rotations using patchGCD method
-        float[] lastRots = new float[]{currentYaw, currentPitch};
-        float[] fixedRots = patchGCD(lastRots, rots);
-
-        return fixedRots;
+        float rand = (float) (Math.random() - Math.random());
+        targetYaw += rand;
+        targetPitch -= rand;
+        return new float[]{targetYaw,targetPitch};
     }
 
+    public static float[] getCappedRotations(float[] prev, float[] current, float speed){
+        float yawDiff = RotationUtils.getYawDifference(current[0], prev[0]);
+        if(Math.abs(yawDiff) > speed)
+            yawDiff = (speed * (yawDiff > 0 ? 1 : -1))/2f;
+        float cappedPYaw = MathHelper.wrapAngleTo180_float(prev[0] + yawDiff);
+
+        float pitchDiff = RotationUtils.getYawDifference(current[1], prev[1]);
+        if(Math.abs(pitchDiff) > speed/2f)
+            pitchDiff =  (speed/2f * (pitchDiff > 0 ? 1 : -1))/2f;
+        float cappedPitch = MathHelper.wrapAngleTo180_float(prev[1] + pitchDiff);
+        return new float[]{cappedPYaw,cappedPitch};
+    }
+    public static float[] getPatchedAndCappedRots(float[] prev, float[] current, float speed){ return patchGCD(prev,getCappedRotations(prev,current,speed)); }
     public static float[] getRotations(BlockPos position, EnumFacing facing) {
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;

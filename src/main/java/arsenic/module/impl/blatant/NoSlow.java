@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventUpdate;
@@ -34,11 +35,9 @@ public class NoSlow extends Module {
     public final BooleanProperty potionNoSlow = new BooleanProperty("Potion", true);
     public final BooleanProperty bowNoSlow = new BooleanProperty("Bow", true);
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> preListener = event -> {
-        if (nullCheck()) {
-            return;
-        }
         if (mode.getValue() == nMode.HYPIXEL && mc.thePlayer.isUsingItem() && MoveUtil.isMoving()) {
             if (mc.thePlayer.getCurrentEquippedItem() != null && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemFood || mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemBow)) {
                 mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(new BlockPos(-1, -1, -1), 0, null, 0, 0, 0));

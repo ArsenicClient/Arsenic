@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
@@ -20,7 +21,12 @@ import net.minecraft.util.EnumFacing;
 @ModuleInfo(name = "Autoblock", category = ModuleCategory.BLATANT)
 public class AutoBlock extends Module {
 
-    public final EnumProperty<bMode> blockMode = new EnumProperty<>("Mode: ", bMode.VANILLA);
+    public final EnumProperty<bMode> blockMode = new EnumProperty<bMode>("Mode: ", bMode.Vanilla) {
+        @Override
+        public void onValueUpdate() {
+            onEnable();
+        }
+    };
 
     private boolean blinkAB;
     private boolean block;
@@ -36,48 +42,55 @@ public class AutoBlock extends Module {
         blink = false;
         swapped = false;
         renderBlock = false;
-        super.onEnable();
     }
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = eventTick -> {
-        if (nullCheck()) {
-            return;
-        }
         if (Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).target != null && isHoldingSword()) {
-            if (blockMode.getValue() == bMode.HYPIXEL) {
-                renderBlock = true;
-                if (blinkAB) {
-                    Arsenic.getInstance().getModuleManager().getModuleByClass(Blink.class).setEnabled(true);
-                    blink = true;
+            switch (blockMode.getValue()) {
+                case Hypixel:
+                    renderBlock = true;
+                    if (blinkAB) {
+                        Arsenic.getInstance().getModuleManager().getModuleByClass(Blink.class).setEnabled(true);
+                        blink = true;
 
-                    if (serverSlot != mc.thePlayer.inventory.currentItem % 8 + 1) {
-                        mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(serverSlot = mc.thePlayer.inventory.currentItem % 8 + 1));
-                        swapped = true;
-                        block = false;
+                        if (serverSlot != mc.thePlayer.inventory.currentItem % 8 + 1) {
+                            mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(serverSlot = mc.thePlayer.inventory.currentItem % 8 + 1));
+                            swapped = true;
+                            block = false;
+                        }
+
+                        blinkAB = false;
+                    } else {
+                        if (serverSlot != mc.thePlayer.inventory.currentItem) {
+                            mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(serverSlot = mc.thePlayer.inventory.currentItem));
+                            swapped = false;
+                        }
+
+                        Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).attack(true);
+
+                        mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                        block = true;
+
+                        Arsenic.getInstance().getModuleManager().getModuleByClass(Blink.class).setEnabled(false);
+                        blink = false;
+
+                        blinkAB = true;
                     }
+                    break;
 
-                    blinkAB = false;
-                } else {
-                    if (serverSlot != mc.thePlayer.inventory.currentItem) {
-                        mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(serverSlot = mc.thePlayer.inventory.currentItem));
-                        swapped = false;
+                case Vanilla:
+                    if (!block) {
+                        PacketUtil.send(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                        renderBlock = true;
+                        block = true;
                     }
+                    break;
 
-                    Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).attack(true);
-                    Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).switchTargets = true;
-
-                    mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
-                    block = true;
-
-                    Arsenic.getInstance().getModuleManager().getModuleByClass(Blink.class).setEnabled(false);
-                    blink = false;
-
-                    blinkAB = true;
-                }
-            }
-            if (blockMode.getValue() == bMode.VANILLA) {
-                PacketUtil.send(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                case Fake:
+                    renderBlock = true;
+                    break;
             }
         } else {
             unblock();
@@ -109,7 +122,8 @@ public class AutoBlock extends Module {
     }
 
     public enum bMode {
-        VANILLA,
-        HYPIXEL,
+        Vanilla,
+        Hypixel,
+        Fake
     }
 }

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import org.jetbrains.annotations.NotNull;
 
 import arsenic.event.bus.Listener;
@@ -90,12 +91,19 @@ public final class EventBus<Event> implements Bus<Event> {
 
     @Override
     public void post(final @NotNull Event event) {
-        final List<Listener<Event>> listeners = listenerCache.getOrDefault(event.getClass(), Collections.emptyList());
+        try {
+            final List<Listener<Event>> listeners = listenerCache.getOrDefault(event.getClass(), Collections.emptyList());
 
-        int i = 0;
-        final int listenersSize = listeners.size();
+            int i = 0;
+            final int listenersSize = listeners.size();
 
-        while (i < listenersSize) { listeners.get(i++).call(event); }
+            while (i < listenersSize) { listeners.get(i++).call(event); }
+        } catch (Exception e){
+            PlayerUtils.addWaterMarkedMessageToChat(e.getClass().getSimpleName() + " IN THE EVENT BUS!");
+            System.out.println("\u001B[31m"+"ERROR IN THE EVENT BUS");
+            e.printStackTrace();
+            System.out.println("StackTrace Ends"+"\u001B[0m");
+        }
     }
 
     private static class CallSite<Event> {

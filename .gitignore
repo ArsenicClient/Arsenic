@@ -30,7 +30,6 @@ Arsenic_Client.launch
 .classpath
 .idea/workspace.xml
 .idea/sonarlint
-
 builder.bat
 .idea/
 .gradle/

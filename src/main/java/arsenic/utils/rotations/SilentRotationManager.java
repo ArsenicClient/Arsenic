@@ -11,17 +11,17 @@ public class SilentRotationManager {
 
 
     private final Minecraft mc = Minecraft.getMinecraft();
-    public float yaw  = 0;
-    private float prevYaw = 0;
-    public float pitch  = 0;
-    private float prevPitch = 0;
+    public float yaw;
+    private float prevYaw;
+    public float pitch ;
+    private float prevPitch;
     private boolean modified;
     private boolean doMovementFix;
     private boolean doJumpFix;
-    private float speed = 10f;
+    private float speed;
 
     @EventLink
-    public final Listener<EventTick> eventTickListener = event -> {
+    public final Listener<EventLiving> eventTickListener = event -> {
         EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
         Arsenic.getArsenic().getEventManager().post(rotation);
         prevYaw = yaw;
@@ -37,16 +37,13 @@ public class SilentRotationManager {
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
 
-        float yawDiff = RotationUtils.getYawDifference(rotation.getYaw(), yaw); //prevyaw
-        if(Math.abs(yawDiff) > speed)
-            yawDiff = (speed * (yawDiff > 0 ? 1 : -1))/2f;
-        yaw = MathHelper.wrapAngleTo180_float(yaw + yawDiff);
-
-        float pitchDiff = RotationUtils.getYawDifference(rotation.getPitch(), pitch); //prevpitch
-        if(Math.abs(pitchDiff) > speed/2f)
-            pitchDiff =  (speed/2f * (pitchDiff > 0 ? 1 : -1))/2f;
-        pitch = MathHelper.wrapAngleTo180_float(pitch + pitchDiff);
-
+        float[] patchedRots = RotationUtils.getPatchedAndCappedRots(
+                new float[]{prevYaw,prevPitch},
+                new float[]{rotation.getYaw(), rotation.getPitch()},
+                speed
+        );
+        yaw = patchedRots[0];
+        pitch = patchedRots[1];
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
     };
 

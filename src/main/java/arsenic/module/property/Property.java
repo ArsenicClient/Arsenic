@@ -23,6 +23,7 @@ public abstract class Property<T> implements IContainable {
 
     public void setValueSilently(T value) {
         this.value = value;
+        onValueUpdate();
     }
 
     public void setValue(T value) {
