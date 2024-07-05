@@ -3,29 +3,17 @@ package arsenic.module.impl.ghost;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventDisplayGuiScreen;
-import arsenic.event.impl.EventMouse;
 import arsenic.event.impl.EventRunTick;
-import arsenic.event.impl.EventTick;
-import arsenic.injection.accessor.IMixinMinecraft;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
-import arsenic.utils.timer.Timer;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.util.BlockPos;
-
-import java.util.concurrent.ExecutorService;
 
 @ModuleInfo(name = "Clicker", category = ModuleCategory.GHOST)
 public class Clicker extends Module {
@@ -55,7 +43,7 @@ public class Clicker extends Module {
                     lastSound = System.currentTimeMillis() + 80;
                 }
             }
-            click();
+            PlayerUtils.click();
             prevCps = cps;
             randomize();
             timer.reset();
@@ -69,23 +57,5 @@ public class Clicker extends Module {
     @Override
     protected void onEnable() {
         randomize();
-    }
-
-    private void click() {
-        mc.thePlayer.swingItem();
-        switch (mc.objectMouseOver.typeOfHit) {
-            case ENTITY:
-                mc.playerController.attackEntity(mc.thePlayer, mc.objectMouseOver.entityHit);
-                break;
-            case BLOCK:
-                BlockPos blockpos = mc.objectMouseOver.getBlockPos();
-
-                if (mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() != Material.air) {
-                    mc.playerController.clickBlock(blockpos, mc.objectMouseOver.sideHit);
-                    break;
-                }
-            case MISS:
-            default:
-        }
     }
 }

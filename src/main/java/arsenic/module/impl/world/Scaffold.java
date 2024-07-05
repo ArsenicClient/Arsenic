@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
@@ -150,6 +151,7 @@ public class Scaffold extends Module {
         setSprint();
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         if (ScaffoldUtil.getBlockData() != null) {

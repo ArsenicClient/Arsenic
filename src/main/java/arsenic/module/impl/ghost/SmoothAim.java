@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventSilentRotation;
@@ -27,6 +28,7 @@ public class SmoothAim extends Module {
     public final BooleanProperty pitchAssist = new BooleanProperty("PitchAssist",true);
     public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 100, 20, 1));
 
+    @RequiresPlayer
     @EventLink
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         if(mc.currentScreen != null) return;

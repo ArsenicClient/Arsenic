@@ -10,9 +10,8 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.client.AntiBot;
+import arsenic.module.impl.client.TargetManager;
 import arsenic.module.impl.world.Scaffold;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -24,70 +23,52 @@ import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.*;
-import net.minecraft.entity.EntityLivingBase;
-
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.BLATANT)
-public class KillAura extends Module {//todo: recode without breaking this
+public class KillAura extends Module {
+    private Enum<TargetManager.SortMode> prevVal;
+    public BooleanProperty switchAura = new BooleanProperty("Switch", false){
+        @Override
+        public void onValueUpdate() {
+            if (this.getValue()) {
+                prevVal = TargetManager.sortMode.getValue();
+                TargetManager.sortMode.setValue(TargetManager.SortMode.HurtSwitch);
+            } else {
+                if (prevVal != null){
+                    TargetManager.sortMode.setValue((TargetManager.SortMode) prevVal);
+                }
+            }
+        }
+    };
 
-    public BooleanProperty switchAura = new BooleanProperty("Switch", false);
-    @PropertyInfo(reliesOn = "Switch", value = "true")
-    public DoubleProperty switchDelayV = new DoubleProperty("Switch Delay", new DoubleValue(1, 1000, 150, 10));
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
     public DoubleProperty attackRange = new DoubleProperty("Attack Range", new DoubleValue(1, 6, 4.5, 0.1));
     public DoubleProperty findRange = new DoubleProperty("Find Range", new DoubleValue(1, 6, 4.5, 0.1));
-
     public DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 100, 50, 1));
-
-    public BooleanProperty moveFix = new BooleanProperty("MoveFix", false);
-
+    public BooleanProperty moveFix = new BooleanProperty("MoveFix", false); //why is this even an option
+    public BooleanProperty raycast = new BooleanProperty("Raycast", false);
     public BooleanProperty troughWalls = new BooleanProperty("Through Walls", false);
-    public BooleanProperty attackTeamates = new BooleanProperty("Attack TeamMates", false);
     public BooleanProperty swing = new BooleanProperty("Show Swing", true);
     public BooleanProperty esp = new BooleanProperty("ESP", true);
 
-    //target shit
     public EntityPlayer target = null;
-    private final ArrayList<EntityPlayer> targetArray = new ArrayList<>();
-    private int targetCount = 0;
-
     private final MSTimer attackTimer = new MSTimer();
-    private final MSTimer switchDelay = new MSTimer();
-
-    public boolean switchTargets;
 
     @Override
     protected void onEnable() {
         target = null;
-        switchTargets = true;
-        super.onEnable();
     }
 
     @Override
     protected void onDisable() {
         target = null;
-        super.onDisable();
-    }
-
-
-    private boolean canAttackTroughWalls(EntityLivingBase target) {
-        if (troughWalls.getValue()) {
-            return true;
-        }
-
-        return mc.thePlayer.canEntityBeSeen(target);
     }
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if (target == null || Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled()) {
-            return;
-        }
+        if (!canAura()) return;
         float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
@@ -99,20 +80,13 @@ public class KillAura extends Module {//todo: recode without breaking this
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        if (Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled()) {
-            return;
-        }
-        if (Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).blockMode.getValue() == AutoBlock.bMode.HYPIXEL) {
-            if (switchTargets || target == null) {
-                switchTargets = false;
-                getTarget();
-            }
-        } else {
-            getTarget();
-        }
+        getTarget();
+        if (!canAura()) return;
+
         if (target != null) {
-            if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput() && canAttackTroughWalls(target)) {
-                if (Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).blockMode.getValue() == AutoBlock.bMode.HYPIXEL) {
+            if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput() && (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target))) {
+                AutoBlock ab = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
+                if (ab.isEnabled() && ab.blockMode.getValue() == AutoBlock.bMode.HYPIXEL) {
                     return;
                 }
                 if (attackTimer.hasTimeElapsed(getAttackDelay())) {
@@ -126,25 +100,23 @@ public class KillAura extends Module {//todo: recode without breaking this
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (target == null || !esp.getValue()) {
+        if (!canAura() || !esp.getValue()) {
             return;
         }
-        RenderUtils.drawCircle(target, event.partialTicks, 0.55, Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor(), 255);
+        RenderUtils.drawCircle(target, event.partialTicks, 0.7, Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor(), 255);
     };
 
     public void attack(boolean interact) {
-        if (target == null) {
-            return;
-        }
+        if (!canAura()) return;
 
-        if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput()) {
+        if (!raycast.getValue()) {
             swing();
-
             mc.playerController.attackEntity(mc.thePlayer, target);
-
             if (interact) {
                 mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.INTERACT));
             }
+        } else {
+            PlayerUtils.click();
         }
     }
 
@@ -157,72 +129,18 @@ public class KillAura extends Module {//todo: recode without breaking this
     }
 
     private void getTarget() {
-        // ik this is a mess but it works perfectly
-        EntityPlayer temp_target = null;
-        float health = Float.MAX_VALUE;
-        targetArray.clear();
-        List<EntityPlayer> inAttackRangeTargets = new ArrayList<>();
+        EntityPlayer e = TargetManager.getTarget();
+        if (e == null) return;
+        double calculatedDistance = RotationUtils.getDistanceToEntityBox(e);
 
-        for (EntityPlayer e : mc.theWorld.playerEntities) {
-            if (Arsenic.getInstance().getModuleManager().getModuleByClass(AntiBot.class).isEnabled() && AntiBot.isBot(e)) {
-                continue;
-            }
-
-            double calculatedDistance = RotationUtils.getDistanceToEntityBox(e);
-
-            if (calculatedDistance <= findRange.getValue().getInput()) {
-                if (e != mc.thePlayer && e.getHealth() > 0) {
-                    if (PlayerUtils.isEntityTeamSameAsPlayer(e)) {
-                        if (attackTeamates.getValue()) {
-                            targetArray.add(e);
-                            if (calculatedDistance <= attackRange.getValue().getInput()) {
-                                inAttackRangeTargets.add(e);
-                            }
-                            if (e.getHealth() < health) {
-                                health = e.getHealth();
-                                temp_target = e;
-                            }
-                        }
-                    } else {
-                        targetArray.add(e);
-                        if (calculatedDistance <= attackRange.getValue().getInput()) {
-                            inAttackRangeTargets.add(e);
-                        }
-                        if (e.getHealth() < health) {
-                            health = e.getHealth();
-                            temp_target = e;
-                        }
-                    }
-                }
+        if (calculatedDistance <= findRange.getValue().getInput()) {
+            if (e.getHealth() > 0) {
+                target = e;
+                return;
             }
         }
 
-        targetArray.sort(Comparator.comparingInt(t0 -> t0.hurtTime));
-        targetArray.sort(Comparator.comparingDouble(RotationUtils::getDistanceToEntityBox));
-
-        if (switchAura.getValue()) {
-            if (switchDelay.hasTimeElapsed(switchDelayV.getValue().getInput())) {
-                targetCount++;
-                switchDelay.reset();
-            }
-
-            if (targetCount >= inAttackRangeTargets.size()) {
-                targetCount = 0;
-            }
-
-            if (!inAttackRangeTargets.isEmpty()) {
-                temp_target = inAttackRangeTargets.get(targetCount);
-            } else if (!targetArray.isEmpty()) {
-                temp_target = targetArray.get(targetCount % targetArray.size());
-            }
-        } else {
-            targetCount = 0;
-            if (!targetArray.isEmpty()) {
-                temp_target = targetArray.get(targetCount);
-            }
-        }
-
-        target = temp_target;
+        target = null;
     }
 
 
@@ -233,14 +151,12 @@ public class KillAura extends Module {//todo: recode without breaking this
         return (long) (1000L / finalValue);
     }
 
+    private boolean canAura(){
+        return target != null && !Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled();
+    }
+
     public static float getRandom(float min, float max) {
         SecureRandom random = new SecureRandom();
         return random.nextFloat() * (max - min) + min;
-    }
-
-    public enum Mode {
-        vanilla,
-        hypixel,
-        fake
     }
 }

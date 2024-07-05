@@ -10,7 +10,4 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface IMixinMinecraft {
     @Accessor
     Timer getTimer();
-
-    @Invoker("clickMouse")
-    void leftClick();
 }

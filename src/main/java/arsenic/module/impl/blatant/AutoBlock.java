@@ -64,7 +64,6 @@ public class AutoBlock extends Module {
                     }
 
                     Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).attack(true);
-                    Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).switchTargets = true;
 
                     mc.getNetHandler().addToSendQueue(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
                     block = true;
@@ -77,6 +76,8 @@ public class AutoBlock extends Module {
             }
             if (blockMode.getValue() == bMode.VANILLA) {
                 PacketUtil.send(new C08PacketPlayerBlockPlacement(mc.thePlayer.getHeldItem()));
+                renderBlock = true;
+                block = true;
             }
         } else {
             unblock();

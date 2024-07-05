@@ -2,6 +2,7 @@ package arsenic.utils.minecraft;
 
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -57,6 +58,23 @@ public class PlayerUtils extends UtilityClass {
         return new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
     }
 
+    public static void click() {
+        mc.thePlayer.swingItem();
+        switch (mc.objectMouseOver.typeOfHit) {
+            case ENTITY:
+                mc.playerController.attackEntity(mc.thePlayer, mc.objectMouseOver.entityHit);
+                break;
+            case BLOCK:
+                BlockPos blockpos = mc.objectMouseOver.getBlockPos();
+
+                if (mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() != Material.air) {
+                    mc.playerController.clickBlock(blockpos, mc.objectMouseOver.sideHit);
+                    break;
+                }
+            case MISS:
+            default:
+        }
+    }
     public static EntityPlayer getClosestPlayerWithin(double distance) {
         EntityPlayer target = null;
         for (EntityPlayer entity : mc.theWorld.playerEntities) {
