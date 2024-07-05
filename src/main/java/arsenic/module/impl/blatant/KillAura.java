@@ -86,7 +86,7 @@ public class KillAura extends Module {
         if (target != null) {
             if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput() && (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target))) {
                 AutoBlock ab = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
-                if (ab.isEnabled() && ab.blockMode.getValue() == AutoBlock.bMode.HYPIXEL) {
+                if (ab.isEnabled() && ab.blockMode.getValue() == AutoBlock.bMode.Hypixel) {
                     return;
                 }
                 if (attackTimer.hasTimeElapsed(getAttackDelay())) {
