@@ -45,7 +45,7 @@ public class KillAura extends Module {
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
     public DoubleProperty attackRange = new DoubleProperty("Attack Range", new DoubleValue(1, 6, 4.5, 0.1));
     public DoubleProperty findRange = new DoubleProperty("Find Range", new DoubleValue(1, 6, 4.5, 0.1));
-    public DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 100, 50, 1));
+    public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
     public BooleanProperty moveFix = new BooleanProperty("MoveFix", false); //why is this even an option
     public BooleanProperty raycast = new BooleanProperty("Raycast", false);
     public BooleanProperty troughWalls = new BooleanProperty("Through Walls", false);
@@ -74,7 +74,7 @@ public class KillAura extends Module {
         event.setPitch(rots[1]);
         event.setJumpFix(moveFix.getValue());
         event.setDoMovementFix(moveFix.getValue());
-        event.setSpeed((float) speed.getValue().getInput());
+        event.setSpeed((float) speed.getValue().getRandomInRange());
     };
 
     @RequiresPlayer
