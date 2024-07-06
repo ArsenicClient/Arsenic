@@ -13,6 +13,8 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.rangeproperty.RangeProperty;
+import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -26,7 +28,7 @@ public class SmoothAim extends Module {
     public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
     public final BooleanProperty fovBased = new BooleanProperty("FovBased",true);
     public final BooleanProperty pitchAssist = new BooleanProperty("PitchAssist",true);
-    public final DoubleProperty speed = new DoubleProperty("speed", new DoubleValue(1, 100, 20, 1));
+    public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
 
     @RequiresPlayer
     @EventLink
@@ -36,18 +38,18 @@ public class SmoothAim extends Module {
         EntityAndRots target = getTargetAndRotations();
         if(target == null) return;
         double fov = RotationUtils.fovFromEntity(target.entity);
-        double rotSpeed = speed.getValue().getInput() * (fovBased.getValue() ? (Math.abs(fov) * 2 / 180) : 1);
+        double rotSpeed = speed.getValue().getRandomInRange() * (fovBased.getValue() ? (Math.abs(fov) * 2 / 180) : 1);
 
         if (mode.getValue().equals(aaMode.Silent)) {
             event.setDoMovementFix(movementFix.getValue());
             event.setJumpFix(movementFix.getValue());
             event.setSpeed((float) rotSpeed);
             event.setYaw(target.yaw);
-            event.setPitch(pitchAssist.getValue() ? target.pitch : mc.thePlayer.rotationPitch);
+            event.setPitch(target.pitch);
         } else {
             float[] rots = RotationUtils.getPatchedAndCappedRots(
                     new float[]{mc.thePlayer.prevRotationYaw,mc.thePlayer.prevRotationPitch},
-                    new float[]{target.yaw,pitchAssist.getValue() ? target.pitch : mc.thePlayer.rotationPitch},
+                    new float[]{target.yaw,target.pitch},
                     (float) rotSpeed
             );
             mc.thePlayer.rotationYaw = rots[0];
@@ -61,7 +63,7 @@ public class SmoothAim extends Module {
         if (target.entity == null) return null;
         float[] rotationsToTarget = RotationUtils.getRotationsToEntity((EntityLivingBase) target.entity);
         target.yaw = rotationsToTarget[0];
-        target.pitch = rotationsToTarget[1];
+        target.pitch = (float) ((pitchAssist.getValue() ? rotationsToTarget[1] : mc.thePlayer.rotationPitch) + Math.random() - Math.random());
         return target;
     }
 
