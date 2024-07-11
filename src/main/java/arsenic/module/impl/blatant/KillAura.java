@@ -84,7 +84,7 @@ public class KillAura extends Module {
         if (!canAura()) return;
 
         if (target != null) {
-            if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput() && (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target))) {
+            if (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target)) {
                 AutoBlock ab = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
                 if (ab.isEnabled() && ab.blockMode.getValue() == AutoBlock.bMode.Hypixel) {
                     return;
@@ -108,15 +108,16 @@ public class KillAura extends Module {
 
     public void attack(boolean interact) {
         if (!canAura()) return;
-
-        if (!raycast.getValue()) {
-            swing();
-            mc.playerController.attackEntity(mc.thePlayer, target);
-            if (interact) {
-                mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.INTERACT));
+        if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput()) {
+            if (!raycast.getValue()) {
+                swing();
+                mc.playerController.attackEntity(mc.thePlayer, target);
+                if (interact) {
+                    mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.INTERACT));
+                }
+            } else {
+                PlayerUtils.click();
             }
-        } else {
-            PlayerUtils.click();
         }
     }
 
