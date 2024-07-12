@@ -70,7 +70,7 @@ public class PostProcessing extends Module {
     public final Listener<EventShader.Bloom> shaderEventListener = event -> {
         if (mc.currentScreen == Arsenic.getInstance().getClickGuiScreen()) {
             event.setIterations(3);
-            event.setOffset(3);
+            event.setOffset(2);
             blurElements();
         }
     };
