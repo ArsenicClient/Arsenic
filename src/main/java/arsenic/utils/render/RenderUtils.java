@@ -47,7 +47,20 @@ public class RenderUtils extends UtilityClass {
     public static void resetColor() {
         glColor4f(1f, 1f, 1f, 1f);
     }
-
+    public static void bindTexture(int texture) {
+        glBindTexture(GL_TEXTURE_2D, texture);
+    }
+    public static void setAlphaLimit(float alphaLimit) {
+        GlStateManager.enableAlpha();
+        GlStateManager.alphaFunc(GL_GREATER,  alphaLimit * 0.01f);
+    }
+    public static void startBlend() {
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    public static void endBlend() {
+        GlStateManager.disableBlend();
+    }
     public static ResourceLocation getResourcePath(String s) {
         InputStream inputStream = Arsenic.class.getResourceAsStream(s);
         BufferedImage bf;
