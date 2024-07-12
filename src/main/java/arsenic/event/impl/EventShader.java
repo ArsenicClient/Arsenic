@@ -4,15 +4,22 @@ import arsenic.event.types.Event;
 
 public class EventShader implements Event {
     private int iterations,offset;
-    private final Type type;
-    public EventShader(int iterations,int offset,Type type){
+    private boolean blur;
+    public EventShader(int iterations,int offset,boolean blur){
         this.iterations = iterations;
         this.offset = offset;
-        this.type = type;
+        this.blur = blur;
+    }
+    public static class Bloom extends EventShader {
+        public Bloom(int iterations,int offset) {
+            super(iterations,offset,false);
+        }
     }
 
-    public Type getType() {
-        return type;
+    public static class Blur extends EventShader {
+        public Blur(int iterations,int offset) {
+            super(iterations,offset,true);
+        }
     }
 
     public int getIterations() {
@@ -29,10 +36,5 @@ public class EventShader implements Event {
 
     public void setOffset(int offset) {
         this.offset = offset;
-    }
-
-    public enum Type {
-        Bloom,
-        Blur
     }
 }

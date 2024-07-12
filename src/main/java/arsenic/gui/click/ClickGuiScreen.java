@@ -161,7 +161,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        cmcc.scroll(i * 5);
+        cmcc.scroll(i * 15);
     }
 
     @Override

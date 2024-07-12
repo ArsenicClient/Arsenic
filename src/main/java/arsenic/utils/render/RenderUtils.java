@@ -50,6 +50,9 @@ public class RenderUtils extends UtilityClass {
     public static void bindTexture(int texture) {
         glBindTexture(GL_TEXTURE_2D, texture);
     }
+    public static int alpha(Color color, int newAlpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), newAlpha).getRGB();
+    }
     public static void setAlphaLimit(float alphaLimit) {
         GlStateManager.enableAlpha();
         GlStateManager.alphaFunc(GL_GREATER,  alphaLimit * 0.01f);

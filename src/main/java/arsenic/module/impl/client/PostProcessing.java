@@ -45,7 +45,7 @@ public class PostProcessing extends Module {
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
             RenderUtils.resetColor();
-            EventShader bloomEvent = new EventShader((int) shadowRadius.getValue().getInput(), (int) shadowOffset.getValue().getInput(), EventShader.Type.Bloom);
+            EventShader.Bloom bloomEvent = new EventShader.Bloom((int) shadowRadius.getValue().getInput(), (int) shadowOffset.getValue().getInput());
             Arsenic.getInstance().getEventManager().getBus().post(bloomEvent);
             RenderUtils.resetColor();
             stencilFramebuffer.unbindFramebuffer();
@@ -56,7 +56,9 @@ public class PostProcessing extends Module {
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
             RenderUtils.resetColor();
-            EventShader blurEvent = new EventShader((int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput(), EventShader.Type.Blur);
+            blurElements();
+            RenderUtils.resetColor();
+            EventShader.Blur blurEvent = new EventShader.Blur((int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput());
             Arsenic.getInstance().getEventManager().getBus().post(blurEvent);
             RenderUtils.resetColor();
             stencilFramebuffer.unbindFramebuffer();
@@ -65,10 +67,10 @@ public class PostProcessing extends Module {
     }
 
     @EventLink
-    public final Listener<EventShader> shaderEventListener = event -> {
+    public final Listener<EventShader.Bloom> shaderEventListener = event -> {
         if (mc.currentScreen == Arsenic.getInstance().getClickGuiScreen()) {
-            event.setIterations(4);
-            event.setOffset(2);
+            event.setIterations(3);
+            event.setOffset(3);
             blurElements();
         }
     };
