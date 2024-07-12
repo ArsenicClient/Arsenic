@@ -11,8 +11,6 @@ import static org.lwjgl.opengl.GL11.*;
 public class DrawUtils extends UtilityClass {
 
     public static ShaderUtil roundedShader = new ShaderUtil("roundedRect");
-    public static ShaderUtil roundedOutlineShader = new ShaderUtil("roundRectOutline");
-    private static final ShaderUtil roundedTexturedShader = new ShaderUtil("roundRectTexture");
     private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
 
     public static void drawRect(float x, float y, float x1, float y1, int color) {
@@ -104,9 +102,15 @@ public class DrawUtils extends UtilityClass {
         drawRoundedOutline(x, y, d, y1, radius, borderSize, borderC, round);
     }
 
-    //y = lower, y1 = upper
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color) {
         drawShaderRect(x,y,x1-x,y1-y,radius,color);
+    }
+    public static void drawGradientRoundedRect(float x, float y, float x1, float y1, final float radius, final int bottomLeft, int topLeft, int bottomRight, int topRight) {
+        Color bl = new Color((bottomLeft >> 16) & 0xFF, (bottomLeft >> 8) & 0xFF, bottomLeft & 0xFF, (bottomLeft >> 24) & 0xFF);
+        Color br = new Color((bottomRight >> 16) & 0xFF, (bottomRight >> 8) & 0xFF, bottomRight & 0xFF, (bottomRight >> 24) & 0xFF);
+        Color tl = new Color((topLeft >> 16) & 0xFF, (topLeft >> 8) & 0xFF, topLeft & 0xFF, (topLeft >> 24) & 0xFF);
+        Color tr = new Color((topRight >> 16) & 0xFF, (topRight >> 8) & 0xFF, topRight & 0xFF, (topRight >> 24) & 0xFF);
+        drawGradientRound(x,y,x1-x,y1-y,radius,bl,tl,br,tr);
     }
     public static void drawShaderRect(float x, float y, float width, float height, float radius, int c) {
         //this is done to fix alpha issues with the rect. Don't chage it - cosmic
@@ -126,6 +130,24 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.endBlend();
     }
 
+    public static void drawGradientRound(float x, float y, float width, float height, float radius, Color bottomLeft, Color topLeft, Color bottomRight, Color topRight) {
+        RenderUtils.setAlphaLimit(0);
+        RenderUtils.resetColor();
+        RenderUtils.startBlend();
+        roundedGradientShader.init();
+        setupRoundedRectUniforms(x, y, width, height, radius, roundedGradientShader);
+        //Top left
+        roundedGradientShader.setUniformf("color1", topLeft.getRed() / 255f, topLeft.getGreen() / 255f, topLeft.getBlue() / 255f, topLeft.getAlpha() / 255f);
+        // Bottom Left
+        roundedGradientShader.setUniformf("color2", bottomLeft.getRed() / 255f, bottomLeft.getGreen() / 255f, bottomLeft.getBlue() / 255f, bottomLeft.getAlpha() / 255f);
+        //Top Right
+        roundedGradientShader.setUniformf("color3", topRight.getRed() / 255f, topRight.getGreen() / 255f, topRight.getBlue() / 255f, topRight.getAlpha() / 255f);
+        //Bottom Right
+        roundedGradientShader.setUniformf("color4", bottomRight.getRed() / 255f, bottomRight.getGreen() / 255f, bottomRight.getBlue() / 255f, bottomRight.getAlpha() / 255f);
+        ShaderUtil.drawQuads(x, y, width+0.6f, height+0.6f);
+        roundedGradientShader.unload();
+        RenderUtils.endBlend();
+    }
     public static void drawBorderedRoundedRect(float x, float y, float x1, float y1, float radius, float borderSize, int borderC, int insideC) {
         drawRoundedRect(x, y, x1, y1, radius, insideC);
         drawRoundedOutline(x, y, x1, y1, radius, borderSize, borderC);

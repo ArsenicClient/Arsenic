@@ -13,6 +13,7 @@ public class Fonts {
     public final TTFontRenderer FR = new TTFontRenderer(getFontFromLocation("font.ttf", 21), true, true);
     public final TTFontRenderer MEDIUM_FR = new TTFontRenderer(getFontFromLocation("font.ttf", 20), true, true);
     public final TTFontRenderer SMALL_FR = new TTFontRenderer(getFontFromLocation("font.ttf", 18), true, true);
+    public final TTFontRenderer Comfortaa = new TTFontRenderer(getFontFromLocation("comfortaa.ttf", 17), true, true);
 
     public void initTextures() {
         try {

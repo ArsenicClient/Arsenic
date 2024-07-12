@@ -47,13 +47,25 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
         this.module = clickGui;
-        super.doInit(); //uhh fixes the thing where you have to open gui for other stuff to init()
     }
 
     //called every time the ui is created
     @Override
     public void doInit() {
         super.doInit();
+    }
+
+    public void drawBloom() {
+        if (getFontRenderer() == null) return;
+        int x = width / 8;
+        int y = height / 6;
+        x1 = width - x;
+        y1 = height - y;
+        // blurs the bg
+        RenderUtils.resetColor();
+        int mainC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+        int gradientC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
+        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
     }
 
     @Override
@@ -133,7 +145,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public final FontRendererExtension<?> getFontRenderer() {
         try {
             return module.customFont.getValue() ?
-                    Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
+                    Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
                     ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
         } catch (NullPointerException e) {
             return null;
