@@ -15,7 +15,6 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.MoveUtil;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
