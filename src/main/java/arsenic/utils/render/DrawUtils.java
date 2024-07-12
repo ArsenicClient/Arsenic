@@ -1,12 +1,19 @@
 package arsenic.utils.render;
 
 import arsenic.utils.java.UtilityClass;
+import arsenic.utils.render.shader.ShaderUtil;
+import net.minecraft.client.gui.ScaledResolution;
+
+import java.awt.*;
 
 import static org.lwjgl.opengl.GL11.*;
 
 public class DrawUtils extends UtilityClass {
 
-    // horrible shitcode need to fix
+    public static ShaderUtil roundedShader = new ShaderUtil("roundedRect");
+    public static ShaderUtil roundedOutlineShader = new ShaderUtil("roundRectOutline");
+    private static final ShaderUtil roundedTexturedShader = new ShaderUtil("roundRectTexture");
+    private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
 
     public static void drawRect(float x, float y, float x1, float y1, int color) {
         float finalX = x * 2f;
@@ -99,7 +106,24 @@ public class DrawUtils extends UtilityClass {
 
     //y = lower, y1 = upper
     public static void drawRoundedRect(float x, float y, float x1, float y1, final float radius, final int color) {
-        drawRoundedRect(x, y, x1, y1, radius, color, new boolean[]{true, true, true, true});
+        drawShaderRect(x,y,x1-x,y1-y,radius,color);
+    }
+    public static void drawShaderRect(float x, float y, float width, float height, float radius, int c) {
+        //this is done to fix alpha issues with the rect. Don't chage it - cosmic
+        Color color = new Color((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, (c >> 24) & 0xFF);
+        RenderUtils.resetColor();
+        RenderUtils.startBlend();
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        RenderUtils.setAlphaLimit(0);
+        roundedShader.init();
+
+        setupRoundedRectUniforms(x, y, width, height, radius - 1f, roundedShader);
+        roundedShader.setUniformi("blur",1);
+        roundedShader.setUniformf("color", color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f);
+
+        ShaderUtil.drawQuads(x, y, width+0.6f, height+0.6f);
+        roundedShader.unload();
+        RenderUtils.endBlend();
     }
 
     public static void drawBorderedRoundedRect(float x, float y, float x1, float y1, float radius, float borderSize, int borderC, int insideC) {
@@ -175,5 +199,11 @@ public class DrawUtils extends UtilityClass {
         finish();
         glLineWidth(1.0f);
     }
-
+    private static void setupRoundedRectUniforms(float x, float y, float width, float height, float radius, ShaderUtil roundedTexturedShader) {
+        ScaledResolution sr = new ScaledResolution(mc);
+        roundedTexturedShader.setUniformf("location", x * sr.getScaleFactor(),
+                (mc.displayHeight - (height * sr.getScaleFactor())) - (y * sr.getScaleFactor()));
+        roundedTexturedShader.setUniformf("rectSize", width * sr.getScaleFactor(), height * sr.getScaleFactor());
+        roundedTexturedShader.setUniformf("radius", radius);
+    }
 }

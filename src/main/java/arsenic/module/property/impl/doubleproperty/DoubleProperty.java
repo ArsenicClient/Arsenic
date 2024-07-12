@@ -74,10 +74,11 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 //draws the circle
                 radius = height/5f;
                 Color color = new Color(RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percent));
-                DrawUtils.drawBorderedCircle(lineXChangePoint, midPointY, radius, radius/3f, color.darker().getRGB(), color.getRGB());
-                if(animationTimer.getPercent() > 0) {
+                DrawUtils.drawCircle(lineXChangePoint, midPointY, radius, color.getRGB());
+                //un comment this if needed it doesnt seem to fit in.
+                /*if(animationTimer.getPercent() > 0) {
                     DrawUtils.drawCircleOutline(lineXChangePoint, midPointY, radius * animationTimer.getPercent(), radius/3f, 0xFFFFFFFE);
-                }
+                }*/
                 return height;
             }
 

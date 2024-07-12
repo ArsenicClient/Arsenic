@@ -30,7 +30,6 @@
     "accessor.C03PacketPlayerAccessor",
     "accessor.IMixinC02PacketUseEntity",
     "accessor.IMixinItemSword",
-    "accessor.IMixinNetworkManager",
     "accessor.IMixinS12PacketEntityVelocity",
     "accessor.S03PacketTimeUpdateAccessor",
     "mixin.MixinEntityPlayer",

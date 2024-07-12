@@ -20,6 +20,7 @@ import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL20;
 
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,10 +38,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
-    private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true, TickMode.SQR);
     private int vLineX, hLineY, x1, y1;
-
-    private Framebuffer blurredBuffer;
 
     //called once
     public void init(ClickGui clickGui) {
@@ -49,13 +47,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
         this.module = clickGui;
+        super.doInit(); //uhh fixes the thing where you have to open gui for other stuff to init()
     }
 
     //called every time the ui is created
     @Override
     public void doInit() {
         super.doInit();
-        blurTimer.setElapsedMs(0);
     }
 
     @Override
@@ -66,20 +64,18 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        int enabledColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         ResourceLocation logoPath = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
-
         // main container
         RenderUtils.resetColor();
-        DrawUtils.drawBorderedRoundedRect(x, y, x1, y1, 1f, 1f, enabledColor, 0xDD0C0C0C);
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, 0xDD0C0C0C);
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
 
         // vertical line
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, enabledColor);
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, new Color(0, 0, 0, 68).getRGB());
         // horizontal line
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, enabledColor);
+        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, new Color(0, 0, 0, 68).getRGB());
 
         //logo
         mc.getTextureManager().bindTexture(logoPath);

@@ -1,5 +1,6 @@
 package arsenic.gui.click.impl;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -20,6 +21,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private boolean open, binding;
     private float bindX;
     private Module self;
+    private PosInfo posInfo;
     private final AnimationTimer openAnimationTimer = new AnimationTimer(350, () -> open, TickMode.SINE);
     private final AnimationTimer enabledAnimationTiemr = new AnimationTimer(350, () -> self.isEnabled(), TickMode.SINE);
     private final ButtonComponent buttonComponent = new ButtonComponent(this) {
@@ -48,7 +50,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     public float updateComponent(PosInfo pi, RenderInfo ri) {
-        buttonComponent.updateComponent(pi, ri);
+        posInfo = pi;
         return super.updateComponent(pi, ri);
     }
 
@@ -57,7 +59,8 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float expand = width/15f;
 
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTiemr.getPercent());
-
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(5, 5, 5, 160).getRGB());
+        buttonComponent.updateComponent(posInfo, ri); //done to fix a weird animation bug (probably not the best way of doing it but it works!)
         //stops the colors leaking
         RenderUtils.resetColorText();
 
@@ -81,8 +84,6 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         }
         expandY = (pi.getY() - y2) * openAnimationTimer.getPercent();
 
-        //draws the box
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2 + expandY, expand/2f, expand/10f, color);
         return expandY + height;
     }
 

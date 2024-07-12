@@ -33,16 +33,14 @@ public abstract class ButtonComponent extends Component {
         int normalColour = color.getRGB();
 
         //oval
-        DrawUtils.drawBorderedRoundedRect(x2 - buttonWidth, buttonY1, x2, buttonY2, radius * 2, radius/3f, normalColour, darkerColor);
+        DrawUtils.drawRoundedRect(x2 - buttonWidth, buttonY1, x2, buttonY2, radius * 2, new Color(33, 33, 33, 234).getRGB());
 
         //circle
         float circleOffset = buttonWidth * ((percent - .5f) * 0.8f);
-        DrawUtils.drawBorderedCircle(
+        DrawUtils.drawCircle(
                 buttonX + buttonWidth/2f + circleOffset,
                 midPointY,
                 radius * 1.1f,
-                radius/3f,
-                normalColour,
                 darkerColor
         );
 

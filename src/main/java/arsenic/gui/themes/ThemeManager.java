@@ -28,9 +28,13 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             lilith.setLogoPath("lilith");
             themeList.add(lilith);
         }
-        if(getContentByJsonKey("Test") == null) {
-            Theme test = new Theme("Test", 0xFFFFFFFF, new Color(0xFFFFFFFF, true).darker().getRGB(), 0xFF494949, 0xFFFFFFFF);
-            themeList.add(test);
+        if(getContentByJsonKey("Tenacity") == null) {
+            Theme tenacity = new Theme("Tenacity", new Color(236, 133, 209).darker().getRGB(), new Color(236, 133, 209).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55,true,new Color(28, 167, 222).getRGB());
+            themeList.add(tenacity);
+        }
+        if(getContentByJsonKey("Wave") == null) {
+            Theme wave = new Theme("Wave", new Color(0x00FFC4).darker().getRGB(), new Color(0x00FFC4).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55,true,new Color(0, 255, 119).getRGB());
+            themeList.add(wave);
         }
         currentTheme = getContentByJsonKey("Arsenic");
         return themeList.size();
