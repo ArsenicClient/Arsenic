@@ -12,9 +12,6 @@ import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 
-import static arsenic.utils.render.ShaderUtils.cursorProgram;
-import static arsenic.utils.render.ShaderUtils.drawShader;
-
 @Mixin(value = GuiScreen.class)
 public class MixinGuiScreen {
 

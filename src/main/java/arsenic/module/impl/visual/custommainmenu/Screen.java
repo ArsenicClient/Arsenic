@@ -4,18 +4,12 @@ import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IFontRenderer;
-import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 
 import java.io.IOException;
-
-import static arsenic.utils.render.ShaderUtils.drawShader;
-import static arsenic.utils.render.ShaderUtils.mainMenuProgram;
 
 public class Screen extends GuiScreen {
 
@@ -31,7 +25,6 @@ public class Screen extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         float time = (System.currentTimeMillis() % 100000) / 1000f;
         int color = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        drawShader(mainMenuProgram, time, (float) ColorUtils.getColor(color, 0), (float) ColorUtils.getColor(color, 2), (float) ColorUtils.getColor(color, 3));
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 

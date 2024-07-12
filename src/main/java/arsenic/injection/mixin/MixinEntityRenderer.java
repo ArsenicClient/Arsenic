@@ -30,9 +30,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Objects;
 
-import static arsenic.utils.render.ShaderUtils.cursorProgram;
-import static arsenic.utils.render.ShaderUtils.drawShader;
-
 @Mixin(value = EntityRenderer.class, priority = 995)
 public abstract class MixinEntityRenderer implements IResourceManagerReloadListener {
 
@@ -148,16 +145,4 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
         float f3 = MathHelper.sin(-pitch * 0.017453292F);
         return new Vec3((f1 * f2), f3, (f * f2));
     }
-
-
-    @Redirect(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/client/ForgeHooksClient;drawScreen(Lnet/minecraft/client/gui/GuiScreen;IIF)V"))
-    public void drawScreen(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
-        ForgeHooksClient.drawScreen(screen, mouseX, mouseY, partialTicks);
-        if(!Keyboard.isKeyDown(Keyboard.KEY_B))
-            return;
-        float time = (System.currentTimeMillis() % 100000) / 1000f;
-        drawShader(cursorProgram, time, (float) mouseX, (float) mouseY, (float) new ScaledResolution(mc).getScaleFactor());
-    }
-
-
 }
