@@ -2,7 +2,7 @@
 
 Arsenic client is brought to you by Shitcode INC©.
 Arsenic features modules for closet and blatant cheating.
-The bypasses/features are mainly meant for Hypixel.
+The features are mainly meant for Hypixel.
 
 ### How to use Arsenic:
 
@@ -24,5 +24,4 @@ The bypasses/features are mainly meant for Hypixel.
 
 create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord
 
-contact either Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`) on discord and expect to get screamed
-at and/or called an idiot
+credits to Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`) on discord for making this possible
