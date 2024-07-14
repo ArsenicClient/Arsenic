@@ -57,9 +57,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     protected float drawComponent(RenderInfo ri) {
         float expand = width/15f;
-
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTiemr.getPercent());
-        expandY = (pi.getY() - y2) * openAnimationTimer.getPercent();
         DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(5, 5, 5, 160).getRGB());
         buttonComponent.updateComponent(posInfo, ri); //done to fix a weird animation bug (probably not the best way of doing it but it works!)
         //stops the colors leaking
@@ -83,6 +81,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             contents.forEach(child -> pi.moveY((int) (child.updateComponent(pi, ri) * 1.1)));
             ScissorUtils.endSubScissor();
         }
+        expandY = (pi.getY() - y2) * openAnimationTimer.getPercent();
 
         return expandY + height;
     }
