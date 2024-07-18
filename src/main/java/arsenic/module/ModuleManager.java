@@ -21,8 +21,10 @@ public class ModuleManager {
             throw new RuntimeException("Double initialization of Module Manager.");
 
         Reflections reflections = new Reflections("arsenic.module");
-        reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> addModule((Class<? extends Module>) module));
-
+        reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> {
+            if (module.getName().equals("arsenic.module.impl.client.PostProcessing") && System.getProperty("os.name").toLowerCase().contains("mac")) return; //I hate this
+            addModule((Class<? extends Module>) module);
+        });
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }
