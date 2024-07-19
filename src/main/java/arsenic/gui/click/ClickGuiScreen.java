@@ -20,13 +20,13 @@ import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL20;
 
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static arsenic.utils.render.ShaderUtils.*;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 // allow escape to bind to none
@@ -38,25 +38,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
-    private final AnimationTimer blurTimer = new AnimationTimer(500, () -> true, TickMode.SQR);
     private int vLineX, hLineY, x1, y1;
-
-    private Framebuffer blurredBuffer;
-
-    //params are radius , compression
-    public final Program blurProgram = new Program("blur",
-            (program, params) -> {
-                if(blurredBuffer != null)
-                    blurredBuffer.deleteFramebuffer();
-                blurredBuffer = new Framebuffer(Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight, false);
-
-                GL20.glUniform1i(glGetUniformLocation(program, "texture"), 0);
-                GL20.glUniform2f(glGetUniformLocation(program, "texelSize"), 1.0f / Minecraft.getMinecraft().displayWidth, 1.0f / Minecraft.getMinecraft().displayHeight);
-                GL20.glUniform1f(glGetUniformLocation(program, "radius"), MathHelper.ceiling_float_int(2 * (float) params[0]));
-                blurredBuffer.framebufferClear();
-                GL20.glUniform2f(glGetUniformLocation(program, "direction"), (float) params[1], 0.0f);
-            }
-    );
 
     //called once
     public void init(ClickGui clickGui) {
@@ -71,34 +53,41 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void doInit() {
         super.doInit();
-        blurTimer.setElapsedMs(0);
+    }
+
+    public void drawBloom() {
+        if (getFontRenderer() == null) return;
+        int x = width / 8;
+        int y = height / 6;
+        x1 = width - x;
+        y1 = height - y;
+        // blurs the bg
+        RenderUtils.resetColor();
+        int mainC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+        int gradientC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
+        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
     }
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
-
-        drawShader(blurProgram,1.3f * blurTimer.getPercent(), 2.5f * blurTimer.getPercent());
-
         int x = width / 8;
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        int enabledColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         ResourceLocation logoPath = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
-
         // main container
         RenderUtils.resetColor();
-        DrawUtils.drawBorderedRoundedRect(x, y, x1, y1, 1f, 1f, enabledColor, 0xDD0C0C0C);
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, 0xDD0C0C0C);
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
 
         // vertical line
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, enabledColor);
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, new Color(0, 0, 0, 68).getRGB());
         // horizontal line
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, enabledColor);
+        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, new Color(0, 0, 0, 68).getRGB());
 
         //logo
         mc.getTextureManager().bindTexture(logoPath);
@@ -156,7 +145,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public final FontRendererExtension<?> getFontRenderer() {
         try {
             return module.customFont.getValue() ?
-                    Arsenic.getInstance().getFonts().MEDIUM_FR.getFontRendererExtension() :
+                    Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
                     ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
         } catch (NullPointerException e) {
             return null;
@@ -172,7 +161,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        cmcc.scroll(i * 5);
+        cmcc.scroll(i * 15);
     }
 
     @Override

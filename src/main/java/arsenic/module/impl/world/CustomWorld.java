@@ -4,7 +4,6 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
-import arsenic.injection.accessor.S03PacketTimeUpdateAccessor;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -17,7 +16,6 @@ import net.minecraft.network.play.server.S03PacketTimeUpdate;
 
 @ModuleInfo(name = "CustomWorld", category = ModuleCategory.WORLD)
 public class CustomWorld extends Module {
-    int weather = 0;
     public BooleanProperty changeWeather = new BooleanProperty("Change weather", false);
     public final EnumProperty<wMode> mode = new EnumProperty<>("Mode: ", wMode.CLEAR);
     public BooleanProperty changeTime = new BooleanProperty("Change time", false);
@@ -27,7 +25,7 @@ public class CustomWorld extends Module {
     public final Listener<EventPacket.Incoming> onPacket = event -> {
 
         if (event.getPacket() instanceof S03PacketTimeUpdate && changeTime.getValue()) {
-            ((S03PacketTimeUpdateAccessor) event.getPacket()).setWorldTime((long) time.getValue().getInput());
+            event.cancel();
         }
     };
 
@@ -35,17 +33,22 @@ public class CustomWorld extends Module {
     public final Listener<EventTick> onTick = event -> {
         if (mc.thePlayer != null && mc.theWorld != null) {
             if (changeWeather.getValue()) {
-                //The shit code is unbelievable
-                if (mode.getValue() == wMode.CLEAR) {
-                    weather = 0;
-                }
-                if (mode.getValue() == wMode.RAINY) {
-                    weather = 1;
-                }
-                if (mode.getValue() == wMode.THUNDER) {
-                    weather = 2;
+                int weather = -1;
+                switch (mode.getValue()) {
+                    case CLEAR:
+                        weather = 0;
+                        break;
+                    case RAINY:
+                        weather = 1;
+                        break;
+                    case THUNDER:
+                        weather = 2;
+                        break;
                 }
                 mc.theWorld.setRainStrength(weather);
+            }
+            if (changeTime.getValue()) {
+                mc.theWorld.setWorldTime((long) time.getValue().getInput());
             }
         }
     };

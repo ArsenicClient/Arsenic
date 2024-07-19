@@ -12,7 +12,7 @@ import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "ClickGUI", category = ModuleCategory.CLIENT, hidden = true, keybind = Keyboard.KEY_RSHIFT)
 public class ClickGui extends Module {
-    public final BooleanProperty customFont = new BooleanProperty("Custom Font", false);
+    public final BooleanProperty customFont = new BooleanProperty("Custom Font", true);
 
     private ClickGuiScreen screen;
 

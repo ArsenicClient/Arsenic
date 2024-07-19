@@ -46,8 +46,10 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     protected float drawComponent(RenderInfo ri) {
         expandX = hoverTimer.getPercent() * (width/14f);
 
-        int color = ColorUtils.setColor(getEnabledColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
-        DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, color);
+        int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
+        int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
+
+        DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, mainC,mainC,gradientC,gradientC);
         ri.getFr().drawString(getName(), x1 + expandX + (width/7f), midPointY, getWhite(), ri.getFr().CENTREY);
         return height;
     }

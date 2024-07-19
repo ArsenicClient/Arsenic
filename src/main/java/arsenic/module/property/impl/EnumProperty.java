@@ -12,6 +12,7 @@ import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 
+import java.awt.*;
 import java.util.function.Supplier;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
@@ -81,15 +82,13 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
             Runnable render = () -> {
                 //box
-                DrawUtils.drawBorderedRoundedRect(
+                DrawUtils.drawRoundedRect( //changed to fit in with the gui
                         boxX1,
                         boxY1,
                         x2,
                         boxY2 + maxBoxHeight,
                         boxHeight / 2f,
-                        borderWidth,
-                        getEnabledColor(),
-                        getDisabledColor()
+                        new Color(26, 25, 25, 205).getRGB()
                 );
 
                 //Other value that aren't selected
@@ -100,24 +99,24 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
-                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight), 0xFFFFFFFE, ri.getFr().CENTREY);
+                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight) + 1.7f, 0xFFFFFFFE, ri.getFr().CENTREY);
                     }
 
                     ScissorUtils.endSubScissor();
                 }
 
                 //name in box
-                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY, 0xFFFFFFFE, ri.getFr().CENTREY);
+                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY + 1.7f, 0xFFFFFFFE, ri.getFr().CENTREY);
 
-                //triangle in box
-                float triangleLength = (boxHeight - (borderWidth * 2f));
+                //triangle in box - doesnt fit in. uncomment if needed
+                /*float triangleLength = (boxHeight - (borderWidth * 2f));
                 DrawUtils.drawTriangle(
                         x2 - boxHeight - (borderWidth * 2),
                         boxY1 + (borderWidth * 2) + ((boxHeight - (borderWidth * 4)) * animationTimer.getPercent()),
                         triangleLength,
                         (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
                         getEnabledColor()
-                );
+                );*/
 
             };
             //so that it draws over the other properties

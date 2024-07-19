@@ -14,11 +14,8 @@ public class Theme implements ISerializable {
     private int darkerColor;
     private int white;
     private int black;
-
-    public Theme(String name) {
-        this.name = name;
-    }
-
+    private int gradientColor;
+    private boolean gradient;
     public Theme(String name, int mainColor, int darkerColor, int white, int black) {
         this.name = name;
         this.mainColor = mainColor;
@@ -27,10 +24,29 @@ public class Theme implements ISerializable {
         this.black = black;
     }
 
+    public Theme(String name, int mainColor, int darkerColor, int white, int black, boolean gradient, int gradientColor) {
+        this.name = name;
+        this.mainColor = mainColor;
+        this.darkerColor = darkerColor;
+        this.white = white;
+        this.black = black;
+        this.gradient = gradient;
+        this.gradientColor = gradientColor;
+
+    }
+
+    public String getName(){
+        return name;
+    }
     public int getMainColor() {
         return mainColor;
     }
-
+    public boolean isGradientEnabled(){
+        return gradient;
+    }
+    public int getGradientColor() {
+        return isGradientEnabled() ? gradientColor : getMainColor();
+    }
     public void setMainColor(int mainColor) {
         this.mainColor = mainColor;
     }

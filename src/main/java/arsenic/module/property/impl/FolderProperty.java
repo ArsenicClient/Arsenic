@@ -13,6 +13,7 @@ import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -68,7 +69,12 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
         protected float draw(RenderInfo ri) {
             float borderWidth = height/15f;
             float expand = width/10f;
+            expandX = expand;
+            expandY = animationTimer.getPercent() * lastHeight;
 
+            float barX = x1 - (expandX/2f);
+            DrawUtils.drawRoundedRect(barX - 2, y1, (int) (x2 + expandX * 2), (int) (y2 + expandY),12, new Color(26, 25, 25, 150).getRGB());
+            DrawUtils.drawRoundedRect(barX, y1, barX + 1, y2 + expandY,8,getEnabledColor());
 
             PosInfo pi = new PosInfo(x1, y2);
             if(animationTimer.getPercent() > 0) {
@@ -79,20 +85,15 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
                 if(open) lastHeight = (pi.getY() - y2);
             }
 
-            expandX = expand;
-            expandY = animationTimer.getPercent() * lastHeight;
-
-           float barX = x1 - (expandX/2f);
-           DrawUtils.drawRect(barX, y1, barX + 1, y2 + expandY, getEnabledColor());
-
-            float triangleLength = (height - (borderWidth * 2f));
+            // doesnt fit in. uncomment if needed
+            /*float triangleLength = (height - (borderWidth * 2f));
             DrawUtils.drawTriangle(
                     x2 - height - (borderWidth * 2),
                     y1 + (borderWidth * 2) + ((height - (borderWidth * 4)) * animationTimer.getPercent()),
                     triangleLength,
                     (-(animationTimer.getPercent() - .5f) * 2) * triangleLength,
                     getEnabledColor()
-            );
+            );*/
 
             return height + expandY;
         }

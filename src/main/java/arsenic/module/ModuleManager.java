@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.client.PostProcessing;
 import org.reflections.Reflections;
 
 import java.util.*;
@@ -22,7 +23,8 @@ public class ModuleManager {
 
         Reflections reflections = new Reflections("arsenic.module");
         reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> addModule((Class<? extends Module>) module));
-
+        if(System.getProperty("os.name").toLowerCase().contains("mac"))
+            modules.remove(PostProcessing.class);
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }

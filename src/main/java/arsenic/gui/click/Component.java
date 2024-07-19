@@ -67,6 +67,9 @@ public abstract class Component implements IContainable {
         return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
     }
 
+    protected int getGradientColor() {
+        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
+    }
     protected int getDisabledColor() {
         return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack();
     }
