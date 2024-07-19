@@ -11,7 +11,7 @@ import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.settings.KeyBinding;
 
 
-@ModuleInfo(name = "SafeWalk", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "SafeWalk", category = ModuleCategory.MOVEMENT)
 public class SafeWalk extends Module {
     public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.S_SHIFT);
     @EventLink

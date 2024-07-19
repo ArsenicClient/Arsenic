@@ -25,7 +25,7 @@ import java.util.List;
 import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.*;
 
 
-@ModuleInfo(name = "ChargeTp", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "ChargeTp", category = ModuleCategory.OTHER)
 public class ChargeTp extends Module {
 
     private final CustomNetworkHandler customNetworkManager = new CustomNetworkHandler(EnumPacketDirection.SERVERBOUND);

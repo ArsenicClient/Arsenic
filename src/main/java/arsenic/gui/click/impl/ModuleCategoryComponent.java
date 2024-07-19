@@ -13,6 +13,7 @@ import arsenic.utils.timer.TickMode;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,7 +27,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;
-        contents = self.getContents().stream().map(ModuleComponent::new).distinct().collect(Collectors.toList());
+        contents = self.getContents().stream().map(ModuleComponent::new).sorted(Comparator.comparing(ModuleComponent::getName)).collect(Collectors.toList());
         contents.forEach(module -> {
             if ((contentsL.size() + contentsR.size()) % 2 == 0) {
                 contentsL.add(module);

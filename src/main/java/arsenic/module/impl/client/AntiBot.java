@@ -13,7 +13,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ModuleInfo(name = "AntiBot", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "AntiBot", category = ModuleCategory.SETTINGS)
 public class AntiBot extends Module {
     public static BooleanProperty nameChecks = new BooleanProperty("Name Checks", true),
             invisCheck = new BooleanProperty("Invis Checks", false),

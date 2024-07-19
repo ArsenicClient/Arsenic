@@ -27,7 +27,7 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 
-@ModuleInfo(name = "Esp", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Esp", category = ModuleCategory.WORLD)
 public class ESP extends Module {
 
     public ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);

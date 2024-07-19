@@ -10,8 +10,8 @@ import arsenic.utils.interfaces.IContainer;
 
 public enum UICategory implements IContainer<ModuleCategory> {
 
-    COMBAT("Combat", ModuleCategory.MOVEMENT, ModuleCategory.GHOST, ModuleCategory.BLATANT),
-    VISUAL("Visual", ModuleCategory.PLAYER, ModuleCategory.CLIENT, ModuleCategory.WORLD),
+    COMBAT("Combat", ModuleCategory.MOVEMENT, ModuleCategory.GHOST, ModuleCategory.BLATANT, ModuleCategory.PLAYER),
+    VISUAL("Visual", ModuleCategory.SETTINGS, ModuleCategory.WORLD),
     MISC("Misc", ModuleCategory.OTHER);
 
     private final String name;

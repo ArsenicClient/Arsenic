@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * @author kv
  */
-@ModuleInfo(name = "Targets",category = ModuleCategory.CLIENT)
+@ModuleInfo(name = "Targets",category = ModuleCategory.SETTINGS)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode",SortMode.Distance);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),

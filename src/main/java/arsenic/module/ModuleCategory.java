@@ -10,7 +10,7 @@ import java.util.Collection;
 public enum ModuleCategory implements IContainer<Module>, IContainable {
     PLAYER,
     WORLD,
-    CLIENT,
+    SETTINGS,
     GHOST,
     BLATANT,
     OTHER,

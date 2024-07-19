@@ -12,14 +12,13 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumChatFormatting;
 
 import java.awt.*;
 
-@ModuleInfo(name = "TargetHud", category = ModuleCategory.CLIENT)
+@ModuleInfo(name = "TargetHud", category = ModuleCategory.SETTINGS)
 public class TargetHud extends Module {
 
     public final DoubleProperty opacity = new DoubleProperty("opacity", new DoubleValue(0, 255, 100, 1));

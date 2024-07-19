@@ -27,7 +27,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "Scaffold", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Scaffold", category = ModuleCategory.PLAYER)
 public class Scaffold extends Module {
     public BooleanProperty sprint = new BooleanProperty("Sprint", false);
     public DoubleProperty slowDown = new DoubleProperty("Motion", new DoubleValue(0, 100, 100, 1));

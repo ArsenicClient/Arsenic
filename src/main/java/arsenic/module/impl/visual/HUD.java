@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
-@ModuleInfo(name = "HUD", category = ModuleCategory.CLIENT)
+@ModuleInfo(name = "HUD", category = ModuleCategory.SETTINGS)
 public class HUD extends Module {
 
     public final EnumProperty<hMode> colorMode = new EnumProperty<>("Color Mode: ", hMode.RAINBOW);
