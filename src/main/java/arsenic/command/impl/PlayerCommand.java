@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
+
 @CommandInfo(name = "addPlayerEntity", minArgs = 2)
 public class PlayerCommand extends Command {
 

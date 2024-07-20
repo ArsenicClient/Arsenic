@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
-    private final ModuleCategory self;
-    private float scroll, maxHeight;
-    private boolean isCC, isHovered;
-    private final List<ModuleComponent> contentsL = new ArrayList<>(), contentsR = new ArrayList<>(), contents;
-    private final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SQR);
-    private final AnimationTimer hoverTimer = new AnimationTimer(350, () -> isHovered, TickMode.SQR);
+    protected final ModuleCategory self;
+    protected float scroll, maxHeight;
+    protected boolean isCC, isHovered;
+    protected List<ModuleComponent> contentsL = new ArrayList<>();
+    protected List<ModuleComponent> contentsR = new ArrayList<>();
+    protected final List<ModuleComponent> contents;
+    protected final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SQR);
+    protected final AnimationTimer hoverTimer = new AnimationTimer(350, () -> isHovered, TickMode.SQR);
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;

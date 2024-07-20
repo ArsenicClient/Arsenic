@@ -66,10 +66,4 @@ public abstract class Command {
     public String getUsage() {
         return usage;
     }
-
-    public final List<String> autoCompleteHelper(List<String> list, String arg) {
-        return list.stream().filter(m -> m.toLowerCase().startsWith(arg.toLowerCase())
-                        && m.length() > arg.length())
-                .collect(Collectors.toList());
-    }
 }
