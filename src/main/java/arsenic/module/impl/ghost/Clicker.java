@@ -3,7 +3,8 @@ package arsenic.module.impl.ghost;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRunTick;
+import arsenic.event.impl.EventTick;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -26,8 +27,11 @@ public class Clicker extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventRunTick> eventRunTickListener = e -> {
-        if (!mc.gameSettings.keyBindAttack.isKeyDown() || mc.gameSettings.keyBindUseItem.isKeyDown()) return;
+    public final Listener<EventTick> eventRunTickListener = e -> {
+        BlockHit blockHit = Arsenic.getArsenic().getModuleManager().getModuleByClass(BlockHit.class);
+        if (!mc.gameSettings.keyBindAttack.isKeyDown() ||
+                (mc.gameSettings.keyBindUseItem.isKeyDown() &&
+                        (!blockHit.isEnabled() || !blockHit.isAutoblock()))) return;
 
         if (drop.getValue()) {
             if (mc.thePlayer.ticksExisted % 12 == 0) {

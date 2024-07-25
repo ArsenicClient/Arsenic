@@ -23,7 +23,9 @@ public class PlayerUtils extends UtilityClass {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void addMessageToChat(String msg) {
-        mc.thePlayer.addChatMessage(new ChatComponentText(msg));
+        if (mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(msg));
+        }
     }
 
     public static boolean isPlayerHoldingWeapon() {
