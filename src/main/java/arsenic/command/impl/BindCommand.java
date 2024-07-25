@@ -11,6 +11,8 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
 
+import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
+
 @CommandInfo(name = "bind", args = { "name", "key" }, aliases = { "b" }, help = "binds a module to a key", minArgs = 2)
 public class BindCommand extends Command {
 

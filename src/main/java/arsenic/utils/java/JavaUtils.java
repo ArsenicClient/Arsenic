@@ -1,7 +1,9 @@
 package arsenic.utils.java;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 public class JavaUtils extends UtilityClass {
 
@@ -20,5 +22,11 @@ public class JavaUtils extends UtilityClass {
             max = subst;
         }
         return ThreadLocalRandom.current().nextDouble(min, max);
+    }
+
+    public static final List<String> autoCompleteHelper(List<String> list, String arg) {
+        return list.stream().filter(m -> m.toLowerCase().startsWith(arg.toLowerCase())
+                        && m.length() > arg.length())
+                .collect(Collectors.toList());
     }
 }

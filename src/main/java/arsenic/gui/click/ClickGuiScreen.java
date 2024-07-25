@@ -1,39 +1,38 @@
 package arsenic.gui.click;
 
 import arsenic.gui.click.impl.ModuleCategoryComponent;
+import arsenic.gui.click.impl.ModuleComponent;
+import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
+import arsenic.module.Module;
+import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.render.*;
-import arsenic.utils.timer.AnimationTimer;
-import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.shader.Framebuffer;
-import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.Sys;
 import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL20;
 
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 // allow escape to bind to none
 
 public class ClickGuiScreen extends CustomGuiScreen {
     private ClickGui module;
     private List<UICategoryComponent> components;
+
+    private ModuleCategoryComponent searchComponent;
     private final List<Runnable> renderLastList = new ArrayList<>();
     private ModuleCategoryComponent cmcc;
     private IAlwaysClickable alwaysClickedComponent;
@@ -44,6 +43,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
+        searchComponent = new SearchComponent(ModuleCategory.SEARCH);
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
         this.module = clickGui;
@@ -98,6 +98,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
         PosInfo pi = new PosInfo(x + 5, hLineY + 5);
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
+        //search
+        searchComponent.updateComponent(new PosInfo((vLineX + 5), (float) ((y + hLineY) / 2.05)), ri);
+
         // makes the currently selected category component draw its modules
         ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
@@ -119,6 +122,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if(alwaysClickedComponent != null) {
             if(alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton)) return;
         }
+        searchComponent.handleClick(mouseX, mouseY, mouseButton);
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
         if(mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
             cmcc.clickChildren(mouseX, mouseY, mouseButton);

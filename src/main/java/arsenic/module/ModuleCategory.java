@@ -14,7 +14,13 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
     GHOST,
     BLATANT,
     OTHER,
-    MOVEMENT;
+    MOVEMENT,
+    SEARCH {
+        @Override
+        public Collection<Module> getContents() {
+            return new ArrayList<>(Arsenic.getArsenic().getModuleManager().getModules());
+        }
+    };
 
     private final String name;
 
@@ -31,7 +37,7 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
 
     @Override
     public Collection<Module> getContents() {
-        return new ArrayList<>(Arsenic.getInstance().getModuleManager().getModulesByCategory(this));
+        return new ArrayList<>(Arsenic.getArsenic().getModuleManager().getModulesByCategory(this));
     }
 
 }

@@ -12,6 +12,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
+
 @CommandInfo(name = "config", args = { "save/load/list", "config name" }, aliases = { "c" }, help = "helps you manipulate configs", minArgs = 1)
 public class ConfigCommand extends Command {
     //don't scroll down if you wish to have living braincells
