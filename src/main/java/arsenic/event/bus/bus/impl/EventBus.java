@@ -9,17 +9,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import arsenic.asm.RequiresPlayer;
-import arsenic.event.impl.EventRender2D;
-import arsenic.event.impl.EventTick;
 import arsenic.utils.minecraft.PlayerUtils;
 import org.jetbrains.annotations.NotNull;
-
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.bus.bus.Bus;
-
 import static arsenic.utils.minecraft.PlayerUtils.isPlayerNotLoaded;
 
 public final class EventBus<Event> implements Bus<Event> {
@@ -47,13 +42,12 @@ public final class EventBus<Event> implements Bus<Event> {
                 try {
                     Listener<Event> listener = (Listener<Event>) LOOKUP.unreflectGetter(field).invokeWithArguments(subscriber);
 
-                    if (rp != null) {
-                        Listener<Event> originalListener = listener;
-                        listener = event -> {
-                            if (isPlayerNotLoaded()) return;
-                            originalListener.call(event);
-                        };
+                    Listener<Event> originalListener = listener;
+                    listener = event -> {
+                        if (rp != null && !isPlayerNotLoaded()) return;
+                        originalListener.call(event);
                     };
+
 
                     final byte priority = annotation.value();
 
