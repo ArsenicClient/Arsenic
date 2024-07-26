@@ -1,15 +1,14 @@
 package arsenic.gui.click.impl;
 
 import arsenic.main.Arsenic;
-import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.render.RenderInfo;
 import org.lwjgl.input.Keyboard;
 
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.stream.Collectors;
-
-import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
 
 public class SearchComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
 
@@ -42,13 +41,19 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         if(keyName.equals("BACK")) {
             if(inp.length() >= 1)
                 inp.deleteCharAt(inp.length() - 1);
-        } else {
+        } else if (keyName.length() == 1){
             inp.append(keyName);
+        } else {
+            return false;
         }
 
         contentsL.clear();
         contentsR.clear();
-        contents.stream().filter(m -> m.getName().toLowerCase().startsWith(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(module -> {
+        contents.stream()
+                .map(module -> new AbstractMap.SimpleEntry<>(module, levenshteinDistance(module.getName().toLowerCase(), inp.toString().toLowerCase())))
+                .sorted(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList()).forEach(module -> {
             if ((contentsL.size() + contentsR.size()) % 2 == 0) {
                 contentsL.add(module);
             } else {
@@ -57,5 +62,24 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         });
 
         return false;
+    }
+
+    public int levenshteinDistance(String a, String b) {
+        int[][] dp = new int[a.length() + 1][b.length() + 1];
+
+        for (int i = 0; i <= a.length(); i++) {
+            for (int j = 0; j <= b.length(); j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = Math.min(dp[i - 1][j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1),
+                            Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1));
+                }
+            }
+        }
+
+        return dp[a.length()][b.length()];
     }
 }
