@@ -125,8 +125,7 @@ public class PlayerUtils extends UtilityClass {
     }
 
     public static boolean isPlayerNotLoaded() {
-        System.out.println("isPlayerInGame has been called");
-        return !(mc.thePlayer == null && mc.theWorld == null && mc.currentScreen != null);
+        return !(mc.thePlayer == null && mc.theWorld == null);
     }
 
     public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target) {
