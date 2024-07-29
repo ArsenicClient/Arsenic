@@ -9,6 +9,7 @@ import arsenic.utils.render.RenderUtils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.util.function.BiConsumer;
@@ -100,10 +101,11 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
-                if(!clicked)
-                    return;
-                float mousePercent = (mouseX - lineX1) / lineWidth;
-                helping.setValue(self, getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+                if (!Mouse.isButtonDown(0)) clicked = false;
+                if(Mouse.isButtonDown(0) && clicked) {
+                    float mousePercent = (mouseX - lineX1) / lineWidth;
+                    helping.setValue(self, getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+                }
             }
 
             @Override

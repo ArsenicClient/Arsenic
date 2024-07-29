@@ -1,6 +1,8 @@
 package arsenic.module.property.impl.doubleproperty;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.click.impl.SearchComponent;
+import arsenic.main.Arsenic;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
@@ -11,6 +13,7 @@ import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.input.Mouse;
 
 import java.awt.*;
 
@@ -106,10 +109,12 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             }
 
             private void handleMovement(int mouseX, int mouseY) {
-                if(!clicked)
-                    return;
-                float mousePercent = (mouseX - lineX1) / lineWidth;
-                getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+                if (!Mouse.isButtonDown(0)) clicked = false;
+                if(Mouse.isButtonDown(0) && clicked) {
+                    float mousePercent = (mouseX - lineX1) / lineWidth;
+                    getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
+                    onValueUpdate();
+                }
             }
         };
     }
