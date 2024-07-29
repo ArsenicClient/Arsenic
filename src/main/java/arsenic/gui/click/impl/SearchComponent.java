@@ -109,6 +109,10 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
                 break;
         }
         if (ChatAllowedCharacters.isAllowedCharacter(keyName)) {
+            if (selected){
+                inp.delete(0,inp.length());
+                selected = false;
+            }
             inp.append(keyName);
         }
         contentsL.clear();
