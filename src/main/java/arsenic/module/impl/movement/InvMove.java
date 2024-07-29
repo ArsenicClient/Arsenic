@@ -4,6 +4,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
+import arsenic.gui.click.impl.SearchComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -44,6 +45,6 @@ public class InvMove extends Module {
     private boolean isInInventory() {
         return (mc.currentScreen != null
                 && !(mc.currentScreen instanceof GuiChat)
-                && (!cguiOnly.getValue() || mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen()));
+                && (!cguiOnly.getValue() || (mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen() && !(Arsenic.getArsenic().getClickGuiScreen().getCmcc() instanceof SearchComponent))));
     }
 }
