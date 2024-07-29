@@ -5,7 +5,6 @@ import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
-import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
@@ -22,7 +21,6 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,7 +32,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     private ModuleCategoryComponent searchComponent;
     private final List<Runnable> renderLastList = new ArrayList<>();
-    private ModuleCategoryComponent cmcc;
+    private ModuleCategoryComponent cmcc,prevCmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private int vLineX, hLineY, x1, y1;
@@ -65,6 +63,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderUtils.resetColor();
         int mainC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         int gradientC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
+        ((SearchComponent) searchComponent).setupGlowAndBlur();
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
     }
 
@@ -131,9 +130,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void setCmcc(ModuleCategoryComponent mcc) {
         cmcc.setCurrentCategory(false);
         mcc.setCurrentCategory(true);
+        if (cmcc != mcc){
+            prevCmcc = cmcc;
+        }
         cmcc = mcc;
     }
-
+    public ModuleCategoryComponent getCmcc() {
+        return cmcc;
+    }
+    public ModuleCategoryComponent getPrevCmcc() {
+        return prevCmcc;
+    }
     public <T extends Component & IAlwaysClickable> void setAlwaysClickedComponent(T component) {
         if(alwaysClickedComponent != null)
             alwaysClickedComponent.setNotAlwaysClickable();
