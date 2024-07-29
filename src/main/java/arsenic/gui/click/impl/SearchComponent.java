@@ -53,17 +53,22 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         y1 = ri.getGuiScreen().height - y;
 
         String imlosingmymind = inp.length() == 0 ? gui.getCmcc() == this ? "Search" : "Press \"/\" to toggle search" : inp.toString();
-        int centerX = (int) getCentre(imlosingmymind,x+x1,Arsenic.getArsenic().getFonts().ComfortaaMedium.getFontRendererExtension());
+        int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
 
-        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8,new Color(0xDD0C0C0C, true).getRGB());
-        Arsenic.getInstance().getFonts().Icon.drawString("B",x + 3,y - 3,Color.WHITE.getRGB());
+        //what is with using exact colours???
+        //DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, 0xDD0C0C0C);
+        //added this
+        DrawUtils.drawBorderedRoundedRect(x, y - 10, x1, y + 10, 8, 2f, ColorUtils.setColor(getEnabledColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225)), 0xDD0C0C0C);
+
+        //this causes weird chars with normal mc font
+        //Arsenic.getInstance().getFonts().Icon.drawString("B",x + 3,y - 3, 0xFFFFFFFF);
 
         ScissorUtils.subScissor(x, y - 10, (int) x1, y + 10);
-        Arsenic.getInstance().getFonts().ComfortaaMedium.drawString(imlosingmymind, centerX, y - 2, getEnabledColor());
         if (selected) {
-            DrawUtils.drawRect(centerX, y - 4, centerX + Arsenic.getInstance().getFonts().ComfortaaMedium.getWidth(inp.toString()) + 2, y + 6, new Color(0x678686FF, true).getRGB());
+            DrawUtils.drawRect(centerX, y - 4, centerX + ri.getFr().getWidth(inp.toString()) + 2, y + 6, 0x678686FF);
         }
         ScissorUtils.endSubScissor();
+        ri.getFr().drawString(imlosingmymind, centerX, y, getEnabledColor(), ri.getFr().CENTREY);
 
         return height;
     }
@@ -116,6 +121,12 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
             }
         });
         return false;
+    }
+
+    @Override
+    public void setCurrentCategory(boolean currentCategory) {
+        super.setCurrentCategory(currentCategory);
+        inp.setLength(0);
     }
 
     private void toggleSearch(){
