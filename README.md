@@ -24,4 +24,4 @@ The features are mainly meant for Hypixel.
 
 create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord
 
-credits to Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`) on discord for making this possible
+credits to Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`), Cosmic ('no dc :D') on discord for making this possible
