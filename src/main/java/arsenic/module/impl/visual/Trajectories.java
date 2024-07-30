@@ -69,19 +69,19 @@ public class Trajectories extends Module {
         }
         RenderUtils.setColor(trajectoryColor.getValue());
         GL11.glPushMatrix();
-        boolean bl3 = GL11.glIsEnabled(2929);
-        boolean bl4 = GL11.glIsEnabled(3553);
-        boolean bl5 = GL11.glIsEnabled(3042);
+        boolean bl3 = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
+        boolean bl4 = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
+        boolean bl5 = GL11.glIsEnabled(GL11.GL_BLEND);
         if (bl3) {
-            GL11.glDisable(2929);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
         }
         if (bl4) {
-            GL11.glDisable(3553);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
         }
-        GL11.glEnable(2848);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
         GL11.glBlendFunc(770, 771);
         if (!bl5) {
-            GL11.glEnable(3042);
+            GL11.glEnable(GL11.GL_BLEND);
         }
         float f11 = MathHelper.sqrt_double(motionX * motionX + motionY * motionY + motionZ * motionZ);
         motionX /= f11;
@@ -137,8 +137,8 @@ public class Trajectories extends Module {
             GL11.glVertex3d((posX += (motionX *= f14)) - mc.getRenderManager().viewerPosX, (posY += (motionY -= bow ? 0.05 : 0.03)) - mc.getRenderManager().viewerPosY, (posZ += (motionZ *= f14)) - mc.getRenderManager().viewerPosZ);
         }
         GL11.glEnd();
-        GL11.glDisable(2929);
-        GL11.glDisable(3042);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_BLEND);
         GL11.glTranslated(posX - mc.getRenderManager().viewerPosX, posY - mc.getRenderManager().viewerPosY, posZ - mc.getRenderManager().viewerPosZ);
         if (target != null && target.sideHit != null) {
             switch (target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK ? target.sideHit.getIndex() : target.sideHit.getIndex()) {
@@ -157,15 +157,15 @@ public class Trajectories extends Module {
         double distance = Math.max(mc.thePlayer.getDistance(posX + motionX, posY + motionY, posZ + motionZ) * 0.042830285, 1);
         GL11.glScaled(distance, distance, distance);
         this.drawX();
-        GL11.glDisable(2848);
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
         if (bl3) {
-            GL11.glEnable(2929);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
         }
         if (bl4) {
-            GL11.glEnable(3553);
+            GL11.glEnable(GL11.GL_TEXTURE_2D );
         }
         if (!bl5) {
-            GL11.glDisable(3042);
+            GL11.glDisable(GL11.GL_BLEND);
         }
         GL11.glPopMatrix();
     };
