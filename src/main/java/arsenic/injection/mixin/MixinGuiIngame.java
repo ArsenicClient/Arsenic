@@ -1,15 +1,14 @@
 package arsenic.injection.mixin;
 
 import arsenic.module.impl.client.PostProcessing;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
 import arsenic.event.impl.EventRender2D;
 import arsenic.main.Arsenic;
 import net.minecraft.client.gui.GuiIngame;
-import net.minecraft.client.main.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 
 @Mixin(priority = 1111, value = GuiIngame.class)
