@@ -16,8 +16,12 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
 
 @ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
 public class SmoothAim extends Module {
@@ -28,6 +32,7 @@ public class SmoothAim extends Module {
     public final BooleanProperty clickOnly = new BooleanProperty("ClickOnly",true);
     public final BooleanProperty fovBased = new BooleanProperty("FovBased",true);
     public final BooleanProperty pitchAssist = new BooleanProperty("PitchAssist",true);
+    public final BooleanProperty breakBlocks = new BooleanProperty("Break Blocks",false);
     public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
 
     @RequiresPlayer
@@ -35,6 +40,14 @@ public class SmoothAim extends Module {
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         if(mc.currentScreen != null) return;
         if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown()) return;
+        if (breakBlocks.getValue() && (mc.objectMouseOver != null)) {
+            BlockPos blockPos = mc.objectMouseOver.getBlockPos();
+            if (blockPos != null) {
+                Block block = mc.theWorld.getBlockState(blockPos).getBlock();
+                if ((block != Blocks.air) && !(block instanceof BlockLiquid) && (block != null))
+                    return;
+            }
+        }
         EntityAndRots target = getTargetAndRotations();
         if(target == null) return;
         double fov = RotationUtils.fovFromEntity(target.entity);
