@@ -2,15 +2,16 @@ package arsenic.utils.minecraft;
 
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemAxe;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemSword;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.item.*;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
@@ -137,5 +138,30 @@ public class PlayerUtils extends UtilityClass {
         } catch (Exception e) {
         }
         return false;
+    }
+    public static int getTool(Block block) {
+        float n = 1.0f;
+        int n2 = -1;
+        for (int i = 0; i < InventoryPlayer.getHotbarSize(); ++i) {
+            final ItemStack getStackInSlot = mc.thePlayer.inventory.getStackInSlot(i);
+            if (getStackInSlot != null) {
+                final float a = getEfficiency(getStackInSlot, block);
+                if (a > n) {
+                    n = a;
+                    n2 = i;
+                }
+            }
+        }
+        return n2;
+    }
+    public static float getEfficiency(final ItemStack itemStack, final Block block) {
+        float getStrVsBlock = itemStack.getStrVsBlock(block);
+        if (getStrVsBlock > 1.0f) {
+            final int getEnchantmentLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.efficiency.effectId, itemStack);
+            if (getEnchantmentLevel > 0) {
+                getStrVsBlock += getEnchantmentLevel * getEnchantmentLevel + 1;
+            }
+        }
+        return getStrVsBlock;
     }
 }
