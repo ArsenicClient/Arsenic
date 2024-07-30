@@ -22,6 +22,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.MovingObjectPosition;
 
 @ModuleInfo(name = "SmoothAim", category = ModuleCategory.GHOST)
 public class SmoothAim extends Module {
@@ -40,14 +41,7 @@ public class SmoothAim extends Module {
     public Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         if(mc.currentScreen != null) return;
         if (clickOnly.getValue() && !mc.gameSettings.keyBindAttack.isKeyDown()) return;
-        if (breakBlocks.getValue() && (mc.objectMouseOver != null)) {
-            BlockPos blockPos = mc.objectMouseOver.getBlockPos();
-            if (blockPos != null) {
-                Block block = mc.theWorld.getBlockState(blockPos).getBlock();
-                if ((block != Blocks.air) && !(block instanceof BlockLiquid) && (block != null))
-                    return;
-            }
-        }
+        if (breakBlocks.getValue() && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) return;
         EntityAndRots target = getTargetAndRotations();
         if(target == null) return;
         double fov = RotationUtils.fovFromEntity(target.entity);
