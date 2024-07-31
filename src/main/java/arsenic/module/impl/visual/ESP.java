@@ -14,18 +14,17 @@ import arsenic.module.property.impl.ColourProperty;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.culling.ICamera;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import org.lwjgl.opengl.GL11;
+import arsenic.utils.render.RenderUtils;
 
 import java.awt.*;
+
 
 @ModuleInfo(name = "Esp", category = ModuleCategory.WORLD)
 public class ESP extends Module {
@@ -36,10 +35,10 @@ public class ESP extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
         ICamera camera = new Frustum();
-        for(EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
-            if(entity == mc.thePlayer)
+        for (EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
+            if (entity == mc.thePlayer)
                 continue;
-            if(Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isBot(entity))
+            if (Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isBot(entity))
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();
@@ -47,7 +46,7 @@ public class ESP extends Module {
             double z = (entity.lastTickPosZ + (entity.posZ - entity.lastTickPosZ) * event.partialTicks) - renderManager.getRenderPosZ();
             AxisAlignedBB axisalignedbb = entity.getEntityBoundingBox();
             AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(axisalignedbb.minX - entity.posX + x, axisalignedbb.minY - entity.posY + y, axisalignedbb.minZ - entity.posZ + z, axisalignedbb.maxX - entity.posX + x, axisalignedbb.maxY - entity.posY + y, axisalignedbb.maxZ - entity.posZ + z);
-            if(!camera.isBoundingBoxInFrustum(axisalignedbb1))
+            if (!camera.isBoundingBoxInFrustum(axisalignedbb1))
                 continue;
             Color color = new Color(bedWars.getValue() ? getBedWarsColor(entity) : this.color.getValue());
             GlStateManager.pushMatrix();
@@ -57,7 +56,7 @@ public class ESP extends Module {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glDepthMask(false);
             GL11.glLineWidth(2.0F);
-            drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue());
+            RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
             RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
@@ -71,7 +70,7 @@ public class ESP extends Module {
     public int getBedWarsColor(EntityPlayer entityPlayer) {
         ItemStack stack = entityPlayer.getCurrentArmor(2);
         if (stack == null)
-            return color.getValue(); // not wearing a chestplate
+            return color.getValue(); // not wearing a chest plate
         NBTTagCompound nbttagcompound = stack.getTagCompound();
         if (nbttagcompound != null) {
             NBTTagCompound nbttagcompound1 = nbttagcompound.getCompoundTag("display");
@@ -83,69 +82,5 @@ public class ESP extends Module {
         return color.getValue();
     }
 
-    private void drawShadedBoundingBox(AxisAlignedBB abb, int r, int g, int b) {
-        int a = 63;
-        Tessellator ts = Tessellator.getInstance();
-        WorldRenderer vb = ts.getWorldRenderer();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-    }
+
 }
