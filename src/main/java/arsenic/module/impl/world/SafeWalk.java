@@ -45,7 +45,7 @@ public class SafeWalk extends Module {
                 return;
             }
             final long currentTime = System.currentTimeMillis();
-            if (PlayerUtils.playerOverAir() || PlayerUtils.playerIsEdging(mc.thePlayer)) {
+            if (PlayerUtils.playerOverAir()) {
                 setShift(true);
                 lastSneakTime = currentTime;
             } else if (lastSneakTime != -1
