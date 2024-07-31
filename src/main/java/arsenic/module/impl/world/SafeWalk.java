@@ -27,6 +27,7 @@ public class SafeWalk extends Module {
     public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.S_SHIFT);
     public final BooleanProperty onlySPressed = new BooleanProperty("Only S pressed", false);
     public final BooleanProperty onlySneak = new BooleanProperty("Only sneak", false);
+    public final BooleanProperty pitchCheck = new BooleanProperty("Pitch Check", false);
     public final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 100, 200, 1));
 
@@ -35,10 +36,10 @@ public class SafeWalk extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-
+        pitch.setVisible(pitchCheck::getValue);
         if(mode.getValue() == sMode.S_SHIFT) {
             if ((onlySPressed.getValue() && !mc.gameSettings.keyBindBack.isKeyDown())
-                    || mc.thePlayer.rotationPitch < pitch.getValue().getInput()
+                    || pitchCheck.getValue() && (mc.thePlayer.rotationPitch < pitch.getValue().getInput())
                     || (onlySneak.getValue() && !Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()))
             ) {
                 setShift(Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
