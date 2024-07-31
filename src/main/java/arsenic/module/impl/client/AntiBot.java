@@ -34,7 +34,7 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer) {
+        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en)) {
             return false;
         }
 
@@ -136,22 +136,15 @@ public class AntiBot extends Module {
         }
         return false;
     }
+    public static boolean checkHurtTime(EntityPlayer entityPlayer) {
+        return entityPlayer.maxHurtTime == 0;
+    }
 
     public static boolean isBotName(Entity en) {
         final EntityPlayer entityPlayer = (EntityPlayer) en;
-        if (entityPlayer.maxHurtTime == 0) {
             String unformattedText = entityPlayer.getDisplayName().getUnformattedText();
             if (entityPlayer.getHealth() == 20.0f) {
-                if (unformattedText.length() == 10 && unformattedText.charAt(0) != '§') {
-                    return true;
-                }
-                if (unformattedText.length() == 12 && entityPlayer.isPlayerSleeping() && unformattedText.charAt(0) == '§') {
-                    return true;
-                }
-                if (unformattedText.length() >= 7 && unformattedText.charAt(2) == '[' && unformattedText.charAt(3) == 'N' && unformattedText.charAt(6) == ']') {
-                    return true;
-                }
-                if (entityPlayer.getName().contains(" ")) {
+                if ((unformattedText.length() == 10 && unformattedText.charAt(0) != '§') || (unformattedText.length() == 12 && entityPlayer.isPlayerSleeping() && unformattedText.charAt(0) == '§') || (unformattedText.length() >= 7 && unformattedText.charAt(2) == '[' && unformattedText.charAt(3) == 'N' && unformattedText.charAt(6) == ']') || (entityPlayer.getName().contains(" "))) {
                     return true;
                 }
             } else if (entityPlayer.isInvisible()) {
@@ -159,7 +152,6 @@ public class AntiBot extends Module {
                     return true;
                 }
             }
-        }
         return false;
     }
 }
