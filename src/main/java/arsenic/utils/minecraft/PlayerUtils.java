@@ -54,7 +54,7 @@ public class PlayerUtils extends UtilityClass {
     public static boolean playerOverAir() {
         return mc.theWorld.isAirBlock(getBlockUnderPlayer());
     }
-    public static boolean playerOnEdge(Entity entity) {
+    public static boolean playerIsEdging(Entity entity) {
         return mc.theWorld.getCollidingBoundingBoxes(entity, entity.getEntityBoundingBox().offset(entity.motionX / 3.0D, -1.0D, entity.motionZ / 3.0D)).isEmpty();
     }
 
