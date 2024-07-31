@@ -48,7 +48,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     //called every time the ui is created
-    //test
     @Override
     public void doInit() {
         super.doInit();
