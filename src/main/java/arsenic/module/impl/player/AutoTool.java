@@ -23,6 +23,8 @@ public class AutoTool extends Module {
     private int previousSlot = -1;
     private int ticksHovered;
     private BlockPos currentBlock;
+
+    @Override
     public void onDisable() {
         resetVariables();
     }
