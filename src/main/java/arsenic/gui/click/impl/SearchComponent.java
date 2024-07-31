@@ -6,8 +6,6 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
-import arsenic.utils.java.ColorUtils;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.ScissorUtils;
@@ -16,10 +14,6 @@ import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChatAllowedCharacters;
 import org.lwjgl.input.Keyboard;
-
-import java.awt.*;
-import java.util.AbstractMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SearchComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
