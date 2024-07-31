@@ -25,10 +25,10 @@ import org.lwjgl.input.Keyboard;
 @ModuleInfo(name = "SafeWalk", category = ModuleCategory.MOVEMENT)
 public class SafeWalk extends Module {
     public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.S_SHIFT);
+    public final BooleanProperty onlySPressed = new BooleanProperty("Only S pressed", false);
+    public final BooleanProperty onlySneak = new BooleanProperty("Only sneak", false);
+    public final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 100, 200, 1));
-    private final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
-    private final BooleanProperty onlySPressed = new BooleanProperty("Only S pressed", false);
-    private final BooleanProperty onlySneak = new BooleanProperty("Only sneak", false);
 
     private long lastSneakTime = -1;
     private Scaffold.BlockData blockData;
