@@ -24,8 +24,8 @@ import org.lwjgl.util.Color;
 @ModuleInfo(name = "Trajectories", category = ModuleCategory.WORLD)
 public class Trajectories extends Module {
     public final BooleanProperty ghostBow = new BooleanProperty("Ghost Bow Charge", true);
-    public final ColourProperty trajectoryColor = new ColourProperty("Color", new Color(255, 255, 255).hashCode());
-    public final ColourProperty targetColor = new ColourProperty("Target Color", new Color(255, 0, 0).hashCode());
+    public final ColourProperty trajectoryColor = new ColourProperty("Trajectory Color:", new Color(255, 255, 255).hashCode());
+    public final ColourProperty targetColor = new ColourProperty("Target Color:", new Color(255, 0, 0).hashCode());
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
