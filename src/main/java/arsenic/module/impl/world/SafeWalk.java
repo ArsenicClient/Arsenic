@@ -20,7 +20,7 @@ import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.BlockPos;
 import org.lwjgl.input.Keyboard;
-
+import arsenic.module.property.PropertyInfo;
 
 @ModuleInfo(name = "SafeWalk", category = ModuleCategory.MOVEMENT)
 public class SafeWalk extends Module {
@@ -28,6 +28,7 @@ public class SafeWalk extends Module {
     public final BooleanProperty onlySPressed = new BooleanProperty("Only S pressed", false);
     public final BooleanProperty onlySneak = new BooleanProperty("Only sneak", false);
     public final BooleanProperty pitchCheck = new BooleanProperty("Pitch Check", false);
+    @PropertyInfo(reliesOn = "Pitch Check",value = "true")
     public final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 100, 200, 1));
 
@@ -36,7 +37,6 @@ public class SafeWalk extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        pitch.setVisible(pitchCheck::getValue);
         if(mode.getValue() == sMode.S_SHIFT) {
             if ((onlySPressed.getValue() && !mc.gameSettings.keyBindBack.isKeyDown())
                     || pitchCheck.getValue() && (mc.thePlayer.rotationPitch < pitch.getValue().getInput())
