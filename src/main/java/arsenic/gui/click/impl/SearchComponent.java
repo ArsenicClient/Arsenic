@@ -124,7 +124,10 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         super.setCurrentCategory(currentCategory);
         inp.setLength(0);
     }
-
+    @Override
+    public void clickChildren(int mouseX, int mouseY, int mouseButton) {
+        this.contents.stream().filter(m -> m.getName().toLowerCase().contains(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
+    }
     private void toggleSearch(){
         if (gui.getCmcc() != this) {
             gui.setCmcc(this);
