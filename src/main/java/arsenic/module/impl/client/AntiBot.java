@@ -22,7 +22,7 @@ public class AntiBot extends Module {
             pingCheck = new BooleanProperty("Ping Checks", false),
             twiceChecks = new BooleanProperty("Twice UUID Checks", false),
             zeroHealthChecks = new BooleanProperty("Dead Checks", false),
-            alwaysClose = new BooleanProperty("AlwaysClose Checks", false);
+            alwaysClose = new BooleanProperty("Always Close Checks", false);
 
     public static boolean isBot(Entity entityPlayer) {
         // exception
@@ -34,7 +34,7 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer) {
+        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en)) {
             return false;
         }
 
@@ -95,17 +95,17 @@ public class AntiBot extends Module {
 
     // UTILS
     public static ArrayList<EntityPlayer> getPlayerList() {
-        Collection<NetworkPlayerInfo> playerInfoMap = Minecraft.getMinecraft().thePlayer.sendQueue.getPlayerInfoMap();
+        Collection<NetworkPlayerInfo> playerInfoMap = mc.thePlayer.sendQueue.getPlayerInfoMap();
         ArrayList<EntityPlayer> list = new ArrayList<>();
         for (NetworkPlayerInfo networkPlayerInfo : playerInfoMap) {
-            list.add(Minecraft.getMinecraft().theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName()));
+            list.add(mc.theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName()));
         }
         return list;
     }
 
     public static boolean inTab(EntityLivingBase en) {
-        if (!Minecraft.getMinecraft().isSingleplayer()) {
-            for (NetworkPlayerInfo info : Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap()) {
+        if (!mc.isSingleplayer()) {
+            for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
                 if (info != null && info.getGameProfile() != null && info.getGameProfile().getName().contains(en.getName())) {
                     return true;
                 }
@@ -115,68 +115,43 @@ public class AntiBot extends Module {
     }
 
     public static boolean isPlayerTwiceInGame() {
-        Collection<NetworkPlayerInfo> playerInfoList = Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap();
-        if (playerInfoList != null && !playerInfoList.isEmpty()) {
-            if (getPlayerList().get(0) != null) {
-                String targetPlayerID = getPlayerList().get(0).getGameProfile().getId().toString();
-                if (targetPlayerID != null) {
-                    for (NetworkPlayerInfo info : playerInfoList) {
-                        String infoID = info.getGameProfile().getId().toString();
-                        if (info != null && infoID != null) {
-                            if (targetPlayerID.equals(infoID)) {
-                                for (NetworkPlayerInfo info2 : playerInfoList) {
-                                    String infoID2 = info2.getGameProfile().getId().toString();
-                                    if (info2 != null && infoID2 != null) {
-                                        if (targetPlayerID.equals(infoID2) && !info.equals(info2)) {
-                                            return true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+        Collection<NetworkPlayerInfo> playerInfoList = mc.getNetHandler().getPlayerInfoMap();
+        if (playerInfoList == null || playerInfoList.isEmpty()) {
+            return false;
+        }
+
+        String targetPlayerID = getPlayerList().get(0).getGameProfile().getId().toString();
+        if (targetPlayerID == null) {
+            return false;
+        }
+
+        int count = 0;
+        for (NetworkPlayerInfo info : playerInfoList) {
+            if (info != null && targetPlayerID.equals(info.getGameProfile().getId().toString())) {
+                count++;
+                if (count > 1) {
+                    return true;
                 }
             }
         }
         return false;
     }
+    public static boolean checkHurtTime(EntityPlayer entityPlayer) {
+        return entityPlayer.maxHurtTime == 0;
+    }
 
     public static boolean isBotName(Entity en) {
-        String rawName = en.getDisplayName().getUnformattedText().toLowerCase();
-        String forName = en.getDisplayName().getFormattedText().toLowerCase();
-
-        if (forName.startsWith("§r§8[npc]")) {
-            return true;
-        }
-
-        for (EntityPlayer list : mc.theWorld.playerEntities) {
-            if (list != mc.thePlayer && !list.isDead && list.isInvisible() && getPlayerList().contains(list) && list.getCustomNameTag().length() >= 2) {
-                mc.theWorld.removeEntity(list);
-                return true;
+        final EntityPlayer entityPlayer = (EntityPlayer) en;
+            String unformattedText = entityPlayer.getDisplayName().getUnformattedText();
+            if (entityPlayer.getHealth() == 20.0f) {
+                if ((unformattedText.length() == 10 && unformattedText.charAt(0) != '§') || (unformattedText.length() == 12 && entityPlayer.isPlayerSleeping() && unformattedText.charAt(0) == '§') || (unformattedText.length() >= 7 && unformattedText.charAt(2) == '[' && unformattedText.charAt(3) == 'N' && unformattedText.charAt(6) == ']') || (entityPlayer.getName().contains(" "))) {
+                    return true;
+                }
+            } else if (entityPlayer.isInvisible()) {
+                if (unformattedText.length() >= 3 && unformattedText.charAt(0) == '§' && unformattedText.charAt(1) == 'c') {
+                    return true;
+                }
             }
-        }
-
-        if (forName.contains("]")) {
-            return true;
-        }
-        if (forName.contains("[")) {
-            return true;
-        }
-        if (rawName.contains("-")) {
-            return true;
-        }
-        if (rawName.contains(":")) {
-            return true;
-        }
-        if (rawName.contains("+")) {
-            return true;
-        }
-        if (rawName.startsWith("cit")) {
-            return true;
-        }
-        if (rawName.startsWith("npc")) {
-            return true;
-        }
-        return rawName.isEmpty() || rawName.contains(" ") || forName.isEmpty();
+        return false;
     }
 }
