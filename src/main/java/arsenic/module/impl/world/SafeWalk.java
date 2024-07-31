@@ -33,7 +33,6 @@ public class SafeWalk extends Module {
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 100, 200, 1));
 
     private long lastSneakTime = -1;
-    private Scaffold.BlockData blockData;
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
@@ -70,20 +69,6 @@ public class SafeWalk extends Module {
     private void setShift(boolean sh) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), sh);
     }
-    @EventLink
-    public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        double offsetX = -0.1 * Math.sin(Math.toRadians(MoveUtil.getDirection()));
-        double offsetZ = -0.1 * Math.cos(Math.toRadians(MoveUtil.getDirection()));
-
-        BlockPos renderPos = blockData != null ? blockData.getPosition() : new BlockPos(
-                mc.thePlayer.posX + offsetX,
-                mc.thePlayer.posY - 1,
-                mc.thePlayer.posZ + offsetZ
-        );
-
-        RenderUtils.renderBlock(renderPos, Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(), true, false);
-    };
-
     public enum sMode {
         S_SHIFT,
         NO_SHIFT,
