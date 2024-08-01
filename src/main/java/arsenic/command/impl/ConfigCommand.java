@@ -23,12 +23,16 @@ public class ConfigCommand extends Command {
         ConfigManager configManager = Arsenic.getArsenic().getConfigManager();
         switch(args[0].toLowerCase()) {
             case "load":
+                if (args.length == 1) {
+                    PlayerUtils.addWaterMarkedMessageToChat("I need the name of the config");
+                    break;
+                }
                 String lastConfig = configManager.getCurrentConfig().getName(); //gets the last config before trying to load another one
                 try {
                     configManager.saveConfig(); // save the current config before we load another one
                     configManager.loadConfig(args[1]);
-                    PlayerUtils.addWaterMarkedMessageToChat( "loaded " + args[1]);
-                } catch (NullPointerException e){
+                    PlayerUtils.addWaterMarkedMessageToChat("loaded " + args[1]);
+                } catch (NullPointerException e) {
                     configManager.loadConfig(lastConfig); //applies lastConfig if the passed args were invalid/config was null
                     PlayerUtils.addWaterMarkedMessageToChat(args[1] + " does not exist");
                 }
@@ -38,13 +42,17 @@ public class ConfigCommand extends Command {
                 PlayerUtils.addWaterMarkedMessageToChat(configManager.getConfigList());
                 break;
             case "save":
+                if (args.length == 1) {
+                    PlayerUtils.addWaterMarkedMessageToChat("I need the name of the config");
+                    break;
+                }
                 try {
                     String prevConfig = configManager.getCurrentConfig().getName(); //get the current config (before saving)
                     configManager.createConfig(args[1]);
                     PlayerUtils.addWaterMarkedMessageToChat("created/saved " + args[1]);
                     configManager.loadConfig(prevConfig); //load the previous config again cuz config manager just loads the saved config for no reason
                 } catch (ArrayIndexOutOfBoundsException r){
-                    PlayerUtils.addWaterMarkedMessageToChat("could not create/save a config with the name "+args[1]);
+                    PlayerUtils.addWaterMarkedMessageToChat("could not create/save a config with the name "+ args[1]);
                 }
                 break;
             default:

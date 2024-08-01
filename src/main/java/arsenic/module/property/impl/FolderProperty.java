@@ -5,6 +5,7 @@ import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.IAlwaysClickable;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
@@ -41,14 +42,16 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
     @Override
     public void loadFromJson(JsonObject obj) {
         getValue().forEach(p -> {
-            if (p instanceof SerializableProperty) ((SerializableProperty<?>) p).loadFromJson(obj);
+            if (p instanceof SerializableProperty)
+                ((SerializableProperty<?>) p).loadFromJson(obj.get(p.getName()).getAsJsonObject());
         });
     }
 
     @Override
     public JsonObject saveInfoToJson(JsonObject obj) {
         getValue().forEach(p -> {
-            if (p instanceof SerializableProperty) ((SerializableProperty<?>) p).saveInfoToJson(obj);
+            if (p instanceof SerializableProperty)
+                obj.add(p.getName(), ((SerializableProperty<?>) p).saveInfoToJson(new JsonObject()));
         });
         return obj;
     }
