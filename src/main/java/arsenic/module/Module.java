@@ -53,9 +53,12 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
-    //so fucked but works
-    //sigmas gonna kill me
-    public final void registerProperties() throws IllegalAccessException {
+
+    protected void registerProperty(Property<?> p) {
+        properties.add(p);
+    }
+
+    public void registerProperties() throws IllegalAccessException {
         for (final Field field : getClass().getFields()) {
             Object fieldObject = field.get(this);
             if (!(fieldObject instanceof Property<?>) || fieldObject == null)
