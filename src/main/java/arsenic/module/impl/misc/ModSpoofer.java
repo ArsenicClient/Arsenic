@@ -19,11 +19,10 @@ import java.util.Set;
 
 @ModuleInfo(name = "Mod Spoofer", category = ModuleCategory.OTHER)
 public class ModSpoofer extends Module {
-    public static final BooleanProperty cancel = new BooleanProperty("Stop Forge from sending Mod List", true);
+    public final BooleanProperty cancel = new BooleanProperty("Stop Forge from sending Mod List", true);
     @PropertyInfo(reliesOn = "Stop Forge from sending Mod List", value = "false")
-    public final StringProperty description = new StringProperty("Toggle mods you don't want to send to the server.");
+    public final StringProperty description = new StringProperty("Toggle mods you want to send to the server.");
     public final Set<BooleanProperty> mods = new HashSet<>();
-    public static final Set<String> filteredMod = new HashSet<>();
     @Override
     public void registerProperties() throws IllegalAccessException {
         super.registerProperties();
@@ -33,17 +32,5 @@ public class ModSpoofer extends Module {
             registerProperty(setting);
             mods.add(setting);
         }
-    }
-    @EventLink
-    public final Listener<EventTick> onTick = event -> {
-        for (BooleanProperty mod : mods) {
-            if (!mod.getValue()) {
-                filteredMod.add(mod.getName());
-            }
-        }
-    };
-    @Override
-    public void onDisable() {
-        filteredMod.clear();
     }
 }
