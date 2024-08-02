@@ -25,7 +25,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
         PosInfo pi = new PosInfo(x1, y2);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) * 1.1f));
-        expandY = pi.getY() - y1;
+        expandY = pi.getY() - y2;
 
         return expandY + height;
     }
