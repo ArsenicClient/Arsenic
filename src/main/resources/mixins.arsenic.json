@@ -24,7 +24,8 @@
     "mixin.MixinMinecraft",
     "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
-    "mixin.MixinRendererLivingEntity"
+    "mixin.MixinRendererLivingEntity",
+    "mixin.MixinModList"
   ],
   "mixins": [
     "accessor.C03PacketPlayerAccessor",
