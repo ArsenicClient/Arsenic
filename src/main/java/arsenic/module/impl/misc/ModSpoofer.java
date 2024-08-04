@@ -17,7 +17,7 @@ import net.minecraftforge.fml.common.ModContainer;
 import java.util.HashSet;
 import java.util.Set;
 
-@ModuleInfo(name = "Mod Spoofer", category = ModuleCategory.OTHER)
+@ModuleInfo(name = "ModSpoofer", category = ModuleCategory.OTHER)
 public class ModSpoofer extends Module {
     public final BooleanProperty cancel = new BooleanProperty("Stop Forge from sending Mod List", true);
     @PropertyInfo(reliesOn = "Stop Forge from sending Mod List", value = "false")

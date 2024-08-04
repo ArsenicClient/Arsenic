@@ -69,6 +69,10 @@ public class ConfigManager implements ISerializable {
         configs.remove(name).deleteConfig();
     }
 
+    public ClientConfig getClientConfig() {
+        return clientConfig;
+    }
+
     public void saveClientConfig() {
         clientConfig.saveConfig();
     }
