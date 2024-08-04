@@ -11,7 +11,10 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.java.PlayerInfo;
 import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C00PacketKeepAlive;
@@ -92,11 +95,14 @@ public class ChargeTp extends Module {
 
         mc.theWorld.addEntityToWorld(9999, customPlayer);
         customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
-        customPlayer.setSprinting(mc.thePlayer.isSprinting());
+        customPlayer.setSprinting(true);
         setPlayerInfo(customPlayer, chachePlayerInfo);
+        EntityPlayerSP realPlayer = mc.thePlayer;
+        mc.thePlayer = customPlayer;
         for(int i = 0; i < ticks; i++) {
             customPlayer.update();
         }
+        mc.thePlayer = realPlayer;
         customPlayer.setSprinting(mc.thePlayer.isSprinting());
         mc.thePlayer.setPosition(customPlayer.posX, customPlayer.posY, customPlayer.posZ);
         mc.theWorld.removeEntity(customPlayer);
