@@ -13,9 +13,7 @@ public class LaunchID implements ISerializable {
 
     @Override
     public void loadFromJson(JsonObject obj) {
-        String LID = obj.get("ID").getAsString();
-        setLaunchID(LID);
-        System.out.println("LID1: " + LID + " " + launchID);
+        setLaunchID(obj.get("ID").getAsString());
     }
 
     @Override
@@ -43,10 +41,9 @@ public class LaunchID implements ISerializable {
     }
 
     public String generateID() {
-        int LENGTH = 8;
-        StringBuilder sb = new StringBuilder(LENGTH);
-        for (int i = 0; i < LENGTH; i++) {
-            String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
             int index = RANDOM.nextInt(CHARACTERS.length());
             sb.append(CHARACTERS.charAt(index));
         }
