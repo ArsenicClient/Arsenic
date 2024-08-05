@@ -76,7 +76,6 @@ public class ChestStealer extends Module {
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
         inChest = (event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest);
-        ;
         if (!inChest)
             return;
         chest = (ContainerChest) mc.thePlayer.openContainer;

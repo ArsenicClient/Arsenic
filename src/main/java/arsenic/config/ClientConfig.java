@@ -20,6 +20,7 @@ public class ClientConfig implements IConfig<ISerializable> {
         this.config = config;
         contents.add(Arsenic.getArsenic().getConfigManager());
         contents.add(Arsenic.getInstance().getThemeManager());
+        contents.add(Arsenic.getInstance().getLaunchID());
     }
 
     @Override

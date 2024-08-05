@@ -2,6 +2,7 @@ package arsenic.main;
 
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
+import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
@@ -11,10 +12,15 @@ import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -34,6 +40,7 @@ public class Arsenic {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
     private final Executor executor = Executors.newSingleThreadExecutor();
+    private final LaunchID launchID = new LaunchID();
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
@@ -41,6 +48,7 @@ public class Arsenic {
 
         getEventManager().subscribe(silentRotationManager);
         getEventManager().subscribe(serverInfo);
+
         logger.info("Subscribed silent rotation manager");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
@@ -55,6 +63,19 @@ public class Arsenic {
         logger.info("Loaded fonts.");
 
         logger.info("Loaded {}.", clientName);
+
+        executor.execute(() -> {
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpPost post = new HttpPost("http://140.238.204.221:5001/log");
+                post.setEntity(new StringEntity(launchID.getLaunchID()));
+                System.out.println(client.execute(post));
+                logger.info("Logged Launch with ID | " + launchID.getLaunchID());
+            } catch (Exception e) {
+                logger.info("Launch Logger Broke :( | " + launchID.getLaunchID());
+                e.printStackTrace();
+            }
+            configManager.saveClientConfig();
+        });
     }
 
     public String getName() { return clientName; }
@@ -96,4 +117,6 @@ public class Arsenic {
     public final ThemeManager getThemeManager() { return themeManager; }
 
     public final ServerInfo getServerInfo() { return serverInfo; }
+
+    public final LaunchID getLaunchID() { return launchID; }
 }
