@@ -8,13 +8,19 @@ import arsenic.command.CommandInfo;
 import arsenic.main.Arsenic;
 import arsenic.utils.minecraft.PlayerUtils;
 
-@CommandInfo(name = "help", args = { "command" }, help = "shows help for commands", minArgs = 1)
+@CommandInfo(name = "help", args = { "command" }, help = "shows help for commands", minArgs = 0)
 public class HelpCommand extends Command {
 
     @Override
     public void execute(String[] args) {
         if (args.length == 0) {
-            execute(new String[] { "help" });
+            PlayerUtils.addMessageToChat("---------------");
+            PlayerUtils.addWaterMarkedMessageToChat("Commands:");
+            for (String commandName : Arsenic.getArsenic().getCommandManager().getCommands()) {
+                Command cmd = Arsenic.getArsenic().getCommandManager().getCommandByName(commandName);
+                PlayerUtils.addWaterMarkedMessageToChat(cmd.getName() + " - " + cmd.getHelp());
+            }
+            PlayerUtils.addMessageToChat("---------------");
             return;
         }
 
