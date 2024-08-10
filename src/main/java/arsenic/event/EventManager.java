@@ -2,10 +2,12 @@ package arsenic.event;
 
 import arsenic.event.bus.bus.impl.EventBus;
 import arsenic.event.types.Event;
+import org.jetbrains.annotations.NotNull;
 
 public class EventManager {
 
     private final EventBus<Event> bus;
+    private final boolean flag = false;
 
     public EventManager() {
         this.bus = new EventBus<>();

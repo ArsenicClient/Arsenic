@@ -41,9 +41,13 @@ public class Arsenic {
     private final ServerInfo serverInfo = new ServerInfo();
     private final Executor executor = Executors.newSingleThreadExecutor();
     private final LaunchID launchID = new LaunchID();
+    private final Auth auth = new Auth();
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
+
+        auth.init();
+
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         getEventManager().subscribe(silentRotationManager);
@@ -63,19 +67,6 @@ public class Arsenic {
         logger.info("Loaded fonts.");
 
         logger.info("Loaded {}.", clientName);
-
-        executor.execute(() -> {
-            try (CloseableHttpClient client = HttpClients.createDefault()) {
-                HttpPost post = new HttpPost("http://140.238.204.221:5001/log");
-                post.setEntity(new StringEntity(launchID.getLaunchID()));
-                System.out.println(client.execute(post));
-                logger.info("Logged Launch with ID | " + launchID.getLaunchID());
-            } catch (Exception e) {
-                logger.info("Launch Logger Broke :( | " + launchID.getLaunchID());
-                e.printStackTrace();
-            }
-            configManager.saveClientConfig();
-        });
     }
 
     public String getName() { return clientName; }

@@ -9,6 +9,7 @@ public class CustomPlayer extends EntityPlayerSP {
 
     private int ticks;
 
+
     public CustomPlayer(NetHandlerPlayClient netHandler) {
         super(Minecraft.getMinecraft(), Minecraft.getMinecraft().thePlayer.worldObj, netHandler, new StatFileWriter());
     }

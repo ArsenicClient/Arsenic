@@ -3,6 +3,7 @@ package arsenic.utils.mixin;
 import arsenic.injection.accessor.IMixinEntityPlayerSP;
 import arsenic.utils.java.PlayerInfo;
 import arsenic.utils.java.UtilityClass;
+import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.entity.EntityPlayerSP;
 
 public class UtilMixinEntityPlayerSP extends UtilityClass {
@@ -18,4 +19,5 @@ public class UtilMixinEntityPlayerSP extends UtilityClass {
         playerSP.setLastReportedYaw(playerInfo.getLastReportedYaw());
         playerSP.setServerSprintState(playerInfo.isServerSprintState());
     }
+
 }

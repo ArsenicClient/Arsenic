@@ -17,10 +17,12 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.bus.bus.Bus;
 import static arsenic.utils.minecraft.PlayerUtils.isPlayerNotLoaded;
 
-public final class EventBus<Event> implements Bus<Event> {
+public class EventBus<Event> implements Bus<Event> {
 
     private final Map<Type, List<CallSite<Event>>> callSiteMap;
     private final Map<Type, List<Listener<Event>>> listenerCache;
+
+    private boolean flag = false;
 
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
@@ -98,6 +100,8 @@ public final class EventBus<Event> implements Bus<Event> {
 
     @Override
     public void post(final @NotNull Event event) {
+        if(flag)
+            return;
         try {
             final List<Listener<Event>> listeners = listenerCache.getOrDefault(event.getClass(), Collections.emptyList());
 
@@ -123,5 +127,9 @@ public final class EventBus<Event> implements Bus<Event> {
             this.listener = listener;
             this.priority = priority;
         }
+    }
+
+    public void setFlag(boolean flag) {
+        this.flag = flag;
     }
 }

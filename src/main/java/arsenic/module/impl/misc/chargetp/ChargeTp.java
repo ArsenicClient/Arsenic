@@ -4,14 +4,21 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventUpdate;
 import arsenic.injection.accessor.IMixinMinecraft;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.java.PlayerInfo;
 import arsenic.utils.minecraft.PlayerUtils;
+<<<<<<< Updated upstream
 import net.minecraft.client.entity.EntityPlayerSP;
+=======
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.entity.EntityOtherPlayerMP;
+>>>>>>> Stashed changes
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -24,6 +31,7 @@ import net.minecraft.util.MovementInput;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.*;
 
@@ -32,6 +40,12 @@ import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.*;
 public class ChargeTp extends Module {
 
     private final CustomNetworkHandler customNetworkManager = new CustomNetworkHandler(EnumPacketDirection.SERVERBOUND);
+    private final CustomNetworkHandler voidNetworkManager = new CustomNetworkHandler(EnumPacketDirection.SERVERBOUND) {
+        @Override
+        public void sendPacket(Packet packetIn) {
+            
+        }
+    };
 
     private final MovementInput customMovementInput = new MovementInput() {
         @Override
@@ -40,6 +54,9 @@ public class ChargeTp extends Module {
             jump = true;
         }
     };
+
+    EntityOtherPlayerMP fakePlayer;
+
     private int ticks;
 
     private final List<PacketTick> packets = new ArrayList<>();
@@ -64,6 +81,8 @@ public class ChargeTp extends Module {
         ticks = 0;
         packets.clear();
         chachePlayerInfo = getPlayerInfo(mc.thePlayer);
+        fakePlayer = new EntityOtherPlayerMP(mc.theWorld, new GameProfile(UUID.randomUUID(), "$Charge"));
+        mc.theWorld.addEntityToWorld(fakePlayer.getEntityId(), fakePlayer);
     }
 
     @EventLink
@@ -80,6 +99,27 @@ public class ChargeTp extends Module {
     public final Listener<EventUpdate.Post> eventUpdate = event -> ticks++;
 
     @EventLink
+    public final Listener<EventRenderWorldLast> eventRenderWorldLastListener = eventRenderWorldLast -> {
+        Arsenic.getArsenic().getEventManager().getBus().setFlag(true);
+        NetHandlerPlayClient customNetHandler = new NetHandlerPlayClient(mc, mc.currentScreen, voidNetworkManager, mc.thePlayer.getGameProfile());
+        CustomPlayer customPlayer = new CustomPlayer(customNetHandler);
+        customPlayer.movementInput = customMovementInput;
+        mc.theWorld.addEntityToWorld(customPlayer.getEntityId(), customPlayer);
+        customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
+        customPlayer.setSprinting(true);
+        setPlayerInfo(customPlayer, chachePlayerInfo);
+        for(int i = 0; i < ticks; i++) {
+            customPlayer.update();
+        }
+        fakePlayer.setPosition(customPlayer.posX, customPlayer.posY, customPlayer.posZ);
+        fakePlayer.rotationYawHead = mc.thePlayer.rotationYawHead;
+        fakePlayer.rotationYaw = mc.thePlayer.rotationYaw;
+        fakePlayer.rotationPitch = mc.thePlayer.rotationPitch;
+        mc.theWorld.removeEntity(customPlayer);
+        Arsenic.getArsenic().getEventManager().getBus().setFlag(false);
+    };
+
+    @EventLink
     public final Listener<EventMove> eventMove = event -> {
         event.setForward(0);
         event.setStrafe(0);
@@ -87,13 +127,14 @@ public class ChargeTp extends Module {
 
     @Override
     protected void onDisable() {
+        mc.theWorld.removeEntity(fakePlayer);
         NetHandlerPlayClient customNetHandler = new NetHandlerPlayClient(mc, mc.currentScreen, customNetworkManager, mc.thePlayer.getGameProfile());
         customNetworkManager.setNetHandler(customNetHandler);
         CustomPlayer customPlayer = new CustomPlayer(customNetHandler);
         customNetworkManager.setCustomPlayer(customPlayer);
         customPlayer.movementInput = customMovementInput;
 
-        mc.theWorld.addEntityToWorld(9999, customPlayer);
+        mc.theWorld.addEntityToWorld(customPlayer.getEntityId(), customPlayer);
         customPlayer.setPositionAndRotation(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, mc.thePlayer.rotationYaw, 0);
         customPlayer.setSprinting(true);
         setPlayerInfo(customPlayer, chachePlayerInfo);
@@ -108,10 +149,9 @@ public class ChargeTp extends Module {
         mc.theWorld.removeEntity(customPlayer);
         setPlayerInfo(mc.thePlayer, getPlayerInfo(customPlayer));
         packets.sort(Comparator.comparingDouble(PacketTick::getTick));
-        packets.forEach(packet -> {
-            mc.getNetHandler().addToSendQueue(packet.getPacket());
-            PlayerUtils.addWaterMarkedMessageToChat(packet.getPacket().getClass().getName() + " " + packet.getTick());
-        });
+        packets.forEach(packet -> mc.getNetHandler().addToSendQueue(packet.getPacket()));
+        mc.theWorld.removeEntityFromWorld(fakePlayer.getEntityId());
+        fakePlayer = null;
     }
 
     private static class PacketTick {
