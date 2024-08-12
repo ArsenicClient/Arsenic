@@ -12,17 +12,10 @@ import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
@@ -39,7 +32,6 @@ public class Arsenic {
     private final ThemeManager themeManager = new ThemeManager();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
-    private final Executor executor = Executors.newSingleThreadExecutor();
     private final LaunchID launchID = new LaunchID();
     private final Auth auth = new Auth();
 
@@ -110,4 +102,6 @@ public class Arsenic {
     public final ServerInfo getServerInfo() { return serverInfo; }
 
     public final LaunchID getLaunchID() { return launchID; }
+
+    public final Auth getAuth() {return auth;}
 }

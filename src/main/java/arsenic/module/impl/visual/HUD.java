@@ -55,7 +55,7 @@ public class HUD extends Module {
             return;
 
         int noDelayColor = colorMode.getValue().getColor(4, 0);
-        if(watermark.getValue()) fr.drawString("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, noDelayColor);
+        if(watermark.getValue()) fr.drawString("A" + EnumChatFormatting.WHITE + "rsenic Auth:" + Arsenic.getArsenic().getAuth().isAuthorised(), 4, 4, noDelayColor);
 
         float x = sr.getScaledWidth();
 

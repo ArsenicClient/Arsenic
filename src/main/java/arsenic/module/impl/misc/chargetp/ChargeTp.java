@@ -12,16 +12,10 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.java.PlayerInfo;
-import arsenic.utils.minecraft.PlayerUtils;
-<<<<<<< Updated upstream
-import net.minecraft.client.entity.EntityPlayerSP;
-=======
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
->>>>>>> Stashed changes
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.network.NetHandlerPlayClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C00PacketKeepAlive;
@@ -33,7 +27,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.*;
+import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.getPlayerInfo;
+import static arsenic.utils.mixin.UtilMixinEntityPlayerSP.setPlayerInfo;
 
 
 @ModuleInfo(name = "ChargeTp", category = ModuleCategory.OTHER)
