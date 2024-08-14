@@ -1,10 +1,12 @@
 package arsenic.main;
 
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
+import spark.Spark;
 
 import java.awt.*;
 import java.net.URI;
@@ -22,7 +24,7 @@ public class Auth {
     public void init() {
         if(allowed()) {
             setAuthorised();
-            launch();
+            request(new HttpGet("http://140.238.204.221:5001/launch"));;
             return;
         }
         port(4567);
@@ -30,32 +32,30 @@ public class Auth {
         get("/", (req, res) -> {
             if(allowed()) {
                 setAuthorised();
-                launch();
+                request(new HttpGet("http://140.238.204.221:5001/launch"));
+                Spark.stop();
+                return "Success. You can close this window now";
             }
-            return "You can close this window now";
+            openWebsite();
+            return "Fail... Try again";
         });
     }
 
-    private void launch() {
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet get = new HttpGet("http://140.238.204.221:5001/launch");
-            String ret = EntityUtils.toString(client.execute(get).getEntity());
-            System.out.println("Look here:" + ret);
-        } catch (Exception e) {
-
-        }
+    private <T extends HttpRequestBase> String request(T t) {
+        try {
+            CloseableHttpClient client = HttpClients.createDefault();
+            String ret = EntityUtils.toString(client.execute(t).getEntity());
+            client.close();
+            return ret;
+        } catch (Exception ignored) {}
+        return null;
     }
 
+
+
     private boolean allowed() {
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet get = new HttpGet("http://140.238.204.221:5001/get");
-            String ret = EntityUtils.toString(client.execute(get).getEntity());
-            System.out.println("Look here:" + ret);
-            return ret.equals("Allowed");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        String ret = request(new HttpGet("http://140.238.204.221:5001/get"));
+        return ret.equals("Success");
     }
 
     private void openWebsite() {
