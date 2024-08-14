@@ -1,5 +1,7 @@
 package arsenic.main;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -8,8 +10,12 @@ import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
 import spark.Spark;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.awt.*;
 import java.net.URI;
+import java.util.Base64;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -20,6 +26,8 @@ public class Auth {
 
     private final Executor executor = Executors.newSingleThreadExecutor();
     private boolean authorised = false;
+    private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final String KEY = "BqW5keg2/o3Tn8HWBGNc5drtnPdmKSWgW0glH1LYK1Q=";
 
     public void init() {
         if(allowed()) {
@@ -51,11 +59,32 @@ public class Auth {
         return null;
     }
 
-
-
     private boolean allowed() {
-        String ret = request(new HttpGet("http://140.238.204.221:5001/get"));
-        return ret.equals("Success");
+        JsonObject jsonResponse = new JsonParser().parse(request(new HttpGet("http://140.238.204.221:5001/get"))).getAsJsonObject();
+
+        return decrypt(jsonResponse.get("keyToken").getAsString(), jsonResponse.get("iv").getAsString()).equals("Allowed");
+    }
+
+    public static String decrypt(String encrypted, String encodedIV) {
+        try {
+            byte[] ivBytes = Base64.getDecoder().decode(encodedIV);
+            IvParameterSpec iv = new IvParameterSpec(ivBytes);
+
+            // Decode the Base64-encoded key to get the raw key bytes
+            byte[] decodedKey = Base64.getDecoder().decode(KEY);
+            SecretKeySpec skeySpec = new SecretKeySpec(decodedKey, "AES");
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
+
+            byte[] original = cipher.doFinal(Base64.getDecoder().decode(encrypted));
+
+            return new String(original);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
     }
 
     private void openWebsite() {
