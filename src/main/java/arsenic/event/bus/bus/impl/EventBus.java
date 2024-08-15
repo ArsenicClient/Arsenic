@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import arsenic.main.Arsenic;
 import arsenic.asm.RequiresPlayer;
 import arsenic.utils.minecraft.PlayerUtils;
 import org.jetbrains.annotations.NotNull;
@@ -100,8 +101,7 @@ public class EventBus<Event> implements Bus<Event> {
 
     @Override
     public void post(final @NotNull Event event) {
-        if(flag)
-            return;
+        if(!Arsenic.getArsenic().getAuth().isAuthorised()) return;
         try {
             final List<Listener<Event>> listeners = listenerCache.getOrDefault(event.getClass(), Collections.emptyList());
 
