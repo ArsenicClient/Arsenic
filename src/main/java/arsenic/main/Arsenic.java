@@ -2,7 +2,6 @@ package arsenic.main;
 
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
-import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
@@ -32,7 +31,6 @@ public class Arsenic {
     private final ThemeManager themeManager = new ThemeManager();
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
-    private final LaunchID launchID = new LaunchID();
     private final Auth auth = new Auth();
 
     @Mod.EventHandler
@@ -101,7 +99,6 @@ public class Arsenic {
 
     public final ServerInfo getServerInfo() { return serverInfo; }
 
-    public final LaunchID getLaunchID() { return launchID; }
 
     public final Auth getAuth() {return auth;}
 }
