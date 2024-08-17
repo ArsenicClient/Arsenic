@@ -56,12 +56,12 @@ public class Auth {
             client.close();
             return ret;
         } catch (Exception ignored) {}
-        return null;
+        return "";
     }
 
     private boolean allowed() {
         JsonObject jsonResponse = new JsonParser().parse(request(new HttpGet("http://140.238.204.221:5001/get"))).getAsJsonObject();
-
+        System.out.println(jsonResponse);
         return decrypt(jsonResponse.get("keyToken").getAsString(), jsonResponse.get("iv").getAsString()).equals("Allowed");
     }
 
@@ -84,7 +84,7 @@ public class Auth {
             ex.printStackTrace();
         }
 
-        return null;
+        return "";
     }
 
     private void openWebsite() {
