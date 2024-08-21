@@ -8,19 +8,21 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.Logger;
-import spark.Spark;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.awt.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Base64;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-
-import static spark.Spark.get;
-import static spark.Spark.port;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
 
 public class Auth {
 
@@ -28,25 +30,27 @@ public class Auth {
     private boolean authorised = false;
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
     private static final String KEY = "BqW5keg2/o3Tn8HWBGNc5drtnPdmKSWgW0glH1LYK1Q=";
+    private HttpServer server;
 
     public void init() {
-        if(allowed()) {
+        if (allowed()) {
             setAuthorised();
-            request(new HttpGet("http://140.238.204.221:5001/launch"));;
+            request(new HttpGet("http://140.238.204.221:5001/launch"));
             return;
         }
-        port(4567);
+        startServer();
         openWebsite();
-        get("/", (req, res) -> {
-            if(allowed()) {
-                setAuthorised();
-                request(new HttpGet("http://140.238.204.221:5001/launch"));
-                Spark.stop();
-                return "Success. You can close this window now";
-            }
-            openWebsite();
-            return "Fail... Try again";
-        });
+    }
+
+    private void startServer() {
+        try {
+            server = HttpServer.create(new InetSocketAddress(4567), 0);
+            server.createContext("/", new AuthHandler());
+            server.setExecutor(executor);
+            server.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private <T extends HttpRequestBase> String request(T t) {
@@ -70,7 +74,6 @@ public class Auth {
             byte[] ivBytes = Base64.getDecoder().decode(encodedIV);
             IvParameterSpec iv = new IvParameterSpec(ivBytes);
 
-            // Decode the Base64-encoded key to get the raw key bytes
             byte[] decodedKey = Base64.getDecoder().decode(KEY);
             SecretKeySpec skeySpec = new SecretKeySpec(decodedKey, "AES");
 
@@ -107,7 +110,7 @@ public class Auth {
     }
 
     public void setAuthorised() {
-        if(authorised)
+        if (authorised)
             return;
         Logger logger = Arsenic.getArsenic().getLogger();
         authorised = true;
@@ -124,4 +127,23 @@ public class Auth {
         }));
     }
 
+    private class AuthHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String response;
+            if (allowed()) {
+                setAuthorised();
+                request(new HttpGet("http://140.238.204.221:5001/launch"));
+                response = "Success. You can close this window now";
+                server.stop(0);
+            } else {
+                openWebsite();
+                response = "Fail... Try again";
+            }
+            exchange.sendResponseHeaders(200, response.length());
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
 }
