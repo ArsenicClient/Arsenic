@@ -68,7 +68,7 @@ configurations {
 }
 
 dependencies {
-    embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
+    embed compile('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
         exclude module: 'launchwrapper'
     }
     implementation 'org.jetbrains:annotations:23.0.0'
