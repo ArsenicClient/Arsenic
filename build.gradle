@@ -96,7 +96,8 @@ mixin {
 }
 
 shadowJar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE
+    exclude("META-INF/NOTICE.txt")
     dependencies {
         include('org.spongepowered:mixin')
         include('org.jetbrains:annotations')
