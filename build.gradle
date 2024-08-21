@@ -96,6 +96,7 @@ mixin {
 }
 
 shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependencies {
         include('org.spongepowered:mixin')
         include('org.jetbrains:annotations')
