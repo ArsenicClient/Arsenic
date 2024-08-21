@@ -64,15 +64,15 @@ configurations {
     // Adds a reference so that we extend/add on to it with depends so we can grab them and compile them into the jar.
     embed
     // Grabs what's extended/added on from/to embed and compiles it into the jar when being built.
-    implementation.extendsFrom embed
+    compile.extendsFrom embed
 }
 
 dependencies {
-    embed compile('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
+    embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
         exclude module: 'launchwrapper'
     }
     implementation 'org.jetbrains:annotations:23.0.0'
-    embed('com.sparkjava:spark-core:2.9.3')
+    implementation 'com.sparkjava:spark-core:2.9.3'
     embed('org.reflections:reflections:0.10.2')
 }
 
@@ -96,12 +96,12 @@ mixin {
 }
 
 shadowJar {
-    archiveName = jar.archiveName
-    configurations = [project.configurations.embed]
-    duplicatesStrategy DuplicatesStrategy.EXCLUDE
-    
-    exclude("META-INF/maven/**")
-    exclude("META-INF/versions/**")
+    dependencies {
+        include('org.spongepowered:mixin')
+        include('org.jetbrains:annotations')
+    }
+
+    classifier = 'full'
 }
 
 jar {
@@ -139,9 +139,3 @@ idea {
         inheritOutputDirs = true
     }
 }
-
-reobf {
-    shadowJar {}
-}
-
-jar.dependsOn("shadowJar")
