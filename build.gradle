@@ -64,7 +64,7 @@ configurations {
     // Adds a reference so that we extend/add on to it with depends so we can grab them and compile them into the jar.
     embed
     // Grabs what's extended/added on from/to embed and compiles it into the jar when being built.
-    compile.extendsFrom embed
+    implementation.extendsFrom embed
 }
 
 dependencies {
@@ -96,14 +96,12 @@ mixin {
 }
 
 shadowJar {
+    archiveName = jar.archiveName
+    configurations = [project.configurations.embed]
     duplicatesStrategy DuplicatesStrategy.EXCLUDE
-    exclude("META-INF/NOTICE.txt")
-    dependencies {
-        include('org.spongepowered:mixin')
-        include('org.jetbrains:annotations')
-    }
-
-    classifier = 'full'
+    
+    exclude("META-INF/maven/**")
+    exclude("META-INF/versions/**")
 }
 
 jar {
@@ -141,3 +139,9 @@ idea {
         inheritOutputDirs = true
     }
 }
+
+reobf {
+    shadowJar {}
+}
+
+jar.dependsOn("shadowJar")
