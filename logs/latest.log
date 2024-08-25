@@ -1,0 +1,829 @@
+[11:45:56] [main/INFO] (LaunchWrapper) Loading tweak class name net.minecraftforge.fml.common.launcher.FMLTweaker
+[11:45:56] [main/INFO] (LaunchWrapper) Using primary tweak class name net.minecraftforge.fml.common.launcher.FMLTweaker
+[11:45:56] [main/INFO] (LaunchWrapper) Loading tweak class name cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker
+[11:45:58] [main/INFO] (mixin) SpongePowered MIXIN Subsystem Version=0.7.11 Source=file:/Users/notjaxtaylor/Documents/GitHub/Arsenic/./OneConfig/OneConfig%20(1.8.9-forge).jar Service=LaunchWrapper Env=CLIENT
+[11:45:58] [main/INFO] (mixin) Attempting to load Fernflower decompiler (Threaded mode)
+[11:45:58] [main/INFO] (mixin) Fernflower could not be loaded, exported classes will not be decompiled. NoClassDefFoundError: org/jetbrains/java/decompiler/main/extern/IResultSaver
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.common.launcher.FMLTweaker
+[11:45:59] [main/INFO] (FML) Forge Mod Loader version 11.15.1.2318 for Minecraft 1.8.9 loading
+[11:45:59] [main/INFO] (FML) Java is Java HotSpot(TM) 64-Bit Server VM, version 1.8.0_202, running on Mac OS X:x86_64:10.16, installed at /Library/Java/JavaVirtualMachines/jdk1.8.0_202.jdk/Contents/Home/jre
+[11:45:59] [main/INFO] (FML) Managed to load a deobfuscated Minecraft name- we are in a deobfuscated environment. Skipping runtime deobfuscation
+[11:45:59] [main/WARN] (FML) The coremod me.djtheredstoner.devauth.forge.legacy.DevAuthLoadingPlugin does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class org.spongepowered.asm.launch.MixinTweaker
+[11:45:59] [main/INFO] (mixin) Compatibility level set to JAVA_8
+[11:45:59] [main/ERROR] (mixin) Mixin config mixins.arsenic.json does not specify "minVersion" property
+[11:45:59] [main/INFO] (mixin) Initialised Mixin FML Remapper Adapter with net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper@2f17e30d
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker
+[11:45:59] [main/ERROR] (mixin) Mixin config mixins.arsenic.json does not specify "minVersion" property
+[11:45:59] [main/INFO] (LaunchWrapper) Loading tweak class name net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[11:45:59] [main/INFO] (LaunchWrapper) Loading tweak class name net.minecraftforge.fml.common.launcher.FMLDeobfTweaker
+[11:45:59] [main/INFO] (LaunchWrapper) Loading tweak class name org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.common.launcher.FMLInjectionAndSortingTweaker
+[11:45:59] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[11:45:59] [main/ERROR] (FML) The binary patch set is missing. Either you are in a development environment, or things are not going to work!
+[11:46:00] [main/ERROR] (FML) FML appears to be missing any signature data. This is not a good thing
+[11:46:00] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[11:46:00] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.relauncher.CoreModManager$FMLPluginWrapper
+[11:46:00] [main/INFO] (LaunchWrapper) Calling tweak class org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[11:46:00] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.common.launcher.FMLDeobfTweaker
+[11:46:01] [main/INFO] (LaunchWrapper) Loading tweak class name net.minecraftforge.fml.common.launcher.TerminalTweaker
+[11:46:01] [main/INFO] (LaunchWrapper) Calling tweak class net.minecraftforge.fml.common.launcher.TerminalTweaker
+[11:46:01] [main/INFO] (mixin) Remapping refMap mixins.oneconfig.refmap.json using /Users/notjaxtaylor/.gradle/caches/polyfrost-loom/1.8.9/de.oceanlabs.mcp.mcp_stable.1_8_9.22-1.8.9-forge-1.8.9-11.15.1.2318-1.8.9/mappings-srg-named.srg
+[11:46:01] [main/INFO] (mixin) Remapping refMap mixins.arsenic.refmap.json using /Users/notjaxtaylor/.gradle/caches/polyfrost-loom/1.8.9/de.oceanlabs.mcp.mcp_stable.1_8_9.22-1.8.9-forge-1.8.9-11.15.1.2318-1.8.9/mappings-srg-named.srg
+[11:46:01] [main/WARN] (mixin) Error loading class: Config (java.lang.ClassNotFoundException: The specified class 'Config' was not found)
+[11:46:01] [main/WARN] (mixin) Error loading class: net/wyvest/redaction/features/NameHighlight (java.lang.ClassNotFoundException: The specified class 'net.wyvest.redaction.features.NameHighlight' was not found)
+[11:46:01] [main/WARN] (mixin) Error loading class: org/polyfrost/redaction/features/NameHighlight (java.lang.ClassNotFoundException: The specified class 'org.polyfrost.redaction.features.NameHighlight' was not found)
+[11:46:03] [main/INFO] (LaunchWrapper) Launching wrapped minecraft {net.minecraft.client.main.Main}
+[11:46:03] [main/INFO] (DevAuth) DevAuth disabled, not logging in!
+[11:46:03] [main/INFO] (mixin) Mixing MinecraftMixin from mixins.oneconfig.json into net.minecraft.client.Minecraft
+[11:46:04] [main/INFO] (mixin) Mixing EntityPlayerSPMixin from mixins.oneconfig.json into net.minecraft.client.entity.EntityPlayerSP
+[11:46:06] [main/INFO] (mixin) Mixing WorldClientMixin from mixins.oneconfig.json into net.minecraft.client.multiplayer.WorldClient
+[11:46:06] [main/INFO] (mixin) Mixing GuiScreenMixin from mixins.oneconfig.json into net.minecraft.client.gui.GuiScreen
+[11:46:07] [main/INFO] (mixin) Mixing GuiIngameForgeMixin from mixins.oneconfig.json into net.minecraftforge.client.GuiIngameForge
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:07] [main/INFO] (STDOUT) [net.minecraft.client.main.Main:main:57]: Completely ignored arguments: [--mixin, mixins.arsenic.json]
+[11:46:07] [main/INFO] (Minecraft) Setting user: Player435
+[11:46:11] [main/INFO] (mixin) Mixing EventBusMixin from mixins.oneconfig.json into net.minecraftforge.fml.common.eventhandler.EventBus
+[11:46:11] [main/INFO] (Minecraft) LWJGL Version: 2.9.2
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:11] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:12] [main/INFO] (FML) MinecraftForge v11.15.1.2318 Initialized
+[11:46:16] [main/INFO] (FML) Replaced 229 ore recipies
+[11:46:16] [main/INFO] (FML) Found 0 mods from the command line. Injecting into mod discoverer
+[11:46:16] [main/INFO] (FML) Searching /Users/notjaxtaylor/Documents/GitHub/Arsenic/mods for mods
+[11:46:16] [main/ERROR] (FML) Unable to read a class file correctly
+java.lang.IllegalArgumentException: null
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) [ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+[11:46:16] [main/ERROR] (FML) There was a problem reading the entry META-INF/versions/9/module-info.class in the jar /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.9.10/c7510d64a83411a649c76f2778304ddf71d7437b/kotlin-stdlib-jdk8-1.9.10.jar - probably a corrupt zip
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:16] [main/WARN] (FML) Zip file kotlin-stdlib-jdk8-1.9.10.jar failed to read properly, it will be ignored
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:18] [main/ERROR] (FML) Unable to read a class file correctly
+java.lang.IllegalArgumentException: null
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) [ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+[11:46:18] [main/ERROR] (FML) There was a problem reading the entry META-INF/versions/9/module-info.class in the jar /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.9.10/bc5bfc2690338defd5195b05c57562f2194eeb10/kotlin-stdlib-jdk7-1.9.10.jar - probably a corrupt zip
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:18] [main/WARN] (FML) Zip file kotlin-stdlib-jdk7-1.9.10.jar failed to read properly, it will be ignored
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:18] [main/ERROR] (FML) Unable to read a class file correctly
+java.lang.IllegalArgumentException: null
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) [ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+[11:46:18] [main/ERROR] (FML) There was a problem reading the entry META-INF/versions/9/module-info.class in the jar /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.9.10/72812e8a368917ab5c0a5081b56915ffdfec93b7/kotlin-stdlib-1.9.10.jar - probably a corrupt zip
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:18] [main/WARN] (FML) Zip file kotlin-stdlib-1.9.10.jar failed to read properly, it will be ignored
+net.minecraftforge.fml.common.LoaderException: java.lang.IllegalArgumentException
+
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:58) ~[ASMModParser.class:?]
+	at net.minecraftforge.fml.common.discovery.JarDiscoverer.discover(JarDiscoverer.java:69) [JarDiscoverer.class:?]
+	at net.minecraftforge.fml.common.discovery.ContainerType.findMods(ContainerType.java:42) [ContainerType.class:?]
+	at net.minecraftforge.fml.common.discovery.ModCandidate.explore(ModCandidate.java:71) [ModCandidate.class:?]
+	at net.minecraftforge.fml.common.discovery.ModDiscoverer.identifyMods(ModDiscoverer.java:134) [ModDiscoverer.class:?]
+	at net.minecraftforge.fml.common.Loader.identifyMods(Loader.java:363) [Loader.class:?]
+	at net.minecraftforge.fml.common.Loader.loadMods(Loader.java:488) [Loader.class:?]
+	at net.minecraftforge.fml.client.FMLClientHandler.beginMinecraftLoading(FMLClientHandler.java:208) [FMLClientHandler.class:?]
+	at net.minecraft.client.Minecraft.startGame(Minecraft.java:417) [Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:329) [Minecraft.class:?]
+	at net.minecraft.client.main.Main.main(Main.java:124) [Main.class:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.8.0_202]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:1.8.0_202]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_202]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_202]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135) [launchwrapper-1.12.jar:?]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28) [launchwrapper-1.12.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+Caused by: java.lang.IllegalArgumentException
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:170) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:153) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at org.objectweb.asm.ClassReader.<init>(ClassReader.java:424) ~[asm-debug-all-5.0.3.jar:5.0.3]
+	at net.minecraftforge.fml.common.discovery.asm.ASMModParser.<init>(ASMModParser.java:52) ~[ASMModParser.class:?]
+	... 17 more
+[11:46:20] [main/INFO] (FML) Forge Mod Loader has identified 5 mods to load
+[11:46:21] [main/INFO] (FML) Attempting connection with missing mods [mcp, FML, Forge, arsenic, oneconfig] at CLIENT
+[11:46:21] [main/INFO] (FML) Attempting connection with missing mods [mcp, FML, Forge, arsenic, oneconfig] at SERVER
+[11:46:23] [main/INFO] (Minecraft) Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:Arsenic Client, FMLFileResourcePack:OneConfig
+[11:46:23] [main/INFO] (FML) Processing ObjectHolder annotations
+[11:46:23] [main/INFO] (FML) Found 384 ObjectHolder annotations
+[11:46:23] [main/INFO] (FML) Identifying ItemStackHolder annotations
+[11:46:23] [main/INFO] (FML) Found 0 ItemStackHolder annotations
+[11:46:23] [main/INFO] (FML) Configured a dormant chunk cache size of 0
+[11:46:23] [main/INFO] (FML) Applying holder lookups
+[11:46:23] [Forge Version Check/INFO] (ForgeVersionCheck) [Forge] Starting version check at http://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json
+[11:46:23] [main/INFO] (FML) Holder lookups applied
+[11:46:23] [main/INFO] (FML) Injecting itemstacks
+[11:46:23] [main/INFO] (FML) Itemstack injection complete
+[11:46:23] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:23] [main/INFO] (STDOUT) [tv.twitch.StandardCoreAPI:<init>:16]: If on Windows, make sure to provide all of the necessary dll's as specified in the twitchsdk README. Also, make sure to set the PATH environment variable to point to the directory containing the dll's.
+[11:46:23] [main/ERROR] (Minecraft) Couldn't initialize twitch stream
+[11:46:23] [Sound Library Loader/INFO] (Minecraft) Starting up SoundSystem...
+[11:46:24] [Thread-6/INFO] (Minecraft) Initializing LWJGL OpenAL
+[11:46:24] [Thread-6/INFO] (Minecraft) (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.openal, but that path is defined and not secure
+[11:46:24] [Thread-6/INFO] (Minecraft) OpenAL initialized.
+[11:46:24] [Sound Library Loader/INFO] (Minecraft) Sound engine started
+[11:46:29] [main/INFO] (FML) Max texture size: 16384
+[11:46:29] [main/INFO] (Minecraft) Created: 16x16 textures-atlas
+[11:46:30] [main/INFO] (mixin) Mixing EntityRendererMixin from mixins.oneconfig.json into net.minecraft.client.renderer.EntityRenderer
+[11:46:30] [main/INFO] (Arsenic) Loading Arsenic, version 221020...
+[11:46:30] [main/INFO] (Arsenic) Subscribed silent rotation manager
+[11:46:31] [main/INFO] (mixin) Mixing NetworkManagerMixin from mixins.oneconfig.json into net.minecraft.network.NetworkManager
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG FunnyModule
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3af851d1, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@37f6f16d, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1e9271d8}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG InvManager
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5bae85b5, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@e361d62, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4d0db87a}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG ChestStealer
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@45638365, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@108752c8, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@112c682f}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG HUD
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@24ae5fce, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5cc2e588, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7f5ab12a}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG NoJumpDelay
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6f76d17c, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3970b373, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7255ef70}
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: java.lang.IllegalArgumentException: class java.util.concurrent.atomic.AtomicInteger declares multiple JSON fields named serialVersionUID
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:122)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:585)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:572)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:527)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:507)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.config.Config.save(Config.java:172)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.internal.config.core.ConfigCore.saveAll(ConfigCore.java:49)
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Speed
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:308)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:180)
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:294)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+[11:46:31] [pool-8-thread-1/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.lang.Thread.run(Thread.java:748)
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5c773297, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@584cb45f, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@98a86b3}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Velocity
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1e032081, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6507e78d, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@70578b0}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Reach
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1d37dd10, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1ab7f11f, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@40d6564b}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG FullBright
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@184ab123, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@27ff868d, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5f8ffbd0}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Criticals
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@43540bce, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5b36121a, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@19abf323}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Scaffold
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@155d354, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@32ea1a99, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@424cee25}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG WTap
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@b126ca4, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@75945b89, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@eb1ba59}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG KillAura
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3a1d7336, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3913f7b4, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@39af2801}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG CustomFOV
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6cadc0bf, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4a2534c9, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@a0af2ac}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG ClickGUI
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@730ca420, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@71a62ac6, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1246cb47}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG ModSpoofer
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:lambda$initialize$0:53]: Hi from String propertyToggle mods you want to send to the server.
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:lambda$initialize$0:54]: Toggle mods you want to send to the server.
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:lambda$initialize$0:53]: Hi from String propertyMurder
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:lambda$initialize$0:54]: Murder
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {Togglemodsyouwanttosendtotheserver.=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@198fa5be, sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3d37493b, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@54fba7f0, Murder=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@77c55cc6, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1303b5d5}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG PostProcessing
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@74c18e62, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@68380559, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3868ff89}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG InvMove
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@27d34df, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@18200746, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2b549eed}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG AutoSpacer
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@d7dc40e, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@15ffe8d0, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1a53af74}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Sprint
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@85fc878, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3d483fc7, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@76ae3dbd}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Fastplace
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@21d3d694, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@57b9d6de, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2b737de9}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Example
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@af9c11e, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3a55699d, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2986a8be}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG NoSlow
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@400f00d4, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6628f58b, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@15935538}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG CustomWorld
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2530b4c1, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5bea3958, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7c5e042}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Trajectories
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5b696b4e, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5f65f1da, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5505c92e}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG TargetHud
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@408af538, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@309137d2, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4b26d457}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Clicker
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@421ec4f4, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7b0844c2, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6f1a398}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG NoHurtCam
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@51a7322, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@31972e11, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@88042b5}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG KeepSprint
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3e6dd5e, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@55b33d63, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5d5c6662}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Blink
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@627a290d, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2e6e5804, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@103f44dd}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Flight
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6ca6db56, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@305410be, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5aa7b3c5}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Autoblock
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@437617b1, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7f096ff2, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5ac63cae}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Timer
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1e1d4818, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2a5fc2d6, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4117a87f}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Esp
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7052dd51, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@24cfe8ff, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@5867f849}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG AntiBot
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@40222f3, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@625ccf77, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@390f4bd3}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG NoFall
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@38cd2a8a, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1cc8292d, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@263b57e2}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG SmoothAim
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3b3ef205, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6030c8e7, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2d34cfd4}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG ChargeTp
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7ac78fa3, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4e9f877c, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@3ecaecd3}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG AutoGG
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7fdbbbe8, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4d4d6708, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2408a606}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Auto Tool
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@303a089, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@25d0f2c6, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@448948ec}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG SafeWalk
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@7d47936a, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6239bee9, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@2c3bbb8d}
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG BlockHit
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:31] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@483f21fd, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@526d17fe, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@6e1d42fa}
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG Targets
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@1448cc00, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@645bd9ae, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@12362895}
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:38]: Initializing Arsenic OCFG HitBox
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:40]: Hi from String propertySex
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:41]: sex
+[11:46:32] [main/INFO] (STDOUT) [arsenic.module.ArsenicOCFG:initialize:64]: {sex=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@69992afe, fucker=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@4ac8d5d8, dummyVar2=cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader@342263d0}
+[11:46:32] [main/INFO] (Arsenic) Loaded 43 modules...
+[11:46:32] [main/INFO] (STDOUT) [arsenic.gui.themes.ThemeManager:initialize:21]: initialized theme manager
+[11:46:32] [main/INFO] (Arsenic) Loaded 4 themes...
+[11:46:32] [main/INFO] (STDOUT) [arsenic.config.ConfigManager:initialize:23]: initialized config manager
+[11:46:32] [main/INFO] (STDOUT) [arsenic.config.ClientConfig:loadConfig:27]: loadingConfig
+[11:46:32] [main/INFO] (Arsenic) Error loading ModSpoofer's config (If this the first launch or the first launch after an update ignore this)
+[11:46:32] [main/INFO] (Arsenic) Error loading ModSpoofer's config (If this the first launch or the first launch after an update ignore this)
+[11:46:32] [main/INFO] (Arsenic) Loaded 1 configs...
+[11:46:32] [main/INFO] (Arsenic) Loaded 6 commands...
+[11:46:32] [main/INFO] (Arsenic) Loaded fonts.
+[11:46:32] [main/INFO] (Arsenic) Loaded Arsenic.
+[11:46:32] [main/INFO] (FML) Injecting itemstacks
+[11:46:32] [main/INFO] (FML) Itemstack injection complete
+[11:46:32] [main/INFO] (FML) Forge Mod Loader has successfully loaded 5 mods
+[11:46:32] [main/INFO] (Minecraft) Reloading ResourceManager: Default, FMLFileResourcePack:Forge Mod Loader, FMLFileResourcePack:Minecraft Forge, FMLFileResourcePack:Arsenic Client, FMLFileResourcePack:OneConfig
+[11:46:32] [main/INFO] (Minecraft) SoundSystem shutting down...
+[11:46:33] [main/WARN] (Minecraft) Author: Paul Lamb, www.paulscode.com
+[11:46:33] [Sound Library Loader/INFO] (Minecraft) Starting up SoundSystem...
+[11:46:33] [Thread-8/INFO] (Minecraft) Initializing LWJGL OpenAL
+[11:46:33] [Thread-8/INFO] (Minecraft) (The LWJGL binding of OpenAL.  For more information, see http://www.lwjgl.org)
+[11:46:33] [Thread-8/INFO] (Minecraft) OpenAL initialized.
+[11:46:33] [Sound Library Loader/INFO] (Minecraft) Sound engine started
+[11:46:36] [main/INFO] (FML) Max texture size: 16384
+[11:46:38] [main/INFO] (Minecraft) Created: 512x512 textures-atlas
+[11:46:39] [main/INFO] (mixin) Mixing ShaderGroupAccessor from mixins.oneconfig.json into net.minecraft.client.shader.ShaderGroup
+[11:46:39] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:39] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:40] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:40] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:46:52] [Server thread/INFO] (Minecraft) Starting integrated minecraft server version 1.8.9
+[11:46:52] [Server thread/INFO] (Minecraft) Generating keypair
+[11:46:54] [Server thread/INFO] (FML) Injecting existing block and item data into this server instance
+[11:46:54] [Server thread/INFO] (FML) Applying holder lookups
+[11:46:54] [Server thread/INFO] (FML) Holder lookups applied
+[11:46:54] [Server thread/INFO] (FML) Loading dimension 0 (New World) (net.minecraft.server.integrated.IntegratedServer@7ac7df0c)
+[11:46:54] [Server thread/INFO] (FML) Loading dimension 1 (New World) (net.minecraft.server.integrated.IntegratedServer@7ac7df0c)
+[11:46:54] [Server thread/INFO] (FML) Loading dimension -1 (New World) (net.minecraft.server.integrated.IntegratedServer@7ac7df0c)
+[11:46:54] [Server thread/INFO] (Minecraft) Preparing start region for level 0
+[11:46:55] [Server thread/INFO] (Minecraft) Preparing spawn area: 23%
+[11:46:57] [Server thread/INFO] (Minecraft) Changing view distance to 12, from 10
+[11:46:58] [Netty Local Client IO #0/INFO] (FML) Server protocol version 2
+[11:46:58] [Netty Server IO #1/INFO] (FML) Client protocol version 2
+[11:46:58] [Netty Server IO #1/INFO] (FML) Client attempting to join with 5 mods : FML@8.0.99.99,Forge@11.15.1.2318,oneconfig@0.2.2-alpha213,mcp@9.19,arsenic@1.0
+[11:46:58] [Netty Local Client IO #0/INFO] (FML) [Netty Local Client IO #0] Client side modded connection established
+[11:46:58] [Server thread/INFO] (FML) [Server thread] Server side modded connection established
+[11:46:58] [Server thread/INFO] (Minecraft) Player435[local:E:bfb93865] logged in with entity id 352 at (-15.5, 79.0, 221.5)
+[11:46:58] [Server thread/INFO] (Minecraft) Player435 joined the game
+[11:47:02] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.input, but that path is defined and not secure
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: java.lang.IllegalArgumentException: class java.util.concurrent.atomic.AtomicInteger declares multiple JSON fields named serialVersionUID
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:122)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:585)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:572)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:527)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:507)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.config.Config.save(Config.java:172)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.pages.ModConfigPage.finishUpAndClose(ModConfigPage.java:132)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.openPage(OneConfigGui.java:406)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.openPage(OneConfigGui.java:385)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.handleHistoryMovement(OneConfigGui.java:368)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.draw(OneConfigGui.java:280)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.lambda$onDrawScreen$0(OneUIScreen.java:80)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:146)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:111)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.onDrawScreen(OneUIScreen.java:80)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreen(UScreen.kt:220)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:226)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:224)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UMatrixStack$Compat.runLegacyMethod(UMatrixStack.kt:288)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreenCompat(UScreen.kt:224)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.drawScreen(UScreen.kt:133)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraftforge.client.ForgeHooksClient.drawScreen(ForgeHooksClient.java:311)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.renderer.EntityRenderer.updateCameraAndRender(EntityRenderer.java:1104)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.Minecraft.runGameLoop(Minecraft.java:1051)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.Minecraft.run(Minecraft.java:349)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.main.Main.main(Main.java:124)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.lang.reflect.Method.invoke(Method.java:498)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.launchwrapper.Launch.main(Launch.java:28)
+[11:47:06] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: java.lang.IllegalArgumentException: class java.util.concurrent.atomic.AtomicInteger declares multiple JSON fields named serialVersionUID
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:122)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1.<init>(ReflectiveTypeAdapterFactory.java:82)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.createBoundField(ReflectiveTypeAdapterFactory.java:81)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.getBoundFields(ReflectiveTypeAdapterFactory.java:118)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory.create(ReflectiveTypeAdapterFactory.java:72)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.getAdapter(Gson.java:356)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:585)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:572)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:527)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at com.google.gson.Gson.toJson(Gson.java:507)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.config.Config.save(Config.java:172)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.pages.ModConfigPage.finishUpAndClose(ModConfigPage.java:132)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.openPage(OneConfigGui.java:406)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.openPage(OneConfigGui.java:385)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.handleHistoryMovement(OneConfigGui.java:368)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.gui.OneConfigGui.draw(OneConfigGui.java:280)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.lambda$onDrawScreen$0(OneUIScreen.java:80)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:146)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:111)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.onDrawScreen(OneUIScreen.java:80)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreen(UScreen.kt:220)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:226)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:224)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UMatrixStack$Compat.runLegacyMethod(UMatrixStack.kt:288)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreenCompat(UScreen.kt:224)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at cc.polyfrost.oneconfig.libs.universal.UScreen.drawScreen(UScreen.kt:133)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraftforge.client.ForgeHooksClient.drawScreen(ForgeHooksClient.java:311)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.renderer.EntityRenderer.updateCameraAndRender(EntityRenderer.java:1104)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.Minecraft.runGameLoop(Minecraft.java:1051)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.Minecraft.run(Minecraft.java:349)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.client.main.Main.main(Main.java:124)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at java.lang.reflect.Method.invoke(Method.java:498)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.minecraft.launchwrapper.Launch.main(Launch.java:28)
+[11:47:17] [main/INFO] (STDERR) [cc.polyfrost.oneconfig.config.Config:save:174]: 	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+[11:47:19] [main/INFO] (Minecraft) Stopping!
+[11:47:19] [main/INFO] (Minecraft) SoundSystem shutting down...
+[11:47:19] [main/WARN] (Minecraft) Author: Paul Lamb, www.paulscode.com
+[11:47:19] [Server thread/INFO] (Minecraft) Stopping server
+[11:47:19] [main/ERROR] (LaunchWrapper) The jar file /Users/notjaxtaylor/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.2-nightly-20140822/7707204c9ffa5d91662de95f0a224e2f721b22af/lwjgl-2.9.2-nightly-20140822.jar has a security seal for path org.lwjgl.opengl, but that path is defined and not secure
+[11:47:19] [Server thread/INFO] (Minecraft) Saving players
+[11:47:19] [Server thread/INFO] (Minecraft) Saving worlds
+[11:47:19] [Server thread/INFO] (Minecraft) Saving chunks for level 'New World'/Overworld
+[11:47:19] [Client Shutdown Thread/INFO] (Minecraft) Stopping server
+[11:47:19] [Client Shutdown Thread/INFO] (Minecraft) Saving players
+[11:47:19] [Client Shutdown Thread/INFO] (Minecraft) Saving worlds
+[11:47:19] [Client Shutdown Thread/INFO] (Minecraft) Saving chunks for level 'New World'/Overworld

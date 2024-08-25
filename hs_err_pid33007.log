@@ -1,0 +1,31 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x0000000000000000, pid=33007, tid=0x0000000000011d5b
+#
+# JRE version: Java(TM) SE Runtime Environment (8.0_202-b08) (build 1.8.0_202-b08)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.202-b08 mixed mode bsd-amd64 compressed oops)
+# Problematic frame:
+# C  0x0000000000000000
+#
+# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread is native thread
+
+siginfo: si_signo: 11 (SIGSEGV), si_code: 1 (SEGV_MAPERR), si_addr: 0x0000000000000000
+
+Registers:
+RAX=0x000000012f36b508, RBX=0x00000000000161b0, RCX=0x00007fc8201b4970, RDX=0xfffffffffffffff0
+RSP=0x000000030ebc59d8, RBP=0x000000030ebc5a80, RSI=0x0000000000000000, RDI=0x00007fc8201a0000
+R8 =0x0000000000000200, R9 =0x000000012f2c33f0, R10=0x00000001301da88e, R11=0x0000600001351ac0
+R12=0x000000012f2c33a0, R13=0x00007fc8201a0000, R14=0x000000012f2c33f0, R15=0x0000000000000800
+RIP=0x0000000000000000, EFLAGS=0x0000000000000246, ERR=0x0000000000000004
+  TRAPNO=0x000000000000000e
+
+Top of Stack: (sp=0x000000030ebc59d8)

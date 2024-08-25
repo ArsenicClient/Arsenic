@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+ModSide: CLIENT
+ForceLoadAsMod: true
+TweakOrder: 0
+MixinConfigs: mixins.arsenic.json
+TweakClass: cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker
+
