@@ -19,7 +19,8 @@ gradle-app.setting
 
 out/
 run/
-
+OneConfig/
+versions/
 #ignore launch configs
 Arsenic_Server.launch
 Arsenic_Client.launch
