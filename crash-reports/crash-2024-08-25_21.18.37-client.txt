@@ -1,0 +1,144 @@
+---- Minecraft Crash Report ----
+// Oops.
+
+Time: 25/08/24 9:18 PM
+Description: Rendering screen
+
+java.lang.NullPointerException: Rendering screen
+	at cc.polyfrost.oneconfig.config.elements.OptionSubcategory.lambda$draw$0(OptionSubcategory.java:60)
+	at java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:174)
+	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1382)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:481)
+	at java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:471)
+	at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:708)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:499)
+	at cc.polyfrost.oneconfig.config.elements.OptionSubcategory.draw(OptionSubcategory.java:60)
+	at cc.polyfrost.oneconfig.gui.pages.ModConfigPage.draw(ModConfigPage.java:87)
+	at cc.polyfrost.oneconfig.gui.pages.Page.scrollWithDraw(Page.java:106)
+	at cc.polyfrost.oneconfig.gui.OneConfigGui.draw(OneConfigGui.java:288)
+	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.lambda$onDrawScreen$0(OneUIScreen.java:80)
+	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:146)
+	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:111)
+	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.onDrawScreen(OneUIScreen.java:80)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreen(UScreen.kt:220)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:226)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:224)
+	at cc.polyfrost.oneconfig.libs.universal.UMatrixStack$Compat.runLegacyMethod(UMatrixStack.kt:288)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreenCompat(UScreen.kt:224)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.drawScreen(UScreen.kt:133)
+	at net.minecraftforge.client.ForgeHooksClient.drawScreen(ForgeHooksClient.java:311)
+	at net.minecraft.client.renderer.EntityRenderer.updateCameraAndRender(EntityRenderer.java:1104)
+	at net.minecraft.client.Minecraft.runGameLoop(Minecraft.java:1051)
+	at net.minecraft.client.Minecraft.run(Minecraft.java:349)
+	at net.minecraft.client.main.Main.main(Main.java:124)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135)
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Stacktrace:
+	at cc.polyfrost.oneconfig.config.elements.OptionSubcategory.lambda$draw$0(OptionSubcategory.java:60)
+	at java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:174)
+	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1382)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:481)
+	at java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:471)
+	at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:708)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:499)
+	at cc.polyfrost.oneconfig.config.elements.OptionSubcategory.draw(OptionSubcategory.java:60)
+	at cc.polyfrost.oneconfig.gui.pages.ModConfigPage.draw(ModConfigPage.java:87)
+	at cc.polyfrost.oneconfig.gui.pages.Page.scrollWithDraw(Page.java:106)
+	at cc.polyfrost.oneconfig.gui.OneConfigGui.draw(OneConfigGui.java:288)
+	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.lambda$onDrawScreen$0(OneUIScreen.java:80)
+	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:146)
+	at cc.polyfrost.oneconfig.internal.renderer.NanoVGHelperImpl.setupAndDraw(NanoVGHelperImpl.java:111)
+	at cc.polyfrost.oneconfig.utils.gui.OneUIScreen.onDrawScreen(OneUIScreen.java:80)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreen(UScreen.kt:220)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:226)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen$onDrawScreenCompat$1.invoke(UScreen.kt:224)
+	at cc.polyfrost.oneconfig.libs.universal.UMatrixStack$Compat.runLegacyMethod(UMatrixStack.kt:288)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.onDrawScreenCompat(UScreen.kt:224)
+	at cc.polyfrost.oneconfig.libs.universal.UScreen.drawScreen(UScreen.kt:133)
+	at net.minecraftforge.client.ForgeHooksClient.drawScreen(ForgeHooksClient.java:311)
+
+-- Screen render details --
+Details:
+	Screen name: cc.polyfrost.oneconfig.gui.OneConfigGui
+	Mouse location: Scaled: (321, 80). Absolute: (963, 659)
+	Screen size: Scaled: (480, 300). Absolute: (1440, 900). Scale factor of 3
+
+-- Affected level --
+Details:
+	Level name: MpServer
+	All players: 1 total; [EntityPlayerSP['Player293'/345, l='MpServer', x=-15.50, y=79.00, z=221.50]]
+	Chunk stats: MultiplayerChunkCache: 572, 572
+	Level seed: 0
+	Level generator: ID 00 - default, ver 1. Features enabled: false
+	Level generator options: 
+	Level spawn location: -8.00,64.00,228.00 - World: (-8,64,228), Chunk: (at 8,4,4 in -1,14; contains blocks -16,0,224 to -1,255,239), Region: (-1,0; contains chunks -32,0 to -1,31, blocks -512,0,0 to -1,255,511)
+	Level time: 43587 game time, 43587 day time
+	Level dimension: 0
+	Level storage version: 0x00000 - Unknown?
+	Level weather: Rain time: 0 (now: false), thunder time: 0 (now: false)
+	Level game mode: Game mode: survival (ID 0). Hardcore: false. Cheats: false
+	Forced entities: 100 total; [EntityZombie['Zombie'/80, l='MpServer', x=-89.50, y=79.00, z=238.50], EntityBat['Bat'/81, l='MpServer', x=-91.53, y=14.86, z=249.09], EntityBat['Bat'/82, l='MpServer', x=-89.17, y=13.83, z=254.61], EntitySheep['Sheep'/83, l='MpServer', x=-92.47, y=80.00, z=252.41], EntityBat['Bat'/84, l='MpServer', x=-91.25, y=12.10, z=256.25], EntitySheep['Sheep'/85, l='MpServer', x=-80.06, y=78.00, z=281.06], EntityBat['Bat'/86, l='MpServer', x=-91.82, y=53.05, z=298.47], EntityCreeper['Creeper'/87, l='MpServer', x=-89.66, y=67.00, z=292.91], EntityZombie['Zombie'/91, l='MpServer', x=-67.50, y=70.00, z=186.50], EntitySkeleton['Skeleton'/92, l='MpServer', x=-77.50, y=72.00, z=197.50], EntityCow['Cow'/93, l='MpServer', x=-75.94, y=70.00, z=218.72], EntityCow['Cow'/94, l='MpServer', x=-74.97, y=70.00, z=217.44], EntitySheep['Sheep'/95, l='MpServer', x=-71.91, y=72.00, z=216.22], EntityCow['Cow'/96, l='MpServer', x=-73.50, y=80.00, z=230.63], EntitySpider['Spider'/97, l='MpServer', x=-77.19, y=79.91, z=264.38], EntitySpider['Spider'/98, l='MpServer', x=-71.50, y=81.00, z=263.50], EntitySheep['Sheep'/99, l='MpServer', x=-69.78, y=72.00, z=278.34], EntityPlayerSP['Player293'/345, l='MpServer', x=-15.50, y=79.00, z=221.50], EntitySkeleton['Skeleton'/105, l='MpServer', x=-51.44, y=67.00, z=188.06], EntitySheep['Sheep'/106, l='MpServer', x=-48.97, y=70.00, z=265.06], EntitySheep['Sheep'/107, l='MpServer', x=-61.84, y=74.00, z=274.03], EntityZombie['Zombie'/108, l='MpServer', x=-55.50, y=15.00, z=277.50], EntitySkeleton['Skeleton'/109, l='MpServer', x=-53.09, y=71.00, z=273.53], EntitySkeleton['Skeleton'/110, l='MpServer', x=-60.50, y=43.00, z=294.50], EntitySheep['Sheep'/111, l='MpServer', x=-58.50, y=71.00, z=292.16], EntitySheep['Sheep'/122, l='MpServer', x=-39.59, y=65.00, z=180.31], EntitySheep['Sheep'/123, l='MpServer', x=-23.25, y=65.00, z=195.53], EntitySheep['Sheep'/124, l='MpServer', x=-41.88, y=69.00, z=206.13], EntitySheep['Sheep'/125, l='MpServer', x=-48.00, y=70.00, z=214.03], EntityZombie['Zombie'/126, l='MpServer', x=-37.72, y=72.00, z=235.19], EntitySheep['Sheep'/127, l='MpServer', x=-35.88, y=71.00, z=250.81], EntitySheep['Sheep'/128, l='MpServer', x=-33.03, y=70.00, z=253.97], EntitySheep['Sheep'/129, l='MpServer', x=-39.19, y=72.00, z=247.59], EntityZombie['Zombie'/130, l='MpServer', x=-41.50, y=70.00, z=253.50], EntitySkeleton['Skeleton'/139, l='MpServer', x=-17.53, y=29.00, z=156.88], EntityBat['Bat'/140, l='MpServer', x=-22.25, y=29.10, z=203.50], EntitySheep['Sheep'/141, l='MpServer', x=-31.94, y=67.00, z=193.88], EntityBat['Bat'/142, l='MpServer', x=-5.39, y=44.08, z=217.67], EntityBat['Bat'/143, l='MpServer', x=-9.62, y=44.02, z=218.71], EntityCreeper['Creeper'/144, l='MpServer', x=-23.47, y=70.00, z=224.38], EntityZombie['Zombie'/145, l='MpServer', x=-23.56, y=34.42, z=283.14], EntityWitch['Witch'/152, l='MpServer', x=-17.91, y=17.00, z=165.50], EntitySheep['Sheep'/153, l='MpServer', x=0.03, y=73.00, z=179.88], EntitySheep['Sheep'/154, l='MpServer', x=-12.09, y=70.00, z=162.91], EntitySkeleton['Skeleton'/155, l='MpServer', x=-10.50, y=17.00, z=182.50], EntitySheep['Sheep'/156, l='MpServer', x=-1.09, y=72.00, z=263.88], EntitySheep['Sheep'/158, l='MpServer', x=-4.47, y=64.00, z=296.34], EntityCreeper['Creeper'/168, l='MpServer', x=0.50, y=18.00, z=170.50], EntitySheep['Sheep'/169, l='MpServer', x=10.44, y=69.00, z=190.88], EntityPig['Pig'/170, l='MpServer', x=19.78, y=67.00, z=198.44], EntitySheep['Sheep'/171, l='MpServer', x=11.28, y=66.00, z=206.84], EntityPig['Pig'/172, l='MpServer', x=4.16, y=69.00, z=194.97], EntityZombie['Zombie'/173, l='MpServer', x=5.59, y=68.00, z=196.03], EntityBat['Bat'/174, l='MpServer', x=-1.93, y=24.14, z=217.71], EntitySpider['Spider'/175, l='MpServer', x=15.50, y=37.00, z=220.50], EntitySheep['Sheep'/187, l='MpServer', x=27.75, y=69.00, z=150.56], EntitySquid['Squid'/188, l='MpServer', x=15.66, y=61.13, z=174.25], EntityPig['Pig'/189, l='MpServer', x=18.91, y=66.00, z=182.00], EntityCreeper['Creeper'/190, l='MpServer', x=18.66, y=38.00, z=207.06], EntityPig['Pig'/191, l='MpServer', x=30.22, y=66.00, z=198.81], EntitySheep['Sheep'/192, l='MpServer', x=28.41, y=72.00, z=253.31], EntitySheep['Sheep'/193, l='MpServer', x=22.78, y=72.00, z=255.13], EntitySkeleton['Skeleton'/194, l='MpServer', x=24.50, y=72.00, z=253.50], EntityZombie['Zombie'/195, l='MpServer', x=27.50, y=64.00, z=298.50], EntitySheep['Sheep'/206, l='MpServer', x=42.44, y=64.00, z=150.75], EntitySheep['Sheep'/207, l='MpServer', x=35.38, y=63.00, z=163.75], EntityEnderman['Enderman'/208, l='MpServer', x=36.50, y=45.00, z=189.50], EntitySkeleton['Skeleton'/209, l='MpServer', x=44.50, y=47.00, z=191.50], EntitySheep['Sheep'/210, l='MpServer', x=48.09, y=73.00, z=191.19], EntityCreeper['Creeper'/211, l='MpServer', x=33.50, y=40.00, z=195.50], EntityZombie['Zombie'/212, l='MpServer', x=33.50, y=43.00, z=192.50], EntitySheep['Sheep'/213, l='MpServer', x=47.56, y=72.00, z=195.69], EntitySkeleton['Skeleton'/214, l='MpServer', x=44.50, y=68.00, z=218.50], EntityBat['Bat'/215, l='MpServer', x=47.26, y=28.54, z=225.46], EntityCreeper['Creeper'/216, l='MpServer', x=36.50, y=35.00, z=241.50], EntitySkeleton['Skeleton'/217, l='MpServer', x=34.50, y=35.00, z=240.50], EntitySheep['Sheep'/218, l='MpServer', x=34.31, y=68.00, z=243.53], EntitySheep['Sheep'/219, l='MpServer', x=35.75, y=66.00, z=246.16], EntityZombie['Zombie'/220, l='MpServer', x=29.84, y=70.00, z=242.50], EntityBat['Bat'/221, l='MpServer', x=41.56, y=43.10, z=267.41], EntitySheep['Sheep'/222, l='MpServer', x=42.28, y=62.48, z=265.34], EntityZombie['Zombie'/223, l='MpServer', x=46.50, y=63.00, z=258.50], EntityZombie['Zombie'/224, l='MpServer', x=37.50, y=64.00, z=264.50], EntitySheep['Sheep'/225, l='MpServer', x=32.16, y=64.00, z=286.22], EntitySheep['Sheep'/226, l='MpServer', x=31.89, y=68.00, z=275.40], EntitySheep['Sheep'/227, l='MpServer', x=32.78, y=64.00, z=283.72], EntitySheep['Sheep'/228, l='MpServer', x=34.88, y=66.00, z=279.59], EntitySkeleton['Skeleton'/229, l='MpServer', x=41.44, y=63.00, z=282.09], EntitySheep['Sheep'/231, l='MpServer', x=32.84, y=64.00, z=293.66], EntityZombie['Zombie'/232, l='MpServer', x=31.81, y=64.00, z=298.22], EntityZombie['Zombie'/244, l='MpServer', x=57.50, y=48.00, z=150.50], EntitySheep['Sheep'/245, l='MpServer', x=45.09, y=75.00, z=176.00], EntitySheep['Sheep'/246, l='MpServer', x=63.88, y=73.00, z=201.19], EntityCreeper['Creeper'/247, l='MpServer', x=63.50, y=75.00, z=194.50], EntitySheep['Sheep'/248, l='MpServer', x=62.53, y=65.00, z=228.41], EntityCreeper['Creeper'/249, l='MpServer', x=61.19, y=66.00, z=228.50], EntityCreeper['Creeper'/250, l='MpServer', x=59.50, y=45.00, z=254.50], EntitySheep['Sheep'/251, l='MpServer', x=49.41, y=64.00, z=251.16], EntityBat['Bat'/252, l='MpServer', x=58.25, y=48.10, z=263.63], EntitySheep['Sheep'/253, l='MpServer', x=49.84, y=63.00, z=298.69]]
+	Retry entities: 0 total; []
+	Server brand: fml,forge
+	Server type: Integrated singleplayer server
+Stacktrace:
+	at net.minecraft.client.multiplayer.WorldClient.addWorldInfoToCrashReport(WorldClient.java:347)
+	at net.minecraft.client.Minecraft.addGraphicsAndWorldToCrashReport(Minecraft.java:2536)
+	at net.minecraft.client.Minecraft.run(Minecraft.java:370)
+	at net.minecraft.client.main.Main.main(Main.java:124)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:135)
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:28)
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.8.9
+	Operating System: Mac OS X (x86_64) version 10.16
+	Java Version: 1.8.0_202, Oracle Corporation
+	Java VM Version: Java HotSpot(TM) 64-Bit Server VM (mixed mode), Oracle Corporation
+	Memory: 217633184 bytes (207 MB) / 982515712 bytes (937 MB) up to 1908932608 bytes (1820 MB)
+	JVM Flags: 0 total; 
+	IntCache: cache: 0, tcache: 0, allocated: 12, tallocated: 94
+	FML: MCP 9.19 Powered by Forge 11.15.1.2318 5 mods loaded, 5 mods active
+	States: 'U' = Unloaded 'L' = Loaded 'C' = Constructed 'H' = Pre-initialized 'I' = Initialized 'J' = Post-initialized 'A' = Available 'D' = Disabled 'E' = Errored
+	UCHIJAAAA	mcp{9.19} [Minecraft Coder Pack] (minecraft.jar) 
+	UCHIJAAAA	FML{8.0.99.99} [Forge Mod Loader] (forge-1.8.9-11.15.1.2318-1.8.9-minecraft-merged-generated-intermediate-1.8.9-de.oceanlabs.mcp.mcp_stable.1_8_9.22-1.8.9-forge-1.8.9-11.15.1.2318-1.8.9.jar) 
+	UCHIJAAAA	Forge{11.15.1.2318} [Minecraft Forge] (forge-1.8.9-11.15.1.2318-1.8.9-minecraft-merged-generated-intermediate-1.8.9-de.oceanlabs.mcp.mcp_stable.1_8_9.22-1.8.9-forge-1.8.9-11.15.1.2318-1.8.9.jar) 
+	UCHIJAAAA	arsenic{1.0} [Arsenic Client] (main) 
+	UCHIJAAAA	oneconfig{0.2.2-alpha213} [OneConfig] (OneConfig (1.8.9-forge).jar) 
+	Loaded coremods (and transformers): 
+DevAuthLoadingPlugin (DevAuth-forge-legacy-1.2.0.jar)
+  me.djtheredstoner.devauth.forge.legacy.ClassTransformer
+	Launched Version: UnknownFMLProfile
+	LWJGL: 2.9.2
+	OpenGL: Apple M1 GL version 2.1 Metal - 83.1, Apple
+	GL Caps: Using GL 1.3 multitexturing.
+Using GL 1.3 texture combiners.
+Using framebuffer objects because ARB_framebuffer_object is supported and separate blending is supported.
+Shaders are available because OpenGL 2.1 is supported.
+VBOs are available because OpenGL 1.5 is supported.
+
+	Using VBOs: No
+	Is Modded: Definitely; Client brand changed to 'fml,forge'
+	Type: Client (map_client.txt)
+	Resource Packs: 
+	Current Language: English (US)
+	Profiler Position: N/A (disabled)
+	CPU: 8x Apple M1

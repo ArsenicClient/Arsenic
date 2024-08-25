@@ -13,6 +13,7 @@ import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F)
 public class FullBright extends Module {
+
     public final EnumProperty<fEnum> fullbrightmode = new EnumProperty<>("Mode: ",fEnum.Gamma );
 
     int originalGamma = 0;

@@ -4,6 +4,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.StringProperty;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.entity.Entity;
@@ -23,6 +24,13 @@ public class AntiBot extends Module {
             twiceChecks = new BooleanProperty("Twice UUID Checks", false),
             zeroHealthChecks = new BooleanProperty("Dead Checks", false),
             alwaysClose = new BooleanProperty("Always Close Checks", false);
+
+
+    public StringProperty stringProperty = new StringProperty("One");
+    public StringProperty stringPropetrty = new StringProperty("OTne");
+    public StringProperty stritngProperty = new StringProperty("Otne");
+    public StringProperty stritngPropetrty = new StringProperty("Otne");
+
 
     public static boolean isBot(Entity entityPlayer) {
         // exception
