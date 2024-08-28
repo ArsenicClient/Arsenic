@@ -38,7 +38,8 @@ public class ESP extends Module {
         for (EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if (entity == mc.thePlayer)
                 continue;
-            if (Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isBot(entity))
+            AntiBot antibot = Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class);
+            if (antibot.isEnabled() && antibot.isBot(entity))
                 continue;
             IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
             double x = (entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();
