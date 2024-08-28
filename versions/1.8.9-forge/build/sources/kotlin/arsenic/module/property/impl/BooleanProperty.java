@@ -5,6 +5,7 @@ import arsenic.module.property.Property;
 import arsenic.utils.render.PosInfo;
 import cc.polyfrost.oneconfig.config.elements.BasicOption;
 import cc.polyfrost.oneconfig.gui.elements.config.ConfigButton;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigCheckbox;
 import cc.polyfrost.oneconfig.gui.elements.config.ConfigHeader;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,6 +20,8 @@ import java.lang.reflect.Field;
 import java.util.function.Supplier;
 
 public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
+
+    public boolean dummyBoolean;
 
     public BooleanProperty(String name, Boolean value) {
         super(name, value);
@@ -74,11 +77,12 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
         };
     }
 
+    //does not work
     @Override
     public BasicOption getOption() {
         try {
             Field field = Property.class.getDeclaredField("value");
-            return new ConfigButton(field, value, getName(), "", "General", "", 0, getName());
+            return new ConfigCheckbox(field, this, getName(), "", "General", "", 0);
         } catch (Exception e) {
             e.printStackTrace();
         }

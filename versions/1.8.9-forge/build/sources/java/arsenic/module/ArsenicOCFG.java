@@ -33,4 +33,10 @@ public class ArsenicOCFG extends Config {
         });
         super.initialize();
     }
+
+    @Override
+    public void save() {}
+
+    @Override
+    public void load() {}
 }

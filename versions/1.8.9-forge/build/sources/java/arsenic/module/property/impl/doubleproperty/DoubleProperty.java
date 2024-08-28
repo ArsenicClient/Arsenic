@@ -3,6 +3,7 @@ package arsenic.module.property.impl.doubleproperty;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.click.impl.SearchComponent;
 import arsenic.main.Arsenic;
+import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
@@ -10,12 +11,17 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
+import cc.polyfrost.oneconfig.config.elements.BasicOption;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigCheckbox;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigNumber;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigSlider;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Mouse;
 
 import java.awt.*;
+import java.lang.reflect.Field;
 
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
@@ -119,4 +125,24 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         };
     }
 
+    @Override
+    public BasicOption getOption() {
+        try {
+            Field field = DoubleValue.class.getDeclaredField("value");
+            return new ConfigSlider(field, value, getName(), "", "General", "", (float) value.getMinBound(), (float) value.getMaxBound(), 0) {
+                @Override
+                public Object get() throws IllegalAccessException {
+                    return (float) getValue().getInput();
+                }
+
+                @Override
+                protected void set(Object object) throws IllegalAccessException {
+                    getValue().setInput((float) object);
+                }
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

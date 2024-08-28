@@ -3,6 +3,7 @@ package arsenic.module.property.impl;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
+import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
@@ -10,9 +11,14 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
+import cc.polyfrost.oneconfig.config.elements.BasicOption;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigCheckbox;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigDropdown;
 import com.google.gson.JsonObject;
 
 import java.awt.*;
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
@@ -157,5 +163,26 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         public void setNotAlwaysClickable() {
             open = false;
         }
+    }
+
+    @Override
+    public BasicOption getOption() {
+        try {
+            Field field = Property.class.getDeclaredField("value");
+            return new ConfigDropdown(field, this, getName(), "", "General", "", 0, Arrays.stream(modes).map(Enum::name).toArray(String[]::new)) {
+                @Override
+                public Object get() throws IllegalAccessException {
+                    return 0;
+                }
+
+                @Override
+                protected void set(Object object) throws IllegalAccessException {
+
+                }
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

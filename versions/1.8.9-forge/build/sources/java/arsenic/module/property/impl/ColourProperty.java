@@ -3,16 +3,24 @@ package arsenic.module.property.impl;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
+import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
+import cc.polyfrost.oneconfig.config.core.OneColor;
+import cc.polyfrost.oneconfig.config.elements.BasicOption;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigCheckbox;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigColorElement;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
+
+import java.lang.reflect.Field;
 
 public class ColourProperty extends SerializableProperty<Integer> {
 
     private cMode mode = cMode.CUSTOM;
+    private OneColor oneColor = new OneColor(0);
 
     public ColourProperty(String name, int value) {
         super(name, value);
@@ -31,6 +39,14 @@ public class ColourProperty extends SerializableProperty<Integer> {
         setValueSilently(obj.get("value").getAsInt());
     }
 
+    @Override
+    public void setValue(Integer value) {
+        super.setValue(value);
+        System.out.println("what about this one");
+        short[] hsba = OneColor.ARGBtoHSBA(value);
+        oneColor.setHSBA(hsba[0], hsba[1], hsba[2], hsba[3]);
+    }
+
     public void setMode(cMode mode) {
         if(mode == null)
             return;
@@ -38,7 +54,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
     }
 
     public void setColor(int i, int newValue) {
-        value = ColorUtils.setColor(value, i, newValue);
+        setValue(ColorUtils.setColor(value, i, newValue));
     }
 
     @Override
@@ -114,7 +130,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                         helping = i;
                     }
                 } else if (mouseButton == 1) {
-                   setMode(cMode.values()[((mode.ordinal() + 1) % 2)]);
+                    setMode(cMode.values()[((mode.ordinal() + 1) % 2)]);
                 }
             }
 
@@ -140,4 +156,21 @@ public class ColourProperty extends SerializableProperty<Integer> {
         THEME,
     }
 
+    @Override
+    public BasicOption getOption() {
+        try {
+            Field field = getClass().getDeclaredField("oneColor");
+            return new ConfigColorElement(field, this, getName(), "", "General", "", 0, true) {
+                @Override
+                protected void setColor(OneColor color) {
+                    super.setColor(color);
+                    System.out.println("is this called");
+                    value = oneColor.getRGB();
+                }
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
