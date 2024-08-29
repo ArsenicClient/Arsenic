@@ -3,15 +3,19 @@ package arsenic.module.property.impl.rangeproperty;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import cc.polyfrost.oneconfig.config.elements.BasicOption;
+import cc.polyfrost.oneconfig.gui.elements.config.ConfigSlider;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import java.lang.reflect.Field;
 import java.util.function.BiConsumer;
 
 public class RangeProperty extends SerializableProperty<RangeValue> {

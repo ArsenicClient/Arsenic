@@ -172,12 +172,14 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             return new ConfigDropdown(field, this, getName(), "", "General", "", 0, Arrays.stream(modes).map(Enum::name).toArray(String[]::new)) {
                 @Override
                 public Object get() throws IllegalAccessException {
-                    return 0;
+                    return Arrays.asList(modes).indexOf(value);
                 }
 
                 @Override
                 protected void set(Object object) throws IllegalAccessException {
-
+                    System.out.println("Called!!" + object);
+                    setValue(modes[(int) object]);
+                    System.out.println(value.name());
                 }
             };
         } catch (Exception e) {

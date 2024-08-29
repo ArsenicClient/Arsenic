@@ -21,8 +21,9 @@ public class DoubleValue {
     public void setInputSilently(double value) {
         this.value = getCorrectedValue(value);
     }
+
     public void setInput(double value) {
-        setInputSilently(value);
+        setInputSilently(getCorrectedValue(value));
         onUpdate();
     }
 
