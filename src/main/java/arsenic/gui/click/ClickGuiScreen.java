@@ -41,10 +41,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
-        searchComponent = new SearchComponent(ModuleCategory.SEARCH);
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
         this.module = clickGui;
+        searchComponent = new SearchComponent(ModuleCategory.SEARCH);
     }
 
     //called every time the ui is created
