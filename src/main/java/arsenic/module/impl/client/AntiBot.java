@@ -13,6 +13,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import java.util.ArrayList;
 import java.util.Collection;
 
+//TODO: recode le unique code
+
 @ModuleInfo(name = "AntiBot", category = ModuleCategory.SETTINGS)
 public class AntiBot extends Module {
     public static BooleanProperty nameChecks = new BooleanProperty("Name Checks", true),
@@ -25,16 +27,11 @@ public class AntiBot extends Module {
             alwaysClose = new BooleanProperty("Always Close Checks", false);
 
     public static boolean isBot(Entity entityPlayer) {
-        // exception
-        if (entityPlayer != mc.thePlayer) {
-            return isBotCustom(entityPlayer);
-        }
-
-        return false;
+        return isBotCustom(entityPlayer);
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en)) {
+        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en) || !this.isEnabled()) {
             return false;
         }
 
