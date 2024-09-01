@@ -26,7 +26,6 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     int x,y;
     public SearchComponent(ModuleCategory category) {
         super(category);
-        gui.setAlwaysInputComponent(this);
     }
     public void setupGlowAndBlur(){
         DrawUtils.drawGradientRoundedRect(x, y - 10, x1, y + 10,8,getEnabledColor(),getEnabledColor(),getGradientColor(),getGradientColor());
@@ -72,7 +71,6 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
 
     }
 
-    @Override
     public boolean recieveInput(int key) {
         if (key == Keyboard.KEY_SLASH){
             toggleSearch();
@@ -131,10 +129,8 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     private void toggleSearch(){
         if (gui.getCmcc() != this) {
             gui.setCmcc(this);
-            gui.setAlwaysInputComponent(this);
         } else {
             gui.setCmcc(gui.getPrevCmcc());
-            gui.setAlwaysInputComponent(this);
             inp.delete(0,inp.length());
         }
     }
