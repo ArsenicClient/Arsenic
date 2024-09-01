@@ -181,6 +181,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
             alwaysKeyboardInput.recieveInput(keyCode);
             return;
         }
+        ((SearchComponent) searchComponent).recieveInput(keyCode);
         super.keyTyped(typedChar, keyCode);
     }
 
