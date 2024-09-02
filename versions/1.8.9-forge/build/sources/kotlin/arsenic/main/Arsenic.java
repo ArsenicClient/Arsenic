@@ -11,10 +11,6 @@ import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -39,6 +35,7 @@ public class Arsenic {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
     private final Executor executor = Executors.newSingleThreadExecutor();
+    private int primary500;
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {

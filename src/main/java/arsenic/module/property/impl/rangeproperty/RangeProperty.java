@@ -4,6 +4,7 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.ocfg.ConfigRange;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -148,6 +149,27 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         private void setValue(RangeProperty r, double value) {
             v.accept(r,value);
         }
+    }
+
+    @Override
+    public BasicOption getOption() {
+        try {
+            Field field = DoubleValue.class.getDeclaredField("value");
+            return new ConfigRange(field, value, getName(), "", "General", "", getValue()) {
+                @Override
+                public Object get() throws IllegalAccessException {
+                    return null;
+                }
+
+                @Override
+                protected void set(Object object) throws IllegalAccessException {
+
+                }
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
 

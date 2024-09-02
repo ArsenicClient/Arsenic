@@ -2,7 +2,6 @@ package arsenic.injection.mixin;
 
 import arsenic.event.impl.*;
 import arsenic.module.impl.blatant.NoSlow;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemFood;
@@ -14,20 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.*;
-import net.minecraft.entity.boss.EntityDragonPart;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.potion.Potion;
-import net.minecraft.stats.AchievementList;
-import net.minecraft.stats.StatList;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.common.ForgeHooks;
 import com.mojang.authlib.GameProfile;
 
 import arsenic.main.Arsenic;

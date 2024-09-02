@@ -6,6 +6,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.module.property.ocfg.ConfigRange;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;

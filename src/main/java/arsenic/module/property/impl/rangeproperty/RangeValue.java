@@ -16,7 +16,11 @@ public class RangeValue {
         this.inc = inc;
     }
 
-    private double getCorrectedValue(double value) {
+    public double getStep() {
+        return inc;
+    }
+
+    public double getCorrectedValue(double value) {
         value = Math.min(Math.max(value, minBound), maxBound);
         return Math.round(value * (1.0D / inc)) / (1.0D / inc);
     }

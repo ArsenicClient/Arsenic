@@ -1,5 +1,6 @@
 .gradle
 /build/
+/versions/1.8.9-forge
 
 *.iml
 *.ipr

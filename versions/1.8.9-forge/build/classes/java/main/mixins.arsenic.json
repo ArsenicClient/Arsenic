@@ -34,8 +34,10 @@
     "accessor.IMixinS12PacketEntityVelocity",
     "accessor.S03PacketTimeUpdateAccessor",
     "mixin.MixinArsenicOCFG",
+    "mixin.MixinColors",
     "mixin.MixinEntityPlayer",
     "mixin.MixinItemTool",
+    "mixin.MixinSVGs",
     "mixin.MixinWorld"
   ]
 }
