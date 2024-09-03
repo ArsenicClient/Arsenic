@@ -43,7 +43,7 @@ public class Clicker extends Module {
         if (timer.hasTimeElapsed(1000L / cps)) {
             if (playSound.getValue()){
                 if (System.currentTimeMillis() > lastSound) {
-                    new Thread(() -> SoundUtils.playSound("click")).start();
+                    SoundUtils.playSound("click");
                     lastSound = System.currentTimeMillis() + 80;
                 }
             }
