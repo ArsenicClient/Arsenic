@@ -101,7 +101,7 @@ public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix 
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if(Mouse.isButtonDown(0) && mode == cMode.CUSTOM) { //for some reason 'mouseButton' causes the thing to get stuck in search menu.
+                if(mouseButton == 0 && mode == cMode.CUSTOM) {
                     if (!(mouseX > lineX1 && mouseX < lineX2))
                         return;
                     clicked = true;
@@ -114,7 +114,7 @@ public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix 
                         closestDist = dist;
                         helping = i;
                     }
-                } else if (Mouse.isButtonDown(1)) {
+                } else if (mouseButton == 1) {
                    setMode(cMode.values()[((mode.ordinal() + 1) % 2)]);
                 }
             }
@@ -122,6 +122,7 @@ public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix 
 
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
+                clicked = Mouse.isButtonDown(0);
                 if(!clicked) return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
                 setColor(helping, (int) (mousePercent * 255));
