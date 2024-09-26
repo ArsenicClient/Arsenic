@@ -9,8 +9,9 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.input.Mouse;
 
-public class ColourProperty extends SerializableProperty<Integer> {
+public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix alpha
 
     private cMode mode = cMode.CUSTOM;
 
@@ -100,7 +101,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if(mouseButton == 0 && mode == cMode.CUSTOM) {
+                if(Mouse.isButtonDown(0) && mode == cMode.CUSTOM) { //for some reason 'mouseButton' causes the thing to get stuck in search menu.
                     if (!(mouseX > lineX1 && mouseX < lineX2))
                         return;
                     clicked = true;
@@ -113,7 +114,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
                         closestDist = dist;
                         helping = i;
                     }
-                } else if (mouseButton == 1) {
+                } else if (Mouse.isButtonDown(1)) {
                    setMode(cMode.values()[((mode.ordinal() + 1) % 2)]);
                 }
             }
