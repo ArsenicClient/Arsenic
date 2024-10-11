@@ -3,7 +3,7 @@ package arsenic.module.impl.ghost;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -34,9 +34,8 @@ public class Clicker extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventTick> eventRunTickListener = e -> {
-        BlockHit blockHit = Arsenic.getArsenic().getModuleManager().getModuleByClass(BlockHit.class);
-        if (!mc.gameSettings.keyBindAttack.isKeyDown() || (mc.gameSettings.keyBindUseItem.isKeyDown() && (!blockHit.isEnabled() || !blockHit.isAutoblock()))) return;
+    public final Listener<EventRunTick> eventRunTickListener = e -> {
+        if (!mc.gameSettings.keyBindAttack.isKeyDown() || mc.gameSettings.keyBindUseItem.isKeyDown()) return;
 
         if (drop.getValue()) {
             if (mc.thePlayer.ticksExisted % 12 == 0) {
@@ -60,7 +59,7 @@ public class Clicker extends Module {
     };
 
     private void randomize() {
-        cps = (long) JavaUtils.getRandom(rangeProperty.getValue().getMin(),rangeProperty.getValue().getMax()) + 6;
+        cps = (long) JavaUtils.getRandom(rangeProperty.getValue().getMin(),rangeProperty.getValue().getMax());
     }
 
     @Override
