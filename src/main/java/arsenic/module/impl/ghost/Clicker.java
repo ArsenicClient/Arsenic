@@ -4,6 +4,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRunTick;
+import arsenic.event.impl.EventLiving;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -30,12 +31,17 @@ public class Clicker extends Module {
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
     final MSTimer timer = new MSTimer();
     private long cps,prevCps,lastSound;
-    private boolean breakHeld;
-
+    private boolean lmbDown;
+    
+    @EventLink
+    public final Listener<EventLiving> eventLivingListener = e -> {
+        lmbDown = mc.gameSettings.keyBindAttack.isKeyDown();
+    };
+    
     @RequiresPlayer
     @EventLink
     public final Listener<EventRunTick> eventRunTickListener = e -> {
-        if (!mc.gameSettings.keyBindAttack.isKeyDown() || mc.gameSettings.keyBindUseItem.isKeyDown()) return;
+        if (!lmbDown || mc.gameSettings.keyBindUseItem.isKeyDown()) return;
 
         if (drop.getValue()) {
             if (mc.thePlayer.ticksExisted % 12 == 0) {
