@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -31,7 +32,7 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en) || !this.isEnabled()) {
+        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en) || !Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isEnabled()) {
             return false;
         }
 

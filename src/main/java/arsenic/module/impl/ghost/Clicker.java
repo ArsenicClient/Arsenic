@@ -15,6 +15,11 @@ import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockLiquid;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.util.BlockPos;
 
 @ModuleInfo(name = "Clicker", category = ModuleCategory.GHOST)
 public class Clicker extends Module {
@@ -24,13 +29,14 @@ public class Clicker extends Module {
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
     final MSTimer timer = new MSTimer();
     private long cps,prevCps,lastSound;
+    private boolean breakHeld;
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventRunTickListener = e -> {
         BlockHit blockHit = Arsenic.getArsenic().getModuleManager().getModuleByClass(BlockHit.class);
         if (!mc.gameSettings.keyBindAttack.isKeyDown() ||
-                (mc.gameSettings.keyBindUseItem.isKeyDown() &&
+                (mc.gameSettings.keyBindUseItem.isKeyDown() && breakBlock() ||
                         (!blockHit.isEnabled() || !blockHit.isAutoblock()))) return;
 
         if (drop.getValue()) {
@@ -61,5 +67,26 @@ public class Clicker extends Module {
     @Override
     protected void onEnable() {
         randomize();
+    }
+
+    public boolean breakBlock() {
+        if (mc.objectMouseOver == null) return false;
+
+        BlockPos blockPos = mc.objectMouseOver.getBlockPos();
+        if (blockPos == null) return false;
+
+        Block block = mc.theWorld.getBlockState(blockPos).getBlock();
+        if (block == Blocks.air || block instanceof BlockLiquid) {
+            breakHeld = false;
+            return false;
+        }
+
+        if (!breakHeld) {
+            int attackKey = mc.gameSettings.keyBindAttack.getKeyCode();
+            KeyBinding.setKeyBindState(attackKey, true);
+            KeyBinding.onTick(attackKey);
+            breakHeld = true;
+        }
+        return true;
     }
 }
