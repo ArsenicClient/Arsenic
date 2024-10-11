@@ -31,6 +31,10 @@ public abstract class MixinMinecraft {
 
     @Shadow
     public GameSettings gameSettings;
+    
+    @Shadow 
+    private int leftClickCounter;
+
 
     @ModifyArg(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;setKeyBindState(IZ)V"), index = 0)
     public int getKeybind(int p_setKeyBindState_0_) {
@@ -75,6 +79,11 @@ public abstract class MixinMinecraft {
 
         rightClickDelayTimer = fastPlace.getTickDelay();
 
+    }
+
+    @Inject(method = "clickMouse", at = @At("HEAD"))
+    public void clickMoose(CallbackInfo ci) { //better hitreg.
+        this.leftClickCounter = 0;
     }
 
 }
