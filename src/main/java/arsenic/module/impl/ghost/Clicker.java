@@ -15,6 +15,7 @@ import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
+import arsenic.injection.accessor.IMixinMinecraft;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.block.BlockLiquid;
@@ -35,9 +36,7 @@ public class Clicker extends Module {
     @EventLink
     public final Listener<EventTick> eventRunTickListener = e -> {
         BlockHit blockHit = Arsenic.getArsenic().getModuleManager().getModuleByClass(BlockHit.class);
-        if (!mc.gameSettings.keyBindAttack.isKeyDown() ||
-                (mc.gameSettings.keyBindUseItem.isKeyDown() && breakBlock() ||
-                        (!blockHit.isEnabled() || !blockHit.isAutoblock()))) return;
+        if (!mc.gameSettings.keyBindAttack.isKeyDown() || (mc.gameSettings.keyBindUseItem.isKeyDown() && (!blockHit.isEnabled() || !blockHit.isAutoblock()))) return;
 
         if (drop.getValue()) {
             if (mc.thePlayer.ticksExisted % 12 == 0) {
@@ -53,7 +52,7 @@ public class Clicker extends Module {
                     lastSound = System.currentTimeMillis() + 80;
                 }
             }
-            PlayerUtils.click();
+            ((IMixinMinecraft) mc).leftClick();
             prevCps = cps;
             randomize();
             timer.reset();
@@ -67,26 +66,5 @@ public class Clicker extends Module {
     @Override
     protected void onEnable() {
         randomize();
-    }
-
-    public boolean breakBlock() {
-        if (mc.objectMouseOver == null) return false;
-
-        BlockPos blockPos = mc.objectMouseOver.getBlockPos();
-        if (blockPos == null) return false;
-
-        Block block = mc.theWorld.getBlockState(blockPos).getBlock();
-        if (block == Blocks.air || block instanceof BlockLiquid) {
-            breakHeld = false;
-            return false;
-        }
-
-        if (!breakHeld) {
-            int attackKey = mc.gameSettings.keyBindAttack.getKeyCode();
-            KeyBinding.setKeyBindState(attackKey, true);
-            KeyBinding.onTick(attackKey);
-            breakHeld = true;
-        }
-        return true;
     }
 }
