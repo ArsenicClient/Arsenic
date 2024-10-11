@@ -20,6 +20,7 @@ public class AutoGG extends Module {
                     "You won! Want to play again? Click here! ",
                     "You lost! Want to play again? Click here! ",
                     "You died! Want to play again? Click here! ",
+                    "won the game!"
             };
 
             if(unformattedText == null) {
