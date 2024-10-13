@@ -267,6 +267,34 @@ public class RenderUtils extends UtilityClass {
         vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
         ts.draw();
     }
+
+    public static void drawLineToEntity(Entity e, int r, int g, int b, int a, double lw) {
+        if (e != null) {
+            double x = e.lastTickPosX + (e.posX - e.lastTickPosX) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosX;
+            double y = (double) e.getEyeHeight() + e.lastTickPosY + (e.posY - e.lastTickPosY) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosY;
+            double z = e.lastTickPosZ + (e.posZ - e.lastTickPosZ) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosZ;
+            GL11.glPushMatrix();
+            GL11.glEnable(3042);
+            GL11.glEnable(GL_LINE_SMOOTH);
+            GL11.glDisable(2929);
+            GL11.glDisable(GL_TEXTURE_2D);
+            GL11.glBlendFunc(770, 771);
+            GL11.glEnable(3042);
+            GL11.glLineWidth((float) lw);
+            GL11.glColor4f(r, g, b, a);
+            GL11.glBegin(2);
+            GL11.glVertex3d(0.0D, (double) mc.thePlayer.getEyeHeight(), 0.0D);
+            GL11.glVertex3d(x, y, z);
+            GL11.glEnd();
+            GL11.glDisable(GL_BLEND);
+            GL11.glEnable(GL_TEXTURE_2D);
+            GL11.glEnable(2929);
+            GL11.glDisable(GL_LINE_SMOOTH);
+            GL11.glDisable(GL_BLEND);
+            GL11.glPopMatrix();
+        }
+    }
+
     public static void color2(int color, float alpha) {
         float r = (float) (color >> 16 & 255) / 255.0F;
         float g = (float) (color >> 8 & 255) / 255.0F;
