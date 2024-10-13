@@ -72,6 +72,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     }
 
     public boolean recieveInput(int key) {
+        this.scroll = 0;
         if (key == Keyboard.KEY_SLASH){
             toggleSearch();
             return false;
