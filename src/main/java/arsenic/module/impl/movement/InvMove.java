@@ -34,7 +34,7 @@ public class InvMove extends Module {
     public final Listener<EventGameLoop> eventGameLoopListener = event -> {
         if (isInInventory()) {
             if (MoveUtil.isMoving()) {
-                mc.thePlayer.setSprinting(sprint.getValue() && mc.thePlayer.moveForward != 0);
+                mc.thePlayer.setSprinting(sprint.getValue() && mc.thePlayer.moveForward > 0);
             }
             for (int keyCode : keys){
                 KeyBinding.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
