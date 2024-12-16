@@ -1,17 +1,14 @@
 package arsenic.event.types;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 public class CancellableEvent implements Event {
 
-    AtomicBoolean cancelled = new AtomicBoolean(false);
+    private boolean cancelled;
 
-    public boolean isCancelled() { return this.cancelled.get(); }
+    public boolean isCancelled() { return cancelled; }
 
-    public void setCancelled(boolean cancelled) { this.cancelled.set(cancelled); }
+    public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
 
     public void cancel() {
         setCancelled(true);
     }
-
 }
