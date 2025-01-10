@@ -63,19 +63,6 @@ public class Arsenic {
         logger.info("Loaded fonts.");
 
         logger.info("Loaded {}.", clientName);
-
-        executor.execute(() -> {
-            try (CloseableHttpClient client = HttpClients.createDefault()) {
-                HttpPost post = new HttpPost("http://140.238.204.221:5001/log");
-                post.setEntity(new StringEntity(launchID.getLaunchID()));
-                System.out.println(client.execute(post));
-                logger.info("Logged Launch with ID | " + launchID.getLaunchID());
-            } catch (Exception e) {
-                logger.info("Launch Logger Broke :( | " + launchID.getLaunchID());
-                e.printStackTrace();
-            }
-            configManager.saveClientConfig();
-        });
     }
 
     public String getName() { return clientName; }
