@@ -1,3 +1,7 @@
+credits to Kv (`@kv.v`), lily (`no dc`), stephen (`@stephen.java`), Cosmic (`no dc :D`) on discord for making this possible
+
+Reach out if you want any help setting this up etc! 
+
 # Arsenic
 **The client is as good as dead; don't ask for features or open up issues. They won't be addressed.**
 
@@ -21,5 +25,3 @@ The blatant things in the client are probably patched by now. However, all the g
  
 # Everying broke please help
 ~~create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord~~
-
-credits to Kv (`@kv.dev`), lily (`@azureskylines`), stephen (`@stephen.java`), Cosmic (`no dc :D`) on discord for making this possible
