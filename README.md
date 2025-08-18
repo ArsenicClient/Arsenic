@@ -24,4 +24,4 @@ The blatant things in the client are probably patched by now. However, all the g
 - skid away :D
  
 # Everying broke please help
-~~create an issue an tag me (@K-ov) and ill prob respond in a couple days - I probably wont respond on discord~~
+create an issue an tag me (@K-ov) or add me on discord (kv.v)
