@@ -29,15 +29,15 @@ public class RotationUtils extends UtilityClass {
     }
 
     public static float[] getCappedRotations(float[] prev, float[] current, float speed){
-        float yawDiff = RotationUtils.getYawDifference(current[0], prev[0]);
+        float yawDiff = getYawDifference(current[0], prev[0]);
         if(Math.abs(yawDiff) > speed)
             yawDiff = (speed * (yawDiff > 0 ? 1 : -1))/2f;
-        float cappedPYaw = MathHelper.wrapAngleTo180_float(prev[0] + yawDiff);
+        float cappedPYaw = prev[0] + yawDiff;
 
-        float pitchDiff = RotationUtils.getYawDifference(current[1], prev[1]);
+        float pitchDiff = getPitchDifference(current[1], prev[1]);
         if(Math.abs(pitchDiff) > speed/2f)
             pitchDiff =  (speed/2f * (pitchDiff > 0 ? 1 : -1))/2f;
-        float cappedPitch = MathHelper.wrapAngleTo180_float(prev[1] + pitchDiff);
+        float cappedPitch = prev[1] + pitchDiff;
         return new float[]{cappedPYaw,cappedPitch};
     }
     public static float[] getPatchedAndCappedRots(float[] prev, float[] current, float speed){ return patchGCD(prev,getCappedRotations(prev,current,speed)); }
@@ -83,7 +83,7 @@ public class RotationUtils extends UtilityClass {
     }
 
     public static double fovFromEntity(Entity en) {
-        return ((((double) (mc.thePlayer.rotationYaw - fovToEntity(en)) % 360.0D) + 540.0D) % 360.0D) - 180.0D;
+        return getYawDifference(mc.thePlayer.rotationYaw, fovToEntity(en));
     }
 
     public static float fovToEntity(Entity ent) {
@@ -101,7 +101,7 @@ public class RotationUtils extends UtilityClass {
         final float dist = MathHelper.sqrt_double((diffX * diffX) + (diffZ * diffZ));
         float pitch = (float) Math.toDegrees(Math.atan2(diffY, dist));
         pitch += JavaUtils.getRandom(-1, 1);
-        final float yaw = (float) MathHelper.wrapAngleTo180_double(Math.toDegrees(Math.atan2(diffZ, diffX)) + 90f);
+        final float yaw = (float) (Math.toDegrees(Math.atan2(diffZ, diffX)) + 90f);
         return new float[]{yaw, pitch};
     }
 
@@ -124,10 +124,14 @@ public class RotationUtils extends UtilityClass {
     }
 
     public static float getYawDifference(float yaw1, float yaw2) {
-        float yawDiff = MathHelper.wrapAngleTo180_float(yaw1) - MathHelper.wrapAngleTo180_float(yaw2);
-        if (Math.abs(yawDiff) > 180)
-            yawDiff = yawDiff + 360;
-        return MathHelper.wrapAngleTo180_float(yawDiff);
+        float yawDiff = (yaw1 - yaw2) % 360f;
+        if (yawDiff > 180f) {
+            yawDiff -= 360f;
+        }
+        if (yawDiff < -180f) {
+            yawDiff += 360f;
+        }
+        return yawDiff;
     }
 
     public static float getPitchDifference(float pitch1, float pitch2) {
@@ -142,6 +146,7 @@ public class RotationUtils extends UtilityClass {
 
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
+
 
         float[] lastRots = new float[]{currentYaw, currentPitch};
         float[] fixedRots = patchGCD(lastRots, targetRots);
