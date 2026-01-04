@@ -1,7 +1,6 @@
 package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
-import arsenic.module.impl.blatant.AutoBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;

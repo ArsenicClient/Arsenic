@@ -19,6 +19,9 @@ import java.util.Set;
 
 @ModuleInfo(name = "ModSpoofer", category = ModuleCategory.OTHER)
 public class ModSpoofer extends Module {
+
+    //dont think this works
+
     public final BooleanProperty cancel = new BooleanProperty("Stop Forge from sending Mod List", true);
     @PropertyInfo(reliesOn = "Stop Forge from sending Mod List", value = "false")
     public final StringProperty description = new StringProperty("Toggle mods you want to send to the server.");

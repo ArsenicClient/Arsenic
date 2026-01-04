@@ -85,10 +85,6 @@ public class KillAura extends Module {
 
         if (target != null) {
             if (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target)) {
-                AutoBlock ab = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
-                if (ab.isEnabled() && ab.blockMode.getValue() == AutoBlock.bMode.Hypixel) {
-                    return;
-                }
                 if (attackTimer.hasTimeElapsed(getAttackDelay())) {
                     attack(false);
                     attackTimer.reset();
@@ -152,7 +148,7 @@ public class KillAura extends Module {
         return (long) (1000L / finalValue);
     }
 
-    private boolean canAura(){
+    private boolean canAura() {
         return target != null && !Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled();
     }
 

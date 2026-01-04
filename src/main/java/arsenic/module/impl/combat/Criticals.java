@@ -17,7 +17,7 @@ import net.minecraft.network.play.client.C03PacketPlayer;
 
 @ModuleInfo(name = "Criticals", category = ModuleCategory.BLATANT)
 public class Criticals extends Module {
-    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ", CritMode.Offset);
+    public final EnumProperty<CritMode> critMode = new EnumProperty<>("Mode: ", CritMode.Jump);
 
     private boolean attack = false;
 
@@ -25,30 +25,10 @@ public class Criticals extends Module {
     @EventLink
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
         if (mc.thePlayer != null && mc.theWorld != null) {
-            switch (critMode.getValue()) {
-                case Offset: {
-                    if (event.getPacket() instanceof C02PacketUseEntity && ((C02PacketUseEntity) event.getPacket()).getAction() == C02PacketUseEntity.Action.ATTACK) {
-                        mc.getNetHandler().addToSendQueue(new C03PacketPlayer.C04PacketPlayerPosition(
-                                mc.thePlayer.posX, mc.thePlayer.posY + 0.0625, mc.thePlayer.posZ, false
-                        ));
-                        mc.getNetHandler().addToSendQueue(new C03PacketPlayer.C04PacketPlayerPosition(
-                                mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, false
-                        ));
-                    }
+            if (critMode.getValue() == CritMode.Jump) {
+                if (event.getPacket() instanceof C02PacketUseEntity && ((C02PacketUseEntity) event.getPacket()).getAction() == C02PacketUseEntity.Action.ATTACK) {
+                    attack = true;
                 }
-                case Jump: {
-                    if (event.getPacket() instanceof C02PacketUseEntity && ((C02PacketUseEntity) event.getPacket()).getAction() == C02PacketUseEntity.Action.ATTACK) {
-                        attack = true;
-                    }
-                }
-                case NoGround:
-                    if (event.getPacket() instanceof C03PacketPlayer) {
-                        if (Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class).target != null) {
-                            ((C03PacketPlayerAccessor) event.getPacket()).setOnGround(false);
-                            PlayerUtils.addWaterMarkedMessageToChat("spoof");
-                        }
-                    }
-                    break;
             }
         }
     };
@@ -64,8 +44,6 @@ public class Criticals extends Module {
     };
 
     public enum CritMode {
-        NoGround,
-        Offset,
         Jump,
     }
 }
