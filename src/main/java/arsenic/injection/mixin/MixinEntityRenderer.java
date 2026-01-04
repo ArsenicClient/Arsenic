@@ -3,28 +3,20 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.ghost.HitBox;
-import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.player.NoHurtCam;
 import com.google.common.base.Predicates;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItemFrame;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
-import net.minecraftforge.client.ForgeHooksClient;
-import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -53,18 +45,17 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
-            Reach reachMod = Arsenic.getArsenic().getModuleManager().getModuleByClass(Reach.class);
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
             double d0 = this.mc.playerController.getBlockReachDistance();
-            this.mc.objectMouseOver = entity.rayTrace(Math.max(d0, reachMod.getReach()), p_getMouseOver_1_);
+            this.mc.objectMouseOver = entity.rayTrace(Math.max(d0, 3.0), p_getMouseOver_1_);
             double d1 = d0;
             Vec3 vec3 = entity.getPositionEyes(p_getMouseOver_1_);
             boolean flag = false;
             if(this.mc.playerController.extendedReach()) {
                 d0 = 6.0D;
                 d1 = 6.0D;
-            } else if(d0 > reachMod.getReach()) {
+            } else if(d0 > 3.0) {
                 flag = true;
             }
 
@@ -82,8 +73,6 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
 
             for (Entity entity1 : list) {
                 float f1 = entity1.getCollisionBorderSize();
-                if(entity1 instanceof EntityPlayer)
-                    f1 += (float) (Arsenic.getArsenic().getModuleManager().getModuleByClass(HitBox.class).getExpand());
                 AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().expand(f1, f1, f1);
                 MovingObjectPosition movingobjectposition = axisalignedbb.calculateIntercept(vec3, vec32);
                 if (axisalignedbb.isVecInside(vec3)) {
@@ -109,7 +98,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                 }
             }
 
-            if (this.pointedEntity != null && flag && vec3.distanceTo(vec33) > (reachMod.getReach())) {
+            if (this.pointedEntity != null && flag && vec3.distanceTo(vec33) > (3.0)) {
                 this.pointedEntity = null;
                 this.mc.objectMouseOver = new MovingObjectPosition(MovingObjectPosition.MovingObjectType.MISS, Objects.requireNonNull(vec33), null, new BlockPos(vec33));
             }
