@@ -70,7 +70,7 @@ public abstract class MixinItemRenderer {
             if (this.itemToRender != null) {
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0 || (itemToRender.getItem() instanceof ItemSword && Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).isEnabled() && Arsenic.getInstance().getModuleManager().getModuleByClass(AutoBlock.class).renderBlock)) {
+                } else if (player.getItemInUseCount() > 0) {
                     EnumAction action = this.itemToRender.getItemUseAction();
                     switch (action) {
                         case NONE:
