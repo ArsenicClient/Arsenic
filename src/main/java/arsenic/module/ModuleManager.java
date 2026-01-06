@@ -4,7 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.client.PostProcessing;
+import arsenic.module.impl.visual.PostProcessing;
 import org.reflections.Reflections;
 
 import java.util.*;

@@ -1,4 +1,4 @@
-package arsenic.module.impl.client;
+package arsenic.module.impl.visual;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;

@@ -3,7 +3,7 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.player.NoHurtCam;
+import arsenic.module.impl.visual.NoHurtCam;
 import com.google.common.base.Predicates;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;

@@ -1,4 +1,4 @@
-package arsenic.module.impl.player;
+package arsenic.module.impl.visual;
 
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;

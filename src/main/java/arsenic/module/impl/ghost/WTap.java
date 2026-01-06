@@ -1,4 +1,4 @@
-package arsenic.module.impl.combat;
+package arsenic.module.impl.ghost;
 
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
