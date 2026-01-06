@@ -2,6 +2,7 @@ package arsenic.module.impl.ghost;
 
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
+import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRunTick;
 import arsenic.event.impl.EventLiving;
@@ -39,7 +40,7 @@ public class Clicker extends Module {
     };
     
     @RequiresPlayer
-    @EventLink
+    @EventLink(Priorities.VERY_LOW)
     public final Listener<EventRunTick> eventRunTickListener = e -> {
         if (!lmbDown || mc.gameSettings.keyBindUseItem.isKeyDown()) return;
 
@@ -48,16 +49,20 @@ public class Clicker extends Module {
                 cps -= (long) JavaUtils.getRandom(1,3);
             }
         }
+
         if (cps == prevCps) cps -= (long) JavaUtils.getRandom(1,3);
 
+        cps = Math.max(1, cps);
         if (timer.hasTimeElapsed(1000L / cps)) {
-            if (playSound.getValue()){
+            if (playSound.getValue()) {
                 if (System.currentTimeMillis() > lastSound) {
                     SoundUtils.playSound("click");
                     lastSound = System.currentTimeMillis() + 80;
                 }
             }
-            ((IMixinMinecraft) mc).leftClick();
+            //((IMixinMinecraft) mc).leftClick();
+            int key = mc.gameSettings.keyBindAttack.getKeyCode();
+            KeyBinding.onTick(key);
             prevCps = cps;
             randomize();
             timer.reset();
