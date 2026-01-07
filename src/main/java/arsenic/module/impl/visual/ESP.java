@@ -11,11 +11,13 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
+import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.culling.ICamera;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -31,6 +33,9 @@ public class ESP extends Module {
 
     public ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
     public BooleanProperty bedWars = new BooleanProperty("BedWars", false);
+    public BooleanProperty shaderEsp = new BooleanProperty("Shader ESP", true);
+    public BooleanProperty boxEsp = new BooleanProperty("Box ESP", true);
+    public BooleanProperty healthEsp = new BooleanProperty("Health ESP", false);
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
@@ -56,8 +61,17 @@ public class ESP extends Module {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glDepthMask(false);
             GL11.glLineWidth(2.0F);
-            RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
-            RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+            if (shaderEsp.getValue()) {
+                RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
+            }
+            if (boxEsp.getValue()) {
+                RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+            }
+            if (healthEsp.getValue()) {
+                GL11.glPushMatrix();
+                drawHealthEsp(entity, x, y, z);
+                GL11.glPopMatrix();
+            }
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_BLEND);
@@ -66,6 +80,26 @@ public class ESP extends Module {
             GlStateManager.popMatrix();
         }
     };
+
+    private void drawHealthEsp(EntityPlayer entity, double x, double y, double z) {
+        if (!(entity instanceof EntityLivingBase)) return;
+        EntityLivingBase en = (EntityLivingBase) entity;
+        double r = JavaUtils.limit(en.getHealth() / en.getMaxHealth(), 0, 1);
+        int b = (int) (74.0D * r);
+        int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
+
+        GlStateManager.pushMatrix();
+        GL11.glTranslated(x, y - 0.2D, z);
+        GL11.glRotated(-mc.getRenderManager().playerViewY, 0.0D, 1.0D, 0.0D);
+        GlStateManager.disableDepth();
+        GL11.glScalef(0.03F, 0.03F, 0.03F); // Removed 'd' from scale, assuming 'd' was a variable from original context not available here.
+        int i = 21; // Assuming 'shift' was also a context variable, using a fixed value for 'i'
+        net.minecraft.client.gui.Gui.drawRect(i, -1, i + 4, 75, Color.black.getRGB());
+        net.minecraft.client.gui.Gui.drawRect(i + 1, b, i + 3, 74, Color.darkGray.getRGB());
+        net.minecraft.client.gui.Gui.drawRect(i + 1, 0, i + 3, b, hc);
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
 
     public int getBedWarsColor(EntityPlayer entityPlayer) {
         ItemStack stack = entityPlayer.getCurrentArmor(2);
