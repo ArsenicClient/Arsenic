@@ -4,7 +4,8 @@ Reach out to `@kv.v` if you want any help setting this up!
 
 # Arsenic
 
-This is a 1.8.9 Minecraft client that specifically focuses on hypixel / grim anticheat. Any features that flag grim should be removed or recoded.
+Arsenic is a 1.8.9 Minecraft cheat that specifically focuses on hypixel / grim anticheat. Any features that flag grim should be removed or recoded.
+Arsenic is a forge mod.
 
 The Client Features:
 - Module System
