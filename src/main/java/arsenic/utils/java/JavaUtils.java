@@ -23,6 +23,9 @@ public class JavaUtils extends UtilityClass {
         }
         return ThreadLocalRandom.current().nextDouble(min, max);
     }
+    public static double limit(double value, double min, double max) {
+        return Math.min(Math.max(value, min), max);
+    }
 
     public static final List<String> autoCompleteHelper(List<String> list, String arg) {
         return list.stream().filter(m -> m.toLowerCase().startsWith(arg.toLowerCase())
