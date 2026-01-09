@@ -3,10 +3,14 @@ package arsenic.utils.minecraft;
 import arsenic.injection.accessor.InboundHandlerTuplePacketListener;
 import arsenic.utils.java.UtilityClass;
 import io.netty.util.concurrent.GenericFutureListener;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.INetHandler;
 import net.minecraft.network.Packet;
 
 public class PacketUtil extends UtilityClass {
+
+    private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void send(final Packet<?> packet) {
         mc.getNetHandler().addToSendQueue(packet);
@@ -28,4 +32,18 @@ public class PacketUtil extends UtilityClass {
             }
         }
     }*/
+
+    public static int getPlayerPing() {
+        Minecraft mc = Minecraft.getMinecraft();
+        NetworkPlayerInfo info = mc.thePlayer.sendQueue
+                .getPlayerInfo(mc.thePlayer.getUniqueID());
+        return info.getResponseTime();
+    }
+
+    public static int getPlayerPingAsTicks() {
+        Minecraft mc = Minecraft.getMinecraft();
+        NetworkPlayerInfo info = mc.thePlayer.sendQueue
+                .getPlayerInfo(mc.thePlayer.getUniqueID());
+        return (int) Math.ceil(info.getResponseTime() / 50.0);
+    }
 }

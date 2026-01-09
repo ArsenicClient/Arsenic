@@ -7,6 +7,7 @@ import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.*;
 
 public class RotationUtils extends UtilityClass {
@@ -74,8 +75,12 @@ public class RotationUtils extends UtilityClass {
     }
 
     public static double getDistanceToEntityBox(Entity entity) {
-        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
-        Vec3 pos = RotationUtils.getBestHitVec(entity);
+        return getDistanceToEntityBox(entity, mc.thePlayer);
+    }
+
+    public static double getDistanceToEntityBox(Entity target, EntityPlayer from) {
+        Vec3 eyes = from.getPositionEyes(1f);
+        Vec3 pos = RotationUtils.getBestHitVec(target);
         double xDist = Math.abs(pos.xCoord - eyes.xCoord);
         double yDist = Math.abs(pos.yCoord - eyes.yCoord);
         double zDist = Math.abs(pos.zCoord - eyes.zCoord);
