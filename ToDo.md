@@ -1,7 +1,7 @@
-- Wtap combo mode
 - Backtrack? Look at slinky Lag range?
 - JumpReset antikb
 - InvMove, delay packets
+- Postprocessing gui scale fix
 - Custom Main Menu, see bookmarks
 - Custom Loading Screen
 - Silent Strafe
