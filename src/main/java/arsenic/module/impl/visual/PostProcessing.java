@@ -17,7 +17,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.*;
 
-@ModuleInfo(name = "PostProcessing",category = ModuleCategory.SETTINGS)
+@ModuleInfo(name = "PostProcessing",category = ModuleCategory.SETTINGS, hidden = true)
 public class PostProcessing extends Module {
     //blur
     private final BooleanProperty blur = new BooleanProperty("Blur", true);

@@ -8,7 +8,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import net.minecraft.network.play.server.S02PacketChat;
 
-@ModuleInfo(name = "AutoGG", category = ModuleCategory.OTHER)
+@ModuleInfo(name = "AutoGG", category = ModuleCategory.OTHER, hidden = true)
 public class AutoGG extends Module {
     @EventLink
     public final Listener<EventPacket.Incoming> onPacket = event -> {

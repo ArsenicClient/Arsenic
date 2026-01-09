@@ -28,7 +28,7 @@ import arsenic.utils.render.RenderUtils;
 import java.awt.*;
 
 
-@ModuleInfo(name = "Esp", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Esp", category = ModuleCategory.WORLD, hidden = true)
 public class ESP extends Module {
 
     public ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
