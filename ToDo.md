@@ -1,0 +1,16 @@
+- InvManager
+- Wtap combo mode
+- Backtrack? Look at slinky Lag range?
+- JumpReset antikb
+- InvMove, delay packets
+- Custom Main Menu, see bookmarks
+- Custom Loading Screen
+- Silent Strafe
+- Upgrade aimassist / ka (Entropy)
+- Fix ka so its more legit
+- Legit scaffold
+- Eagle
+- Clutch Module
+- No hit delay
+- Timer balance, fastbreak?
+- Fix Postprocessing gui scale

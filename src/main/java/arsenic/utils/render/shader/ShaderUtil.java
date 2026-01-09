@@ -64,6 +64,9 @@ public class ShaderUtil {
                 case "roundedRectGradient":
                     fragmentShaderID = createShader(new ByteArrayInputStream(roundedRectGradient.getBytes()), GL_FRAGMENT_SHADER);
                     break;
+                case "kvShader":
+                    fragmentShaderID = createShader(new ByteArrayInputStream(kvShader.getBytes()), GL_FRAGMENT_SHADER);
+                    break;
                 default:
                     fragmentShaderID = createShader(mc.getResourceManager().getResource(new ResourceLocation(fragmentShaderLoc)).getInputStream(), GL_FRAGMENT_SHADER);
                     break;
@@ -544,6 +547,66 @@ public class ShaderUtil {
             "    float smoothedAlpha =  (1.0-smoothstep(0.0, 1.0, roundSDF(rectHalf - (gl_TexCoord[0].st * rectSize), rectHalf - radius - 1., radius))) * color.a;\n" +
             "    gl_FragColor = vec4(color.rgb, smoothedAlpha);// mix(quadColor, shadowColor, 0.0);\n" +
             "\n" +
+            "}";
+
+    private String kvShader = "uniform float time;\n" +
+            "uniform vec2 resolution;\n" +
+            "\n" +
+            "#define PI 3.14159265359\n" +
+            "#define DEG2RAD (PI / 180.0)\n" +
+            "\n" +
+            "vec3 hsv2rgb2(vec3 c, float k) {\n" +
+            "    vec4 K = vec4(3. / 3., 2. / 3., 1. / 3., 3.);\n" +
+            "    vec3 p = smoothstep(0. + k, 1. - k,\n" +
+            "        .5 + .5 * cos((c.xxx + K.xyz) * 360.0 * DEG2RAD));\n" +
+            "    return c.z * mix(K.xxx, p, c.y);\n" +
+            "}\n" +
+            "\n" +
+            "vec3 tonemap(vec3 v)\n" +
+            "{\n" +
+            "    return mix(v, vec3(1.), smoothstep(1., 4., dot(v, vec3(1.))));\n" +
+            "}\n" +
+            "\n" +
+            "float f1(float x, float offset, float freq)\n" +
+            "{\n" +
+            "    return .4 * sin(30.0 * DEG2RAD * x + offset) + .1 * sin(freq * x);\n" +
+            "}\n" +
+            "\n" +
+            "void main()\n" +
+            "{\n" +
+            "    vec2 fragCoord = gl_FragCoord.xy;\n" +
+            "    float scale = resolution.y;\n" +
+            "    vec2 uv = (2. * fragCoord - resolution.xy) / scale;\n" +
+            "    vec3 col = vec3(0);\n" +
+            "    \n" +
+            "    float offsets[3];\n" +
+            "    offsets[0] = 0. * 360.0 * DEG2RAD / 3.;\n" +
+            "    offsets[1] = 1. * 360.0 * DEG2RAD / 3.;\n" +
+            "    offsets[2] = 2. * 360.0 * DEG2RAD / 3.;\n" +
+            "    \n" +
+            "    float freqs[3];\n" +
+            "    freqs[0] = 160.0 * DEG2RAD;\n" +
+            "    freqs[1] = 213.0 * DEG2RAD;\n" +
+            "    freqs[2] = 186.0 * DEG2RAD;\n" +
+            "    \n" +
+            "    float colorfreqs[3];\n" +
+            "    colorfreqs[0] = .317;\n" +
+            "    colorfreqs[1] = .210;\n" +
+            "    colorfreqs[2] = .401;\n" +
+            "    \n" +
+            "    for (int i = 0; i < 3; ++i) {\n" +
+            "        float x = uv.x + 4. * time;\n" +
+            "        float y = f1(x, offsets[i], freqs[i]);\n" +
+            "        float uv_x = min(uv.x, 1. + .4 * sin(210.0 * DEG2RAD * time + 360.0 * DEG2RAD * float(i) / 3.));\n" +
+            "        \n" +
+            "        float r = uv.x / 40.;\n" +
+            "        //float r = exp(uv.x + 1.) / 100. - .05;\n" +
+            "        float d1 = length(vec2(uv_x, y) - uv) - r;\n" +
+            "        col += 1. / pow(max(1., d1 * scale), .8 + .1 * sin(245.0 * DEG2RAD * time + 360.0 * DEG2RAD * float(i) / 3.))\n" +
+            "            * (vec3(1.) + hsv2rgb2(vec3(colorfreqs[i] * x, 1., 1.), .07));\n" +
+            "    }\n" +
+            "    \n" +
+            "    gl_FragColor = vec4(tonemap(col), 1.);\n" +
             "}";
 
 }
