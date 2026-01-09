@@ -14,3 +14,10 @@
 - Timer balance, fastbreak?
 - Fix Postprocessing gui scale
 - Charge tp => Assassin
+- savemovekeys
+- sound feedback for gui
+- antifireball
+- playermodel in cgui
+- notifications
+- chestesp
+- blink upgrade? incoming packets
