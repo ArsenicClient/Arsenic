@@ -7,6 +7,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.INetHandler;
 import net.minecraft.network.Packet;
+import net.minecraft.network.ThreadQuickExitException;
+import net.minecraft.network.play.INetHandlerPlayClient;
 
 public class PacketUtil extends UtilityClass {
 
@@ -33,6 +35,18 @@ public class PacketUtil extends UtilityClass {
         }
     }*/
 
+
+    public static void receivePacket(Packet<?> packet) {
+        if (packet == null)
+            return;
+        try {
+            ((Packet<INetHandlerPlayClient>) packet).processPacket(mc.getNetHandler());
+        } catch (ThreadQuickExitException ignored) {
+            ignored.printStackTrace();
+        }
+    }
+
+
     public static int getPlayerPing() {
         Minecraft mc = Minecraft.getMinecraft();
         NetworkPlayerInfo info = mc.thePlayer.sendQueue
@@ -45,5 +59,9 @@ public class PacketUtil extends UtilityClass {
         NetworkPlayerInfo info = mc.thePlayer.sendQueue
                 .getPlayerInfo(mc.thePlayer.getUniqueID());
         return (int) Math.ceil(info.getResponseTime() / 50.0);
+    }
+
+    public static <H extends INetHandler> Packet<H> castPacket(Packet<?> packet) throws ClassCastException {
+        return (Packet<H>) packet;
     }
 }

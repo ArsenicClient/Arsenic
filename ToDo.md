@@ -1,5 +1,5 @@
 - Backtrack? Look at slinky Lag range?
-- JumpReset antikb
+- JumpReset antikb (I dont think the module works)
 - InvMove, delay packets
 - Postprocessing gui scale fix
 - Custom Main Menu, see bookmarks
@@ -14,3 +14,10 @@
 - Timer balance, fastbreak?
 - Fix Postprocessing gui scale
 - Charge tp => Assassin
+- savemovekeys
+- sound feedback for gui
+- antifireball
+- playermodel in cgui
+- notifications
+- chestesp
+- blink upgrade? incoming packets

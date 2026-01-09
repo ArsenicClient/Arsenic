@@ -8,7 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 
-@CommandInfo(name = "bind")
+@CommandInfo(name = "ping")
 public class PingCommand extends Command {
 
     @Override
