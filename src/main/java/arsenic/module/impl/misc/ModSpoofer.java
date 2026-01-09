@@ -17,7 +17,7 @@ import net.minecraftforge.fml.common.ModContainer;
 import java.util.HashSet;
 import java.util.Set;
 
-@ModuleInfo(name = "ModSpoofer", category = ModuleCategory.OTHER)
+@ModuleInfo(name = "ModSpoofer", category = ModuleCategory.OTHER, hidden = true)
 public class ModSpoofer extends Module {
 
     //dont think this works

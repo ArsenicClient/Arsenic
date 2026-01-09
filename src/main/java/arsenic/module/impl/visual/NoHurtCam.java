@@ -4,7 +4,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 
-@ModuleInfo(name = "NoHurtCam",category = ModuleCategory.WORLD)
+@ModuleInfo(name = "NoHurtCam",category = ModuleCategory.WORLD, hidden = true)
 public class NoHurtCam extends Module {
 
 }

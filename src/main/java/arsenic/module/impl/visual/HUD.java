@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
-@ModuleInfo(name = "HUD", category = ModuleCategory.SETTINGS)
+@ModuleInfo(name = "HUD", category = ModuleCategory.SETTINGS, hidden = true)
 public class HUD extends Module {
 
     public final EnumProperty<hMode> colorMode = new EnumProperty<>("Color Mode: ", hMode.RAINBOW);
@@ -61,7 +61,7 @@ public class HUD extends Module {
 
         //sorts it in order of length
         nameList = Arsenic.getArsenic().getModuleManager().getEnabledModules()
-                        .stream().filter(module -> !isHidden())
+                        .stream().filter(module -> !module.isHidden())
                         .map(module -> new ModuleRenderInfo(fr.getWidth(module.getName()), module.getName()))
                         .sorted(Comparator.comparingDouble(ri -> -ri.length)).collect(Collectors.toList());
 
@@ -150,6 +150,7 @@ public class HUD extends Module {
         Bloom,
         Shadow
     }
+
     public enum hMode {
         THEME(ColorUtils::getThemeRainbowColor),
         RAINBOW(ColorUtils::getRainbow);

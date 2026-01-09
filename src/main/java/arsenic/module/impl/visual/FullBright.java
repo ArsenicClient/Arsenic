@@ -11,7 +11,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F)
+@ModuleInfo(name = "FullBright", category = ModuleCategory.WORLD, keybind = Keyboard.KEY_F, hidden = true)
 public class FullBright extends Module {
     public final EnumProperty<fEnum> fullbrightmode = new EnumProperty<>("Mode: ",fEnum.Gamma );
 
