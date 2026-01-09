@@ -1,4 +1,3 @@
-- InvManager
 - Wtap combo mode
 - Backtrack? Look at slinky Lag range?
 - JumpReset antikb
@@ -14,3 +13,4 @@
 - No hit delay
 - Timer balance, fastbreak?
 - Fix Postprocessing gui scale
+- Charge tp => Assassin
