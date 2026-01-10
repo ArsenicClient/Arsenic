@@ -1,6 +1,4 @@
-- there are two bugs in the postproccessing module. 1. When enabled the background of the first module name in the HUD is more black than the others. 2. It adjusts for gui scale in the clickgui, (Which it is not supposed to) and
-  is only aligned correctly when gui scale is set to normal.
-- Fix Postprocessing gui scale
+- Simplify Hud settings,
 - No hit delay
 - JumpReset antikb (I dont think the module works)- Postprocessing gui scale fix
 - Custom Main Menu, see bookmarks
