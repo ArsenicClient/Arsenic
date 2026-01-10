@@ -55,11 +55,25 @@ public class BackTrack extends Module {
 
     @EventLink
     public final Listener<EventUpdate.Pre> eventUpdate = event -> {
-        if(target == null)
+        if(target == null || vec3 == null)
             return;
+
+        // stop backtracking if the real entity is closer && they are 0 hurttime, should work well enough
+        // no fucking clue if this makes it better or not but I hope so
+        if(RotationUtils.getDistanceToEntityBox(target) + 0.2 <= Math.sqrt(mc.thePlayer.getDistanceSq(target.posX, mc.thePlayer.posY, target.posZ)) && target.hurtTime <= 2) {
+            currentLatency = 0;
+            releaseAll();
+            target = null;
+            vec3 = null;
+            return;
+        }
+
         final double distance = RotationUtils.getDistanceToEntityBox(target);
         if (!distanceRange.hasInRange(distance)) {
-                currentLatency = 0;
+            currentLatency = 0;
+            releaseAll();
+            target = null;
+            vec3 = null;
         }
     };
 
@@ -69,7 +83,6 @@ public class BackTrack extends Module {
         Packet<?> packet = event.getPacket();
         if (skipPackets.contains(packet)) {
             skipPackets.remove(packet);
-            PlayerUtils.addWaterMarkedMessageToChat("Skipped Packet, did not cancel event");
             return;
         }
 
@@ -87,19 +100,12 @@ public class BackTrack extends Module {
             if (event.isCancelled())
                 return;
 
-            if (packet instanceof S19PacketEntityStatus
-                    || packet instanceof S02PacketChat
-                    || packet instanceof S0BPacketAnimation
-                    || packet instanceof S06PacketUpdateHealth
-            )
-                return;
-
+            //- Packets that reset state
             if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
                 releaseAll();
                 target = null;
                 vec3 = null;
-                return;
-
+                return; // Don't delay
             } else if (packet instanceof S13PacketDestroyEntities) {
                 S13PacketDestroyEntities wrapper = (S13PacketDestroyEntities) packet;
                 for (int id : wrapper.getEntityIDs()) {
@@ -107,29 +113,34 @@ public class BackTrack extends Module {
                         target = null;
                         vec3 = null;
                         releaseAll();
-                        return;
+                        return; // Don't delay
                     }
                 }
-            } else if (packet instanceof S14PacketEntity) {
+            }
+
+
+            if (packet instanceof S14PacketEntity) {
                 S14PacketEntity s14PacketEntity = (S14PacketEntity) packet;
                 IMixinS14PacketEntity wrapper = (IMixinS14PacketEntity) packet;
                 if (wrapper.getEntityId() == target.getEntityId()) {
                     vec3 = vec3.addVector(s14PacketEntity.func_149062_c() / 32.0D, s14PacketEntity.func_149061_d() / 32.0D,
                             s14PacketEntity.func_149064_e() / 32.0D);
+                    TimedPacket timedPacket = new TimedPacket(packet, currentLatency);
+                    timedPacket.getTimer().start();
+                    packetQueue.add(timedPacket);
+                    event.cancel();
                 }
 
             } else if (packet instanceof S18PacketEntityTeleport) {
                 S18PacketEntityTeleport wrapper = (S18PacketEntityTeleport) packet;
                 if (wrapper.getEntityId() == target.getEntityId()) {
                     vec3 = new Vec3(wrapper.getX() / 32.0D, wrapper.getY() / 32.0D, wrapper.getZ() / 32.0D);
+                    TimedPacket timedPacket = new TimedPacket(packet, currentLatency);
+                    timedPacket.getTimer().start();
+                    packetQueue.add(timedPacket);
+                    event.cancel();
                 }
             }
-
-            TimedPacket timedPacket = new TimedPacket(packet, currentLatency);
-            timedPacket.getTimer().start();
-            packetQueue.add(timedPacket);
-            event.cancel();
-
         } catch (NullPointerException ignored) {
 
         }
