@@ -54,7 +54,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public void drawBloom() {
-        if (getFontRenderer() == null) return;
+        if (getFontRenderer() == null)
+            return;
+        rescale(this.scale);
         int x = width / 8;
         int y = height / 6;
         x1 = width - x;
@@ -65,6 +67,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int gradientC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
         ((SearchComponent) searchComponent).setupGlowAndBlur();
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
+        rescaleMC();
     }
 
     @Override
