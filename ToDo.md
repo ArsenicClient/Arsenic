@@ -1,7 +1,8 @@
-- Backtrack? Look at slinky Lag range?
-- JumpReset antikb (I dont think the module works)
-- InvMove, delay packets
-- Postprocessing gui scale fix
+- there are two bugs in the postproccessing module. 1. When enabled the background of the first module name in the HUD is more black than the others. 2. It adjusts for gui scale in the clickgui, (Which it is not supposed to) and
+  is only aligned correctly when gui scale is set to normal.
+- Fix Postprocessing gui scale
+- No hit delay
+- JumpReset antikb (I dont think the module works)- Postprocessing gui scale fix
 - Custom Main Menu, see bookmarks
 - Custom Loading Screen
 - Silent Strafe
@@ -10,10 +11,8 @@
 - Legit scaffold
 - Eagle
 - Clutch Module
-- No hit delay
 - Timer balance, fastbreak?
-- Fix Postprocessing gui scale
-- Charge tp => Assassin
+- Charge tp => Assassin (and fix, maybe just remove since it no longer works on hypixel)
 - savemovekeys
 - sound feedback for gui
 - antifireball
@@ -21,3 +20,4 @@
 - notifications
 - chestesp
 - blink upgrade? incoming packets
+- InvMove, delay packets
