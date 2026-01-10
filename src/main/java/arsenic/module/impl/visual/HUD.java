@@ -55,7 +55,6 @@ public class HUD extends Module {
             return;
 
         int noDelayColor = colorMode.getValue().getColor(4, 0);
-        if(watermark.getValue()) fr.drawString("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, noDelayColor);
 
         float x = sr.getScaledWidth();
 
@@ -78,6 +77,8 @@ public class HUD extends Module {
 
             i += 10;
         }
+        if(watermark.getValue()) fr.drawString("A" + EnumChatFormatting.WHITE + "rsenic", 4, 4, noDelayColor);
+
     };
 
     @EventLink
@@ -87,7 +88,7 @@ public class HUD extends Module {
             return;
         }
         ScaledResolution sr = new ScaledResolution(mc);
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
         if(fr == null)
             return;
@@ -121,7 +122,7 @@ public class HUD extends Module {
             return;
         }
         ScaledResolution sr = new ScaledResolution(mc);
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen(). getFontRenderer();
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
         if(fr == null) return;
 
