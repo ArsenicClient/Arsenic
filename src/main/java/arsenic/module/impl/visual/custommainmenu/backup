@@ -14,28 +14,20 @@ import net.minecraft.client.gui.GuiOptions;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSelectWorld;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.resources.I18n;
 import net.minecraftforge.fml.client.GuiModList;
-import net.minecraftforge.fml.common.Loader;
 
 import java.io.IOException;
 
 
 public class Screen extends GuiScreen {
 
-    private ShaderUtil backgroundShader;
-    private int currentShaderIndex = 0;
-    private final java.util.List<String> backgroundShaders = java.util.Arrays.asList("kvShader", "rainbowShader");
+    private ShaderUtil kvShader;
 
     @Override
     public void initGui() {
-        backgroundShader = new ShaderUtil(backgroundShaders.get(currentShaderIndex));
-        if (liquidButtonShader == null) {
-            liquidButtonShader = new ShaderUtil("liquidButton");
-        }
-        this.buttonList.add(new GuiButton(5, 5, 5, 80, 20, "Next Shader"));
-        int p_73969_1_ = this.height / 2;
+        kvShader = new ShaderUtil("kvShader");
+        int p_73969_1_ = this.height / 4 + 48;
         int p_73969_2_ = 24;
         this.buttonList.add(new CustomGuiButton(1, this.width / 2 - 100, p_73969_1_, I18n.format("menu.singleplayer", new Object[0])));
         this.buttonList.add(new CustomGuiButton(2, this.width / 2 - 100, p_73969_1_ + p_73969_2_ * 1, I18n.format("menu.multiplayer", new Object[0])));
@@ -46,34 +38,12 @@ public class Screen extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        backgroundShader.init();
-        backgroundShader.setUniformf("time", (System.currentTimeMillis() % 100000) / 5000f);
-        ScaledResolution sr = new ScaledResolution(mc);
-        backgroundShader.setUniformf("resolution", (float) sr.getScaledWidth(), (float) sr.getScaledHeight());
+        kvShader.init();
+        kvShader.setUniformf("time", (System.currentTimeMillis() % 100000) / 5000f);
+        ScaledResolution sr = new ScaledResolution(Minecraft.getMinecraft());
+        kvShader.setUniformf("resolution", (float) this.width * sr.getScaleFactor(), (float) this.height * sr.getScaleFactor());
         ShaderUtil.drawQuads();
-        backgroundShader.unload();
-
-        FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
-        String title = "Arsenic";
-        float scale = 7f;
-        fontRenderer.setScale(scale);
-        float x = (this.width / 2f);
-        float y = (this.height / 4f);
-        fontRenderer.drawStringWithShadow(title, x, y, -1, fontRenderer.CENTREX, fontRenderer.CENTREY);
-        fontRenderer.resetScale();
-
-        String moduleCount = "Modules: " + Arsenic.getArsenic().getModuleManager().getModules().size();
-        long settingCount = Arsenic.getArsenic().getModuleManager().getModules().stream().mapToLong(module -> module.getProperties().size()).sum();
-        String settingCountStr = "Settings: " + settingCount;
-
-        mc.fontRendererObj.drawStringWithShadow(moduleCount, this.width - mc.fontRendererObj.getStringWidth(moduleCount) - 2, 2, -1);
-        mc.fontRendererObj.drawStringWithShadow(settingCountStr, this.width - mc.fontRendererObj.getStringWidth(settingCountStr) - 2, 2 + mc.fontRendererObj.FONT_HEIGHT, -1);
-
-
-        String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
-        mc.fontRendererObj.drawStringWithShadow(modCount, 2, this.height - mc.fontRendererObj.FONT_HEIGHT - 2, -1);
-
-        net.minecraft.client.gui.inventory.GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
+        kvShader.unload();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -96,10 +66,6 @@ public class Screen extends GuiScreen {
             case 4:
                 this.mc.shutdown();
                 break;
-            case 5:
-                currentShaderIndex = (currentShaderIndex + 1) % backgroundShaders.size();
-                backgroundShader = new ShaderUtil(backgroundShaders.get(currentShaderIndex));
-                break;
         }
     }
 
@@ -115,16 +81,11 @@ public class Screen extends GuiScreen {
 
         @Override
         public void drawButton(Minecraft mc, int mouseX, int mouseY) {
-            liquidButtonShader.init();
-            liquidButtonShader.setUniformf("resolution", (float)width, (float)height);
-            liquidButtonShader.setUniformf("time", (System.currentTimeMillis() % 100000) / 1000f);
-            liquidButtonShader.setUniformf("mouse", (mouseX - xPosition) / (float)width, (height - (mouseY - yPosition)) / (float)height);
-            ShaderUtil.drawQuads(xPosition, yPosition, width, height);
-            liquidButtonShader.unload();
-
             FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+            Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
+            DrawUtils.drawBorderedRoundedRect(xPosition, yPosition, xPosition + width, yPosition + height, 5, 2, theme.getMainColor(), theme.getDarkerColor());
             fontRenderer.drawStringWithShadow(displayString, xPosition + width/2f, yPosition + height/2f, -1, fontRenderer.CENTREX, fontRenderer.CENTREY);
         }
     }
 
-}
+}vfff
