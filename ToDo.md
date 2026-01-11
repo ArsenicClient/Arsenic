@@ -1,6 +1,5 @@
-- Simplify Hud settings,
 - No hit delay
-- JumpReset antikb (I dont think the module works)- Postprocessing gui scale fix
+- JumpReset antikb (I dont think the module works)nmvbvbmn
 - Custom Main Menu, see bookmarks
 - Custom Loading Screen
 - Silent Strafe
