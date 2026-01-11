@@ -9,7 +9,7 @@ import arsenic.module.ModuleInfo;
 import net.minecraft.client.gui.GuiMainMenu;
 
 
-@ModuleInfo(name = "CustomMainMenu", category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "CustomMainMenu", category = ModuleCategory.SETTINGS, hidden = true, enabled = true)
 public class CustomMenu extends Module {
 
     private final Screen screen = new Screen();
