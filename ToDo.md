@@ -1,11 +1,10 @@
-- No hit delay
-- JumpReset antikb (I dont think the module works)nmvbvbmn
 - Custom Main Menu, see bookmarks
 - Custom Loading Screen
 - Silent Strafe
 - Upgrade aimassist / ka (Entropy)
 - Fix ka so its more legit
 - Legit scaffold
+- InvMove, delay packets
 - Eagle
 - Clutch Module
 - Timer balance, fastbreak?
@@ -17,4 +16,5 @@
 - notifications
 - chestesp
 - blink upgrade? incoming packets
-- InvMove, delay packets
+- AutoTool upgrade, raycast to nearest target to see if hitable, maybe if theres a bed aswell
+- JumpReset antikb (I dont think the module works - it does jump not sure if it actually reduces velo)
