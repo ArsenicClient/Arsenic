@@ -27,6 +27,7 @@ public class Screen extends GuiScreen {
     private ShaderUtil backgroundShader;
     private int currentShaderIndex = 0;
     private final java.util.List<String> backgroundShaders = java.util.Arrays.asList("kvShader", "rainbowShader");
+    private static ShaderUtil liquidButtonShader;
 
     @Override
     public void initGui() {
@@ -47,9 +48,9 @@ public class Screen extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         backgroundShader.init();
-        backgroundShader.setUniformf("time", (System.currentTimeMillis() % 100000) / 5000f);
+        backgroundShader.setUniformf("time", (System.currentTimeMillis() % 10000) / 5000f);
         ScaledResolution sr = new ScaledResolution(mc);
-        backgroundShader.setUniformf("resolution", (float) sr.getScaledWidth(), (float) sr.getScaledHeight());
+        backgroundShader.setUniformf("resolution", this.width * sr.getScaleFactor(), this.height * sr.getScaleFactor());
         ShaderUtil.drawQuads();
         backgroundShader.unload();
 
@@ -59,7 +60,7 @@ public class Screen extends GuiScreen {
         fontRenderer.setScale(scale);
         float x = (this.width / 2f);
         float y = (this.height / 4f);
-        fontRenderer.drawStringWithShadow(title, x, y, -1, fontRenderer.CENTREX, fontRenderer.CENTREY);
+        fontRenderer.drawStringWithShadow(title, x, y, -1, fontRenderer.CENTREY, fontRenderer.LEFTSHIFTX);
         fontRenderer.resetScale();
 
         String moduleCount = "Modules: " + Arsenic.getArsenic().getModuleManager().getModules().size();
@@ -73,7 +74,7 @@ public class Screen extends GuiScreen {
         String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
         mc.fontRendererObj.drawStringWithShadow(modCount, 2, this.height - mc.fontRendererObj.FONT_HEIGHT - 2, -1);
 
-        net.minecraft.client.gui.inventory.GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
+        //net.minecraft.client.gui.inventory.GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
