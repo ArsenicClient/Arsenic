@@ -94,7 +94,7 @@ public class ContainerUtils {
 
     public static <T extends ItemTool> int getBestTool(Class<T> toolClass) {
         return getInventoryItems().stream()
-                .filter(si -> toolClass.isInstance(si.item))
+                .filter(si -> toolClass.isInstance(si.item.getItem()))
                 .max(Comparator.comparingDouble(si -> getEffeciency(si.item)))
                 .map(si -> si.slot).
                 orElse(-1);
