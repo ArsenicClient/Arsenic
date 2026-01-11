@@ -54,3 +54,18 @@ To set up the development environment and build the client, follow these steps:
 *   **Properties:** Module settings should be exposed as `Property` objects. This allows them to be automatically saved and loaded by the `ConfigManager` and displayed in the GUI.
 *   **Commands:** In-game commands should extend the `Command` class and be registered with the `CommandManager`.
 *   **Mixins:** Mixins are used for more advanced modifications. All mixins should be placed in the `arsenic.injection.mixin` package and registered in the `mixins.arsenic.json` file.
+
+## Features
+
+### Custom Main Menu
+
+The client features a custom main menu with several enhancements over the default Minecraft menu:
+
+*   **Animated Background:** The background is rendered with a cool animated shader. You can cycle through different shaders by clicking the "Next Shader" button in the top-left corner.
+*   **Liquid Buttons:** The menu buttons have a liquid glass effect that interacts with the mouse cursor, creating a metaball-like effect.
+*   **Player Model:** Your player model is displayed in the bottom-right corner and will look towards the mouse cursor.
+*   **Information Display:**
+    *   The top-right corner shows the number of loaded modules and settings.
+    *   The bottom-left corner shows the number of loaded mods.
+*   **Custom Title:** A large "Arsenic" title is displayed above the buttons.
+*   **Standard Buttons:** The menu includes buttons for Singleplayer, Multiplayer, Mods, Options, and Quit Game.
