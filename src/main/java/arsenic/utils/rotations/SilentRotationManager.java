@@ -85,60 +85,11 @@ public class SilentRotationManager {
 
     @EventLink
     public final Listener<EventMovementInput> eventMovementInputListener = event -> {
-        if(!modified || !doMovementFix)
-            return;
-
-        if(event.getSpeed() == 0 && event.getStrafe() == 0)
-            return;
-
-        // Get player's current yaw
-        float playerYaw = normaliseYaw(mc.thePlayer.rotationYaw);
-
-        PlayerUtils.addWaterMarkedMessageToChat( "§a=== Movement Fix Debug ===");
-        PlayerUtils.addWaterMarkedMessageToChat( "§bPlayer Current Yaw: §f", String.format("%.2f", Math.toDegrees(playerYaw)));
-        PlayerUtils.addWaterMarkedMessageToChat( "§bPlayer Current Forward: §f", event.getSpeed());
-        PlayerUtils.addWaterMarkedMessageToChat( "§bPlayer Current Strafe: §f",  event.getStrafe());
-
-        // Calculate movement angle
-        float playerMoveAngle = (float) Math.atan2(event.getStrafe(), event.getSpeed());
-        float playerMoveAngleDegrees = (float) Math.toDegrees(playerMoveAngle);
-
-        PlayerUtils.addWaterMarkedMessageToChat( "§bPlayer Move Angle: §f" + String.format("%.2f°", playerMoveAngleDegrees));
-
-        //calc the direction the player wants to go
-        float moveAngle = wrapAngleToPi(playerYaw + playerMoveAngle);
-        float moveAngleDegrees = (float) Math.toDegrees(moveAngle);
-
-        //calc the direction the movement keys need to go
-        PlayerUtils.addWaterMarkedMessageToChat( "§bMove Angle: §f" + String.format("%.2f°", moveAngleDegrees));
-
-        //calc the direction that the movementKeys will press
-        float moveKeyAngle = wrapAngleToPi((float) (Math.toRadians(yaw) + moveAngle));
-        float moveKeyAngleDegrees = (float) Math.toDegrees(moveKeyAngle);
-
-        PlayerUtils.addWaterMarkedMessageToChat( "§bMove Key Angle: §f" + String.format("%.2f°", moveKeyAngleDegrees));
-
-        // Calculate keys
-        int forwardKey =
-                (moveKeyAngle >= -Math.PI / 8 * 3 && moveKeyAngle <= Math.PI / 8 * 3) ? 1 :
-                        (moveKeyAngle <= -Math.PI / 8 * 5 || moveKeyAngle >= Math.PI / 8 * 5) ? -1 : 0;
-
-        int strafeKey =
-                (moveKeyAngle >= Math.PI / 8 && moveKeyAngle <= Math.PI / 8 * 7) ? -1 :
-                        (moveKeyAngle <= -Math.PI / 8 && moveKeyAngle >= -Math.PI / 8 * 7) ? 1 : 0;
-
-        event.setSpeed(forwardKey);
-        event.setStrafe(strafeKey);
-
-        PlayerUtils.addWaterMarkedMessageToChat( "§eInput - Forward: §f" + event.getSpeed() + " §eStrafe: §f" + event.getStrafe());
-
-        event.setSpeed(0);
-        event.setStrafe(0);
-
-        //-67.5 to 67.5 degrees press the forward key (forward key = 1)
-        //below -112.5 or above 112.5 degrees press the down key (forward key = -1)
-        //22.5 to 157.5 degrees press the right key (strafe key = -1)
-        //-22.5 to -157.5 degrees press the right key (strafe key = 1)
+        if(!modified || !doMovementFix || (event.getSpeed() == 0 && event.getStrafe() == 0)) return;
+        float moveAngle = wrapAngleToPi(normaliseYaw(mc.thePlayer.rotationYaw) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
+        float moveKeyAngle = wrapAngleToPi(moveAngle - (float) Math.toRadians(yaw));
+        event.setSpeed((moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0);
+        event.setStrafe((moveKeyAngle >= Math.PI/8 && moveKeyAngle <= Math.PI * 7/8) ? -1 : (moveKeyAngle <= -Math.PI/8 && moveKeyAngle >= -Math.PI * 7/8) ? 1 : 0);
     };
 
     @EventLink
