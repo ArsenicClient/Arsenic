@@ -4,6 +4,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
 import arsenic.main.Arsenic;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.MathHelper;
 
@@ -78,7 +79,17 @@ public class SilentRotationManager {
     public final Listener<EventMove> eventMoveListener = event -> {
         if(!modified || !doMovementFix)
             return;
+
         event.setYaw(yaw);
+    };
+
+    @EventLink
+    public final Listener<EventMovementInput> eventMovementInputListener = event -> {
+        if(!modified || !doMovementFix || (event.getSpeed() == 0 && event.getStrafe() == 0)) return;
+        float moveAngle = wrapAngleToPi(normaliseYaw(mc.thePlayer.rotationYaw) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
+        float moveKeyAngle = wrapAngleToPi(moveAngle - (float) Math.toRadians(yaw));
+        event.setSpeed((moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0);
+        event.setStrafe((moveKeyAngle >= Math.PI/8 && moveKeyAngle <= Math.PI * 7/8) ? -1 : (moveKeyAngle <= -Math.PI/8 && moveKeyAngle >= -Math.PI * 7/8) ? 1 : 0);
     };
 
     @EventLink
@@ -87,4 +98,18 @@ public class SilentRotationManager {
             return;
         event.setYaw(yaw);
     };
+
+    public float normaliseYaw(float yaw) {
+        return (float) Math.toRadians(MathHelper.wrapAngleTo180_float(yaw));
+    }
+
+    public static float wrapAngleToPi(float value) {
+        float twoPi = (float)(2.0 * Math.PI);
+        value = (value + (float)Math.PI) % twoPi;
+        if (value < 0) {
+            value += twoPi;
+        }
+        return value - (float)Math.PI;
+    }
+
 }

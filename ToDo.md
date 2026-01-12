@@ -1,8 +1,9 @@
-- Custom Main Menu, see bookmarks
-- Custom Loading Screen
+- Custom Main Menu, fix it on the first load
 - Silent Strafe
 - Upgrade aimassist / ka (Entropy)
-- Fix ka so its more legit
+- Seperate SmoothAim into Aimassist - no silent mode, and ka
+- Scaffold
+- Custom Loading Screen
 - Legit scaffold
 - InvMove, delay packets
 - Eagle
