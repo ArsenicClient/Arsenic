@@ -27,7 +27,6 @@ public class ModuleManager {
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
         Arsenic.getInstance().getEventManager().subscribe(this);
-        Arsenic.getInstance().getEventManager().subscribe(modules.get(CustomMenu.class)); //testing
         return modules.size();
     }
 
