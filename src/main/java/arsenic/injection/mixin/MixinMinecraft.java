@@ -62,13 +62,10 @@ public abstract class MixinMinecraft {
 
 
 
-    @Inject(method = "displayGuiScreen", at = @At(value = "HEAD"), cancellable = true)
+    @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
         Arsenic.getArsenic().getEventManager().post(event);
-        if (event.isCancelled()) {
-            ci.cancel();
-        }
     }
 
     @Inject(method = "runTick", at = @At("HEAD"))

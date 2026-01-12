@@ -1,5 +1,5 @@
+- Make Clicker work without no hit delay
 - Custom Main Menu, fix it on the first load
-- Silent Strafe
 - Upgrade aimassist / ka (Entropy)
 - Seperate SmoothAim into Aimassist - no silent mode, and ka
 - Scaffold
