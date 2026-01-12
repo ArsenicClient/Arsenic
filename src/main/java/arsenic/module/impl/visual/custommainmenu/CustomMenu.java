@@ -16,7 +16,7 @@ public class CustomMenu extends Module {
 
     @EventLink
     private final Listener<EventDisplayGuiScreen> displayGuiScreenEvent = event -> {
-        if(mc.currentScreen instanceof GuiMainMenu)
+        if(event.getGuiScreen() instanceof GuiMainMenu)
             mc.displayGuiScreen(screen);
     };
 
