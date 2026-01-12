@@ -1,32 +1,34 @@
 package arsenic.module.impl.visual.custommainmenu;
 
-import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IFontRenderer;
-import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
-import net.minecraft.client.Minecraft;
+import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.shader.ShaderUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiMultiplayer;
 import net.minecraft.client.gui.GuiOptions;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSelectWorld;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.gui.inventory.GuiInventory;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
-import net.minecraftforge.fml.client.GuiModList;
-import net.minecraftforge.fml.common.Loader;
+import net.minecraft.client.shader.Framebuffer;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.Color;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class Screen extends GuiScreen {
 
     private ShaderUtil backgroundShader;
     private int currentShaderIndex = 0;
-    private final java.util.List<String> backgroundShaders = java.util.Arrays.asList("kvShader", "rainbowShader");
+    private final List<String> backgroundShaders = Arrays.asList("zippyZaps", "kvShader", "rainbowShader");
     private static ShaderUtil liquidButtonShader;
 
     @Override
@@ -48,7 +50,7 @@ public class Screen extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         backgroundShader.init();
-        backgroundShader.setUniformf("time", (System.currentTimeMillis() % 10000) / 5000f);
+        backgroundShader.setUniformf("time", (System.currentTimeMillis() % 1000000) / 5000f);
         ScaledResolution sr = new ScaledResolution(mc);
         backgroundShader.setUniformf("resolution", this.width * sr.getScaleFactor(), this.height * sr.getScaleFactor());
         ShaderUtil.drawQuads();
@@ -60,7 +62,7 @@ public class Screen extends GuiScreen {
         fontRenderer.setScale(scale);
         float x = (this.width / 2f);
         float y = (this.height / 4f);
-        fontRenderer.drawStringWithShadow(title, x, y, -1, fontRenderer.CENTREY, fontRenderer.LEFTSHIFTX);
+        fontRenderer.drawStringWithShadow(title, x, y, -1, fontRenderer.CENTREY, fontRenderer.CENTREX);
         fontRenderer.resetScale();
 
         String moduleCount = "Modules: " + Arsenic.getArsenic().getModuleManager().getModules().size();
@@ -74,7 +76,8 @@ public class Screen extends GuiScreen {
         String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
         mc.fontRendererObj.drawStringWithShadow(modCount, 2, this.height - mc.fontRendererObj.FONT_HEIGHT - 2, -1);
 
-        //net.minecraft.client.gui.inventory.GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
+        //This will not work because the player is currently null
+        //GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -106,26 +109,70 @@ public class Screen extends GuiScreen {
 
     public static class CustomGuiButton extends GuiButton{
 
+        private Framebuffer fbo;
+
         public CustomGuiButton(int buttonId, int x, int y, String buttonText) {
-            super(buttonId, x, y, buttonText);
+            super(buttonId, x, y, 200, 20, buttonText);
         }
 
         public CustomGuiButton(int buttonId, int x, int y, int widthIn, int heightIn, String buttonText) {
             super(buttonId, x, y, widthIn, heightIn, buttonText);
         }
+        private void initFbo() {
+            if (fbo == null) {
+                fbo = new Framebuffer(width, height, true);
+            } else if (fbo.framebufferWidth != width || fbo.framebufferHeight != height) {
+                fbo.createBindFramebuffer(width, height);
+            }
+        }
 
         @Override
         public void drawButton(Minecraft mc, int mouseX, int mouseY) {
+            initFbo();
+            this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
+            int i = this.getHoverState(this.hovered);
+
+            // 1. Draw button shape to FBO
+            fbo.framebufferClear();
+            fbo.bindFramebuffer(true);
+            DrawUtils.drawRoundedRect(0, 0, width, height, 2, new Color(0, 0, 0, i == 2 ? 200 : 160).getRGB());
+            fbo.unbindFramebuffer();
+
+            /*
+            // 2. Apply shader to the FBO texture
+            GlStateManager.enableBlend();
+            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE);
+
             liquidButtonShader.init();
-            liquidButtonShader.setUniformf("resolution", (float)width, (float)height);
+            liquidButtonShader.setUniformf("resolution", (float) width, (float) height);
             liquidButtonShader.setUniformf("time", (System.currentTimeMillis() % 100000) / 1000f);
-            liquidButtonShader.setUniformf("mouse", (mouseX - xPosition) / (float)width, (height - (mouseY - yPosition)) / (float)height);
+            liquidButtonShader.setUniformf("mouse", (mouseX - xPosition) / (float) width, (height - (mouseY - yPosition)) / (float) height);
+
+            // Bind the FBO texture
+            RenderUtils.bindTexture(fbo.framebufferTexture);
+
+            // Draw a quad on the screen at the button's position
             ShaderUtil.drawQuads(xPosition, yPosition, width, height);
+
             liquidButtonShader.unload();
+            GlStateManager.disableBlend();
+            GlStateManager.bindTexture(0);
+            */
+
+            // Draw text on top
+            this.mouseDragged(mc, mouseX, mouseY);
+            int j = 14737632;
+
+            if (packedFGColour != 0) {
+                j = packedFGColour;
+            } else if (!this.enabled) {
+                j = 10526880;
+            } else if (this.hovered) {
+                j = 16777120;
+            }
 
             FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
-            fontRenderer.drawStringWithShadow(displayString, xPosition + width/2f, yPosition + height/2f, -1, fontRenderer.CENTREX, fontRenderer.CENTREY);
+            fontRenderer.drawStringWithShadow(displayString, xPosition + width / 2f, yPosition + height / 2f, j, fontRenderer.CENTREX, fontRenderer.CENTREY);
         }
     }
-
 }
