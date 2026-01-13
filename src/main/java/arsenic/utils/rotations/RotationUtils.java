@@ -41,16 +41,7 @@ public class RotationUtils extends UtilityClass {
         return new float[]{cappedPYaw,cappedPitch};
     }
     public static float[] getPatchedAndCappedRots(float[] prev, float[] current, float speed){ return patchGCD(prev,getCappedRotations(prev,current,speed)); }
-    public static float[] getRotations(BlockPos position, EnumFacing facing) {
-        float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
-        float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
-        float[] rots = new float[]{mc.thePlayer.rotationYaw + 180, 77};
 
-        // Smooth out the rotations using patchGCD method
-        float[] lastRots = new float[]{currentYaw, currentPitch};
-        float[] fixedRots = patchGCD(lastRots, rots);
-        return fixedRots;
-    }
 
     public static float[] patchGCD(float[] prevRotation, float[] currentRotation) {
         float f = mc.gameSettings.mouseSensitivity * 0.6F + 0.2F;
