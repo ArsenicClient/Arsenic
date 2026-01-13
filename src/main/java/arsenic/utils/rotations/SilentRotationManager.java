@@ -3,10 +3,20 @@ package arsenic.utils.rotations;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
+import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
+import org.lwjgl.opengl.GL11;
+
+import java.awt.*;
+
+import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
 
 public class SilentRotationManager {
 
@@ -38,13 +48,19 @@ public class SilentRotationManager {
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
 
-        float[] patchedRots = RotationUtils.getPatchedAndCappedRots(
-                new float[]{prevYaw,prevPitch},
-                new float[]{rotation.getYaw(), rotation.getPitch()},
-                speed
+        float yawDelta = getYawDelta(rotation.getYaw());
+        float pitchDelta = getPitchDelta(rotation.getPitch());
+        yaw = prevYaw + yawDelta;
+        pitch = prevPitch + pitchDelta;
+
+        float[] rotations = RotationUtils.patchGCD(
+                new float[]{prevYaw, prevPitch},
+                new float[]{yaw, pitch}
         );
-        yaw = patchedRots[0];
-        pitch = patchedRots[1];
+
+        yaw = rotations[0];
+        pitch = rotations[1];
+
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
     };
 
@@ -88,8 +104,14 @@ public class SilentRotationManager {
         if(!modified || !doMovementFix || (event.getSpeed() == 0 && event.getStrafe() == 0)) return;
         float moveAngle = wrapAngleToPi(normaliseYaw(mc.thePlayer.rotationYaw) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
         float moveKeyAngle = wrapAngleToPi(moveAngle - (float) Math.toRadians(yaw));
-        event.setSpeed((moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0);
-        event.setStrafe((moveKeyAngle >= Math.PI/8 && moveKeyAngle <= Math.PI * 7/8) ? -1 : (moveKeyAngle <= -Math.PI/8 && moveKeyAngle >= -Math.PI * 7/8) ? 1 : 0);
+        float speedValue = (moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0;
+        float strafeValue = (moveKeyAngle >= Math.PI/8 && moveKeyAngle <= Math.PI * 7/8) ? -1 : (moveKeyAngle <= -Math.PI/8 && moveKeyAngle >= -Math.PI * 7/8) ? 1 : 0;
+        if(mc.thePlayer.isSneaking()) {
+            speedValue *= 0.3F;
+            strafeValue *= 0.3F;
+        }
+        event.setSpeed(speedValue);
+        event.setStrafe(strafeValue);
     };
 
     @EventLink
@@ -110,6 +132,19 @@ public class SilentRotationManager {
             value += twoPi;
         }
         return value - (float)Math.PI;
+    }
+
+
+    private float getYawDelta(float targetYaw) {
+        float delta = wrapAngleTo180_float(wrapAngleTo180_float(targetYaw) - wrapAngleTo180_float(prevYaw));
+        float speedValue = (float) (speed * ((Math.sin(Math.toRadians(Math.abs(delta)))/2.0f) + 0.5f));
+        return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
+    }
+
+    private float getPitchDelta(float targetPitch) {
+        float delta = targetPitch - prevPitch;
+        float speedValue = (float) (speed * ((Math.sin(Math.toRadians(Math.abs(delta)))/2.0f) + 0.5f));
+        return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
     }
 
 }

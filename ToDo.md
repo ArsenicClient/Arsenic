@@ -1,7 +1,3 @@
-- Make Clicker work without no hit delay
-- Custom Main Menu, fix it on the first load
-- Upgrade aimassist / ka (Entropy)
-- Seperate SmoothAim into Aimassist - no silent mode, and ka
 - Scaffold
 - Custom Loading Screen
 - Legit scaffold
@@ -19,3 +15,4 @@
 - blink upgrade? incoming packets
 - AutoTool upgrade, raycast to nearest target to see if hitable, maybe if theres a bed aswell
 - JumpReset antikb (I dont think the module works - it does jump not sure if it actually reduces velo)
+- Custom Main Menu, fix it on the first load
