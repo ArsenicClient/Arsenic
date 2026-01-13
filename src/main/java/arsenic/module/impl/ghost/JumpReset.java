@@ -7,6 +7,7 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -31,9 +32,8 @@ public class JumpReset extends Module {
 
     @EventLink
     public final Listener<EventMovementInput> eventMotionListener = event -> {
-        if (shouldJump) {
+        if (shouldJump && PlayerUtils.getClosestPlayerWithin(4.0) != null) {
             event.setJump(true);
-            PlayerUtils.addWaterMarkedMessageToChat("Jumped");
             shouldJump = false;
         }
     };
