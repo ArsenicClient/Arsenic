@@ -17,15 +17,14 @@ public class RotationUtils extends UtilityClass {
     //dont bloat this method again. Let it be the way it was when i first made it
     public static float[] getRotationsToEntity(EntityLivingBase e) {
         if (e == null) return null;
-        double x = e.posX - mc.thePlayer.posX;
-        double y = e.getPositionVector().yCoord - mc.thePlayer.getPositionVector().yCoord;
-        double z = e.posZ - mc.thePlayer.posZ;
+        final Vec3 targetVec = getBestHitVec(e);
+        final Vec3 eyePos = mc.thePlayer.getPositionEyes(1f);
+        double x = targetVec.xCoord - eyePos.xCoord;
+        double y = targetVec.yCoord - eyePos.yCoord;
+        double z = targetVec.zCoord - eyePos.zCoord;
         double distance = MathHelper.sqrt_double((x * x) + (z * z));
         float targetYaw = (float) ((Math.toDegrees(Math.atan2(z, x))) - 90);
         float targetPitch = (float) (-Math.toDegrees(Math.atan2(y, distance)));
-        float rand = (float) (Math.random() - Math.random());
-        targetYaw += rand;
-        targetPitch -= rand;
         return new float[]{targetYaw,targetPitch};
     }
 
@@ -67,11 +66,11 @@ public class RotationUtils extends UtilityClass {
     public static Vec3 getBestHitVec(final Entity entity) {
         final Vec3 positionEyes = mc.thePlayer.getPositionEyes(1f);
         final float size = entity.getCollisionBorderSize();
-        final AxisAlignedBB entityBoundingBox = entity.getEntityBoundingBox().expand(size, size, size);
+        final AxisAlignedBB entityBoundingBox = entity.getEntityBoundingBox();
         final double ex = MathHelper.clamp_double(positionEyes.xCoord, entityBoundingBox.minX, entityBoundingBox.maxX);
         final double ey = MathHelper.clamp_double(positionEyes.yCoord, entityBoundingBox.minY, entityBoundingBox.maxY);
         final double ez = MathHelper.clamp_double(positionEyes.zCoord, entityBoundingBox.minZ, entityBoundingBox.maxZ);
-        return new Vec3(ex, ey - 0.4, ez);
+        return new Vec3(ex, ey, ez);
     }
 
     public static double getDistanceToEntityBox(Entity entity) {
@@ -87,7 +86,7 @@ public class RotationUtils extends UtilityClass {
         return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2) + Math.pow(zDist, 2));
     }
 
-    public static double fovFromEntity(Entity en) {
+    public static float fovFromEntity(Entity en) {
         return getYawDifference(mc.thePlayer.rotationYaw, fovToEntity(en));
     }
 
@@ -160,5 +159,16 @@ public class RotationUtils extends UtilityClass {
 
     public static float clamp(final float n) {
         return MathHelper.clamp_float(n, -90.0f, 90.0f);
+    }
+
+    public static float updateRotation(float current, float target, float speed) {
+        float f = MathHelper.wrapAngleTo180_float(target - current);
+        if (f > speed) {
+            f = speed;
+        }
+        if (f < -speed) {
+            f = -speed;
+        }
+        return current + f;
     }
 }
