@@ -6,6 +6,7 @@ import arsenic.event.impl.EventKey;
 import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
+import arsenic.module.impl.ghost.Clicker;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
 import net.minecraft.client.Minecraft;
@@ -84,7 +85,7 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "clickMouse", at = @At("HEAD"))
     public void clickMoose(CallbackInfo ci) { //better hitreg.
-        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(NoHitDelay.class).isEnabled())
+        if(Arsenic.getArsenic().getModuleManager().getModuleByClass(NoHitDelay.class).isEnabled() || Arsenic.getArsenic().getModuleManager().getModuleByClass(Clicker.class).isEnabled())
             this.leftClickCounter = 0;
     }
 
