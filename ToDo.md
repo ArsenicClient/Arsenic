@@ -1,18 +1,14 @@
 - Scaffold
-- Custom Loading Screen
-- Legit scaffold
-- InvMove, delay packets
 - Eagle
+- InvMove, delay packets
 - Clutch Module
 - Timer balance, fastbreak?
-- Charge tp => Assassin (and fix, maybe just remove since it no longer works on hypixel)
 - savemovekeys
 - sound feedback for gui
 - antifireball
-- playermodel in cgui
 - notifications
 - chestesp
+- Custom Loading Screen
 - blink upgrade? incoming packets
 - AutoTool upgrade, raycast to nearest target to see if hitable, maybe if theres a bed aswell
-- JumpReset antikb (I dont think the module works - it does jump not sure if it actually reduces velo)
 - Custom Main Menu, fix it on the first load
