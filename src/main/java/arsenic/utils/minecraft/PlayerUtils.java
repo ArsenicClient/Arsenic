@@ -51,6 +51,14 @@ public class PlayerUtils extends UtilityClass {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
 
+    public static void addWaterMarkedMessageToChat(Object... object) {
+        StringBuilder builder = new StringBuilder();
+        for (Object o : object) {
+            builder.append(o.toString() + " | ");
+        }
+        addMessageToChat("§7[§cA§7]§r " + builder);
+    }
+
     public static boolean playerOverAir() {
         return mc.theWorld.isAirBlock(getBlockUnderPlayer());
     }

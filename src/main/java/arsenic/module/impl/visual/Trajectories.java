@@ -21,7 +21,7 @@ import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.Color;
 
-@ModuleInfo(name = "Trajectories", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Trajectories", category = ModuleCategory.WORLD, hidden = true)
 public class Trajectories extends Module {
     public final BooleanProperty ghostBow = new BooleanProperty("Ghost Bow Charge", true);
     public final ColourProperty trajectoryColor = new ColourProperty("Color:", new Color(255, 255, 255).hashCode());

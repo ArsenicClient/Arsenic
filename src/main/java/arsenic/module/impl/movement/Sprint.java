@@ -11,7 +11,7 @@ import arsenic.module.impl.world.Scaffold;
 import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
 
-@ModuleInfo(name = "Sprint",category = ModuleCategory.OTHER)
+@ModuleInfo(name = "Sprint",category = ModuleCategory.OTHER, hidden = true)
 public class Sprint extends Module {
     public final EnumProperty<sMode> sprintMode = new EnumProperty<>("Mode: ", sMode.Legit);
 
