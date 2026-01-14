@@ -3,6 +3,7 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.visual.NoHurtCam;
 import com.google.common.base.Predicates;
 import net.minecraft.client.Minecraft;
@@ -45,17 +46,18 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
+            Reach reachMod = Arsenic.getArsenic().getModuleManager().getModuleByClass(Reach.class);
             this.mc.mcProfiler.startSection("pick");
             this.mc.pointedEntity = null;
             double d0 = this.mc.playerController.getBlockReachDistance();
-            this.mc.objectMouseOver = entity.rayTrace(Math.max(d0, 3.0), p_getMouseOver_1_);
+            this.mc.objectMouseOver = entity.rayTrace(Math.max(d0, reachMod.getReach()), p_getMouseOver_1_);
             double d1 = d0;
             Vec3 vec3 = entity.getPositionEyes(p_getMouseOver_1_);
             boolean flag = false;
             if(this.mc.playerController.extendedReach()) {
                 d0 = 6.0D;
                 d1 = 6.0D;
-            } else if(d0 > 3.0) {
+            } else if(d0 > reachMod.getReach()) {
                 flag = true;
             }
 
@@ -98,7 +100,7 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
                 }
             }
 
-            if (this.pointedEntity != null && flag && vec3.distanceTo(vec33) > (3.0)) {
+            if (this.pointedEntity != null && flag && vec3.distanceTo(vec33) > (reachMod.getReach())) {
                 this.pointedEntity = null;
                 this.mc.objectMouseOver = new MovingObjectPosition(MovingObjectPosition.MovingObjectType.MISS, Objects.requireNonNull(vec33), null, new BlockPos(vec33));
             }

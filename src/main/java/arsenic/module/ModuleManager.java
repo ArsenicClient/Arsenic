@@ -24,8 +24,16 @@ public class ModuleManager {
 
         Reflections reflections = new Reflections("arsenic.module");
         reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> addModule((Class<? extends Module>) module));
+
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
+
+        // Remove modules where dev is true
+        modules.entrySet().removeIf(entry -> {
+            ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
+            return info != null && info.dev();
+        });
+
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }

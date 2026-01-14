@@ -32,9 +32,9 @@ public class TargetManager extends Module {
             unArmoured = new BooleanProperty("Target UnArmoured", true);
     public static DoubleProperty fov = new DoubleProperty("General FOV", new DoubleValue(0,360,180,1)),
             auraFov = new DoubleProperty("Aura FOV", new DoubleValue(0,360,360,1)),
-            distance = new DoubleProperty("Distance", new DoubleValue(3,10,8,1));
+            distance = new DoubleProperty("Distance", new DoubleValue(3,10,8,0.1));
     @PropertyInfo(reliesOn = "Sort Mode", value = "Lock")
-    public final DoubleProperty lockDist = new DoubleProperty("Locked Distance", new DoubleValue(3,10,5,1));
+    public final DoubleProperty lockDist = new DoubleProperty("Locked Distance", new DoubleValue(3,10,5,0.1));
     private static EntityPlayer lockedTarget;
 
     @Override
