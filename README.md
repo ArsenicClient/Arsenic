@@ -1,27 +1,32 @@
-credits to Kv (`@kv.v`), lily (`no dc`), stephen (`@stephen.java`), Cosmic (`no dc :D`) on discord for making this possible
-
-Reach out if you want any help setting this up etc! 
-
 # Arsenic
-**The client is as good as dead; don't ask for features or open up issues. They won't be addressed.**
 
-Arsenic client is brought to you by Shitcode INC©.
+Arsenic is a 1.8.9 Minecraft cheat that specifically focuses on the Hypixel and Grim anti-cheat systems. Any features that trigger GrimAC should be removed or refactored. Arsenic is a Forge mod.
 
-# FYI
+The client features:
+- Module System
+- Command System
+- Custom Events
+- Mixins
+- Config System
+- Custom GUI with Themes
 
-There are a lot of half implemented/finished things, I am no longer working on this so I thought that I might as well open source it.
-
-The blatant things in the client are probably patched by now. However, all the ghost features should still work fine on most, if not all, servers.
-
-## Looking at the code might cause severe brain-damage or insanity read at your own risk
+Currently, there are not too many modules; however, it is in a usable state, and most should bypass fine.
 
 ## How To Build/Edit
 
-- clone repo
-- run setup.bat
-- open Arsenic.ipr
-- load gradle project
-- skid away :D
- 
-# Everying broke please help
-create an issue an tag me (@K-ov) or add me on discord (kv.v)
+-   Clone the repository.
+-   Run `setup.bat`.
+-   Open the project in your IDE.
+-   Load the Gradle project.
+-   Start developing!
+
+## Credits
+
+A special thanks to everyone who has contributed to the project!
+
+-   **Kv:** 
+-   **Lily:** 
+-   **Stephen:** 
+-   **Cosmic:** 
+
+Reach out to `@kv.v` on Discord if you need help with the setup.

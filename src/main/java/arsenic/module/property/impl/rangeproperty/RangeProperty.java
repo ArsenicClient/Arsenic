@@ -40,6 +40,10 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         return value.getMin() + " - " + value.getMax() + displayMode.getSuffix();
     }
 
+    public boolean hasInRange(double value) {
+        return value <= getValue().getMaxBound() && value >= getValue().getMinBound();
+    }
+
     public DisplayMode getDisplayMode() { return displayMode; }
 
     @Override

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import arsenic.injection.accessor.IMixinMinecraft;
+import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -18,6 +19,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 
 import javax.imageio.ImageIO;
@@ -137,6 +139,37 @@ public class RenderUtils extends UtilityClass {
 
     public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b) {
         drawBoundingBox(abb, r, g, b, 0.25f);
+    }
+
+    public static void drawBoundingBox(Vec3 pos, Color color) {
+        IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
+        double x = pos.xCoord - renderManager.getRenderPosX();
+        double y = pos.yCoord - renderManager.getRenderPosY();
+        double z = pos.zCoord - renderManager.getRenderPosZ();
+
+        AxisAlignedBB playerBB = mc.thePlayer.getEntityBoundingBox();
+        double width = playerBB.maxX - playerBB.minX;
+        double height = playerBB.maxY - playerBB.minY;
+
+        AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(
+                x - width / 2, y, z - width / 2,
+                x + width / 2, y + height, z + width / 2
+        );
+
+        GlStateManager.pushMatrix();
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDepthMask(false);
+        GL11.glLineWidth(2.0F);
+        RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glDepthMask(true);
+        GL11.glLineWidth(1.0F);
+        GlStateManager.popMatrix();
     }
 
     public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b, float a) {

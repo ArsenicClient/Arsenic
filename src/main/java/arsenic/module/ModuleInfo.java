@@ -8,7 +8,7 @@ public @interface ModuleInfo {
 
     String name();
 
-    String description() default "placeholder lol";
+    String description() default "placeholder";
 
     ModuleCategory category();
 
@@ -17,5 +17,7 @@ public @interface ModuleInfo {
     boolean enabled() default false;
 
     boolean hidden() default false;
+
+    boolean dev() default false;
 
 }

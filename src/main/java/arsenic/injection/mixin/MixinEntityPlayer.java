@@ -3,7 +3,6 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventAttack;
 
 import arsenic.main.Arsenic;
-import arsenic.module.impl.combat.KeepSprint;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
 import net.minecraft.entity.boss.EntityDragonPart;
@@ -110,16 +109,10 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
                                     -MathHelper.sin(this.rotationYaw * 3.1415927F / 180.0F) * (float) i * 0.5F, 0.1D,
                                     MathHelper.cos(this.rotationYaw * 3.1415927F / 180.0F) * (float) i * 0.5F);
 
-                            KeepSprint keepSprint = Arsenic.getArsenic().getModuleManager().getModuleByClass(KeepSprint.class);
-                            if (keepSprint.isEnabled()) {
-                                this.motionX *= keepSprint.value.getValue().getInput();
-                                this.motionZ *= keepSprint.value.getValue().getInput();
-                                this.setSprinting(keepSprint.sprint.getValue());
-                            } else {
-                                this.motionX *= 0.6D;
-                                this.motionZ *= 0.6D;
-                                this.setSprinting(false);
-                            }
+                            this.motionX *= 0.6D;
+                            this.motionZ *= 0.6D;
+                            this.setSprinting(false);
+
                         }
 
                         if (p_attackTargetEntityWithCurrentItem_1_ instanceof EntityPlayerMP

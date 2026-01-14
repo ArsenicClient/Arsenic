@@ -14,7 +14,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.network.play.server.S03PacketTimeUpdate;
 
 
-@ModuleInfo(name = "CustomWorld", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "CustomWorld", category = ModuleCategory.WORLD, hidden = true)
 public class CustomWorld extends Module {
     public BooleanProperty changeWeather = new BooleanProperty("Change weather", false);
     public final EnumProperty<wMode> mode = new EnumProperty<>("Mode: ", wMode.CLEAR);

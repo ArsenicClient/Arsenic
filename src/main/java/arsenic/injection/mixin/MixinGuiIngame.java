@@ -1,6 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.module.impl.client.PostProcessing;
+import arsenic.module.impl.visual.PostProcessing;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

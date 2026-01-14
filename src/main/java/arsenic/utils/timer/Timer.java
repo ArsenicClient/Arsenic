@@ -50,4 +50,8 @@ public class Timer {
         long tl = coolDownTime - (System.currentTimeMillis() - startTime);
         return tl < 0 ? 0 : tl;
     }
+
+    public boolean hasExceededTimeBy(long additionalThreshold) {
+        return getElapsedTime() - coolDownTime >= additionalThreshold;
+    }
 }

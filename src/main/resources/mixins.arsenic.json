@@ -22,16 +22,17 @@
     "mixin.MixinGuiSpectator",
     "mixin.MixinItemRenderer",
     "mixin.MixinMinecraft",
+    "mixin.MixinModList",
     "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
-    "mixin.MixinRendererLivingEntity",
-    "mixin.MixinModList"
+    "mixin.MixinRendererLivingEntity"
   ],
   "mixins": [
     "accessor.C03PacketPlayerAccessor",
-    "accessor.IMixinC02PacketUseEntity",
+    "accessor.IMixinS14PacketEntity",
     "accessor.IMixinItemSword",
     "accessor.IMixinS12PacketEntityVelocity",
+    "accessor.IMixinS14PacketEntity",
     "accessor.S03PacketTimeUpdateAccessor",
     "mixin.MixinEntityPlayer",
     "mixin.MixinItemTool",

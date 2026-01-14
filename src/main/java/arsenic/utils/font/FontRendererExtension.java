@@ -44,8 +44,8 @@ public class FontRendererExtension<T extends IFontRenderer>{
         };
     }
 
-    public final BiConsumer<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f));
-    public final BiConsumer<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f));
+    public final BiConsumer<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f) * scale);
+    public final BiConsumer<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f) * scale);
     public final BiConsumer<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)));
     private final BiConsumer<PosInfo, String> SCALE = (posInfo, string) -> {
         posInfo.setX(posInfo.getX() * scaleReciprocal);
