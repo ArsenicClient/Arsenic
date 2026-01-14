@@ -2,15 +2,14 @@
     {
         "modid": "arsenic",
         "name": "Arsenic Client",
-        "description": "cheaters get banned. im not banned so im not cheater..",
-        "version": "v69420",
+        "description": "Hypixel Ghost Client",
+        "version": "v0.2",
         "url": "",
         "updateUrl": "",
         "authorList": [
-            "sigmaclientwastaken",
-            "Kv"
+            "Kv", "sigmaclientwastaken", "KassuK","Stephen", "Cosmic", "TejasLambda", "Many more"
         ],
-        "credits": "forge devs, for suicidal thoughts\nthe shared braincell of the arsenic dev discord",
+        "credits": "",
         "logoFile": "",
         "screenshots": [],
         "dependencies": []

@@ -28,7 +28,7 @@ import java.util.Comparator;
 import static arsenic.utils.rotations.RotationUtils.getRotations;
 
 
-@ModuleInfo(name = "KvScaffold", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "KvScaffold", category = ModuleCategory.PLAYER, dev = true)
 public class ScaffoldTest extends Module {
     public final BooleanProperty allowTower = new BooleanProperty("Allow Tower", false);
     private BlockPos lastOverBlock;
