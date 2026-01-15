@@ -7,37 +7,86 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 
 public class ConfigManager implements ISerializable {
-
     private final HashMap<String, ModuleConfig> configs = new HashMap<>();
     private ModuleConfig currentConfig;
     private ClientConfig clientConfig;
     private final File configDirectory = new File(FileUtils.getArsenicFolderDirAsString() + File.separator + "Configs");
 
     public int initialize() {
-        if (!configDirectory.isDirectory()) { configDirectory.mkdirs(); }
+        if (!configDirectory.isDirectory()) {
+            configDirectory.mkdirs();
+        }
+
         System.out.println("initialized config manager");
+
         File clientConfigFile = new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json");
         clientConfig = new ClientConfig(clientConfigFile);
 
         reloadConfigs();
+
         if (!configs.isEmpty()) {
             clientConfig.loadConfig();
-            if (currentConfig == null) { currentConfig = (ModuleConfig) configs.values().toArray()[0]; }
+            if (currentConfig == null) {
+                currentConfig = (ModuleConfig) configs.values().toArray()[0];
+            }
         } else {
-            createConfig("default");
+            createConfigFromResource();
         }
 
         currentConfig.loadConfig();
         return configs.size();
     }
 
+    private void createConfigFromResource() {
+        try {
+            File defaultConfigFile = new File(configDirectory.getPath(), "default.json");
+
+            // Load the resource file
+            InputStream resourceStream = getClass().getResourceAsStream("/assets/arsenic/configs/default.json");
+
+            if (resourceStream != null) {
+                // Copy resource to config directory
+                try (FileOutputStream fos = new FileOutputStream(defaultConfigFile)) {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = resourceStream.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+                }
+                resourceStream.close();
+
+                System.out.println("Created default config from resource file");
+            } else {
+                System.out.println("Resource file not found, creating empty default config");
+                // Fallback to creating empty config
+                createConfig("default");
+                return;
+            }
+
+            // Load the newly created config
+            ModuleConfig config = new ModuleConfig(defaultConfigFile);
+            configs.put("default", config);
+            currentConfig = config;
+
+        } catch (Exception e) {
+            System.err.println("Failed to load default config from resources: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback to creating empty config
+            createConfig("default");
+        }
+    }
+
     public void reloadConfigs() {
         configs.clear();
+
         if (configDirectory.listFiles() == null || (Objects.requireNonNull(configDirectory.listFiles()).length == 0))
             return; // nothing to discover if there are no files in the directory
 
@@ -57,10 +106,16 @@ public class ConfigManager implements ISerializable {
 
     public void loadConfig(String name) {
         currentConfig = configs.get(name);
+
         if (currentConfig == null) {
             Arsenic.getArsenic().getLogger().info("Config {} not found loading default config... ", name);
-            if (!configs.containsKey("default")) { createConfig("default"); }
+            if (!configs.containsKey("default")) {
+                createConfigFromResource();
+            } else {
+                currentConfig = configs.get("default");
+            }
         }
+
         currentConfig.loadConfig();
         clientConfig.saveConfig();
     }
@@ -77,11 +132,17 @@ public class ConfigManager implements ISerializable {
         clientConfig.saveConfig();
     }
 
-    public ModuleConfig getCurrentConfig() { return currentConfig; }
+    public ModuleConfig getCurrentConfig() {
+        return currentConfig;
+    }
 
-    public Set<String> getConfigList() { return configs.keySet(); }
+    public Set<String> getConfigList() {
+        return configs.keySet();
+    }
 
-    public void saveConfig() { currentConfig.saveConfig(); }
+    public void saveConfig() {
+        currentConfig.saveConfig();
+    }
 
     @Override
     public void loadFromJson(JsonObject obj) {
@@ -102,5 +163,4 @@ public class ConfigManager implements ISerializable {
     // remember to only call this during events that the user can call eg closing
     // the clickgui, using commands etc.
     // if you don't then there is a potential of recursion
-
 }

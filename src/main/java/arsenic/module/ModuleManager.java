@@ -5,7 +5,6 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.PostProcessing;
-import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import org.reflections.Reflections;
 
 import java.util.*;
