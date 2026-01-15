@@ -1,8 +1,6 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.*;
-import arsenic.module.impl.blatant.NoSlow;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemFood;
@@ -14,20 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.*;
-import net.minecraft.entity.boss.EntityDragonPart;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.potion.Potion;
-import net.minecraft.stats.AchievementList;
-import net.minecraft.stats.StatList;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.common.ForgeHooks;
 import com.mojang.authlib.GameProfile;
 
 import arsenic.main.Arsenic;
@@ -99,23 +84,8 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
     }
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
     private boolean noSlowMixin(EntityPlayerSP instance) {
-        NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
-
-        if (noSlow.isEnabled() && Minecraft.getMinecraft().thePlayer.getCurrentEquippedItem() != null) {
-            if (Minecraft.getMinecraft().thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword && noSlow.swordNoSlow.getValue()) {
-                return false;
-            }
-            if (Minecraft.getMinecraft().thePlayer.getCurrentEquippedItem().getItem() instanceof ItemFood && noSlow.foodNoSlow.getValue()) {
-                return false;
-            }
-            if (Minecraft.getMinecraft().thePlayer.getCurrentEquippedItem().getItem() instanceof ItemPotion && noSlow.potionNoSlow.getValue()) {
-                return false;
-            }
-            if (Minecraft.getMinecraft().thePlayer.getCurrentEquippedItem().getItem() instanceof ItemBow && noSlow.bowNoSlow.getValue()) {
-                return false;
-            }
-        }
-
+        //NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
+        //Return false for no slow, removed until there is a bypass
         return instance.isUsingItem();
     }
 
