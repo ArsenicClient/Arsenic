@@ -1,1 +1,389 @@
-{"NoHurtCam":{"bind":0,"enabled":false},"ChestStealer":{"bind":48,"enabled":false,"StartDelay":{"min":28.0,"max":44.0},"Delay":{"min":60.0,"max":76.0},"HideGui":{"enabled":true},"Close on finish":{"enabled":true},"Close Delay":{"min":75.0,"max":76.0}},"NoHitDelay":{"bind":0,"enabled":true},"PostProcessing":{"bind":0,"enabled":true,"Blur Settings":{"Blur":{"enabled":true},"Blur Iterations":{"value":2.0},"Blur Offset":{"value":4.0}},"Bloom Settings":{"Bloom":{"enabled":true},"Bloom Iterations":{"value":4.0},"Bloom Offset":{"value":5.0}}},"KillAura":{"bind":0,"enabled":false,"Switch":{"enabled":false},"APS":{"min":10.0,"max":11.0},"Attack Range":{"value":3.0},"Find Range":{"value":3.0},"speed":{"min":62.0,"max":62.0},"MoveFix":{"enabled":true},"Raycast":{"enabled":true},"Through Walls":{"enabled":false},"Show Swing":{"enabled":true},"ESP":{"enabled":false}},"Esp":{"bind":0,"enabled":true,"Color:":{"mode":"CUSTOM","value":3066993},"BedWars":{"enabled":false},"Shader ESP":{"enabled":false},"Box ESP":{"enabled":false},"Health ESP":{"enabled":true}},"ClickGUI":{"bind":38,"enabled":false,"Custom Font":{"enabled":true}},"Scaffold":{"bind":0,"enabled":false,"Sprint":{"enabled":false},"Motion":{"value":100.0},"MoveFix":{"enabled":false},"Hypixel Keep-Y":{"enabled":false},"Raycast":{"enabled":false}},"Auto Tool":{"bind":0,"enabled":true,"Hover Delay":{"value":0.0},"Disable while right click":{"enabled":true},"Require Mouse down":{"enabled":true},"Swap to previous slot":{"enabled":true}},"InvManager":{"bind":48,"enabled":false,"StartDelay":{"min":60.0,"max":93.0},"Delay":{"min":52.0,"max":93.0},"Close on finish":{"enabled":true},"Drop":{"enabled":false}},"WTap":{"bind":0,"enabled":true,"Mode":{"mode":"COMBO"}},"BlockHit":{"bind":34,"enabled":false,"Mode":{"mode":"Legit"},"RightClick Only":{"enabled":false},"Hurtime":{"value":8.0}},"Backtrack":{"bind":0,"enabled":true,"Latency":{"min":70.0,"max":130.0},"Distance":{"min":1.0,"max":4.0}},"NoJumpDelay":{"bind":0,"enabled":true},"Fastplace":{"bind":0,"enabled":true,"Tick Delay":{"min":1.0,"max":1.0},"Blocks Only":{"enabled":true}},"AntiBot":{"bind":0,"enabled":false,"Name Checks":{"enabled":true},"Invis Checks":{"enabled":false},"Tab Checks":{"enabled":true},"NoPush Checks":{"enabled":false},"Ping Checks":{"enabled":false},"Twice UUID Checks":{"enabled":false},"Dead Checks":{"enabled":false},"Always Close Checks":{"enabled":false}},"HUD":{"bind":0,"enabled":true,"Color Mode: ":{"mode":"RAINBOW"}},"AutoGG":{"bind":0,"enabled":true},"FullBright":{"bind":0,"enabled":true,"Mode: ":{"mode":"Gamma"}},"JumpReset":{"bind":0,"enabled":false,"Chance":{"value":0.83}},"Sprint":{"bind":0,"enabled":true,"Mode: ":{"mode":"Legit"}},"Blink":{"bind":21,"enabled":false},"CustomMainMenu":{"bind":0,"enabled":true},"Targets":{"bind":0,"enabled":false,"Sort Mode":{"mode":"Fov"},"Target Teammates":{"enabled":false},"Target Invis":{"enabled":false},"Target Bots":{"enabled":false},"Target UnArmoured":{"enabled":true},"General FOV":{"value":360.0},"Aura FOV":{"value":360.0},"Distance":{"value":4.0},"Locked Distance":{"value":5.0}},"Clicker":{"bind":0,"enabled":true,"Cps":{"min":17.0,"max":20.0},"Drop Cps":{"enabled":true},"Click Sound":{"enabled":true}},"AimAssist":{"bind":33,"enabled":false,"Speed":{"value":20.0},"Mode:":{"mode":"Normal"}},"Reach":{"bind":0,"enabled":false,"Reach":{"value":3.0}},"SafeWalk":{"bind":0,"enabled":false,"Mode: ":{"mode":"S_SHIFT"},"Only S pressed":{"enabled":false},"Only sneak":{"enabled":false},"Pitch Check":{"enabled":false},"Pitch":{"value":45.0},"Delay":{"min":100.0,"max":200.0}},"Trajectories":{"bind":0,"enabled":true,"Ghost Bow Charge":{"enabled":true},"Color:":{"mode":"CUSTOM","value":-3000450},"Target Color:":{"mode":"CUSTOM","value":-710179231}}}
+{
+  "NoHurtCam": {
+    "bind": 0,
+    "enabled": false
+  },
+  "ChestStealer": {
+    "bind": 48,
+    "enabled": false,
+    "StartDelay": {
+      "min": 28,
+      "max": 44
+    },
+    "Delay": {
+      "min": 60,
+      "max": 76
+    },
+    "HideGui": {
+      "enabled": true
+    },
+    "Close on finish": {
+      "enabled": true
+    },
+    "Close Delay": {
+      "min": 75,
+      "max": 76
+    }
+  },
+  "NoHitDelay": {
+    "bind": 0,
+    "enabled": true
+  },
+  "PostProcessing": {
+    "bind": 0,
+    "enabled": true,
+    "Blur Settings": {
+      "Blur": {
+        "enabled": true
+      },
+      "Blur Iterations": {
+        "value": 2
+      },
+      "Blur Offset": {
+        "value": 4
+      }
+    },
+    "Bloom Settings": {
+      "Bloom": {
+        "enabled": true
+      },
+      "Bloom Iterations": {
+        "value": 4
+      },
+      "Bloom Offset": {
+        "value": 5
+      }
+    }
+  },
+  "KillAura": {
+    "bind": 0,
+    "enabled": false,
+    "Switch": {
+      "enabled": false
+    },
+    "APS": {
+      "min": 10,
+      "max": 11
+    },
+    "Attack Range": {
+      "value": 3
+    },
+    "Find Range": {
+      "value": 3
+    },
+    "speed": {
+      "min": 62,
+      "max": 62
+    },
+    "MoveFix": {
+      "enabled": true
+    },
+    "Raycast": {
+      "enabled": true
+    },
+    "Through Walls": {
+      "enabled": false
+    },
+    "Show Swing": {
+      "enabled": true
+    },
+    "ESP": {
+      "enabled": false
+    }
+  },
+  "Esp": {
+    "bind": 0,
+    "enabled": true,
+    "Color:": {
+      "mode": "CUSTOM",
+      "value": 3066993
+    },
+    "BedWars": {
+      "enabled": false
+    },
+    "Shader ESP": {
+      "enabled": false
+    },
+    "Box ESP": {
+      "enabled": false
+    },
+    "Health ESP": {
+      "enabled": true
+    }
+  },
+  "ClickGUI": {
+    "bind": 38,
+    "enabled": false,
+    "Custom Font": {
+      "enabled": true
+    }
+  },
+  "Scaffold": {
+    "bind": 0,
+    "enabled": false,
+    "Sprint": {
+      "enabled": false
+    },
+    "Motion": {
+      "value": 100
+    },
+    "MoveFix": {
+      "enabled": false
+    },
+    "Hypixel Keep-Y": {
+      "enabled": false
+    },
+    "Raycast": {
+      "enabled": false
+    }
+  },
+  "Auto Tool": {
+    "bind": 0,
+    "enabled": true,
+    "Hover Delay": {
+      "value": 0
+    },
+    "Disable while right click": {
+      "enabled": true
+    },
+    "Require Mouse down": {
+      "enabled": true
+    },
+    "Swap to previous slot": {
+      "enabled": true
+    }
+  },
+  "InvManager": {
+    "bind": 48,
+    "enabled": false,
+    "StartDelay": {
+      "min": 60,
+      "max": 93
+    },
+    "Delay": {
+      "min": 52,
+      "max": 93
+    },
+    "Close on finish": {
+      "enabled": true
+    },
+    "Drop": {
+      "enabled": false
+    }
+  },
+  "WTap": {
+    "bind": 0,
+    "enabled": true,
+    "Mode": {
+      "mode": "NORMAL"
+    }
+  },
+  "BlockHit": {
+    "bind": 34,
+    "enabled": false,
+    "Mode": {
+      "mode": "Legit"
+    },
+    "RightClick Only": {
+      "enabled": false
+    },
+    "Hurtime": {
+      "value": 8
+    }
+  },
+  "Backtrack": {
+    "bind": 0,
+    "enabled": true,
+    "Latency": {
+      "min": 70,
+      "max": 130
+    },
+    "Distance": {
+      "min": 1,
+      "max": 4
+    }
+  },
+  "NoJumpDelay": {
+    "bind": 0,
+    "enabled": true
+  },
+  "Fastplace": {
+    "bind": 0,
+    "enabled": true,
+    "Tick Delay": {
+      "min": 1,
+      "max": 1
+    },
+    "Blocks Only": {
+      "enabled": true
+    }
+  },
+  "AntiBot": {
+    "bind": 0,
+    "enabled": false,
+    "Name Checks": {
+      "enabled": true
+    },
+    "Invis Checks": {
+      "enabled": false
+    },
+    "Tab Checks": {
+      "enabled": true
+    },
+    "NoPush Checks": {
+      "enabled": false
+    },
+    "Ping Checks": {
+      "enabled": false
+    },
+    "Twice UUID Checks": {
+      "enabled": false
+    },
+    "Dead Checks": {
+      "enabled": false
+    },
+    "Always Close Checks": {
+      "enabled": false
+    }
+  },
+  "HUD": {
+    "bind": 0,
+    "enabled": true,
+    "Color Mode: ": {
+      "mode": "RAINBOW"
+    }
+  },
+  "AutoGG": {
+    "bind": 0,
+    "enabled": true
+  },
+  "FullBright": {
+    "bind": 0,
+    "enabled": true,
+    "Mode: ": {
+      "mode": "Gamma"
+    }
+  },
+  "JumpReset": {
+    "bind": 0,
+    "enabled": false,
+    "Chance": {
+      "value": 0.83
+    }
+  },
+  "Sprint": {
+    "bind": 0,
+    "enabled": true,
+    "Mode: ": {
+      "mode": "Legit"
+    }
+  },
+  "Blink": {
+    "bind": 21,
+    "enabled": false
+  },
+  "CustomMainMenu": {
+    "bind": 0,
+    "enabled": true
+  },
+  "Targets": {
+    "bind": 0,
+    "enabled": false,
+    "Sort Mode": {
+      "mode": "Fov"
+    },
+    "Target Teammates": {
+      "enabled": false
+    },
+    "Target Invis": {
+      "enabled": false
+    },
+    "Target Bots": {
+      "enabled": false
+    },
+    "Target UnArmoured": {
+      "enabled": true
+    },
+    "General FOV": {
+      "value": 360
+    },
+    "Aura FOV": {
+      "value": 360
+    },
+    "Distance": {
+      "value": 4
+    },
+    "Locked Distance": {
+      "value": 5
+    }
+  },
+  "Clicker": {
+    "bind": 0,
+    "enabled": true,
+    "Cps": {
+      "min": 17,
+      "max": 20
+    },
+    "Drop Cps": {
+      "enabled": true
+    },
+    "Click Sound": {
+      "enabled": true
+    }
+  },
+  "AimAssist": {
+    "bind": 33,
+    "enabled": false,
+    "Speed": {
+      "value": 20
+    },
+    "Mode:": {
+      "mode": "Silent"
+    }
+  },
+  "Reach": {
+    "bind": 0,
+    "enabled": false,
+    "Reach": {
+      "value": 3
+    }
+  },
+  "SafeWalk": {
+    "bind": 0,
+    "enabled": false,
+    "Mode: ": {
+      "mode": "S_SHIFT"
+    },
+    "Only S pressed": {
+      "enabled": false
+    },
+    "Only sneak": {
+      "enabled": false
+    },
+    "Pitch Check": {
+      "enabled": false
+    },
+    "Pitch": {
+      "value": 45
+    },
+    "Delay": {
+      "min": 100,
+      "max": 200
+    }
+  },
+  "Trajectories": {
+    "bind": 0,
+    "enabled": true,
+    "Ghost Bow Charge": {
+      "enabled": true
+    },
+    "Color:": {
+      "mode": "CUSTOM",
+      "value": -3000450
+    },
+    "Target Color:": {
+      "mode": "CUSTOM",
+      "value": -710179231
+    }
+  }
+}
