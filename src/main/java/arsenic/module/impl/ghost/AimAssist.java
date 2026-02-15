@@ -30,7 +30,7 @@ import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
 @ModuleInfo(name = "AimAssist", category = ModuleCategory.GHOST)
 public class AimAssist extends Module {
 
-    public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 20, 10, 1));
+    public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 50, 10, 1));
     public final EnumProperty<aMode> mode = new EnumProperty<>("Mode:", aMode.Silent);
     private float prevPartialTicks, yawDelta, pitchDelta;
     private EntityLivingBase target;
