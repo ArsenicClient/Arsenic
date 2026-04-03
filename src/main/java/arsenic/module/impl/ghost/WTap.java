@@ -4,6 +4,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
+import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventMovementInput;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -48,6 +49,7 @@ public class WTap extends Module {
                 }
                 if(!hasTapped || (targetDistToPlayer < 3.05 && distToTarget < 2.95)) {
                     event.setSpeed(0);
+                    mc.thePlayer.setSprinting(false);
                     hasTapped = true;
                     return;
                 }
@@ -56,6 +58,7 @@ public class WTap extends Module {
             case NORMAL:
                 if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
                     event.setSpeed(0);
+                    mc.thePlayer.setSprinting(false);
                     target = null;
                 }
                 break;
