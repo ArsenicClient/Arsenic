@@ -10,7 +10,13 @@ import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -19,16 +25,18 @@ import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
     protected final ModuleCategory self;
+    protected final ResourceLocation icon;
     protected float scroll, maxHeight;
     protected boolean isCC, isHovered;
     protected List<ModuleComponent> contentsL = new ArrayList<>();
     protected List<ModuleComponent> contentsR = new ArrayList<>();
     protected final List<ModuleComponent> contents;
-    protected final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SQR);
-    protected final AnimationTimer hoverTimer = new AnimationTimer(350, () -> isHovered, TickMode.SQR);
+    protected final AnimationTimer enabledTimer = new AnimationTimer(350, () -> isCC, TickMode.SINE);
+    protected final AnimationTimer hoverTimer = new AnimationTimer(350, () -> isHovered, TickMode.SINE);
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;
+        icon = new ResourceLocation("arsenic", "icons/" + self.getName().toLowerCase() + ".png");
         contents = self.getContents().stream().map(ModuleComponent::new).sorted(Comparator.comparing(ModuleComponent::getName)).collect(Collectors.toList());
         contents.forEach(module -> {
             if ((contentsL.size() + contentsR.size()) % 2 == 0) {
@@ -47,13 +55,24 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        expandX = hoverTimer.getPercent() * (width/14f);
+        float anim = enabledTimer.getPercent();
+        if (anim > 0) {
+            int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 200));
+            int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 200));
+            DrawUtils.drawGradientRoundedRect(x1, y1, x2, y2, height / 4f, mainC, mainC, gradientC, gradientC);
+        }
 
-        int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
-        int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (Math.max(enabledTimer.getPercent(), hoverTimer.getPercent())* 225));
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
-        DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, mainC,mainC,gradientC,gradientC);
-        ri.getFr().drawString(getName(), x1 + expandX + (width/7f), midPointY, getWhite(), ri.getFr().CENTREY);
+        float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
+        float iconX = x1 + (width / 7f) - iconSize;
+        float iconY = midPointY - iconSize / 2f;
+        Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
+        Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
+
+        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, getWhite(), ri.getFr().CENTREY);
         return height;
     }
 
@@ -93,6 +112,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public void setCurrentCategory(boolean currentCategory) {
         this.isCC = currentCategory;
+        if (currentCategory) scroll = 0;
     }
 
     public void scroll(int scroll) {
@@ -103,6 +123,14 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     public void subtractFromMaxScrollHeight(float f) {
         maxHeight = maxHeight - f;
         maxHeight = Math.max(0, maxHeight);
+    }
+
+    public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
+        if (maxHeight <= 0) return;
+        float scrollbarHeight = barHeight * (barHeight / (barHeight + maxHeight));
+        float scrollbarY = y + (this.scroll / -maxHeight) * (barHeight - scrollbarHeight);
+        DrawUtils.drawRoundedRect(x - 3, y, x - 1, y + barHeight, 1f, new Color(255, 255, 255, 20).getRGB());
+        DrawUtils.drawRoundedRect(x - 3, scrollbarY, x - 1, scrollbarY + scrollbarHeight, 1f, new Color(255, 255, 255, 80).getRGB());
     }
 
     @Override

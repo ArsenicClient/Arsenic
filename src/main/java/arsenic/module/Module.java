@@ -12,6 +12,9 @@ import arsenic.module.property.IReliable;
 import arsenic.module.property.Property;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.SerializableProperty;
+import arsenic.notifications.Notification;
+import arsenic.notifications.NotificationManager;
+import arsenic.notifications.NotificationType;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
@@ -32,7 +35,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     private boolean registered;
 
     private final List<Property<?>> properties = new ArrayList<>();
-    private final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
+    protected final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
 
     public Module() {
         if (!this.getClass().isAnnotationPresent(ModuleInfo.class))
@@ -144,6 +147,11 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
                 onDisable();
             }
+
+            if (!hidden) {
+                String s = enabled ? "enabled" : "disabled";
+                NotificationManager.show(new Notification(NotificationType.INFO, "Module " + s, getName() + " has been " + s, 1));
+            }
         }
     }
 
@@ -195,7 +203,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     @Override
-    public final void loadFromJson(JsonObject obj) {
+    public void loadFromJson(JsonObject obj) {
         try {
 
             keybind = obj.get("bind").getAsInt();
@@ -214,7 +222,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     @Override
-    public final JsonObject saveInfoToJson(JsonObject obj) {
+    public JsonObject saveInfoToJson(JsonObject obj) {
 
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);

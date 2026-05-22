@@ -3,29 +3,43 @@ package arsenic.module.impl.player;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.utils.render.RenderUtils;
 import net.minecraft.network.Packet;
+import net.minecraft.util.Vec3;
 
+import java.awt.*;
 import java.util.ArrayList;
 
-@ModuleInfo(name = "Blink",category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Blink", category = ModuleCategory.PLAYER)
 public class Blink extends Module {
 
     private final ArrayList<Packet<?>> packets = new ArrayList<>();
+    private Vec3 startPos;
 
     @EventLink
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
-        if(mc.theWorld == null)
+        if (mc.theWorld == null)
             return;
         event.cancel();
         packets.add(event.getPacket());
     };
 
+    @EventLink
+    public final Listener<EventRenderWorldLast> onRender = event -> {
+        if (startPos == null || packets.isEmpty())
+            return;
+        RenderUtils.drawBoundingBox(startPos, new Color(255, 255, 255));
+    };
+
     @Override
     protected void onEnable() {
         packets.clear();
+        if (mc.thePlayer != null)
+            startPos = mc.thePlayer.getPositionVector();
     }
 
     @Override

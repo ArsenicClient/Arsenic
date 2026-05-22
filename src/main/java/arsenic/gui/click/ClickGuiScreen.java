@@ -7,6 +7,7 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
+import arsenic.module.impl.visual.ClickGui.LogoMode;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
@@ -37,6 +38,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private int vLineX, hLineY, x1, y1;
 
+    private long openTime;
+    private static final int OPEN_ANIMATION_DURATION = 400;
+
     //called once
     public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
@@ -51,6 +55,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void doInit() {
         super.doInit();
+        openTime = System.currentTimeMillis();
     }
 
     public void drawBloom() {
@@ -78,7 +83,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        ResourceLocation logoPath = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
+        ClickGui clickGui = Arsenic.getArsenic().getModuleManager().getModuleByClass(ClickGui.class);
+        ResourceLocation logoPath = clickGui.logoMode.getValue() == ClickGui.LogoMode.MODERN
+                ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
+                : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
         // main container
         RenderUtils.resetColor();
         DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, 0xDD0C0C0C);
@@ -105,6 +113,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // makes the currently selected category component draw its modules
         ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
+
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
         cmcc.drawLeft(piL, ri);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
@@ -115,7 +124,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
         renderLastList.clear();
 
         ScissorUtils.endSubScissor();
+        cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
         ScissorUtils.resetScissor();
+
+        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
+        float eased = 1f - (float) Math.pow(1f - openProgress, 3);
+        if (eased < 1f)
+            drawRect(0, 0, width, height, new Color(0, 0, 0, (int) ((1f - eased) * 200)).getRGB());
+
         getFontRenderer().resetScale();
     }
 
@@ -131,12 +147,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public void setCmcc(ModuleCategoryComponent mcc) {
-        cmcc.setCurrentCategory(false);
-        mcc.setCurrentCategory(true);
-        if (cmcc != mcc){
+        if (cmcc != mcc) {
             prevCmcc = cmcc;
+            cmcc.setCurrentCategory(false);
+            mcc.setCurrentCategory(true);
+            cmcc = mcc;
         }
-        cmcc = mcc;
     }
     public ModuleCategoryComponent getCmcc() {
         return cmcc;
@@ -151,7 +167,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     public <T extends Component & IAlwaysKeyboardInput> void setAlwaysInputComponent(T component) {
-        if(alwaysKeyboardInput != null)
+        if(alwaysKeyboardInput != null && alwaysKeyboardInput != component)
             alwaysKeyboardInput.setNotAlwaysRecieveInput();
         this.alwaysKeyboardInput = component;
     }
@@ -182,7 +198,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         if(alwaysKeyboardInput != null) {
             alwaysKeyboardInput.recieveInput(keyCode);
-            return;
+            if (alwaysKeyboardInput != null) return;
         }
         ((SearchComponent) searchComponent).recieveInput(keyCode);
         super.keyTyped(typedChar, keyCode);
