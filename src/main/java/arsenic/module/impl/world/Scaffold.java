@@ -32,8 +32,6 @@ import org.lwjgl.input.Keyboard;
 @ModuleInfo(name = "Scaffold", category = ModuleCategory.PLAYER)
 public class Scaffold extends Module {
 
-    public BooleanProperty sideCast = new BooleanProperty("sideHit cast", true);
-
     //scaffold variables
     private BlockData blockData;
     private BlockData lastBlockData;
@@ -93,9 +91,6 @@ public class Scaffold extends Module {
         MovingObjectPosition objectOver = mc.objectMouseOver;
         BlockPos blockpos = mc.objectMouseOver.getBlockPos();
         if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
-            return;
-        }
-        if(objectOver.sideHit != blockData.getFacing() && sideCast.getValue()) {
             return;
         }
 
