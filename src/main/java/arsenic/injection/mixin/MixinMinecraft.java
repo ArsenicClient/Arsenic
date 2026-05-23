@@ -101,7 +101,6 @@ public abstract class MixinMinecraft {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
         Entity target = mc.objectMouseOver.entityHit;
-        PlayerUtils.addWaterMarkedMessageToChat(hitflick.shouldFlick());
         if (hitflick.shouldFlick()) {
             mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
             hitflick.armFlick(target); // pass it through
