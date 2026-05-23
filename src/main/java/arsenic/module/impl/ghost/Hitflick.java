@@ -4,6 +4,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
+import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -13,6 +14,8 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import scala.util.Left;
+import scala.util.Right;
 
 @ModuleInfo(name = "Hitflick", category = ModuleCategory.GHOST)
 public class Hitflick extends Module {
@@ -32,7 +35,7 @@ public class Hitflick extends Module {
     @EventLink
     public final Listener<EventAttack> onAttack = event -> {
         if (onlySword.getValue() && !PlayerUtils.isPlayerHoldingSword()) return;
-
+        PlayerUtils.addWaterMarkedMessageToChat(event.getTarget().hurtResistantTime);
         float angle;
         switch (direction.getValue()) {
             case Left:
@@ -61,9 +64,12 @@ public class Hitflick extends Module {
         }
     };
 
+
+
+
     @RequiresPlayer
     @EventLink
-    public final Listener<EventUpdate.Pre> onUpdate = event -> {
+    public final Listener<EventSilentRotation> onUpdate = event -> {
         if (!isFlicking) return;
 
         if (System.currentTimeMillis() < flickUntil) {
@@ -88,6 +94,6 @@ public class Hitflick extends Module {
     }
 
     public enum FlickDirection {
-        Left, Right, Back, Custom
+        Left, Right, Back, Custom;
     }
 }
