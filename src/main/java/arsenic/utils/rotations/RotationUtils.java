@@ -142,7 +142,6 @@ public class RotationUtils extends UtilityClass {
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
 
-
         float[] lastRots = new float[]{currentYaw, currentPitch};
         float[] fixedRots = patchGCD(lastRots, targetRots);
         return fixedRots;

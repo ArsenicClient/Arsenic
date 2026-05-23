@@ -69,8 +69,6 @@ public class LegitScaffold extends Module {
         event.setYaw(yaw);
         event.setPitch(pitch);
         event.setSpeed(speed);
-        event.setDoMovementFix(true);
-        event.setJumpFix(true);
     };
 
     @RequiresPlayer

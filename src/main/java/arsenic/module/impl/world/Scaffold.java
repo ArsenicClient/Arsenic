@@ -15,9 +15,11 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.MoveUtil;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
+import ibxm.Player;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.ItemBlock;
@@ -29,126 +31,23 @@ import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "Scaffold", category = ModuleCategory.PLAYER)
 public class Scaffold extends Module {
-    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
-    public DoubleProperty slowDown = new DoubleProperty("Motion", new DoubleValue(0, 100, 100, 1));
-    public BooleanProperty moveFix = new BooleanProperty("MoveFix", false);
-    public BooleanProperty hypixckel = new BooleanProperty("Hypixel Keep-Y", false);
-    public BooleanProperty raycast = new BooleanProperty("Raycast", false);
+
+    public BooleanProperty sideCast = new BooleanProperty("sideHit cast", true);
 
     //scaffold variables
     private BlockData blockData;
     private BlockData lastBlockData;
     private float[] rots;
 
-    // Bypass variables
-    public static int scaffoldYCoord;
-
-    // Hypixel KeepY
-    private boolean hypixelStartSprint;
-    private int blocksPlaced;
-    private boolean checkGround;
-    private boolean wasEnabled;
-
 
     @Override
     protected void onEnable() {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
-        mc.thePlayer.setSprinting(false);
-        hypixelStartSprint = false;
-        checkGround = false;
-        wasEnabled = false;
         blockData = null;
         lastBlockData = null;
-        scaffoldYCoord = 0;
-        blocksPlaced = 0;
         super.onEnable();
     }
 
-    @EventLink
-    public final Listener<EventTick> eventTickListener = event -> {
-        if (mc.thePlayer.inventory.getCurrentItem() == null || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
-            mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
-            return;
-        }
-        place();
-    };
-
-    @EventLink
-    public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {
-        if (mc.thePlayer.inventory.getCurrentItem() == null || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
-            return;
-        }
-        if (mc.thePlayer.onGround) {
-            mc.thePlayer.motionX *= (slowDown.getValue().getInput() / 100);
-            mc.thePlayer.motionZ *= (slowDown.getValue().getInput() / 100);
-        }
-
-        if (hypixckel.getValue()) {
-            if (!Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode())) {
-                if (mc.thePlayer.onGround) {
-                    scaffoldYCoord = (int) mc.thePlayer.posY - 1;
-                }
-            } else {
-                scaffoldYCoord = (int) mc.thePlayer.posY - 1;
-            }
-        } else {
-            scaffoldYCoord = (int) mc.thePlayer.posY - 1;
-        }
-
-        if (mc.gameSettings.keyBindJump.isKeyDown()) {
-            setSprint();
-            if (hypixckel.getValue()) {
-                int inAirTicks = Arsenic.getInstance().getServerInfo().offGroundTicks;
-                if (MoveUtil.isMoving()) {
-                    if (mc.thePlayer.onGround) {
-                        mc.thePlayer.motionY = 0.4196;
-                        checkGround = true;
-                    }
-                    if (checkGround) {
-                        if (inAirTicks == 3) mc.thePlayer.motionY = 0;
-                        if (inAirTicks == 4) mc.thePlayer.motionY = 0;
-                        if (inAirTicks == 5) mc.thePlayer.motionY = 0.4191;
-                        if (inAirTicks == 6) mc.thePlayer.motionY = 0.3275;
-                        if (inAirTicks == 11) mc.thePlayer.motionY = -0.5;
-                        wasEnabled = true;
-                    }
-                }
-            }
-            hypixelStartSprint = false;
-            blocksPlaced = 0;
-            return;
-        } else if (wasEnabled) {
-            wasEnabled = false;
-            checkGround = false;
-            MoveUtil.stop();
-        }
-
-        if (hypixckel.getValue() && MoveUtil.isMoving() && blocksPlaced > 2) {
-            if (mc.thePlayer.onGround) {
-                mc.thePlayer.jump();
-            }
-            if (!mc.thePlayer.onGround && Arsenic.getInstance().getServerInfo().offGroundTicks == 4) {
-                MovingObjectPosition objectOver = mc.objectMouseOver;
-                BlockPos blockpos = mc.objectMouseOver.getBlockPos();
-                ItemStack itemstack = mc.thePlayer.inventory.getCurrentItem();
-
-                if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
-                    return;
-                }
-
-                if (itemstack != null && !(itemstack.getItem() instanceof ItemBlock)) {
-                    return;
-                }
-
-                mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, itemstack, blockpos, objectOver.sideHit, objectOver.hitVec);
-
-                mc.thePlayer.swingItem();
-
-                hypixelStartSprint = true;
-            }
-        }
-        setSprint();
-    };
 
     @RequiresPlayer
     @EventLink
@@ -158,14 +57,18 @@ public class Scaffold extends Module {
             rots = RotationUtils.getRotations(ScaffoldUtil.getBlockData().getPosition());
         }
 
-        if (lastBlockData == null || mc.gameSettings.keyBindJump.isKeyDown()) {
+        if (lastBlockData == null) {
             rots = new float[]{mc.thePlayer.rotationYaw + 180, 75};
         }
-        event.setJumpFix(moveFix.getValue());
-        event.setDoMovementFix(moveFix.getValue());
+
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
-        event.setSpeed(180f);
+        event.setSpeed(360f);
+        if (mc.thePlayer.inventory.getCurrentItem() == null || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
+            mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
+        } else {
+            place();
+        }
     };
 
     @EventLink
@@ -184,41 +87,24 @@ public class Scaffold extends Module {
 
     private void place() {
         blockData = ScaffoldUtil.getBlockData();
-
         if (blockData == null) {
             return;
         }
-        if (raycast.getValue()) {
-            MovingObjectPosition objectOver = mc.objectMouseOver;
-            BlockPos blockpos = mc.objectMouseOver.getBlockPos();
-
-            if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
-                return;
-            }
+        MovingObjectPosition objectOver = mc.objectMouseOver;
+        BlockPos blockpos = mc.objectMouseOver.getBlockPos();
+        if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
+            return;
         }
+        if(objectOver.sideHit != blockData.getFacing() && sideCast.getValue()) {
+            return;
+        }
+
         mc.playerController.onPlayerRightClick(
                 mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(),
                 blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData)
         );
 
         mc.thePlayer.swingItem();
-        blocksPlaced++;
-    }
-
-    private void setSprint() {
-        if (hypixckel.getValue()) {
-            if (mc.gameSettings.keyBindJump.isKeyDown()) {
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true);
-                mc.thePlayer.setSprinting(true);
-            } else {
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), hypixelStartSprint);
-                mc.thePlayer.setSprinting(hypixelStartSprint);
-
-            }
-        } else {
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprint.getValue());
-            mc.thePlayer.setSprinting(sprint.getValue());
-        }
     }
 
 
