@@ -7,11 +7,15 @@ import arsenic.event.impl.EventRunTick;
 import arsenic.main.Arsenic;
 import arsenic.main.MinecraftAPI;
 import arsenic.module.impl.ghost.Clicker;
+import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,8 +37,8 @@ public abstract class MixinMinecraft {
 
     @Shadow
     public GameSettings gameSettings;
-    
-    @Shadow 
+
+    @Shadow
     private int leftClickCounter;
 
 
@@ -87,6 +91,19 @@ public abstract class MixinMinecraft {
     public void clickMoose(CallbackInfo ci) { //better hitreg.
         if(Arsenic.getArsenic().getModuleManager().getModuleByClass(NoHitDelay.class).isEnabled() || Arsenic.getArsenic().getModuleManager().getModuleByClass(Clicker.class).isEnabled())
             this.leftClickCounter = 0;
+    }
+
+    @Inject(method = "clickMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;swingItem()V"))
+    public void onSwingItem(CallbackInfo ci) {
+        Hitflick hitflick = Arsenic.getArsenic().getModuleManager().getModuleByClass(Hitflick.class);
+        if (hitflick == null || !hitflick.isEnabled()) return;
+        Minecraft mc = (Minecraft) (Object) this;
+        if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
+        Entity target = mc.objectMouseOver.entityHit;
+        if (hitflick.getState() == Hitflick.FlickState.IDLE && target.hurtResistantTime == 0) {
+            mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
+            hitflick.armFlick(target); // pass it through
+        }
     }
 
 }

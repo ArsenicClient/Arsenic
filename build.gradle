@@ -45,7 +45,7 @@ repositories {
     }
 }
 
-version = "v0.1"
+version = "v0.4"
 group="arsenic"
 archivesBaseName = "Arsenic"
 
