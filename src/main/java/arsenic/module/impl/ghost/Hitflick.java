@@ -14,13 +14,14 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.entity.Entity;
 
 @ModuleInfo(name = "Hitflick", category = ModuleCategory.GHOST)
 public class Hitflick extends Module {
 
     public final EnumProperty<FlickDirection> direction = new EnumProperty<>("Direction", FlickDirection.Right);
-    @PropertyInfo(reliesOn = "direction", value = "Custom")
+    @PropertyInfo(reliesOn = "Direction", value = "Custom")
     public final DoubleProperty customAngle = new DoubleProperty("Custom Angle", new DoubleValue(1, 180, 90, 1));
     public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ticks)", new DoubleValue(1, 40, 1, 1));
     public final BooleanProperty blinkDuringFlick = new BooleanProperty("Blink", false);
@@ -53,7 +54,6 @@ public class Hitflick extends Module {
     @EventLink
     public final Listener<EventSilentRotation> onSilentRotation = event -> {
         event.setSpeed(180);
-        sinceLastFlick++;
         switch (state) {
             case FLICKING_AWAY:
                 event.setYaw(flickYaw);
@@ -75,7 +75,7 @@ public class Hitflick extends Module {
                 break;
 
             case IDLE:
-            default:
+                sinceLastFlick++;
                 break;
         }
     };
@@ -91,7 +91,7 @@ public class Hitflick extends Module {
     }
 
     public boolean shouldFlick() {
-        return state == FlickState.IDLE && cooldown.getValue().getInput() <= sinceLastFlick;
+        return state == FlickState.IDLE && sinceLastFlick >= cooldown.getValue().getInput();
     }
 
     @Override

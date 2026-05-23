@@ -10,6 +10,7 @@ import arsenic.module.impl.ghost.Clicker;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
+import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
@@ -96,11 +97,12 @@ public abstract class MixinMinecraft {
     @Inject(method = "clickMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;swingItem()V"))
     public void onSwingItem(CallbackInfo ci) {
         Hitflick hitflick = Arsenic.getArsenic().getModuleManager().getModuleByClass(Hitflick.class);
-        if (hitflick == null || !hitflick.isEnabled()) return;
+        if (!hitflick.isEnabled()) return;
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
         Entity target = mc.objectMouseOver.entityHit;
-        if (hitflick.shouldFlick() && target.hurtResistantTime == 0) {
+        PlayerUtils.addWaterMarkedMessageToChat(hitflick.shouldFlick());
+        if (hitflick.shouldFlick()) {
             mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
             hitflick.armFlick(target); // pass it through
         }
