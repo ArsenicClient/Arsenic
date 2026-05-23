@@ -100,7 +100,7 @@ public abstract class MixinMinecraft {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
         Entity target = mc.objectMouseOver.entityHit;
-        if (hitflick.getState() == Hitflick.FlickState.IDLE && target.hurtResistantTime == 0) {
+        if (hitflick.shouldFlick() && target.hurtResistantTime == 0) {
             mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
             hitflick.armFlick(target); // pass it through
         }

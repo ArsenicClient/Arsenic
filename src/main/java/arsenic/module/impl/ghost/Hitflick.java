@@ -4,10 +4,13 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.player.Blink;
 import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -19,6 +22,10 @@ public class Hitflick extends Module {
     public final EnumProperty<FlickDirection> direction = new EnumProperty<>("Direction", FlickDirection.Right);
     @PropertyInfo(reliesOn = "direction", value = "Custom")
     public final DoubleProperty customAngle = new DoubleProperty("Custom Angle", new DoubleValue(1, 180, 90, 1));
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ticks)", new DoubleValue(1, 40, 1, 1));
+    public final BooleanProperty blinkDuringFlick = new BooleanProperty("Blink", false);
+
+    private long sinceLastFlick = 0;
 
     public enum FlickState {
         IDLE,
@@ -36,12 +43,17 @@ public class Hitflick extends Module {
         originalYaw = mc.thePlayer.rotationYaw;
         flickYaw = originalYaw + getFlickAngle();
         state = FlickState.FLICKING_AWAY;
+        if (blinkDuringFlick.getValue()) {
+            Blink blink = Arsenic.getArsenic().getModuleManager().getModuleByClass(Blink.class);
+            if (blink != null && !blink.isEnabled()) blink.setEnabled(true);
+        }
     }
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onSilentRotation = event -> {
         event.setSpeed(180);
+        sinceLastFlick++;
         switch (state) {
             case FLICKING_AWAY:
                 event.setYaw(flickYaw);
@@ -49,12 +61,17 @@ public class Hitflick extends Module {
                 break;
 
             case RESTORING:
+                if (blinkDuringFlick.getValue()) {
+                    Blink blink = Arsenic.getArsenic().getModuleManager().getModuleByClass(Blink.class);
+                    if (blink != null && blink.isEnabled()) blink.setEnabled(false);
+                }
                 if (pendingTarget != null) {
                     mc.thePlayer.swingItem();
                     mc.playerController.attackEntity(mc.thePlayer, pendingTarget);
                     pendingTarget = null;
                 }
                 state = FlickState.IDLE;
+                sinceLastFlick = 0;
                 break;
 
             case IDLE:
@@ -73,8 +90,8 @@ public class Hitflick extends Module {
         }
     }
 
-    public FlickState getState() {
-        return state;
+    public boolean shouldFlick() {
+        return state == FlickState.IDLE && cooldown.getValue().getInput() <= sinceLastFlick;
     }
 
     @Override
