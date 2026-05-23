@@ -64,20 +64,13 @@ public class LegitScaffold extends Module {
         float yaw = MoveUtil.getDirection() + 180;
         float pitch = 80;
 
-        float speed = (float) rotationSpeed.getValue().getInput();
-        float prevYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
-        float prevPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
-        float[] capped = RotationUtils.getPatchedAndCappedRots(
-                new float[]{prevYaw, prevPitch},
-                new float[]{yaw, pitch},
-                speed
-        );
+        float speed = (float) rotationSpeed.getValue().getInput();;
 
-        event.setYaw(capped[0]);
-        event.setPitch(capped[1]);
+        event.setYaw(yaw);
+        event.setPitch(pitch);
         event.setSpeed(speed);
-        event.setDoMovementFix(false);
-        event.setJumpFix(false);
+        event.setDoMovementFix(true);
+        event.setJumpFix(true);
     };
 
     @RequiresPlayer
