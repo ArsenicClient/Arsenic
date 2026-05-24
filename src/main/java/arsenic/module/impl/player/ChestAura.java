@@ -17,7 +17,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "ChestAura", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "ChestAura", category = ModuleCategory.PLAYER, dev = true)
 public class ChestAura extends Module {
 
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 8, 5, 0.5));

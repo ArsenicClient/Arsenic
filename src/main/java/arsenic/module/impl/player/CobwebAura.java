@@ -22,7 +22,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "CobwebAura", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "CobwebAura", category = ModuleCategory.PLAYER, dev = true)
 public class CobwebAura extends Module {
 
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(3, 10, 5, 0.5));
