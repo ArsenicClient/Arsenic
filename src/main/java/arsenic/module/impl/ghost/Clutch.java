@@ -17,7 +17,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "Clutch", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "Clutch", category = ModuleCategory.GHOST, dev = true)
 public class Clutch extends Module {
 
     public final DoubleProperty delay = new DoubleProperty("Place Delay", new DoubleValue(0, 500, 100, 10));

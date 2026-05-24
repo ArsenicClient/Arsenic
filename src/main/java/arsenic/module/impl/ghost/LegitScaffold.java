@@ -26,7 +26,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "LegitScaffold", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "LegitScaffold", category = ModuleCategory.GHOST, dev = true)
 public class LegitScaffold extends Module {
 
     public final EnumProperty<ScaffoldMode> mode = new EnumProperty<>("Mode", ScaffoldMode.BOTH);
