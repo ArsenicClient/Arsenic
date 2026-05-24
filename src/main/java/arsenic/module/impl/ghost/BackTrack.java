@@ -53,6 +53,7 @@ public class BackTrack extends Module {
         //releaseAll();
     }
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> eventUpdate = event -> {
         if(target == null || vec3 == null)
@@ -167,6 +168,7 @@ public class BackTrack extends Module {
         }
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> eventRenderWorldLast = event -> {
         if (target == null || vec3 == null || target.isDead || currentLatency == 0)

@@ -6,11 +6,13 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import org.lwjgl.input.Keyboard;
 
 @ModuleInfo(name = "ClickGUI", category = ModuleCategory.SETTINGS, hidden = true, keybind = Keyboard.KEY_RSHIFT)
 public class ClickGui extends Module {
     public final BooleanProperty customFont = new BooleanProperty("Custom Font", true);
+    public final EnumProperty<LogoMode> logoMode = new EnumProperty<>("Logo", LogoMode.CLASSIC);
 
     private ClickGuiScreen screen;
 
@@ -28,4 +30,7 @@ public class ClickGui extends Module {
 
     public final ClickGuiScreen getScreen() { return screen; }
 
+    public enum LogoMode {
+        CLASSIC, MODERN
+    }
 }

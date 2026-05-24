@@ -15,6 +15,7 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
     BLATANT,
     OTHER,
     MOVEMENT,
+    CONFIGS,
     SEARCH {
         @Override
         public Collection<Module> getContents() {

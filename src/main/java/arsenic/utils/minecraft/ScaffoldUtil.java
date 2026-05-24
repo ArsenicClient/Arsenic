@@ -23,7 +23,7 @@ public class ScaffoldUtil extends UtilityClass {
     }
 
     public static Scaffold.BlockData getBlockData() {
-        final BlockPos belowBlockPos = new BlockPos(mc.thePlayer.posX, Scaffold.scaffoldYCoord, mc.thePlayer.posZ);
+        final BlockPos belowBlockPos = new BlockPos(mc.thePlayer.posX, (int) mc.thePlayer.posY - 1, mc.thePlayer.posZ);
         if (mc.theWorld.getBlockState(belowBlockPos).getBlock() instanceof BlockAir) {
             for (int x = 0; x < 4; x++) {
                 for (int z = 0; z < 4; z++) {
