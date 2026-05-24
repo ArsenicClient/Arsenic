@@ -12,7 +12,7 @@ public enum UICategory implements IContainer<ModuleCategory> {
 
     COMBAT("Combat", ModuleCategory.MOVEMENT, ModuleCategory.GHOST, ModuleCategory.BLATANT, ModuleCategory.PLAYER),
     VISUAL("Visual", ModuleCategory.SETTINGS, ModuleCategory.WORLD),
-    MISC("Misc", ModuleCategory.OTHER, ModuleCategory.CONFIGS);
+    MISC("Misc", ModuleCategory.OTHER);
 
     private final String name;
     private final List<ModuleCategory> childCategories = new ArrayList<>();

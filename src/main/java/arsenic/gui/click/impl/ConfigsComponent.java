@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ChatAllowedCharacters;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -62,22 +63,25 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float anim = enabledTimer.getPercent();
-        if (anim > 0) {
-            int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 200));
-            int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 200));
-            DrawUtils.drawGradientRoundedRect(x1, y1, x2, y2, height / 4f, mainC, mainC, gradientC, gradientC);
-        }
+        float anim = Math.max(enabledTimer.getPercent(), hoverTimer.getPercent());
+        expandX = anim * (width/14f);
+        int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
+        int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
+        RenderUtils.resetColor();
+        RenderUtils.resetColorText();
+        DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height/4f, mainC,mainC,gradientC,gradientC);
 
         GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
-        float iconX = x1 + (width / 7f) - iconSize;
+        float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
         Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
         Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
 
-        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, getWhite(), ri.getFr().CENTREY);
+        ri.getFr().drawString(getName(), iconX + iconSize + 2 , midPointY, getWhite(), ri.getFr().CENTREY);
         return height;
     }
 
