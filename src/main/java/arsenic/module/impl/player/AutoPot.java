@@ -3,6 +3,7 @@ package arsenic.module.impl.player;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
@@ -64,7 +65,8 @@ public class AutoPot extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventUpdate.Pre> onUpdate = event -> {
+    public final Listener<EventSilentRotation> onUpdate = event -> {
+        event.setSpeed(180);
         if (silentRotation.getValue()) {
             if (shouldLookDown && System.currentTimeMillis() < lookDownUntil) {
                 event.setPitch(90);
