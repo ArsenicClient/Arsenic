@@ -12,7 +12,7 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 
-@ModuleInfo(name = "KeepSprint", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "KeepSprint", category = ModuleCategory.MOVEMENT, dev = true)
 public class KeepSprint extends Module {
 
     public final DoubleProperty slowPercent = new DoubleProperty("Slow %", new DoubleValue(0, 100, 40, 1));
