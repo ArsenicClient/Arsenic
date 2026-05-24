@@ -10,39 +10,29 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.MovingObjectPosition;
 
 import java.util.Collection;
 
 @ModuleInfo(name = "AutoWeapon", category = ModuleCategory.GHOST)
 public class AutoWeapon extends Module {
 
-    public final BooleanProperty onlyWhenHolding = new BooleanProperty("Only when holding LMB", true);
-    public final BooleanProperty revertSlot = new BooleanProperty("Revert to old slot", true);
-
-    private boolean onWeapon;
     private int prevSlot;
+    private boolean onWeapon;
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (mc.objectMouseOver == null || mc.objectMouseOver.entityHit == null
-                || (onlyWhenHolding.getValue() && !org.lwjgl.input.Mouse.isButtonDown(0))) {
-            if (onWeapon) {
-                onWeapon = false;
-                if (revertSlot.getValue()) {
-                    mc.thePlayer.inventory.currentItem = prevSlot;
-                }
-            }
-        } else {
-            if (!onWeapon) {
+        MovingObjectPosition mouseOver = mc.objectMouseOver;
+        if (mouseOver != null && mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY) {
+            if(!onWeapon) {
                 prevSlot = mc.thePlayer.inventory.currentItem;
+                mc.thePlayer.inventory.currentItem = getMaxDamageSlot();
                 onWeapon = true;
-
-                int bestSlot = getMaxDamageSlot();
-                if (bestSlot > 0 && getSlotDamage(bestSlot) > getSlotDamage(mc.thePlayer.inventory.currentItem)) {
-                    mc.thePlayer.inventory.currentItem = bestSlot;
-                }
             }
+        } else if(onWeapon) {
+            onWeapon = false;
+            mc.thePlayer.inventory.currentItem = prevSlot;
         }
     };
 
