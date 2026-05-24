@@ -10,6 +10,7 @@ public class Theme implements ISerializable {
     private final String name;
     private String logoName = "arsenic";
     private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
+    private ResourceLocation altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo_alt.png");
     private int mainColor;
     private int darkerColor;
     private int white;
@@ -79,10 +80,15 @@ public class Theme implements ISerializable {
         return logoPath;
     }
 
+    public ResourceLocation getAltLogoPath() {
+        return altLogoPath;
+    }
+
     public void setLogoPath(String logoName) {
         logoName = logoName.toLowerCase();
         this.logoName = logoName;
         logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
+        altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo_alt.png");
     }
 
 

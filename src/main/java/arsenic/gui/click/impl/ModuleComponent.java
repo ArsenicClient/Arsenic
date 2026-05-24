@@ -18,12 +18,13 @@ import org.lwjgl.input.Keyboard;
 
 public class ModuleComponent extends Component implements IContainer<PropertyComponent<?>>, IAlwaysKeyboardInput {
     private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
-    private boolean open, binding;
+    private boolean open, binding, hovered;
     private float bindX;
     private Module self;
     private PosInfo posInfo;
     private final AnimationTimer openAnimationTimer = new AnimationTimer(350, () -> open, TickMode.SINE);
-    private final AnimationTimer enabledAnimationTiemr = new AnimationTimer(350, () -> self.isEnabled(), TickMode.SINE);
+    private final AnimationTimer enabledAnimationTimer = new AnimationTimer(350, () -> self.isEnabled(), TickMode.SINE);
+    private final AnimationTimer hoverTimer = new AnimationTimer(200, () -> hovered, TickMode.SINE);
     private final ButtonComponent buttonComponent = new ButtonComponent(this) {
         @Override
         protected boolean isEnabled() {
@@ -56,27 +57,32 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float expand = width/15f;
-        int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTiemr.getPercent());
+        float expand = width / 15f;
+        int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTimer.getPercent());
+
         DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(5, 5, 5, 160).getRGB());
-        buttonComponent.updateComponent(posInfo, ri); //done to fix a weird animation bug (probably not the best way of doing it but it works!)
-        //stops the colors leaking
+
+        if (hoverTimer.getPercent() > 0)
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(255, 255, 255, (int) (15 * hoverTimer.getPercent())).getRGB());
+
+        float accPct = enabledAnimationTimer.getPercent();
+        if (accPct > 0) {
+            int accentCol = RenderUtils.alpha(new Color(getEnabledColor()), (int) (accPct * 200));
+            DrawUtils.drawRoundedRect(x1 + 1, y1 + 3, x1 + 2, y2 + expandY - 3, 1f, accentCol);
+        }
+
+        buttonComponent.updateComponent(posInfo, ri);
         RenderUtils.resetColorText();
 
-        //name
-        ri.getFr().drawString(name, x1 + expand/2f, midPointY, color, ri.getFr().CENTREY);
-
-        //stops the colors leaking
+        ri.getFr().drawString(name, x1 + expand / 2f, midPointY, color, ri.getFr().CENTREY);
         RenderUtils.resetColorText();
 
-        //bind
-        String bindName = binding ? "Press a key...": "[" + Keyboard.getKeyName(self.getKeybind()) + "]";
+        String bindName = binding ? "Press a key..." : "[" + Keyboard.getKeyName(self.getKeybind()) + "]";
         bindX = x2 - ((expand) * 3) - ri.getFr().getWidth(bindName);
         ri.getFr().drawString(bindName, bindX, midPointY, self.getKeybind() == 0 ? getDisabledColor() : getEnabledColor(), ri.getFr().CENTREY);
 
-        //draws the properties
         PosInfo pi = new PosInfo(x1 + expand, y2);
-        if(openAnimationTimer.getPercent() > 0) {
+        if (openAnimationTimer.getPercent() > 0) {
             ScissorUtils.subScissor((int) x1, (int) y2, (int) (x2 + expandX * 2), (int) (y2 + expandY), 2);
             contents.forEach(child -> pi.moveY((int) (child.updateComponent(pi, ri) * 1.1)));
             ScissorUtils.endSubScissor();
@@ -87,8 +93,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     }
 
     @Override
+    public void mouseUpdate(int mouseX, int mouseY) {
+        hovered = isMouseInArea(mouseX, mouseY);
+    }
+
+    @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
-        if(mouseX < bindX && mouseButton == 1) {
+        if (mouseX < bindX && mouseButton == 1) {
             open = !open;
             return;
         } else if (mouseX > bindX && mouseX < x1 + (width * 0.85)) {
@@ -117,7 +128,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     public boolean recieveInput(int key) {
         Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
-        if(key == 1) {
+        if (key == 1) {
             self.setKeybind(0);
             return true;
         }

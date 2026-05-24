@@ -16,11 +16,16 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
@@ -44,10 +49,22 @@ public class AimAssist extends Module {
         }
 
         target = TargetManager.getTarget();
+        if (mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            BlockPos p = mc.objectMouseOver.getBlockPos();
+            if (p != null) {
+                Block bl = mc.theWorld.getBlockState(p).getBlock();
+                if (!(bl instanceof BlockLiquid)) {
+                    setNullRots();
+                    return;
+                }
+            }
+        }
         if (target == null) {
             setNullRots();
             return;
         }
+
+
         float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
         if(mode.getValue() == aMode.Silent) {
             event.setSpeed((float) speed.getValue().getInput());
