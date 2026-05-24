@@ -10,7 +10,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 
-@ModuleInfo(name = "Step", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Step", category = ModuleCategory.MOVEMENT, dev = true)
 public class Step extends Module {
 
     public final DoubleProperty height = new DoubleProperty("Height", new DoubleValue(0.5, 2.0, 1.0, 0.5));

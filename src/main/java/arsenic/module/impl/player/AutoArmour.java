@@ -19,7 +19,7 @@ import net.minecraft.item.ItemStack;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-@ModuleInfo(name = "AutoArmour", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoArmour", category = ModuleCategory.PLAYER, dev = true)
 public class AutoArmour extends Module {
 
     public final RangeProperty openDelay = new RangeProperty("Open Delay", new RangeValue(0, 1000, 250, 450, 1));
