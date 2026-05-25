@@ -16,10 +16,7 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 import org.lwjgl.opengl.GL11;
 
 import javax.imageio.ImageIO;
@@ -135,6 +132,109 @@ public class RenderUtils extends UtilityClass {
         GL11.glDepthMask(true);
         GL11.glDisable(3042);
         GL11.glPopMatrix();
+    }
+
+    public static void renderBlockFace(BlockPos blockPos, EnumFacing facing, int color, boolean outline, boolean shade) {
+        double xPos = blockPos.getX() - mc.getRenderManager().viewerPosX;
+        double yPos = blockPos.getY() - mc.getRenderManager().viewerPosY;
+        double zPos = blockPos.getZ() - mc.getRenderManager().viewerPosZ;
+
+        GL11.glPushMatrix();
+        GL11.glBlendFunc(770, 771);
+        GL11.glEnable(3042);
+        GL11.glLineWidth(2.0f);
+        GL11.glDisable(3553);
+        GL11.glDisable(2929);
+        GL11.glDepthMask(false);
+
+        float a = 1;
+        float r = (color >> 16 & 0xFF) / 255.0f;
+        float g = (color >> 8  & 0xFF) / 255.0f;
+        float b = (color       & 0xFF) / 255.0f;
+
+        GL11.glColor4f(r, g, b, a);
+
+        // Build a razor-thin BB on the correct face
+        AxisAlignedBB faceBB;
+        switch (facing) {
+            case UP:
+                faceBB = new AxisAlignedBB(xPos,       yPos + 1.0, zPos,       xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
+            case DOWN:
+                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos + 1.0, yPos,       zPos + 1.0); break;
+            case NORTH:
+                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos + 1.0, yPos + 1.0, zPos      ); break;
+            case SOUTH:
+                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos + 1.0, xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
+            case WEST:
+                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos,       yPos + 1.0, zPos + 1.0); break;
+            case EAST:
+                faceBB = new AxisAlignedBB(xPos + 1.0, yPos,       zPos,       xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
+            default: return;
+        }
+
+        if (outline) {
+            RenderGlobal.drawSelectionBoundingBox(faceBB);
+        }
+
+        if (shade) {
+            drawFaceQuad(faceBB, facing, r, g, b, a);
+        }
+
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glEnable(3553);
+        GL11.glEnable(2929);
+        GL11.glDepthMask(true);
+        GL11.glDisable(3042);
+        GL11.glPopMatrix();
+    }
+
+    private static void drawFaceQuad(AxisAlignedBB bb, EnumFacing facing, float r, float g, float b, float a) {
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+
+        GL11.glColor4f(r, g, b, a);
+        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+
+        switch (facing) {
+            case UP:
+                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
+                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
+                break;
+            case DOWN:
+                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
+                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
+                break;
+            case NORTH:
+                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
+                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
+                break;
+            case SOUTH:
+                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
+                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
+                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
+                break;
+            case WEST:
+                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
+                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
+                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
+                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
+                break;
+            case EAST:
+                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
+                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
+                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
+                break;
+        }
+
+        tess.draw();
     }
 
     public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b) {
