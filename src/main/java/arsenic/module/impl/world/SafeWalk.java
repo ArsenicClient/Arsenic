@@ -1,56 +1,44 @@
 package arsenic.module.impl.world;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventMove;
-import arsenic.event.impl.EventRenderWorldLast;
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.*;
+import arsenic.injection.accessor.IMixinMovementInputFromOptions;
+import arsenic.injection.mixin.MixinEntityPlayer;
+import arsenic.injection.mixin.MixinEntityPlayerSP;
+import arsenic.injection.mixin.MixinMovementInputFromOptions;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
-import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.minecraft.MoveUtil;
-import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.utils.render.RenderUtils;
-import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.MathHelper;
 import org.lwjgl.input.Keyboard;
 import arsenic.module.property.PropertyInfo;
-import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.List;
 
 @ModuleInfo(name = "SafeWalk", category = ModuleCategory.MOVEMENT)
 public class SafeWalk extends Module {
-    public final EnumProperty<sMode> mode = new EnumProperty<>("Mode: ", sMode.S_SHIFT);
     public final BooleanProperty onlySPressed = new BooleanProperty("Only S pressed", false);
     public final BooleanProperty onlySneak = new BooleanProperty("Only sneak", false);
     public final BooleanProperty pitchCheck = new BooleanProperty("Pitch Check", false);
     @PropertyInfo(reliesOn = "Pitch Check",value = "true")
     public final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
-    public final DoubleProperty precision = new DoubleProperty("Precision", new DoubleValue(0, 0.2, 0, 0.01));
+    public final DoubleProperty precision = new DoubleProperty("Safety", new DoubleValue(0, 0.29, 0, 0.01));
 
-    private long lastSneakTime = -1;
-
-    private BlockPos lastOverBlock;
-
+    @RequiresPlayer
     @EventLink
-    public final Listener<EventTick> tickEvent = tickEvent -> {
-        if (mode.getValue() != sMode.S_SHIFT) return;
-
+    public final Listener<EventLiving> tickEvent = tickEvent -> {
         // Early exits
         if (onlySPressed.getValue() && !mc.gameSettings.keyBindBack.isKeyDown()) {
             setShift(Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
@@ -65,49 +53,106 @@ public class SafeWalk extends Module {
             return;
         }
 
-        BlockPos blockPos = PlayerUtils.getBlockUnderPlayer();
-        if (!mc.theWorld.isAirBlock(blockPos)) {
-            lastOverBlock = blockPos;
-        }
-
-        if (lastOverBlock == null) return;
-
-        // Project position forward using motion
-        double speed = Math.sqrt(mc.thePlayer.motionX * mc.thePlayer.motionX
-                + mc.thePlayer.motionZ * mc.thePlayer.motionZ);
-
-        // Look further ahead at higher speeds
-        double lookahead = 1.0 + speed * 2.0;
-
-        double predictedX = mc.thePlayer.posX + mc.thePlayer.motionX * lookahead;
-        double predictedZ = mc.thePlayer.posZ + mc.thePlayer.motionZ * lookahead;
-
-        double dist = Math.max(
-                Math.abs(predictedX - lastOverBlock.getX() - 0.5),
-                Math.abs(predictedZ - lastOverBlock.getZ() - 0.5)
-        );
-
-        setShift(dist > 0.78 - precision.getValue().getInput());
+        setShift(willFallNextTick());
     };
 
-    public boolean mixinResult(boolean flag) {
-        if(flag)
-            return true;
-        return mc.thePlayer.onGround && mode.getValue() == sMode.NO_SHIFT;
+    public boolean willFallNextTick() {
+        EntityPlayerSP player = mc.thePlayer;
+        double motionX = player.motionX;
+        double motionZ = player.motionZ;
+
+        float moveForward = 0;
+        float moveStrafe = 0;
+        GameSettings gameSettings = ((IMixinMovementInputFromOptions) player.movementInput).getGameSettings();
+
+        if (gameSettings.keyBindForward.isKeyDown()) {
+            ++moveForward;
+        }
+
+        if (gameSettings.keyBindBack.isKeyDown()) {
+            --moveForward;
+        }
+
+        if (gameSettings.keyBindLeft.isKeyDown()) {
+            ++moveStrafe;
+        }
+
+        if (gameSettings.keyBindRight.isKeyDown()) {
+            --moveStrafe;
+        }
+
+        EventMovementInput event = new EventMovementInput(moveForward, moveStrafe, gameSettings.keyBindJump.isKeyDown());
+        Arsenic.getArsenic().getEventManager().post(event);
+        if(event.isCancelled()) {
+            moveStrafe = 0.0F;
+            moveForward = 0.0F;
+        } else {
+            moveForward = event.getSpeed();
+            moveStrafe = event.getStrafe();
+        }
+
+        motionX *= 0.98;
+        motionZ *= 0.98;
+
+        if (Math.abs(motionX) < 0.005) {
+            motionX = (double)0.0F;
+        }
+
+        if (Math.abs(motionZ) < 0.005) {
+            motionZ = (double)0.0F;
+        }
+
+        moveStrafe *= 0.98F;
+        moveForward *= 0.98F;
+
+        float f4 = 0.91F;
+        if (player.onGround) {
+            f4 = player.worldObj.getBlockState(new BlockPos(MathHelper.floor_double(player.posX), MathHelper.floor_double(player.getEntityBoundingBox().minY) - 1, MathHelper.floor_double(player.posZ))).getBlock().slipperiness * 0.91F;
+        }
+
+        float f = 0.16277136F / (f4 * f4 * f4);
+        float f5;
+        if (player.onGround) {
+            f5 = player.getAIMoveSpeed() * f;
+        } else {
+            f5 = player.jumpMovementFactor;
+        }
+
+        {
+            f = moveStrafe * moveStrafe + moveForward * moveForward;
+            if (f >= 1.0E-4F) {
+                f = MathHelper.sqrt_float(f);
+                if (f < 1.0F) {
+                    f = 1.0F;
+                }
+
+                f = f5 / f;
+                moveStrafe *= f;
+                moveForward *= f;
+                float f1 = MathHelper.sin(player.rotationYaw * (float) Math.PI / 180.0F);
+                float f2 = MathHelper.cos(player.rotationYaw * (float) Math.PI / 180.0F);
+                motionX += (double) (moveStrafe * f2 - moveForward * f1);
+                motionZ += (double) (moveForward * f2 + moveStrafe * f1);
+            }
+        }
+
+        f4 = 0.91F;
+        if (player.onGround) {
+            f4 = player.worldObj.getBlockState(new BlockPos(MathHelper.floor_double(player.posX), MathHelper.floor_double(player.getEntityBoundingBox().minY) - 1, MathHelper.floor_double(player.posZ))).getBlock().slipperiness * 0.91F;
+        }
+
+        AxisAlignedBB predictedBB = player.getEntityBoundingBox().offset(motionX, -0.05, motionZ);
+        predictedBB.contract(precision.getValue().getInput(), precision.getValue().getInput(), precision.getValue().getInput());
+
+        return mc.theWorld.getCollidingBoundingBoxes(player, predictedBB).isEmpty();
     }
 
     @Override
     public void onDisable() {
-        lastSneakTime = -1;
         setShift(false);
     }
 
     private void setShift(boolean sh) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), sh);
-    }
-
-    public enum sMode {
-        S_SHIFT,
-        NO_SHIFT,
     }
 }
