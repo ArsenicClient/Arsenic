@@ -16,20 +16,11 @@ public class RageQuit extends Module {
 
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(1, 20, 6, 1));
 
-    private boolean triggered;
-
-    @Override
-    protected void onEnable() {
-        triggered = false;
-    }
-
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> onUpdate = event -> {
-        if (triggered) return;
-
         if (mc.thePlayer.getHealth() <= health.getValue().getInput()) {
-            triggered = true;
+            onDisable();
             mc.getNetHandler().getNetworkManager().closeChannel(new ChatComponentText(""));
         }
     };
