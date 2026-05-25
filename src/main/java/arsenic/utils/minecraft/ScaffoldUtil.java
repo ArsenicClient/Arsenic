@@ -1,16 +1,20 @@
 package arsenic.utils.minecraft;
 
+import arsenic.event.impl.EventMovementInput;
+import arsenic.injection.accessor.IMixinMovementInputFromOptions;
+import arsenic.main.Arsenic;
 import arsenic.module.impl.world.Scaffold;
 import arsenic.utils.java.UtilityClass;
+import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.*;
 
 public class ScaffoldUtil extends UtilityClass {
 
@@ -43,6 +47,96 @@ public class ScaffoldUtil extends UtilityClass {
             }
         }
         return null;
+    }
+
+    public static boolean willFallNextTick() {
+        return willFallNextTick(1.0);
+    }
+
+
+    public static AxisAlignedBB getPredictedBoundingBox(double precision) {
+        EntityPlayerSP player = mc.thePlayer;
+        SilentRotationManager silentRotationManager = Arsenic.getArsenic().getSilentRotationManager();
+
+        double motionX = player.motionX;
+        double motionZ = player.motionZ;
+
+        float moveForward = 0;
+        float moveStrafe = 0;
+        GameSettings gameSettings = ((IMixinMovementInputFromOptions) player.movementInput).getGameSettings();
+
+        if (gameSettings.keyBindForward.isKeyDown()) {
+            ++moveForward;
+        }
+
+        if (gameSettings.keyBindBack.isKeyDown()) {
+            --moveForward;
+        }
+
+        if (gameSettings.keyBindLeft.isKeyDown()) {
+            ++moveStrafe;
+        }
+
+        if (gameSettings.keyBindRight.isKeyDown()) {
+            --moveStrafe;
+        }
+
+        EventMovementInput event = new EventMovementInput(moveForward, moveStrafe, gameSettings.keyBindJump.isKeyDown());
+        Arsenic.getArsenic().getEventManager().post(event);
+        if(event.isCancelled()) {
+            moveStrafe = 0.0F;
+            moveForward = 0.0F;
+        } else {
+            moveForward = event.getSpeed();
+            moveStrafe = event.getStrafe();
+        }
+
+        motionX *= 0.98;
+        motionZ *= 0.98;
+
+        if (Math.abs(motionX) < 0.005) {
+            motionX = (double)0.0F;
+        }
+
+        if (Math.abs(motionZ) < 0.005) {
+            motionZ = (double)0.0F;
+        }
+
+        moveStrafe *= 0.98F;
+        moveForward *= 0.98F;
+
+        float f4 = 0.91F;
+        if (player.onGround) {
+            f4 = player.worldObj.getBlockState(new BlockPos(MathHelper.floor_double(player.posX), MathHelper.floor_double(player.getEntityBoundingBox().minY) - 1, MathHelper.floor_double(player.posZ))).getBlock().slipperiness * 0.91F;
+        }
+
+        float f = 0.16277136F / (f4 * f4 * f4);
+        float f5 = player.getAIMoveSpeed() * f;
+
+        {
+            f = moveStrafe * moveStrafe + moveForward * moveForward;
+            if (f >= 1.0E-4F) {
+                f = MathHelper.sqrt_float(f);
+                if (f < 1.0F) {
+                    f = 1.0F;
+                }
+
+                f = f5 / f;
+                moveStrafe *= f;
+                moveForward *= f;
+                float f1 = MathHelper.sin(silentRotationManager.yaw * (float) Math.PI / 180.0F);
+                float f2 = MathHelper.cos(silentRotationManager.yaw * (float) Math.PI / 180.0F);
+                motionX += (double) (moveStrafe * f2 - moveForward * f1);
+                motionZ += (double) (moveForward * f2 + moveStrafe * f1);
+            }
+        }
+
+        return player.getEntityBoundingBox().offset(motionX * precision, 0, motionZ * precision);
+    }
+
+    public static boolean willFallNextTick(double precision) {
+        AxisAlignedBB predictedBB = getPredictedBoundingBox(precision).offset(0, -0.05, 0);
+        return mc.theWorld.getCollidingBoundingBoxes(mc.thePlayer, predictedBB).isEmpty();
     }
 
     public static Vec3 getNewVector(Scaffold.BlockData lastblockdata) {

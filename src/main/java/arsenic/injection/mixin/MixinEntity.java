@@ -71,4 +71,6 @@ public abstract class MixinEntity {
             return vec31;
         return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
     }
+
+
 }

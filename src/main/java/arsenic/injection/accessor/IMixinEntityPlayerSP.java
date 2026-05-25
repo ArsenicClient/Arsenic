@@ -3,6 +3,7 @@ package arsenic.injection.accessor;
 import arsenic.utils.java.PlayerInfo;
 import jdk.nashorn.internal.objects.annotations.Setter;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.util.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -26,4 +27,5 @@ public interface IMixinEntityPlayerSP {
 
     @Accessor
     void setServerSprintState(boolean serverSprintState);
+
 }

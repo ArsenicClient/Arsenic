@@ -30,6 +30,7 @@
   ],
   "mixins": [
     "accessor.C03PacketPlayerAccessor",
+    "accessor.IMixinEntity",
     "accessor.IMixinItemSword",
     "accessor.IMixinS12PacketEntityVelocity",
     "accessor.IMixinS14PacketEntity",
