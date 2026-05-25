@@ -12,9 +12,11 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IFontRenderer;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Mouse;
 
@@ -66,11 +68,16 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        // blurs the bg
+
+        // Glow fades in after the scale animation is mostly done
+        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
+        float glowFactor = Math.max(0, Math.min(1, (openProgress - 0.5f) / 0.5f));
+        int glowAlpha = (int) (glowFactor * 255);
+
         RenderUtils.resetColor();
-        int mainC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        int gradientC = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
-        ((SearchComponent) searchComponent).setupGlowAndBlur();
+        int mainC = ColorUtils.setColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(), 0, glowAlpha);
+        int gradientC = ColorUtils.setColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor(), 0, glowAlpha);
+        ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
         rescaleMC();
     }
@@ -87,6 +94,20 @@ public class ClickGuiScreen extends CustomGuiScreen {
         ResourceLocation logoPath = clickGui.logoMode.getValue() == ClickGui.LogoMode.MODERN
                 ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
                 : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
+
+        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
+        float eased = 1f - (float) Math.pow(1f - openProgress, 3);
+
+        GlStateManager.pushMatrix();
+        if (eased < 1f) {
+            float scale = 0.85f + eased * 0.15f;
+            float centerX = width / 2f;
+            float centerY = height / 2f;
+            GlStateManager.translate(centerX, centerY, 0);
+            GlStateManager.scale(scale, scale, 1f);
+            GlStateManager.translate(-centerX, -centerY, 0);
+        }
+
         // main container
         RenderUtils.resetColor();
         DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, 0xDD0C0C0C);
@@ -127,10 +148,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
         ScissorUtils.resetScissor();
 
-        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
-        float eased = 1f - (float) Math.pow(1f - openProgress, 3);
-        if (eased < 1f)
-            drawRect(0, 0, width, height, new Color(0, 0, 0, (int) ((1f - eased) * 200)).getRGB());
+        GlStateManager.popMatrix();
 
         getFontRenderer().resetScale();
     }
