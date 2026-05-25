@@ -1,15 +1,13 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.*;
-import net.minecraft.client.Minecraft;
-import net.minecraft.item.ItemBow;
-import net.minecraft.item.ItemFood;
-import net.minecraft.item.ItemPotion;
-import net.minecraft.item.ItemSword;
+import arsenic.injection.accessor.IMixinEntityPlayerSP;
+import arsenic.module.impl.world.SafeWalk;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.world.World;
@@ -18,11 +16,12 @@ import com.mojang.authlib.GameProfile;
 import arsenic.main.Arsenic;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static arsenic.main.MinecraftAPI.mouseDownLastTick;
 
 @Mixin(priority = 1111, value = EntityPlayerSP.class)
-public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
+public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implements IMixinEntityPlayerSP {
 
     private double cachedX;
     private double cachedY;
@@ -82,6 +81,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
     public void onLivingUpdate(CallbackInfo ci) {
         Arsenic.getInstance().getEventManager().post(new EventLiving());
     }
+
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
     private boolean noSlowMixin(EntityPlayerSP instance) {
         //NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
@@ -103,5 +103,23 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
         Arsenic.getInstance().getEventManager()
                 .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
     }
+
+    /*@Inject(method = "isSneaking", at = @At("RETURN"), cancellable = true)
+    private void isSneaking(CallbackInfoReturnable<Boolean> cir) {
+        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
+        if(!safeWalk.isEnabled()) {
+            return;
+        }
+        cir.setReturnValue(safeWalk.isSneaking() || cir.getReturnValue());
+    }
+
+    @ModifyVariable(method = "onLivingUpdate", at = @At("STORE"), ordinal = 0)
+    private boolean flag1(boolean flag1) {
+        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
+        if(!safeWalk.isEnabled()) {
+            return flag1;
+        }
+        return safeWalk.isSneaking() || flag1;
+    } */
 
 }

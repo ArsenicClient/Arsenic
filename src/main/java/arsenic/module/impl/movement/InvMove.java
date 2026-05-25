@@ -56,7 +56,9 @@ public class InvMove extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
-        if (mc.currentScreen == null || !(mc.thePlayer.openContainer instanceof ContainerPlayer)) return;
+        if (mc == null || mc.currentScreen == null
+                || mc.thePlayer == null
+                || !(mc.thePlayer.openContainer instanceof ContainerPlayer)) return;
         if (isFlushing) return;
 
         Packet<?> packet = event.getPacket();

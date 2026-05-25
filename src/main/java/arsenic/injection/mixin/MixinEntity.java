@@ -61,16 +61,6 @@ public abstract class MixinEntity {
         }
     }
 
-    @ModifyVariable(method = "moveEntity", at = @At(value = "STORE"), ordinal = 0)
-    public boolean mixinMoveEntity(boolean flag) {
-        if((Object) this != Minecraft.getMinecraft().thePlayer)
-            return flag;
-        SafeWalk safeWalk = Arsenic.getArsenic().getModuleManager().getModuleByClass(SafeWalk.class);
-        if(!safeWalk.isEnabled())
-            return flag;
-        return safeWalk.mixinResult(flag);
-    }
-
     @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
     public Vec3 rayTrace(Vec3 vec31) {
         if((Object) this != Minecraft.getMinecraft().getRenderViewEntity())
