@@ -1,6 +1,7 @@
 package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
+import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -78,6 +79,11 @@ public abstract class MixinItemRenderer {
                             break;
                         case EAT:
                         case DRINK:
+                            PacketConsume pc = Arsenic.getInstance().getModuleManager().getModuleByClass(PacketConsume.class);
+                            if (pc != null && pc.isEnabled()) {
+                                this.transformFirstPersonItem(f, 0.0F);
+                                break;
+                            }
                             this.func_178104_a(player, partialTicks);
                             this.transformFirstPersonItem(f, swingProgress);
                             break;
