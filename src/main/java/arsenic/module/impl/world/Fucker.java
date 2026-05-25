@@ -27,7 +27,7 @@ import net.minecraft.util.MathHelper;
 
 
 
-@ModuleInfo(name = "Fucker", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Fucker", category = ModuleCategory.WORLD, dev = true)
 public class Fucker extends Module {
 
     public enum Mode {

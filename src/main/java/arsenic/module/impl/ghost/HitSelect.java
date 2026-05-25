@@ -18,7 +18,7 @@ import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 
-@ModuleInfo(name = "HitSelect", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "HitSelect", category = ModuleCategory.GHOST, dev = true)
 public class HitSelect extends Module {
 
     public enum Mode {
