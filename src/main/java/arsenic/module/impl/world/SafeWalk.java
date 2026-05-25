@@ -34,7 +34,7 @@ public class SafeWalk extends Module {
     public final BooleanProperty pitchCheck = new BooleanProperty("Pitch Check", false);
     @PropertyInfo(reliesOn = "Pitch Check",value = "true")
     public final DoubleProperty pitch = new DoubleProperty("Pitch", new DoubleValue(0, 90, 45, 5));
-    public final DoubleProperty precision = new DoubleProperty("Safety", new DoubleValue(0, 0.29, 0, 0.01));
+    public final DoubleProperty precision = new DoubleProperty("Safety", new DoubleValue(1, 3, 0, 0.1));
 
     @RequiresPlayer
     @EventLink
@@ -141,8 +141,7 @@ public class SafeWalk extends Module {
             f4 = player.worldObj.getBlockState(new BlockPos(MathHelper.floor_double(player.posX), MathHelper.floor_double(player.getEntityBoundingBox().minY) - 1, MathHelper.floor_double(player.posZ))).getBlock().slipperiness * 0.91F;
         }
 
-        AxisAlignedBB predictedBB = player.getEntityBoundingBox().offset(motionX, -0.05, motionZ);
-        predictedBB.contract(precision.getValue().getInput(), precision.getValue().getInput(), precision.getValue().getInput());
+        AxisAlignedBB predictedBB = player.getEntityBoundingBox().offset(motionX * precision.getValue().getInput(), -0.05, motionZ * precision.getValue().getInput());
 
         return mc.theWorld.getCollidingBoundingBoxes(player, predictedBB).isEmpty();
     }
