@@ -3,12 +3,10 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.*;
 import arsenic.injection.accessor.IMixinEntityPlayerSP;
 import arsenic.module.impl.movement.NoSlow;
-import arsenic.module.impl.world.SafeWalk;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.world.World;
@@ -17,7 +15,6 @@ import com.mojang.authlib.GameProfile;
 import arsenic.main.Arsenic;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static arsenic.main.MinecraftAPI.mouseDownLastTick;
 
@@ -88,7 +85,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
         NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
         if(!noSlow.isEnabled() || !instance.isUsingItem())
             return instance.isUsingItem();
-        return noSlow.isUsingItem();
+        return noSlow.mixinResult();
     }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("RETURN"))

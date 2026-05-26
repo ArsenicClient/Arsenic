@@ -3,6 +3,7 @@ package arsenic.utils.lag;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
+import arsenic.module.impl.movement.InvMove;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.Packet;
@@ -90,6 +91,10 @@ public final class LagManager {
         return Collections.unmodifiableSet(holders.keySet());
     }
 
+    public static boolean isHolding(Class<?> holderId) {
+        return LagManager.getHolders().contains(holderId);
+    }
+
     private static void flushUnheld() {
         if (holders.isEmpty()) {
             flushAll();
@@ -115,7 +120,7 @@ public final class LagManager {
         }
     }
 
-    private static void sendPacket(Packet<?> packet) {
+    public static void sendPacket(Packet<?> packet) {
         if (mc.getNetHandler() != null)
             mc.getNetHandler().addToSendQueue(packet);
     }

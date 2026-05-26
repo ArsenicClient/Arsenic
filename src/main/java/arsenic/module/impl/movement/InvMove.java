@@ -24,6 +24,8 @@ import org.lwjgl.input.Keyboard;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static arsenic.utils.lag.LagManager.isHolding;
+
 @ModuleInfo(name = "InvMove", category = ModuleCategory.MOVEMENT)
 public class InvMove extends Module {
 
@@ -54,15 +56,15 @@ public class InvMove extends Module {
                 KeyBinding.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
             }
 
-            if (shouldBuffer() && !LagManager.getHolders().contains(InvMove.class)) {
-                LagManager.acquire(InvMove.class, p ->
+            if (shouldBuffer() && !isHolding(getClass())) {
+                LagManager.acquire(getClass(), p ->
                         p instanceof C0EPacketClickWindow
                                 || p instanceof C0DPacketCloseWindow
                                 || p instanceof C10PacketCreativeInventoryAction
                 );
             }
         } else {
-            if (LagManager.getHolders().contains(InvMove.class)) {
+            if (LagManager.getHolders().contains(getClass())) {
                 pendingFlush = true;
             }
         }
@@ -105,6 +107,6 @@ public class InvMove extends Module {
 
     @Override
     protected void onDisable() {
-        LagManager.release(InvMove.class);
+        LagManager.release(getClass());
     }
 }

@@ -31,7 +31,8 @@ public class Blink extends Module {
     public final Listener<EventTick> onPacket = event -> {
         ticksElapsed++;
         if(ticksElapsed > doubleProperty.getValue().getInput()) {
-            setEnabled(false);
+            onDisable();
+            onEnable();
         }
     };
 
