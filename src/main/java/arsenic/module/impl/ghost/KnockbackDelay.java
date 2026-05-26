@@ -14,7 +14,6 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.minecraft.PacketUtil;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
@@ -24,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static arsenic.utils.lag.LagManager.receivePacket;
 
 @ModuleInfo(name = "Knockback Delay", category = ModuleCategory.GHOST)
 public class KnockbackDelay extends Module {
@@ -86,7 +87,7 @@ public class KnockbackDelay extends Module {
         while (!packetQueue.isEmpty()) {
             Packet<?> packet = packetQueue.poll().getPacket();
             skipPackets.add(packet);
-            PacketUtil.receivePacket(packet);
+            receivePacket(packet);
         }
     }
 }
