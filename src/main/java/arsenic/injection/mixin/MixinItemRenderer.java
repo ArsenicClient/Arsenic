@@ -1,6 +1,7 @@
 package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
+import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
@@ -54,6 +55,12 @@ public abstract class MixinItemRenderer {
         GlStateManager.rotate(60.0F, 0.0F, 1.0F, 0.0F);
     }
 
+    private boolean isForceBlock() {
+        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
+        return killAura != null && killAura.isRenderBlocking()
+            && itemToRender != null && itemToRender.getItem() instanceof ItemSword;
+    }
+
     @Inject(method = "renderItemInFirstPerson", at = @At("HEAD"), cancellable = true)
     public void renderItemInFirstPerson(float partialTicks, CallbackInfo ci) {
         try {
@@ -68,11 +75,13 @@ public abstract class MixinItemRenderer {
             GlStateManager.enableRescaleNormal();
             GlStateManager.pushMatrix();
 
+            boolean forceBlock = isForceBlock();
+
             if (this.itemToRender != null) {
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0) {
-                    EnumAction action = this.itemToRender.getItemUseAction();
+                } else if (player.getItemInUseCount() > 0 || forceBlock) {
+                    EnumAction action = forceBlock ? EnumAction.BLOCK : this.itemToRender.getItemUseAction();
                     switch (action) {
                         case NONE:
                             this.transformFirstPersonItem(f, 0.0F);
@@ -103,7 +112,6 @@ public abstract class MixinItemRenderer {
 
                 this.renderItem(player, this.itemToRender, ItemCameraTransforms.TransformType.FIRST_PERSON);
             } else if (!player.isInvisible()) {
-                //this.renderPlayerArms(player);
             }
 
             GlStateManager.popMatrix();
