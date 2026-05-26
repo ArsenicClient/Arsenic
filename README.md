@@ -10,8 +10,6 @@ The client features:
 - Config System
 - Custom GUI with Themes
 
-Currently, there are not too many modules; however, it is in a usable state, and most should bypass fine.
-
 ## How To Build/Edit
 
 -   Clone the repository.
