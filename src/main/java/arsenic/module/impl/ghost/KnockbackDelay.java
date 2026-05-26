@@ -9,6 +9,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.ghost.backtrack.TimedPacket;
+import arsenic.module.property.impl.StringProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
@@ -29,6 +30,7 @@ public class KnockbackDelay extends Module {
 
     public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 1000, 200, 300, 10));
     public final DoubleProperty chance = new DoubleProperty("Chance %", new DoubleValue(0, 100, 100, 1));
+    public final StringProperty warning = new StringProperty("This may silent flag");
 
     private final Queue<TimedPacket> packetQueue = new ConcurrentLinkedQueue<>();
     private final List<Packet<?>> skipPackets = new ArrayList<>();
