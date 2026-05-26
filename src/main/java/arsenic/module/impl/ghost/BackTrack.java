@@ -11,12 +11,12 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.ghost.backtrack.TimedPacket;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.minecraft.PacketUtil;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
+import net.minecraft.network.ThreadQuickExitException;
+import net.minecraft.network.play.INetHandlerPlayClient;
 import net.minecraft.network.play.server.*;
 import net.minecraft.util.Vec3;
 
@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static arsenic.utils.lag.LagManager.receivePacket;
 
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.GHOST)
 public class BackTrack extends Module {
@@ -155,7 +157,7 @@ public class BackTrack extends Module {
                 if (packetQueue.element().getTimer().hasFinished()) {
                     Packet<?> packet = packetQueue.remove().getPacket();
                     skipPackets.add(packet);
-                    PacketUtil.receivePacket(packet);
+                    receivePacket(packet);
                 } else {
                     break;
                 }
@@ -205,9 +207,10 @@ public class BackTrack extends Module {
             for (TimedPacket timedPacket : packetQueue) {
                 Packet<?> packet = timedPacket.getPacket();
                 skipPackets.add(packet);
-                PacketUtil.receivePacket(packet);
+                receivePacket(packet);
             }
             packetQueue.clear();
         }
     }
+
 }

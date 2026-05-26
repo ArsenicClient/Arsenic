@@ -9,6 +9,7 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.notifications.NotificationManager;
 import arsenic.utils.font.Fonts;
+import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
@@ -41,7 +42,6 @@ public class Arsenic {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
-    private final Executor executor = Executors.newSingleThreadExecutor();
     private final LaunchID launchID = new LaunchID();
 
     @Mod.EventHandler
@@ -51,8 +51,9 @@ public class Arsenic {
         getEventManager().subscribe(silentRotationManager);
         getEventManager().subscribe(serverInfo);
         getEventManager().subscribe(notificationManager);
+        getEventManager().subscribe(new LagManager());
 
-        logger.info("Subscribed silent rotation manager");
+        logger.info("Subscribed managers");
 
         logger.info("Loaded {} modules...", String.valueOf(moduleManager.initialize()));
 
