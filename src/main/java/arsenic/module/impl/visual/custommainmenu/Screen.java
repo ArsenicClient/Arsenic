@@ -7,6 +7,7 @@
     import arsenic.utils.render.shader.ShaderUtil;
     import net.minecraft.client.Minecraft;
     import net.minecraft.client.gui.*;
+    import net.minecraft.client.renderer.GlStateManager;
     import net.minecraft.client.resources.I18n;
     import net.minecraft.client.shader.Framebuffer;
 
@@ -41,6 +42,11 @@
 
         @Override
         public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+
+            // DO NOT DELETE - SCREEN WILL GO WHITE IF DELETED
+            Gui.drawRect(0, 0, 0, 0, new Color(255, 255, 255, 40).getRGB());
+
+
             backgroundShader.init();
             backgroundShader.setUniformf("time", (System.currentTimeMillis() % 1000000) / 5000f);
             ScaledResolution sr = new ScaledResolution(mc);
@@ -67,9 +73,6 @@
 
             String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
             mc.fontRendererObj.drawStringWithShadow(modCount, 2, this.height - mc.fontRendererObj.FONT_HEIGHT - 2, -1);
-
-            //This will not work because the player is currently null
-            //GuiInventory.drawEntityOnScreen(this.width - 50, this.height - 20, 30, this.width - 50 - mouseX, this.height - 20 - 50 - mouseY, mc.thePlayer);
 
             super.drawScreen(mouseX, mouseY, partialTicks);
         }
@@ -101,21 +104,8 @@
 
         public static class CustomGuiButton extends GuiButton{
 
-            private Framebuffer fbo;
-
             public CustomGuiButton(int buttonId, int x, int y, String buttonText) {
                 super(buttonId, x, y, 200, 20, buttonText);
-            }
-
-            public CustomGuiButton(int buttonId, int x, int y, int widthIn, int heightIn, String buttonText) {
-                super(buttonId, x, y, widthIn, heightIn, buttonText);
-            }
-            private void initFbo() {
-                if (fbo == null) {
-                    fbo = new Framebuffer(width, height, true);
-                } else if (fbo.framebufferWidth != width || fbo.framebufferHeight != height) {
-                    fbo.createBindFramebuffer(width, height);
-                }
             }
 
             @Override

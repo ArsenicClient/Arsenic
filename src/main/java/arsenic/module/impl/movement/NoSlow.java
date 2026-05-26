@@ -15,6 +15,7 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.item.EnumAction;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.util.BlockPos;
@@ -28,7 +29,7 @@ public class NoSlow extends Module {
     public final BooleanProperty food = new BooleanProperty("Food", true);
     public final BooleanProperty blocks = new BooleanProperty("Blocks", true);
     public final BooleanProperty blinking = new BooleanProperty("Blink", true);
-    @PropertyInfo(reliesOn = "Blink")
+    @PropertyInfo(reliesOn = "Blink", value = "true")
     public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 10, 1));
     private boolean fakePacket;
     private int ticksElapsed = 0;
@@ -74,8 +75,8 @@ public class NoSlow extends Module {
         if(mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem()) {
             return false;
         }
-        boolean isBlock = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == net.minecraft.item.EnumAction.BLOCK;
-        boolean isFood = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == net.minecraft.item.EnumAction.EAT;
+        boolean isBlock = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
+        boolean isFood = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.EAT;
         return isBlock && blocks.getValue() || isFood && food.getValue();
     }
 
