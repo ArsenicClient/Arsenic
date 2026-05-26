@@ -6,6 +6,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.ScissorUtils;
@@ -27,8 +28,12 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     public SearchComponent(ModuleCategory category) {
         super(category);
     }
-    public void setupGlowAndBlur(){
-        DrawUtils.drawGradientRoundedRect(x, y - 10, x1, y + 10,8,getEnabledColor(),getEnabledColor(),getGradientColor(),getGradientColor());
+    public void setupGlowAndBlur(int alpha){
+        DrawUtils.drawGradientRoundedRect(x, y - 10, x1, y + 10, 8,
+                ColorUtils.setColor(getEnabledColor(), 0, alpha),
+                ColorUtils.setColor(getEnabledColor(), 0, alpha),
+                ColorUtils.setColor(getGradientColor(), 0, alpha),
+                ColorUtils.setColor(getGradientColor(), 0, alpha));
     }
     @Override
     public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
