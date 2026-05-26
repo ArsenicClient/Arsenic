@@ -47,7 +47,6 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         displayName = name;
         description = info.description();
         category = info.category();
-        enabled = info.enabled();
         hidden = info.hidden();
         keybind = info.keybind();
 
@@ -62,6 +61,9 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     public void registerProperties() throws IllegalAccessException {
+        if (enabled) {
+            setEnabledSilently(true);
+        }
         for (final Field field : getClass().getFields()) {
             Object fieldObject = field.get(this);
             if (!(fieldObject instanceof Property<?>) || fieldObject == null)
@@ -155,7 +157,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
-    public final void setEnabledSilently(boolean enabled) {
+    public void setEnabledSilently(boolean enabled) {
         if (this.enabled != enabled) {
             this.enabled = enabled;
 
