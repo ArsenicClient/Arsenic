@@ -1,14 +1,16 @@
 package arsenic.injection.mixin;
 
 import arsenic.event.impl.EventAttack;
-
 import arsenic.main.Arsenic;
+import arsenic.module.impl.blatant.KillAura;
+import net.minecraft.client.Minecraft;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
 import net.minecraft.entity.boss.EntityDragonPart;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.potion.Potion;
 import net.minecraft.stats.AchievementList;
@@ -23,6 +25,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(priority = 995, value = EntityPlayer.class)
 public abstract class MixinEntityPlayer extends EntityLivingBase {
@@ -56,6 +59,32 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
 
     @Shadow
     public abstract void fall(float p_fall_1_, float p_fall_2_);
+
+    @Inject(method = "getItemInUseCount", at = @At("HEAD"), cancellable = true)
+    private void onGetItemInUseCount(CallbackInfoReturnable<Integer> cir) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != (Object) this) return;
+        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
+        if (killAura != null && killAura.isRenderBlocking()) {
+            ItemStack held = mc.thePlayer.getCurrentEquippedItem();
+            if (held != null && held.getItem() instanceof ItemSword) {
+                cir.setReturnValue(Integer.MAX_VALUE);
+            }
+        }
+    }
+
+    @Inject(method = "isBlocking", at = @At("HEAD"), cancellable = true)
+    private void onIsBlocking(CallbackInfoReturnable<Boolean> cir) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != (Object) this) return;
+        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
+        if (killAura != null && killAura.isRenderBlocking()) {
+            ItemStack held = mc.thePlayer.getCurrentEquippedItem();
+            if (held != null && held.getItem() instanceof ItemSword) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
 
     /**
      * @author mc code
