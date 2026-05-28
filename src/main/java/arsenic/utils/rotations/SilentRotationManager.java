@@ -56,7 +56,6 @@ public class SilentRotationManager {
         pitch = Math.min(90,rotations[1]);
 
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
-        PlayerUtils.addWaterMarkedMessageToChat(mc.thePlayer.rotationYaw, yaw);
         if(!modified && !rotation.hasBeenModified()) {
             yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
             mc.thePlayer.rotationYaw = yaw;
