@@ -45,7 +45,7 @@ repositories {
     }
 }
 
-version = "v0.4.1"
+version = "v0.5.1DEV"
 group="arsenic"
 archivesBaseName = "Arsenic"
 
@@ -73,6 +73,7 @@ dependencies {
     }
     implementation 'org.jetbrains:annotations:23.0.0'
     embed('org.reflections:reflections:0.10.2')
+    embed 'com.jagrosh:DiscordIPC:0.4'
 }
 
 processResources {
@@ -96,8 +97,9 @@ mixin {
 
 shadowJar {
     dependencies {
-        include('org.spongepowered:mixin')
-        include('org.jetbrains:annotations')
+    include('org.spongepowered:mixin')
+    include('org.jetbrains:annotations')
+    include('com.jagrosh:DiscordIPC')
     }
 
     classifier = 'full'

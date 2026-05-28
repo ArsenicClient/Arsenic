@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(priority = 1111, value = Minecraft.class)
 public abstract class MixinMinecraft {
-
+	
     @Shadow
     protected abstract void clickMouse();
     @Shadow

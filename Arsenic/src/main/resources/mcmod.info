@@ -1,0 +1,17 @@
+[
+    {
+        "modid": "arsenic",
+        "name": "Arsenic Client",
+        "description": "Hypixel Ghost Client",
+        "version": "v0.2",
+        "url": "",
+        "updateUrl": "",
+        "authorList": [
+            "Kv", "sigmaclientwastaken", "KassuK","Stephen", "Cosmic", "TejasLambda", "Many more"
+        ],
+        "credits": "",
+        "logoFile": "",
+        "screenshots": [],
+        "dependencies": []
+    }
+]
