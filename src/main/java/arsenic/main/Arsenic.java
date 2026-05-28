@@ -9,6 +9,7 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.notifications.NotificationManager;
 import arsenic.utils.font.Fonts;
+import arsenic.module.impl.client.CapeHandler;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
@@ -65,6 +66,9 @@ public class Arsenic {
 
         fonts.initTextures();
         logger.info("Loaded fonts.");
+
+        CapeHandler.getInstance().init();
+        logger.info("Loaded cape handler.");
 
         logger.info("Loaded {}.", clientName);
     }

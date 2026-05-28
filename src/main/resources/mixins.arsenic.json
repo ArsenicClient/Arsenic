@@ -26,6 +26,7 @@
     "mixin.MixinModList",
     "mixin.MixinMovementInputFromOptions",
     "mixin.MixinNetworkManager",
+    "mixin.MixinAbstractClientPlayer",
     "mixin.MixinRendererLivingEntity"
   ],
   "mixins": [
