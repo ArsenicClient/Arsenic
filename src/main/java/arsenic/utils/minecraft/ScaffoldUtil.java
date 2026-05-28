@@ -22,33 +22,6 @@ public class ScaffoldUtil extends UtilityClass {
         return mc.theWorld.getBlockState(new BlockPos(x, y, z)).getBlock();
     }
 
-    public static Block blockRelativeToPlayer(final double offsetX, final double offsetY, final double offsetZ) {
-        return mc.theWorld.getBlockState(new BlockPos(mc.thePlayer).add(offsetX, offsetY, offsetZ)).getBlock();
-    }
-
-    public static Scaffold.BlockData getBlockData() {
-        final BlockPos belowBlockPos = new BlockPos(mc.thePlayer.posX, (int) mc.thePlayer.posY - 1, mc.thePlayer.posZ);
-        if (mc.theWorld.getBlockState(belowBlockPos).getBlock() instanceof BlockAir) {
-            for (int x = 0; x < 4; x++) {
-                for (int z = 0; z < 4; z++) {
-                    for (int i = 1; i > -3; i -= 2) {
-                        final BlockPos blockPos = belowBlockPos.add(x * i, 0, z * i);
-                        if (mc.theWorld.getBlockState(blockPos).getBlock() instanceof BlockAir) {
-                            for (EnumFacing direction : EnumFacing.values()) {
-                                final BlockPos block = blockPos.offset(direction);
-                                final Material material = mc.theWorld.getBlockState(block).getBlock().getMaterial();
-                                if (material.isSolid() && !material.isLiquid()) {
-                                    return new Scaffold.BlockData(block, direction.getOpposite());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
     public static boolean willFallNextTick() {
         return willFallNextTick(1.0);
     }
@@ -135,7 +108,7 @@ public class ScaffoldUtil extends UtilityClass {
     }
 
     public static boolean willFallNextTick(double precision) {
-        AxisAlignedBB predictedBB = getPredictedBoundingBox(precision).offset(0, -0.05, 0);
+        AxisAlignedBB predictedBB = getPredictedBoundingBox(precision).offset(0, -0.5, 0);
         return mc.theWorld.getCollidingBoundingBoxes(mc.thePlayer, predictedBB).isEmpty();
     }
 
@@ -145,6 +118,29 @@ public class ScaffoldUtil extends UtilityClass {
         }
         BlockPos pos = lastblockdata.getPosition();
         EnumFacing facing = lastblockdata.getFacing();
+        Vec3 vec3 = new Vec3(pos);
+
+        double amount1 = 0.45 + Math.random() * 0.1;
+        double amount2 = 0.45 + Math.random() * 0.1;
+
+        if (facing == EnumFacing.UP) {
+            vec3 = vec3.addVector(amount1, 1, amount2);
+        } else if (facing == EnumFacing.DOWN) {
+            vec3 = vec3.addVector(amount1, 0, amount2);
+        } else if (facing == EnumFacing.EAST) {
+            vec3 = vec3.addVector(1, amount1, amount2);
+        } else if (facing == EnumFacing.WEST) {
+            vec3 = vec3.addVector(0, amount1, amount2);
+        } else if (facing == EnumFacing.NORTH) {
+            vec3 = vec3.addVector(amount1, amount2, 0);
+        } else if (facing == EnumFacing.SOUTH) {
+            vec3 = vec3.addVector(amount1, amount2, 1);
+        }
+
+        return vec3;
+    }
+
+    public static Vec3 getNewVector(BlockPos pos, EnumFacing facing) {
         Vec3 vec3 = new Vec3(pos);
 
         double amount1 = 0.45 + Math.random() * 0.1;

@@ -5,52 +5,54 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
 import arsenic.injection.accessor.IMixinEntity;
-import arsenic.injection.accessor.IMixinEntityPlayerSP;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.minecraft.MoveUtil;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
-import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.util.*;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
 
-import static arsenic.utils.minecraft.ScaffoldUtil.getPredictedBoundingBox;
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
 import static arsenic.utils.rotations.RotationUtils.patchGCD;
 
 @ModuleInfo(name = "Scaffold", category = ModuleCategory.PLAYER)
 public class Scaffold extends Module {
 
+
+    public BooleanProperty sprint = new BooleanProperty("sprint", false);
+    public static BooleanProperty keepY = new BooleanProperty("keepY", false);
     private BlockData blockData;
     private float[] rots = new float[2];
     private boolean solvedRots;
     private float animatedScale;
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
+    private static ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
 
     @Override
     protected void onEnable() {
@@ -69,19 +71,27 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.onGround;
+        boolean wilLFall = ScaffoldUtil.willFallNextTick();
         blockData = findBestPlacement();
+        Item item = keyBlock();
         event.setSpeed(360f);
 
         //if the player can place a block without moving rots
-        event.setYaw(mc.thePlayer.rotationYaw + 180f);
+        float delta = sprint.getValue() ? 0f : 180f;
+        event.setYaw(mc.thePlayer.rotationYaw + delta);
         event.setPitch(rots[1]);
 
         MovingObjectPosition movingObjectPosition = rayTrace(event);
-        if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-            && (movingObjectPosition.sideHit != EnumFacing.UP && movingObjectPosition.sideHit != EnumFacing.DOWN)) {
-        place(event);
-            return;
+        if(item instanceof ItemBlock) {
+            ItemBlock itemBlock = (ItemBlock) item;
+            if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                    && (movingObjectPosition.sideHit != EnumFacing.DOWN)
+                    && (!keepY.getValue() || movingObjectPosition.sideHit != EnumFacing.UP)
+                    && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
+                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
+                place(event);
+                return;
+            }
         }
 
         if(wilLFall) {
@@ -92,7 +102,6 @@ public class Scaffold extends Module {
                     solvedRots = true;
                 } else {
                     solvedRots = false;
-                    //PlayerUtils.addWaterMarkedMessageToChat("Unsolved rots");
                     rots = getFreeRotationsForFace(blockData.getPosition(), blockData.getFacing());
                 }
             }
@@ -100,7 +109,7 @@ public class Scaffold extends Module {
             event.setPitch(rots[1]);
             place(event);
         } else {
-            event.setYaw(mc.thePlayer.rotationYaw + 180f);
+            event.setYaw(mc.thePlayer.rotationYaw + delta);
             event.setPitch(rots[1]);
         }
     };
@@ -232,8 +241,6 @@ public class Scaffold extends Module {
     public static BlockData findBestPlacement() {
         EntityPlayerSP player = mc.thePlayer;
         BlockPos playerPos = new BlockPos(player);
-
-        // Scan 3x3 radius, 1 block below player
         BlockPos scanY = playerPos.down();
 
         BlockData best = null;
@@ -241,39 +248,113 @@ public class Scaffold extends Module {
 
         Vec3 eyes = player.getPositionEyes(1.0f);
 
-        for (int x = -1; x <= 1; x++) {
-            for (int z = -1; z <= 1; z++) {
+        // Player AABB center for proximity checks
+        double playerCX = player.posX;
+        double playerCY = player.posY + player.height / 2.0;
+        double playerCZ = player.posZ;
+
+        for (int x = -2; x <= 2; x++) {
+            for (int z = -2; z <= 2; z++) {
                 BlockPos pos = scanY.add(x, 0, z);
                 IBlockState state = mc.theWorld.getBlockState(pos);
 
-                // Skip air and non-solid blocks
                 if (state.getBlock() == Blocks.air) continue;
                 if (!state.getBlock().isFullCube()) continue;
 
-                // Check all 6 faces
-                for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+                List<EnumFacing> facings = new ArrayList<>(Arrays.asList(EnumFacing.HORIZONTALS));
+                if (!player.onGround && mc.thePlayer.motionY < 0 && !keepY.getValue()) {
+                    facings.add(EnumFacing.UP);
+                }
+
+                for (EnumFacing facing : facings) {
+                    if (!placeholderBlock.canPlaceBlockOnSide(mc.theWorld, pos, facing, mc.thePlayer, mc.thePlayer.getHeldItem()))
+                        continue;
+
                     BlockPos neighbor = pos.offset(facing);
                     IBlockState neighborState = mc.theWorld.getBlockState(neighbor);
 
-                    // Face must be exposed (neighbor must be air/passable)
                     if (neighborState.getBlock() != Blocks.air) continue;
 
-                    // The clickable point on this face (center of the face)
+                    // --- FILTER 1: skip if placing here is redundant ---
+                    // "redundant" = there's already a solid block between the player and this placement
+                    // i.e. the neighbor (new block pos) is farther from the player than an existing block
+                    // that already covers the same column. Simpler check: if there's already a solid block
+                    // at playerPos (directly below player feet), this placement isn't the closest useful one.
+                    // We measure distance from player AABB center to the center of the neighbor block.
+                    double neighborCX = neighbor.getX() + 0.5;
+                    double neighborCY = neighbor.getY() + 0.5;
+                    double neighborCZ = neighbor.getZ() + 0.5;
+
+                    double distToPlayer = Math.sqrt(
+                            (neighborCX - playerCX) * (neighborCX - playerCX) +
+                                    (neighborCY - playerCY) * (neighborCY - playerCY) +
+                                    (neighborCZ - playerCZ) * (neighborCZ - playerCZ)
+                    );
+
+                    // Check if any already-solid block is closer to the player than this neighbor
+                    // (meaning this placement would be behind an existing block relative to player)
+                    boolean redundant = false;
+                    for (int rx = -1; rx <= 1 && !redundant; rx++) {
+                        for (int rz = -1; rz <= 1 && !redundant; rz++) {
+                            BlockPos existing = scanY.add(rx, 1, rz); // one above scan level = at player feet
+                            IBlockState existingState = mc.theWorld.getBlockState(existing);
+                            if (existingState.getBlock() == Blocks.air) continue;
+                            if (!existingState.getBlock().isFullCube()) continue;
+
+                            double exCX = existing.getX() + 0.5;
+                            double exCY = existing.getY() + 0.5;
+                            double exCZ = existing.getZ() + 0.5;
+                            double distExisting = Math.sqrt(
+                                    (exCX - playerCX) * (exCX - playerCX) +
+                                            (exCY - playerCY) * (exCY - playerCY) +
+                                            (exCZ - playerCZ) * (exCZ - playerCZ)
+                            );
+
+                            // If there's an existing solid block closer to the player in the same
+                            // horizontal column as the proposed neighbor, this placement is redundant
+                            if (existing.getX() == neighbor.getX() && existing.getZ() == neighbor.getZ()
+                                    && distExisting < distToPlayer) {
+                                redundant = true;
+                            }
+                        }
+                    }
+                    if (redundant) continue;
+
+                    // Face center for distance ranking
                     double faceX = pos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
                     double faceY = pos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
                     double faceZ = pos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
 
                     double dist = eyes.distanceTo(new Vec3(faceX, faceY, faceZ));
+                    if (dist >= bestDist) continue;
 
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        best = new BlockData(pos, facing);
+                    // --- FILTER 2: raytrace validation ---
+                    // Compute the rotations we'd use for this placement and raytrace to confirm it hits
+                    float[] rots = getRotationsForFace(pos, facing);
+                    if (rots == null) {
+                        rots = getFreeRotationsForFace(pos, facing);
                     }
+
+                    Vec3 eyeVec = player.getPositionEyes(1.0f);
+                    Vec3 lookDir = ((IMixinEntity) player).invokeGetVectorForRotation(rots[1], rots[0]);
+                    Vec3 traceEnd = eyeVec.addVector(
+                            lookDir.xCoord * 4.5,
+                            lookDir.yCoord * 4.5,
+                            lookDir.zCoord * 4.5
+                    );
+                    MovingObjectPosition hit = player.worldObj.rayTraceBlocks(eyeVec, traceEnd, false, false, true);
+
+                    if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
+                    if (!hit.getBlockPos().equals(pos)) continue;
+                    if (hit.sideHit != facing) continue;
+
+                    bestDist = dist;
+                    best = new BlockData(pos, facing);
                 }
             }
         }
 
-        return best; // null if no valid placement found
+        return best;
     }
 
 
@@ -285,20 +366,25 @@ public class Scaffold extends Module {
     }
 
 
-
-    private void place(EventSilentRotation event) {
+    private Item keyBlock() {
         if (mc.thePlayer.inventory.getCurrentItem() == null
                 || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
             mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
         }
+        return mc.thePlayer.inventory.getCurrentItem().getItem();
+    }
+
+
+
+    private void place(EventSilentRotation event) {
         if (blockData == null) {
             return;
         }
+
         MovingObjectPosition objectOver = rayTrace(event);
         BlockPos blockpos = objectOver.getBlockPos();
         if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
                 || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
-            //PlayerUtils.addWaterMarkedMessageToChat("Raytrace fail");
             return;
         }
 
@@ -557,52 +643,5 @@ public class Scaffold extends Module {
 
         public EnumFacing getFacing() { return facing; }
         public BlockPos getPosition() { return position; }
-    }
-
-    public static BlockData getBlockData() {
-        EntityPlayerSP player = mc.thePlayer;
-
-        double[][] checkOffsets = {
-                {0,           0          },
-                {player.motionX, player.motionZ},
-                {player.motionX * 1.5, player.motionZ * 1.5},
-                {player.motionX * 2.0, player.motionZ * 2.0},
-                {Math.signum(player.motionX) * 0.3, Math.signum(player.motionZ) * 0.3},
-                {Math.signum(player.motionX), Math.signum(player.motionZ) * 0.3},
-                {Math.signum(player.motionX), Math.signum(player.motionZ)},
-                {Math.signum(player.motionX) * 0.3, Math.signum(player.motionZ)},
-        };
-
-        for (double[] offset : checkOffsets) {
-            for (int dy = 0; dy >= -2; dy--) {
-                BlockPos targetPos = new BlockPos(
-                        MathHelper.floor_double(player.posX + offset[0]),
-                        MathHelper.floor_double(player.posY) + dy - 1,
-                        MathHelper.floor_double(player.posZ + offset[1])
-                );
-
-                if (!(mc.theWorld.getBlockState(targetPos).getBlock() instanceof BlockAir)) {
-                    continue;
-                }
-
-                EnumFacing[] prioritised = {
-                        EnumFacing.NORTH, EnumFacing.SOUTH, EnumFacing.EAST, EnumFacing.WEST
-                };
-
-                for (EnumFacing direction : prioritised) {
-                    BlockPos neighbour = targetPos.offset(direction);
-                    Block neighbourBlock = mc.theWorld.getBlockState(neighbour).getBlock();
-                    Material material = neighbourBlock.getMaterial();
-
-                    if (material.isSolid() && !material.isLiquid()) {
-                        double distSq = player.getDistanceSqToCenter(neighbour);
-                        if (distSq > 16.0) continue;
-
-                        return new Scaffold.BlockData(neighbour, direction.getOpposite());
-                    }
-                }
-            }
-        }
-        return null;
     }
 }
