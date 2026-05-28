@@ -27,30 +27,9 @@ import java.security.SecureRandom;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.BLATANT)
 public class KillAura extends Module {
-    private Enum<TargetManager.SortMode> prevVal;
-    public BooleanProperty switchAura = new BooleanProperty("Switch", false){
-        @Override
-        public void onValueUpdate() {
-            if (this.getValue()) {
-                prevVal = TargetManager.sortMode.getValue();
-                TargetManager.sortMode.setValue(TargetManager.SortMode.HurtSwitch);
-            } else {
-                if (prevVal != null){
-                    TargetManager.sortMode.setValue((TargetManager.SortMode) prevVal);
-                }
-            }
-        }
-    };
 
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
-    public DoubleProperty attackRange = new DoubleProperty("Attack Range", new DoubleValue(1, 6, 4.5, 0.1));
-    public DoubleProperty findRange = new DoubleProperty("Find Range", new DoubleValue(1, 6, 4.5, 0.1));
     public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
-    public BooleanProperty moveFix = new BooleanProperty("MoveFix", false); //why is this even an option
-    public BooleanProperty raycast = new BooleanProperty("Raycast", false);
-    public BooleanProperty troughWalls = new BooleanProperty("Through Walls", false);
-    public BooleanProperty swing = new BooleanProperty("Show Swing", true);
-    public BooleanProperty esp = new BooleanProperty("ESP", true);
 
     public EntityPlayer target = null;
     private final MSTimer attackTimer = new MSTimer();
@@ -72,21 +51,19 @@ public class KillAura extends Module {
         float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
-        event.setJumpFix(moveFix.getValue());
-        event.setDoMovementFix(moveFix.getValue());
         event.setSpeed((float) speed.getValue().getRandomInRange());
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        getTarget();
+        target = TargetManager.getTarget();
         if (!canAura()) return;
 
         if (target != null) {
-            if (troughWalls.getValue() || mc.thePlayer.canEntityBeSeen(target)) {
+            if (mc.thePlayer.canEntityBeSeen(target)) {
                 if (attackTimer.hasTimeElapsed(getAttackDelay())) {
-                    attack(false);
+                    attack();
                     attackTimer.reset();
                 }
             }
@@ -96,48 +73,22 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (!canAura() || !esp.getValue()) {
+        if (!canAura()) {
             return;
         }
         RenderUtils.drawCircle(target, event.partialTicks, 0.7, Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor(), 255);
     };
 
-    public void attack(boolean interact) {
+    public void attack() {
         if (!canAura()) return;
-        if (RotationUtils.getDistanceToEntityBox(target) <= attackRange.getValue().getInput()) {
-            if (!raycast.getValue()) {
-                swing();
-                mc.playerController.attackEntity(mc.thePlayer, target);
-                if (interact) {
-                    mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(target, C02PacketUseEntity.Action.INTERACT));
-                }
-            } else {
-                PlayerUtils.click();
-            }
+        if (RotationUtils.getDistanceToEntityBox(target) <= 3) {
+            swing();
+            mc.playerController.attackEntity(mc.thePlayer, target);
         }
     }
 
     private void swing() {
-        if (swing.getValue()) {
-            mc.thePlayer.swingItem();
-        } else {
-            mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
-        }
-    }
-
-    private void getTarget() {
-        EntityPlayer e = TargetManager.getTarget();
-        if (e == null) return;
-        double calculatedDistance = RotationUtils.getDistanceToEntityBox(e);
-
-        if (calculatedDistance <= findRange.getValue().getInput()) {
-            if (e.getHealth() > 0) {
-                target = e;
-                return;
-            }
-        }
-
-        target = null;
+        mc.thePlayer.swingItem();
     }
 
 
