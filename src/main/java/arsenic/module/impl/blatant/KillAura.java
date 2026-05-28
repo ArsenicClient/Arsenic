@@ -11,26 +11,23 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
-import arsenic.module.impl.world.Scaffold;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.play.client.*;
+
 import java.security.SecureRandom;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.BLATANT)
 public class KillAura extends Module {
 
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
-    public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
+    public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
+    public BooleanProperty autoBlock = new BooleanProperty("Autoblock", false);
     public EntityPlayer target = null;
     private final MSTimer attackTimer = new MSTimer();
     private final ServerInfo serverInfo = Arsenic.getArsenic().getServerInfo();
