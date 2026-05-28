@@ -60,32 +60,6 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
     @Shadow
     public abstract void fall(float p_fall_1_, float p_fall_2_);
 
-    @Inject(method = "getItemInUseCount", at = @At("HEAD"), cancellable = true)
-    private void onGetItemInUseCount(CallbackInfoReturnable<Integer> cir) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer != (Object) this) return;
-        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        if (killAura.isRenderBlocking()) {
-            ItemStack held = mc.thePlayer.getCurrentEquippedItem();
-            if (held != null && held.getItem() instanceof ItemSword) {
-                cir.setReturnValue(Integer.MAX_VALUE);
-            }
-        }
-    }
-
-    @Inject(method = "isBlocking", at = @At("HEAD"), cancellable = true)
-    private void onIsBlocking(CallbackInfoReturnable<Boolean> cir) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer != (Object) this) return;
-        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        if (killAura.isRenderBlocking()) {
-            ItemStack held = mc.thePlayer.getCurrentEquippedItem();
-            if (held != null && held.getItem() instanceof ItemSword) {
-                cir.setReturnValue(true);
-            }
-        }
-    }
-
     /**
      * @author mc code
      * @reason kys mixins
