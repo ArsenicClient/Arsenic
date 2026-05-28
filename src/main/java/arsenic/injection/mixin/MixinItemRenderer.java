@@ -55,11 +55,6 @@ public abstract class MixinItemRenderer {
         GlStateManager.rotate(60.0F, 0.0F, 1.0F, 0.0F);
     }
 
-    private boolean isForceBlock() {
-        KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        return killAura.isRenderBlocking()
-            && itemToRender != null && itemToRender.getItem() instanceof ItemSword;
-    }
 
     @Inject(method = "renderItemInFirstPerson", at = @At("HEAD"), cancellable = true)
     public void renderItemInFirstPerson(float partialTicks, CallbackInfo ci) {
@@ -75,13 +70,11 @@ public abstract class MixinItemRenderer {
             GlStateManager.enableRescaleNormal();
             GlStateManager.pushMatrix();
 
-            boolean forceBlock = isForceBlock();
-
             if (this.itemToRender != null) {
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0 || forceBlock) {
-                    EnumAction action = forceBlock ? EnumAction.BLOCK : this.itemToRender.getItemUseAction();
+                } else if (player.getItemInUseCount() > 0) {
+                    EnumAction action =  this.itemToRender.getItemUseAction();
                     switch (action) {
                         case NONE:
                             this.transformFirstPersonItem(f, 0.0F);

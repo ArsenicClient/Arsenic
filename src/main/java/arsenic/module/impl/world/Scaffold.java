@@ -81,7 +81,7 @@ public class Scaffold extends Module {
         if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
             && (movingObjectPosition.sideHit != EnumFacing.UP && movingObjectPosition.sideHit != EnumFacing.DOWN)) {
         place(event);
-        return;
+            return;
         }
 
         if(wilLFall) {
