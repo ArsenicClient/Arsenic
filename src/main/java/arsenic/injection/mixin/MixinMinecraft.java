@@ -10,8 +10,10 @@ import arsenic.module.impl.ghost.Clicker;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
+import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
@@ -70,6 +72,10 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
+        CustomMenu customMenu = Arsenic.getArsenic().getModuleManager().getModuleByClass(CustomMenu.class);
+        if(guiScreenIn instanceof GuiMainMenu && customMenu.isEnabled()) {
+            customMenu.display();
+        }
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
         Arsenic.getArsenic().getEventManager().post(event);
     }

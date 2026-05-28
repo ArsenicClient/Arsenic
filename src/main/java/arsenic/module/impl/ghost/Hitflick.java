@@ -14,7 +14,7 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.lag.LagManager;
 import net.minecraft.entity.Entity;
 
 @ModuleInfo(name = "Hitflick", category = ModuleCategory.GHOST)
@@ -45,8 +45,7 @@ public class Hitflick extends Module {
         flickYaw = originalYaw + getFlickAngle();
         state = FlickState.FLICKING_AWAY;
         if (blinkDuringFlick.getValue()) {
-            Blink blink = Arsenic.getArsenic().getModuleManager().getModuleByClass(Blink.class);
-            if (blink != null && !blink.isEnabled()) blink.setEnabled(true);
+            LagManager.acquire(getClass());
         }
     }
 
@@ -62,8 +61,7 @@ public class Hitflick extends Module {
 
             case RESTORING:
                 if (blinkDuringFlick.getValue()) {
-                    Blink blink = Arsenic.getArsenic().getModuleManager().getModuleByClass(Blink.class);
-                    if (blink != null && blink.isEnabled()) blink.setEnabled(false);
+                    LagManager.release(getClass());
                 }
                 if (pendingTarget != null) {
                     mc.thePlayer.swingItem();
