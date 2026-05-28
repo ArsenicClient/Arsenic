@@ -6,9 +6,13 @@ import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventLiving;
 import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.EnumAction;
@@ -22,14 +26,51 @@ import static arsenic.utils.lag.LagManager.*;
 @ModuleInfo(name = "NoSlow", category = ModuleCategory.MOVEMENT)
 public class NoSlow extends Module {
 
+    public enum NSMode {Hypixel, Grim}
+
+    public final EnumProperty<NSMode> mode = new EnumProperty<>("Mode", NSMode.Hypixel);
     public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 10, 1));
+
     private boolean fakePacket;
     private boolean pendingRelease = false;
     private int ticksElapsed = 0;
 
+    // Normal mode — fires on EventUpdate.Post
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventUpdate.Post> onUpdatePost = event -> {
+        if (mode.getValue() != NSMode.Hypixel) return;
+        if (itemInUse() && !isHolding(getClass())) {
+            acquire(getClass());
+            fakePacket = true;
+            sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+            fakePacket = false;
+        }
+    };
+
+    // Normal mode — blink tick counter on EventLiving
     @RequiresPlayer
     @EventLink
     public final Listener<EventLiving> onLiving = event -> {
+        if (mode.getValue() == NSMode.Hypixel) {
+            handleNormalLiving();
+        } else {
+            handleHypixelLiving();
+        }
+    };
+
+    private void handleNormalLiving() {
+        ticksElapsed++;
+        if (ticksElapsed >= maxTicks.getValue().getInput()) {
+            release(getClass());
+            ticksElapsed = 0;
+            if (itemInUse()) {
+                sendPacket(new C08PacketPlayerBlockPlacement(new BlockPos(-1, -1, -1), 255, mc.thePlayer.getHeldItem(), 0.0F, 0.0F, 0.0F));
+            }
+        }
+    }
+
+    private void handleHypixelLiving() {
         if (pendingRelease) {
             pendingRelease = false;
             fakePacket = true;
@@ -53,7 +94,7 @@ public class NoSlow extends Module {
                 }
             }
         }
-    };
+    }
 
     @RequiresPlayer
     @EventLink(value = Priorities.LOW)
@@ -69,9 +110,7 @@ public class NoSlow extends Module {
 
     public boolean itemInUse() {
         if (mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem()) return false;
-        boolean isBlock = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
-        boolean isFood = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.EAT;
-        return isBlock || isFood;
+        return mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
     }
 
     public boolean mixinResult() {
