@@ -57,7 +57,7 @@ public abstract class MixinItemRenderer {
 
     private boolean isForceBlock() {
         KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        return killAura != null && killAura.isRenderBlocking()
+        return killAura.isRenderBlocking()
             && itemToRender != null && itemToRender.getItem() instanceof ItemSword;
     }
 

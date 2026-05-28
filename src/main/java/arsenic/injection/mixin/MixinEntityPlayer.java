@@ -65,7 +65,7 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != (Object) this) return;
         KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        if (killAura != null && killAura.isRenderBlocking()) {
+        if (killAura.isRenderBlocking()) {
             ItemStack held = mc.thePlayer.getCurrentEquippedItem();
             if (held != null && held.getItem() instanceof ItemSword) {
                 cir.setReturnValue(Integer.MAX_VALUE);
@@ -78,7 +78,7 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != (Object) this) return;
         KillAura killAura = Arsenic.getInstance().getModuleManager().getModuleByClass(KillAura.class);
-        if (killAura != null && killAura.isRenderBlocking()) {
+        if (killAura.isRenderBlocking()) {
             ItemStack held = mc.thePlayer.getCurrentEquippedItem();
             if (held != null && held.getItem() instanceof ItemSword) {
                 cir.setReturnValue(true);

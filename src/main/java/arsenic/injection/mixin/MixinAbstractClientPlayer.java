@@ -22,11 +22,9 @@ public abstract class MixinAbstractClientPlayer {
     private void getCape(CallbackInfoReturnable<ResourceLocation> cir) {
         if (Minecraft.getMinecraft().thePlayer != (Object) this) return;
         Arsenic arsenic = Arsenic.getInstance();
-        if (arsenic == null) return;
         ModuleManager moduleManager = arsenic.getModuleManager();
-        if (moduleManager == null) return;
         Cape cape = moduleManager.getModuleByClass(Cape.class);
-        if (cape != null && cape.isEnabled()) {
+        if (cape.isEnabled()) {
             CapeHandler capeHandler = CapeHandler.getInstance();
             if (capeHandler.hasCape()) {
                 cir.setReturnValue(capeHandler.getCapeLocation());
