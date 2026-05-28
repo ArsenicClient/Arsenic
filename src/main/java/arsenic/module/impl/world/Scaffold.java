@@ -14,8 +14,16 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.MoveUtil;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ScaffoldUtil;
+import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.item.ItemStack;
+
+import java.awt.Color;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
@@ -28,6 +36,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.util.*;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.GL11;
 
 import static arsenic.utils.minecraft.ScaffoldUtil.getPredictedBoundingBox;
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
@@ -39,12 +48,22 @@ public class Scaffold extends Module {
     private BlockData blockData;
     private float[] rots = new float[2];
     private boolean solvedRots;
+    private float animatedScale;
+    public static int blockCounterX = -1;
+    public static int blockCounterY = -1;
 
     @Override
     protected void onEnable() {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         blockData = null;
+        animatedScale = 0f;
         super.onEnable();
+    }
+
+    @Override
+    protected void onDisable() {
+        animatedScale = 0f;
+        super.onDisable();
     }
 
     @RequiresPlayer
@@ -57,11 +76,12 @@ public class Scaffold extends Module {
         //if the player can place a block without moving rots
         event.setYaw(mc.thePlayer.rotationYaw + 180f);
         event.setPitch(rots[1]);
+
         MovingObjectPosition movingObjectPosition = rayTrace(event);
         if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                && (movingObjectPosition.sideHit != EnumFacing.UP && movingObjectPosition.sideHit != EnumFacing.DOWN)) {
-            place(event);
-            return;
+            && (movingObjectPosition.sideHit != EnumFacing.UP && movingObjectPosition.sideHit != EnumFacing.DOWN)) {
+        place(event);
+        return;
         }
 
         if(wilLFall) {
@@ -95,6 +115,119 @@ public class Scaffold extends Module {
         RenderUtils.renderBlockFace(blockData.getPosition(), blockData.facing, Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack(),
                 true, true);
     };
+
+    @EventLink
+    public final Listener<EventRender2D> onRender2D = event -> {
+        int blockCount = getBlockCount();
+        if (isEnabled() && blockCount > 0) {
+            animatedScale = interpolate(animatedScale, 1.0f, 0.1f);
+        } else if (!isEnabled() || blockCount == 0) {
+            animatedScale = interpolate(animatedScale, 0.0f, 0.15f);
+        }
+
+        if (animatedScale <= 0.01f) return;
+
+        drawBlockCounter();
+    };
+
+    @EventLink
+    public final Listener<EventShader.Blur> blurListener = event -> {
+        if (animatedScale <= 0.01f) return;
+
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        if (fr == null) return;
+
+        int blockCount = getBlockCount();
+        String text = String.valueOf(blockCount);
+        int iconSize = 16;
+        int padding = 4;
+        int textWidth = (int) fr.getWidth(text);
+        int bw = iconSize + padding + textWidth + padding * 2;
+        int bh = iconSize + padding * 2;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int x = blockCounterX;
+        int y = blockCounterY;
+        if (x == -1) x = (sr.getScaledWidth() - bw) / 2;
+        if (y == -1) y = sr.getScaledHeight() - 40 - bh;
+
+        GL11.glPushMatrix();
+        GL11.glTranslated(x + bw / 2.0, y + bh / 2.0, 0);
+        GL11.glScalef(animatedScale, animatedScale, 1.0f);
+        GL11.glTranslated(-(x + bw / 2.0), -(y + bh / 2.0), 0);
+
+        Gui.drawRect(x, y, x + bw, y + bh, -1);
+
+        GL11.glPopMatrix();
+    };
+
+    private int getBlockCount() {
+        if (mc.thePlayer == null) return 0;
+        int count = 0;
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = mc.thePlayer.inventory.mainInventory[i];
+            if (stack != null && stack.getItem() instanceof ItemBlock && stack.stackSize > 0) {
+                count += stack.stackSize;
+            }
+        }
+        return count;
+    }
+
+    private void drawBlockCounter() {
+        int blockCount = getBlockCount();
+        if (blockCount == 0 && animatedScale < 0.01f) return;
+
+        float alpha = Math.min(1f, animatedScale);
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        if (fr == null) return;
+
+        String text = String.valueOf(blockCount);
+        int iconSize = 16;
+        int padding = 4;
+        int textWidth = (int) fr.getWidth(text);
+        int bw = iconSize + padding + textWidth + padding * 2;
+        int bh = iconSize + padding * 2;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int x = blockCounterX;
+        int y = blockCounterY;
+        if (x == -1) x = (sr.getScaledWidth() - bw) / 2;
+        if (y == -1) y = sr.getScaledHeight() - 40 - bh;
+
+        GL11.glPushMatrix();
+        GL11.glTranslated(x + bw / 2.0, y + bh / 2.0, 0);
+        GL11.glScalef(animatedScale, animatedScale, 1.0f);
+        GL11.glTranslated(-(x + bw / 2.0), -(y + bh / 2.0), 0);
+
+        int bgColor = new Color(26, 26, 26, (int)(alpha * 128)).getRGB();
+        DrawUtils.drawRoundedRect(x, y, x + bw, y + bh, 6, bgColor);
+
+        int borderColor = (int)(alpha * 0xFF) << 24 | getThemeColor();
+        DrawUtils.drawBorderedRoundedRect(x, y, x + bw, y + bh, 6, 1.5f, borderColor, 0x00000000);
+
+        GL11.glColor4f(1, 1, 1, alpha);
+        ItemStack stack = mc.thePlayer.inventory.getCurrentItem();
+        if (stack != null && stack.getItem() instanceof ItemBlock) {
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(0, 0, 1);
+            RenderHelper.enableGUIStandardItemLighting();
+            mc.getRenderItem().renderItemIntoGUI(stack, x + padding, y + padding);
+            RenderHelper.disableStandardItemLighting();
+            GlStateManager.popMatrix();
+        }
+
+        fr.drawStringWithShadow(text, x + padding + iconSize + padding, y + (bh - fr.getHeight(text)) / 2f, (int)(alpha * 0xFF) << 24 | 0xFFFFFF);
+
+        GL11.glPopMatrix();
+    }
+
+    private int getThemeColor() {
+        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+    }
+
+    private float interpolate(float current, float target, float speed) {
+        return current + (target - current) * speed;
+    }
 
     public static BlockData findBestPlacement() {
         EntityPlayerSP player = mc.thePlayer;
