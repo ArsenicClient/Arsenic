@@ -9,8 +9,6 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.EnumAction;
@@ -21,8 +19,8 @@ import net.minecraft.util.EnumFacing;
 
 import static arsenic.utils.lag.LagManager.*;
 
-@ModuleInfo(name = "NoSlow", category = ModuleCategory.MOVEMENT)
-public class NoSlow extends Module {
+@ModuleInfo(name = "NoSlow2", category = ModuleCategory.MOVEMENT)
+public class NoSlow2 extends Module {
 
     public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 10, 1));
     private boolean fakePacket;
@@ -70,10 +68,9 @@ public class NoSlow extends Module {
     };
 
     public boolean itemInUse() {
-        if (mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem()) return false;
-        boolean isBlock = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
-        boolean isFood = mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.EAT;
-        return isBlock || isFood;
+        if (mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem())
+            return false;
+        return mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
     }
 
     public boolean mixinResult() {
