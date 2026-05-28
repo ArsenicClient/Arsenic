@@ -23,8 +23,6 @@ public class Sprint extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (scaffoldDisabler()) return;
-
         if (allDirections.getValue()) {
             mc.thePlayer.setSprinting(true);
         }
@@ -40,10 +38,6 @@ public class Sprint extends Module {
     protected void onDisable() {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         mc.thePlayer.setSprinting(false);
-    }
-
-    private boolean scaffoldDisabler() {
-        return Arsenic.getArsenic().getModuleManager().getModuleByClass(Scaffold.class).isEnabled();
     }
 
     public enum sMode {
