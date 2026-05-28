@@ -1,0 +1,14 @@
+- Scaffold
+- Eagle
+- InvMove, delay packets
+- Clutch Module
+- Timer balance, fastbreak?
+- savemovekeys
+- sound feedback for gui
+- antifireball
+- notifications
+- chestesp
+- Custom Loading Screen
+- blink upgrade? incoming packets
+- AutoTool upgrade, raycast to nearest target to see if hitable, maybe if theres a bed aswell
+- Custom Main Menu, fix it on the first load

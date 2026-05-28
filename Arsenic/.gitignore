@@ -1,0 +1,38 @@
+.gradle
+/build/
+
+*.iml
+*.ipr
+*.iws
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
+# gradle/wrapper/gradle-wrapper.properties
+
+out/
+run/
+
+#ignore launch configs
+Arsenic_Server.launch
+Arsenic_Client.launch
+
+#eclipse stuff
+/.settings/
+.project
+.classpath
+.idea/workspace.xml
+.idea/sonarlint
+builder.bat
+.idea/
+.gradle/
+# kv pls
+.DS_Store
+Arsenic.lnk

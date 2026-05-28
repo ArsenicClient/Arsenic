@@ -1,0 +1,127 @@
+package arsenic.injection.mixin;
+
+import arsenic.event.impl.*;
+import arsenic.injection.accessor.IMixinEntityPlayerSP;
+import arsenic.module.impl.movement.NoSlow;
+import arsenic.module.impl.world.SafeWalk;
+import org.lwjgl.input.Mouse;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.world.World;
+import com.mojang.authlib.GameProfile;
+
+import arsenic.main.Arsenic;
+import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.entity.EntityPlayerSP;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import static arsenic.main.MinecraftAPI.mouseDownLastTick;
+
+@Mixin(priority = 1111, value = EntityPlayerSP.class)
+public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implements IMixinEntityPlayerSP {
+
+    private double cachedX;
+    private double cachedY;
+    private double cachedZ;
+
+    private boolean cachedOnGround;
+
+    private float cachedRotationPitch;
+    private float cachedRotationYaw;
+
+    public MixinEntityPlayerSP(World p_i45074_1_, GameProfile p_i45074_2_) {
+        super(p_i45074_1_, p_i45074_2_);
+    }
+
+    @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
+    private void onUpdateWalkingPlayerPre(CallbackInfo ci) {
+        cachedX = posX;
+        cachedY = posY;
+        cachedZ = posZ;
+
+        cachedOnGround = onGround;
+
+        cachedRotationYaw = rotationYaw;
+        cachedRotationPitch = rotationPitch;
+
+        EventUpdate event = new EventUpdate.Pre(posX, posY, posZ, rotationYaw, rotationPitch, onGround);
+        Arsenic.getInstance().getEventManager().post(event);
+        if(event.isCancelled()) {
+            ci.cancel();
+            return;
+        }
+
+        posX = event.getX();
+        posY = event.getY();
+        posZ = event.getZ();
+
+        onGround = event.isOnGround();
+
+        rotationYaw = event.getYaw();
+        rotationPitch = event.getPitch();
+    }
+
+    @Inject(method = "onUpdate", at = @At("HEAD"))
+    private void onUpdate(CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventTick());
+        for(int i = 0; i < 3; i++) {
+            if (Mouse.isButtonDown(i) && !mouseDownLastTick[i]) {
+                mouseDownLastTick[i] = true;
+                Arsenic.getArsenic().getEventManager().post(new EventMouse.Down(i));
+            } else if (!Mouse.isButtonDown(i) && mouseDownLastTick[i]) {
+                mouseDownLastTick[i] = false;
+                Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
+            }
+        }
+    }
+    @Inject(method = "onLivingUpdate", at = @At("HEAD"))
+    public void onLivingUpdate(CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventLiving());
+    }
+
+    @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
+    private boolean noSlowMixin(EntityPlayerSP instance) {
+        NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
+        if(!noSlow.isEnabled() || !instance.isUsingItem())
+            return instance.isUsingItem();
+        return noSlow.isUsingItem();
+    }
+
+    @Inject(method = "onUpdateWalkingPlayer", at = @At("RETURN"))
+    private void onUpdateWalkingPlayerPost(CallbackInfo ci) {
+        posX = cachedX;
+        posY = cachedY;
+        posZ = cachedZ;
+
+        onGround = cachedOnGround;
+
+        rotationYaw = cachedRotationYaw;
+        rotationPitch = cachedRotationPitch;
+
+        Arsenic.getInstance().getEventManager()
+                .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
+    }
+
+    /*@Inject(method = "isSneaking", at = @At("RETURN"), cancellable = true)
+    private void isSneaking(CallbackInfoReturnable<Boolean> cir) {
+        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
+        if(!safeWalk.isEnabled()) {
+            return;
+        }
+        cir.setReturnValue(safeWalk.isSneaking() || cir.getReturnValue());
+    }
+
+    @ModifyVariable(method = "onLivingUpdate", at = @At("STORE"), ordinal = 0)
+    private boolean flag1(boolean flag1) {
+        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
+        if(!safeWalk.isEnabled()) {
+            return flag1;
+        }
+        return safeWalk.isSneaking() || flag1;
+    } */
+
+}
