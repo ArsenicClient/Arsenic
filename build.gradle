@@ -1,138 +1,153 @@
 buildscript {
     repositories {
-        jcenter()
-        mavenLocal()
         mavenCentral()
-
-        maven {
-            url 'https://jitpack.io'
-        }
-
         maven {
             name = "forge"
             url = "https://files.minecraftforge.net/maven"
         }
-
+        maven {
+            name = "SpongePowered"
+            url = "https://repo.spongepowered.org/repository/maven-public/"
+        }
         maven {
             url = "https://plugins.gradle.org/m2"
         }
-
         maven {
-            name = 'SpongePowered'
-            url = 'https://repo.spongepowered.org/repository/maven-public/'
+            url = "https://jitpack.io"
         }
     }
-
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
-        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.0.10"
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT"
         classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
-        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "org.spongepowered.mixin"
-apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "idea"
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-
-    maven {
-        name = 'spongepowered-repo'
-        url = 'https://repo.spongepowered.org/repository/maven-public/'
-    }
-}
-
-version = "v0.4.1"
-group="arsenic"
+// ─────────────────────────────────────────────
+// Project metadata
+// ─────────────────────────────────────────────
+version          = "v0.4.1"
+group            = "arsenic"
 archivesBaseName = "Arsenic"
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
-compileJava.options.encoding = 'UTF-8'
+compileJava.options.encoding = "UTF-8"
 
+// ─────────────────────────────────────────────
+// Minecraft / ForgeGradle config
+// ─────────────────────────────────────────────
 minecraft {
-    version = "1.8.9-11.15.1.2318-1.8.9"
-    runDir = "run"
-    mappings = "stable_20"
-    clientJvmArgs += '-Dfml.coreMods.load=arsenic.injection.MixinLoader'
+    version    = "1.8.9-11.15.1.2318-1.8.9"
+    runDir     = "run"
+    mappings   = "stable_20"
+    clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
 }
 
+// ─────────────────────────────────────────────
+// Repositories (compile-time deps)
+// ─────────────────────────────────────────────
+repositories {
+    mavenCentral()
+    maven {
+        name = "SpongePowered"
+        url  = "https://repo.spongepowered.org/repository/maven-public/"
+    }
+}
+
+// ─────────────────────────────────────────────
+// Configurations
+// 'embed' = packed into the final jar at build time
+// ─────────────────────────────────────────────
 configurations {
-    // Adds a reference so that we extend/add on to it with depends so we can grab them and compile them into the jar.
     embed
-    // Grabs what's extended/added on from/to embed and compiles it into the jar when being built.
     compile.extendsFrom embed
 }
 
+// ─────────────────────────────────────────────
+// Dependencies
+// ─────────────────────────────────────────────
 dependencies {
-    embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
-        exclude module: 'launchwrapper'
+    // Mixin MUST be embedded — 1.8.9's launchwrapper cannot find it otherwise.
+    // Exclude things already provided by Minecraft/Forge at runtime to save space.
+    embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
+        exclude module: "launchwrapper"  // provided by Forge
+        exclude module: "guava"          // provided by Minecraft
+        exclude module: "gson"           // provided by Minecraft
+        exclude module: "log4j"          // provided by Minecraft
+        exclude module: "commons-io"     // provided by Minecraft/Forge
     }
-    implementation 'org.jetbrains:annotations:23.0.0'
-    embed('org.reflections:reflections:0.10.2')
+
+    // Annotation library — only needed at compile time, strip at runtime.
+    compileOnly "org.jetbrains:annotations:23.0.0"
+
+    // Reflections requires javassist at runtime to parse class files.
+    // Embed both explicitly — do NOT exclude javassist.
+    embed("org.reflections:reflections:0.10.2") {
+        exclude module: "guava"  // provided by Minecraft
+    }
+    // Embed javassist explicitly in case transitive resolution drops it.
+    embed("org.javassist:javassist:3.28.0-GA")
 }
 
+// ─────────────────────────────────────────────
+// Process resources (inject version into mcmod.info)
+// ─────────────────────────────────────────────
 processResources {
-    inputs.property "version", project.version
+    inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
     from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+        include "mcmod.info"
+        expand version: project.version, mcversion: project.minecraft.version
     }
-
     from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+        exclude "mcmod.info"
     }
 }
 
+// ─────────────────────────────────────────────
+// Mixin refmap generation
+// ─────────────────────────────────────────────
 mixin {
     add sourceSets.main, "mixins.arsenic.refmap.json"
 }
 
-shadowJar {
-    dependencies {
-        include('org.spongepowered:mixin')
-        include('org.jetbrains:annotations')
-    }
-
-    classifier = 'full'
-}
-
+// ─────────────────────────────────────────────
+// Jar packaging
+// ─────────────────────────────────────────────
 jar {
-    from(configurations.embed.collect {
-        it.isDirectory() ? it : zipTree(it)
-    }) {
-        // Excludes/Removes useless bloat files from the compiled jar.
-        exclude 'dummyThing',
-                'LICENSE.txt',
-                'META-INF/MUMFREY.RSA',
-                'META-INF/maven/**',
-                'org/**/*.html'
+    // Unpack and include all 'embed' deps into the fat jar
+    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude "META-INF/MANIFEST.MF"
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+        exclude "META-INF/maven/**"
+        exclude "META-INF/MUMFREY.RSA"
+        exclude "LICENSE.txt"
+        exclude "dummyThing"
+        // NOTE: removed the broad 'org/**/*.html' pattern — it can accidentally
+        // strip class files from org/javassist and other org/* packages.
     }
+
     manifest.attributes(
-            "MixinConfigs": 'mixins.arsenic.json',
-            "tweakClass": 'org.spongepowered.asm.launch.MixinTweaker',
-            "TweakOrder": 0,
+            "MixinConfigs"               : "mixins.arsenic.json",
+            "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
+            "TweakOrder"                 : 0,
+            "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
             "FMLCorePluginContainsFMLMod": true,
-            "ForceLoadAsMod": true,
-            "ModSide": "CLIENT",
-            "FMLCorePlugin": "arsenic.injection.MixinLoader"
+            "ForceLoadAsMod"             : true,
+            "ModSide"                    : "CLIENT"
     )
 }
 
-configurations {
-    mods
-    shade
-    compile.extendsFrom shade
-}
-
-apply plugin: "idea"
-
+// ─────────────────────────────────────────────
+// IDEA integration
+// ─────────────────────────────────────────────
 idea {
     module {
         inheritOutputDirs = true
