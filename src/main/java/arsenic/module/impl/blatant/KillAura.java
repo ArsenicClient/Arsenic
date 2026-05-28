@@ -18,6 +18,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
@@ -30,42 +31,35 @@ public class KillAura extends Module {
 
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
     public final RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
-
     public EntityPlayer target = null;
     private final MSTimer attackTimer = new MSTimer();
+    private final ServerInfo serverInfo = Arsenic.getArsenic().getServerInfo();
 
     @Override
     protected void onEnable() {
         target = null;
     }
 
-    @Override
-    protected void onDisable() {
-        target = null;
-    }
-
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        if (!canAura()) return;
+        if (target == null)
+            return;
         float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
-        event.setSpeed((float) speed.getValue().getRandomInRange());
+        event.setSpeed(360f);
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
         target = TargetManager.getTarget();
-        if (!canAura()) return;
-
-        if (target != null) {
-            if (mc.thePlayer.canEntityBeSeen(target)) {
-                if (attackTimer.hasTimeElapsed(getAttackDelay())) {
-                    attack();
-                    attackTimer.reset();
-                }
+        if (target != null && mc.thePlayer.canEntityBeSeen(target) && attackTimer.hasTimeElapsed(getAttackDelay())) {
+            if (RotationUtils.getDistanceToEntityBox(target) <= 3 && !serverInfo.blocking) {
+                mc.thePlayer.swingItem();
+                mc.playerController.attackEntity(mc.thePlayer, target);
+                attackTimer.reset();
             }
         }
     };
@@ -73,23 +67,11 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (!canAura()) {
+        if(target == null)
             return;
-        }
         RenderUtils.drawCircle(target, event.partialTicks, 0.7, Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor(), 255);
+        RenderUtils.resetColor();
     };
-
-    public void attack() {
-        if (!canAura()) return;
-        if (RotationUtils.getDistanceToEntityBox(target) <= 3) {
-            swing();
-            mc.playerController.attackEntity(mc.thePlayer, target);
-        }
-    }
-
-    private void swing() {
-        mc.thePlayer.swingItem();
-    }
 
 
     private long getAttackDelay() {
@@ -97,10 +79,6 @@ public class KillAura extends Module {
         double y = aps.getValue().getMin();
         float finalValue = getRandom((float) x, (float) y) + 6;
         return (long) (1000L / finalValue);
-    }
-
-    private boolean canAura() {
-        return target != null && !Arsenic.getInstance().getModuleManager().getModuleByClass(Scaffold.class).isEnabled();
     }
 
     public static float getRandom(float min, float max) {

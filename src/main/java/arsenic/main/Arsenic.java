@@ -7,25 +7,18 @@ import arsenic.event.EventManager;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
+import arsenic.module.impl.client.CapeHandler;
 import arsenic.notifications.NotificationManager;
 import arsenic.utils.font.Fonts;
-import arsenic.module.impl.client.CapeHandler;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 @Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
 public class Arsenic {
