@@ -3,18 +3,10 @@ package arsenic.utils.rotations;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
-import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
-import org.lwjgl.opengl.GL11;
-
-import java.awt.*;
 
 import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
 
@@ -38,15 +30,17 @@ public class SilentRotationManager {
         prevYaw = yaw;
         prevPitch = pitch;
 
-        if(!modified && !rotation.hasBeenModified()) {
-            yaw = mc.thePlayer.rotationYaw;
-            pitch = mc.thePlayer.rotationPitch;
-            return;
-        }
-
         doMovementFix = rotation.doMovementFix();
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
+
+        if (!rotation.hasBeenModified() && !modified) {
+            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
+            mc.thePlayer.rotationYaw = yaw;
+            pitch = mc.thePlayer.rotationPitch;
+            modified = false;
+            return;
+        }
 
         float yawDelta = getYawDelta(rotation.getYaw());
         float pitchDelta = getPitchDelta(rotation.getPitch());
@@ -59,9 +53,15 @@ public class SilentRotationManager {
         );
 
         yaw = rotations[0];
-        pitch = rotations[1];
+        pitch = Math.min(90,rotations[1]);
 
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
+        PlayerUtils.addWaterMarkedMessageToChat(mc.thePlayer.rotationYaw, yaw);
+        if(!modified && !rotation.hasBeenModified()) {
+            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
+            mc.thePlayer.rotationYaw = yaw;
+            pitch = mc.thePlayer.rotationPitch;
+        }
     };
 
     @EventLink
@@ -145,6 +145,12 @@ public class SilentRotationManager {
         float delta = targetPitch - prevPitch;
         float speedValue = (float) (speed * ((Math.sin(Math.toRadians(Math.abs(delta)))/2.0f) + 0.5f));
         return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
+    }
+
+    private float snapYawToMultipleOf360(float currentYaw, float targetYaw) {
+        float diff = currentYaw - targetYaw;
+        float n = Math.round(diff / 360.0f);
+        return targetYaw + n * 360.0f;
     }
 
 }
