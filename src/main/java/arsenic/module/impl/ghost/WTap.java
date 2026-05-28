@@ -4,18 +4,15 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
-import arsenic.event.impl.EventMove;
 import arsenic.event.impl.EventMovementInput;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.minecraft.PacketUtil;
 import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+
+import static arsenic.utils.lag.LagManager.getPing;
 
 @ModuleInfo(name = "WTap",category = ModuleCategory.GHOST)
 public class WTap extends Module {
@@ -29,7 +26,7 @@ public class WTap extends Module {
         if (event.getTarget() != null && event.getTarget() instanceof EntityPlayer) {
             target = (EntityPlayer) event.getTarget();
             hasTapped = false;
-            hurtTime = Math.max(1, PacketUtil.getPlayerPingAsTicks()) + 1;
+            hurtTime = Math.max(1, getPing()/20) + 1;
         }
     };
 
