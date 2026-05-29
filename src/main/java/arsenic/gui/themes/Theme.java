@@ -88,7 +88,7 @@ public class Theme implements ISerializable {
         logoName = logoName.toLowerCase();
         this.logoName = logoName;
         logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
-        altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo_alt.png");
+        altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
     }
 
 

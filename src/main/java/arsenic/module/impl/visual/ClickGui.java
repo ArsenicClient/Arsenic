@@ -1,6 +1,7 @@
 package arsenic.module.impl.visual;
 
 import arsenic.gui.click.ClickGuiScreen;
+import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -9,10 +10,18 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import org.lwjgl.input.Keyboard;
 
+import java.util.function.Supplier;
+
 @ModuleInfo(name = "ClickGUI", category = ModuleCategory.SETTINGS, hidden = true, keybind = Keyboard.KEY_RSHIFT)
 public class ClickGui extends Module {
     public final BooleanProperty customFont = new BooleanProperty("Custom Font", true);
     public final EnumProperty<LogoMode> logoMode = new EnumProperty<>("Logo", LogoMode.CLASSIC);
+    public final EnumProperty<ThemeMode> themeMode = new EnumProperty<ThemeMode>("Theme", ThemeMode.CLASSIC) {
+        @Override
+        public void onValueUpdate() {
+            Arsenic.getArsenic().getThemeManager().setCurrentTheme(Arsenic.getArsenic().getThemeManager().getContentByJsonKey(getValue().get()));
+        }
+    };
 
     private ClickGuiScreen screen;
 
@@ -33,4 +42,56 @@ public class ClickGui extends Module {
     public enum LogoMode {
         CLASSIC, MODERN
     }
+
+    public enum ThemeMode implements Supplier<String> {
+        CLASSIC() {
+            @Override
+            public String get() {
+                return "Classic";
+            }
+        },
+        VOID() {
+            @Override
+            public String get() {
+                return "Void";
+            }
+        },
+        SPECTER() {
+            @Override
+            public String get() {
+                return "Specter";
+            }
+        },
+        EMBER() {
+            @Override
+            public String get() {
+                return "Ember";
+            }
+        },
+        JADE() {
+            @Override
+            public String get() {
+                return "Jade";
+            }
+        },
+        OBSIDIAN() {
+            @Override
+            public String get() {
+                return "Obsidian";
+            }
+        },
+        SAKURA() {
+            @Override
+            public String get() {
+                return "Sakura";
+            }
+        },
+        TOXIN() {
+            @Override
+            public String get() {
+                return "Toxin";
+            }
+        },
+    }
+
 }
