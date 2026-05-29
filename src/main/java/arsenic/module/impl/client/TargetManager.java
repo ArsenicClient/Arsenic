@@ -30,7 +30,7 @@ import java.util.Map;
 
 @ModuleInfo(name = "Targets", category = ModuleCategory.SETTINGS)
 public class TargetManager extends Module {
-    public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.Distance);
+    public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),
             invis = new BooleanProperty("Target Invis", true),
             bots = new BooleanProperty("Target Bots", true),
