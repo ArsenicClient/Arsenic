@@ -4,7 +4,6 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
 import arsenic.main.Arsenic;
-import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.MathHelper;
 
@@ -21,6 +20,7 @@ public class SilentRotationManager {
     private boolean modified;
     private boolean doMovementFix;
     private boolean doJumpFix;
+    private float lastPlaceYawDelta = -1f;
     private float speed;
 
     @EventLink
@@ -33,6 +33,7 @@ public class SilentRotationManager {
         doMovementFix = rotation.doMovementFix();
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
+
 
         if (!rotation.hasBeenModified() && !modified) {
             yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
@@ -54,6 +55,20 @@ public class SilentRotationManager {
 
         yaw = rotations[0];
         pitch = Math.min(90,rotations[1]);
+
+        if (rotation.isPreventDuplicateLook()) {
+            float currentDelta = Math.abs(yaw - prevYaw);
+
+            if (currentDelta >= 2) {
+                float xDiff = Math.abs(currentDelta - lastPlaceYawDelta);
+
+                if (xDiff < 0.002F) {
+                    float gcd = RotationUtils.getGCD();
+                    yaw += gcd;
+                }
+                lastPlaceYawDelta = Math.abs(yaw - prevYaw);
+            }
+        }
 
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
         if(!modified && !rotation.hasBeenModified()) {

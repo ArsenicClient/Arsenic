@@ -44,15 +44,18 @@ import static arsenic.utils.rotations.RotationUtils.patchGCD;
 public class Scaffold extends Module {
 
 
-    public BooleanProperty sprint = new BooleanProperty("sprint", false);
-    public static BooleanProperty keepY = new BooleanProperty("keepY", false);
+    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
+    public static BooleanProperty keepY = new BooleanProperty("KeepY", false);
+    public BooleanProperty telly = new  BooleanProperty("Telly", false);
     private BlockData blockData;
     private float[] rots = new float[2];
     private boolean solvedRots;
     private float animatedScale;
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
+    public boolean jumpFlag;
     private static ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
+
 
     @Override
     protected void onEnable() {
@@ -71,10 +74,16 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick();
+        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < 0.3;
         blockData = findBestPlacement();
         Item item = keyBlock();
         event.setSpeed(360f);
+        event.setPreventDuplicateLook(true);
+
+        if(telly.getValue()){
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), mc.gameSettings.keyBindJump.isKeyDown());
+            jumpFlag = false;
+        }
 
         //if the player can place a block without moving rots
         float delta = sprint.getValue() ? 0f : 180f;
@@ -94,7 +103,7 @@ public class Scaffold extends Module {
             }
         }
 
-        if(wilLFall) {
+        if(wilLFall && (!telly.getValue() || !mc.thePlayer.onGround)) {
             if (blockData != null) {
                 float[] solved = getRotationsForFace(blockData.getPosition(), blockData.getFacing());
                 if (solved != null) {
@@ -108,11 +117,15 @@ public class Scaffold extends Module {
             event.setYaw(solvedRots ? mc.thePlayer.rotationYaw + 180f : rots[0]);
             event.setPitch(rots[1]);
             place(event);
+        } else if (wilLFall && telly.getValue() && mc.thePlayer.onGround) {
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
         } else {
             event.setYaw(mc.thePlayer.rotationYaw + delta);
             event.setPitch(rots[1]);
         }
     };
+
+
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
@@ -253,8 +266,8 @@ public class Scaffold extends Module {
         double playerCY = player.posY + player.height / 2.0;
         double playerCZ = player.posZ;
 
-        for (int x = -2; x <= 2; x++) {
-            for (int z = -2; z <= 2; z++) {
+        for (int x = -4; x <= 4; x++) {
+            for (int z = -4; z <= 4; z++) {
                 BlockPos pos = scanY.add(x, 0, z);
                 IBlockState state = mc.theWorld.getBlockState(pos);
 
