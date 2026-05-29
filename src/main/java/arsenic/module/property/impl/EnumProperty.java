@@ -1,6 +1,7 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
@@ -88,7 +89,7 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         x2,
                         boxY2 + maxBoxHeight,
                         boxHeight / 2f,
-                        new Color(26, 25, 25, 205).getRGB()
+                        ThemeManager.getEnumBackground()
                 );
 
                 //Other value that aren't selected
@@ -99,14 +100,14 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
-                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight) + 1.7f, 0xFFFFFFFE, ri.getFr().CENTREY);
+                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight) + 1.7f, ThemeManager.getWhite(), ri.getFr().CENTREY);
                     }
 
                     ScissorUtils.endSubScissor();
                 }
 
                 //name in box
-                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY + 1.7f, 0xFFFFFFFE, ri.getFr().CENTREY);
+                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY + 1.7f, ThemeManager.getWhite(), ri.getFr().CENTREY);
 
                 //triangle in box - doesnt fit in. uncomment if needed
                 /*float triangleLength = (boxHeight - (borderWidth * 2f));

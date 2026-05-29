@@ -1,6 +1,7 @@
 package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IContainer;
@@ -76,7 +77,7 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
             expandY = animationTimer.getPercent() * lastHeight;
 
             float barX = x1 - (expandX/2f);
-            DrawUtils.drawRoundedRect(barX - 2, y1, (int) (x2 + expandX * 2), (int) (y2 + expandY),12, new Color(26, 25, 25, 150).getRGB());
+            DrawUtils.drawRoundedRect(barX - 2, y1, (int) (x2 + expandX * 2), (int) (y2 + expandY),12, ThemeManager.getFolderBackground());
             DrawUtils.drawRoundedRect(barX, y1, barX + 1, y2 + expandY,8,getEnabledColor());
 
             PosInfo pi = new PosInfo(x1, y2);

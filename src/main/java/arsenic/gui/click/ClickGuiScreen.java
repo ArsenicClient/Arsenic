@@ -4,6 +4,7 @@ import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
 import arsenic.module.impl.visual.ClickGui;
@@ -75,8 +76,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int glowAlpha = (int) (glowFactor * 255);
 
         RenderUtils.resetColor();
-        int mainC = ColorUtils.setColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(), 0, glowAlpha);
-        int gradientC = ColorUtils.setColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor(), 0, glowAlpha);
+        int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
+        int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
         ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
         rescaleMC();
@@ -110,15 +111,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // main container
         RenderUtils.resetColor();
-        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, 0xDD0C0C0C);
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ThemeManager.getClickGuiBackground());
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
 
         // vertical line
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, new Color(0, 0, 0, 68).getRGB());
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
         // horizontal line
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, new Color(0, 0, 0, 68).getRGB());
+        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
 
         //logo
         mc.getTextureManager().bindTexture(logoPath);

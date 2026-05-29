@@ -4,8 +4,10 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
@@ -61,14 +63,14 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float barWidth = width / 45f;
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTimer.getPercent());
 
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(5, 5, 5, 160).getRGB());
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ThemeManager.getModuleBackground());
 
         if (hoverTimer.getPercent() > 0)
-            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(255, 255, 255, (int) (15 * hoverTimer.getPercent())).getRGB());
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ColorUtils.setColor(ThemeManager.getModuleHover(), 0, (int) (15 * hoverTimer.getPercent())));
 
         float accPct = enabledAnimationTimer.getPercent();
         if (accPct > 0) {
-            int accentCol = RenderUtils.alpha(new Color(getEnabledColor()), (int) (accPct * 200));
+            int accentCol = ColorUtils.setColor(getEnabledColor(), 0, (int) (accPct * 200));
             DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth / 2f, y2 + expandY, barWidth, accentCol, new boolean[]{true, true, false, false});
         }
 

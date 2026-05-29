@@ -1,5 +1,6 @@
 package arsenic.gui.click;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.RenderUtils;
 import org.lwjgl.opengl.GL11;
@@ -64,22 +65,22 @@ public abstract class Component implements IContainable {
     }
 
     protected int getEnabledColor() {
-        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+        return ThemeManager.getMainColor();
     }
 
     protected int getGradientColor() {
-        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor();
+        return ThemeManager.getGradientColor();
     }
     protected int getDisabledColor() {
-        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack();
+        return ThemeManager.getBlack();
     }
 
     protected int getWhite() {
-        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getWhite();
+        return ThemeManager.getWhite();
     }
 
     protected int getDarkerColor() {
-        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getDarkerColor();
+        return ThemeManager.getDarkerColor();
     }
 
     protected abstract float drawComponent(RenderInfo ri);

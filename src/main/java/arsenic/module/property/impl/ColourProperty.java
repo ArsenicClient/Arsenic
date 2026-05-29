@@ -2,6 +2,7 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.Theme;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.property.SerializableProperty;
 import arsenic.utils.java.ColorUtils;
@@ -91,8 +92,7 @@ public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix 
                         DrawUtils.drawBorderedCircle(pointX, midPointY, radius, radius/3f, colorBorder, colorInner);
                     }
                 } else if (mode == cMode.THEME) {
-                    Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
-                    ri.getFr().drawString(theme.getJsonKey(), lineX1, midPointY, theme.getMainColor(), ri.getFr().CENTREY);
+                    ri.getFr().drawString(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getName(), lineX1, midPointY, ThemeManager.getMainColor(), ri.getFr().CENTREY);
                 }
 
                 return height;

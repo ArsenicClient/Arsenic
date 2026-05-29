@@ -1,6 +1,7 @@
 package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
 import arsenic.utils.interfaces.IContainer;
@@ -131,8 +132,8 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         if (maxHeight <= 0) return;
         float scrollbarHeight = barHeight * (barHeight / (barHeight + maxHeight));
         float scrollbarY = y + (this.scroll / -maxHeight) * (barHeight - scrollbarHeight);
-        DrawUtils.drawRoundedRect(x - 3, y, x - 1, y + barHeight, 1f, new Color(255, 255, 255, 20).getRGB());
-        DrawUtils.drawRoundedRect(x - 3, scrollbarY, x - 1, scrollbarY + scrollbarHeight, 1f, new Color(255, 255, 255, 80).getRGB());
+        DrawUtils.drawRoundedRect(x - 3, y, x - 1, y + barHeight, 1f, ThemeManager.getScrollbarTrack());
+        DrawUtils.drawRoundedRect(x - 3, scrollbarY, x - 1, scrollbarY + scrollbarHeight, 1f, ThemeManager.getScrollbarThumb());
     }
 
     @Override
