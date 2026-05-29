@@ -20,23 +20,61 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
     public int initialize() {
         System.out.println("initialized theme manager");
         loadConfig();
-        if(getContentByJsonKey("Arsenic") == null) {
-            themeList.add(new Theme("Arsenic", 0xFF2ECC71, new Color(0xFF2ECC71).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55));
+        if(getContentByJsonKey("Classic") == null) {
+            Theme classic = new Theme("Classic", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
+            classic.setLogoPath("classic");
+            themeList.add(classic);
         }
-        if(getContentByJsonKey("Lilith") == null) {
-            Theme lilith = new Theme("Lilith", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
-            lilith.setLogoPath("lilith");
-            themeList.add(lilith);
+        // Void — deep purple with electric violet accent
+        if (getContentByJsonKey("Void") == null) {
+            Theme voidTheme = new Theme("Void", 0xFF7C3AED, new Color(0xFF7C3AED).darker().getRGB(), 0xFFF0EEFF, 0xFF1A1025);
+            voidTheme.setLogoPath("void");
+            themeList.add(voidTheme);
         }
-        if(getContentByJsonKey("Tenacity") == null) {
-            Theme tenacity = new Theme("Tenacity", new Color(236, 133, 209).darker().getRGB(), new Color(236, 133, 209).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55,true,new Color(28, 167, 222).getRGB());
-            themeList.add(tenacity);
+
+        // Specter — cold ice blue, dark slate background
+        if (getContentByJsonKey("Specter") == null) {
+            Theme specter = new Theme("Specter", 0xFF38BDF8, new Color(0xFF38BDF8).darker().getRGB(), 0xFFE8F7FF, 0xFF0D1B2A);
+            specter.setLogoPath("specter");
+            themeList.add(specter);
         }
-        if(getContentByJsonKey("Wave") == null) {
-            Theme wave = new Theme("Wave", new Color(0x00FFC4).darker().getRGB(), new Color(0x00FFC4).darker().getRGB(), 0xFFFFFE, 0xFF4B5F55,true,new Color(0, 255, 119).getRGB());
-            themeList.add(wave);
+
+        // Ember — burnt orange with a near-black charcoal bg
+        if (getContentByJsonKey("Ember") == null) {
+            Theme ember = new Theme("Ember", 0xFFEA580C, new Color(0xFFEA580C).darker().getRGB(), 0xFFFFF7F0, 0xFF1C1008);
+            ember.setLogoPath("ember");
+            themeList.add(ember);
         }
-        currentTheme = getContentByJsonKey("Arsenic");
+
+        // Jade — muted emerald green, dark forest bg
+        if (getContentByJsonKey("Jade") == null) {
+            Theme jade = new Theme("Jade", 0xFF10B981, new Color(0xFF10B981).darker().getRGB(), 0xFFEDFDF5, 0xFF081A12);
+            jade.setLogoPath("jade");
+            themeList.add(jade);
+        }
+
+        // Obsidian — a pure monochrome / near-white accent on pure black
+        if (getContentByJsonKey("Obsidian") == null) {
+            Theme obsidian = new Theme("Obsidian", 0xFFE2E2E2, new Color(0xFFE2E2E2).darker().getRGB(), 0xFFFFFFFF, 0xFF0A0A0A);
+            obsidian.setLogoPath("obsidian");
+            themeList.add(obsidian);
+        }
+
+        // Sakura — soft cherry blossom pink, warm cream background
+        if (getContentByJsonKey("Sakura") == null) {
+            Theme sakura = new Theme("Sakura", 0xFFF472B6, new Color(0xFFF472B6).darker().getRGB(), 0xFFFFF0F7, 0xFF2D1520);
+            sakura.setLogoPath("sakura");
+            themeList.add(sakura);
+        }
+
+        // Toxin — acid green on deep dark, high contrast
+        if (getContentByJsonKey("Toxin") == null) {
+            Theme toxin = new Theme("Toxin", 0xFF84CC16, new Color(0xFF84CC16).darker().getRGB(), 0xFFF3FFE0, 0xFF0C1200);
+            toxin.setLogoPath("toxin");
+            themeList.add(toxin);
+        }
+
+        currentTheme = getContentByJsonKey("Classic");
         return themeList.size();
     }
 
