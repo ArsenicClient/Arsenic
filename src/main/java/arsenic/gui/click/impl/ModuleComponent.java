@@ -77,12 +77,14 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         buttonComponent.updateComponent(posInfo, ri);
         RenderUtils.resetColorText();
 
-        ri.getFr().drawString(name, x1 + expand / 2f, midPointY, color, ri.getFr().CENTREY);
+        int textColor = RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getTextPrimary(), enabledAnimationTimer.getPercent());
+        ri.getFr().drawString(name, x1 + expand / 2f, midPointY, textColor, ri.getFr().CENTREY);
         RenderUtils.resetColorText();
 
         String bindName = binding ? "Press a key..." : "[" + Keyboard.getKeyName(self.getKeybind()) + "]";
         bindX = x2 - ((expand) * 3) - ri.getFr().getWidth(bindName);
-        ri.getFr().drawString(bindName, bindX, midPointY, self.getKeybind() == 0 ? getDisabledColor() : getEnabledColor(), ri.getFr().CENTREY);
+        int bindColor = self.getKeybind() == 0 ? ThemeManager.getTextMuted() : getEnabledColor();
+        ri.getFr().drawString(bindName, bindX, midPointY, bindColor, ri.getFr().CENTREY);
 
         PosInfo pi = new PosInfo(x1 + expand, y2);
         if (openAnimationTimer.getPercent() > 0) {

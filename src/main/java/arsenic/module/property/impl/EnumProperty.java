@@ -8,6 +8,7 @@ import arsenic.module.property.SerializableProperty;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
@@ -97,17 +98,18 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                     DrawUtils.drawRect(boxX1, boxY2, x2, boxY2 + 1, getEnabledColor());
 
                     ScissorUtils.subScissor((int) boxX1, (int) boxY2, (int) x2, (int) (boxY2 + maxBoxHeight), 2);
-
+                    int itemTextColor = RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getTextPrimary(), animationTimer.getPercent());
                     for (int i = 0; i < modes.length; i++) {
                         T m = modes[i];
-                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight) + 1.7f, ThemeManager.getWhite(), ri.getFr().CENTREY);
+                        ri.getFr().drawString(m.name(), boxX1 + (borderWidth * 2), midPointY + ((i + 1) * boxHeight) + 1.7f, itemTextColor, ri.getFr().CENTREY);
                     }
 
                     ScissorUtils.endSubScissor();
                 }
 
                 //name in box
-                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY + 1.7f, ThemeManager.getWhite(), ri.getFr().CENTREY);
+                int headerTextColor = RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getTextPrimary(), animationTimer.getPercent());
+                ri.getFr().drawString(getValue().name(), boxX1 + (borderWidth * 2), midPointY + 1.7f, headerTextColor, ri.getFr().CENTREY);
 
                 //triangle in box - doesnt fit in. uncomment if needed
                 /*float triangleLength = (boxHeight - (borderWidth * 2f));

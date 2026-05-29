@@ -30,7 +30,7 @@
 
         @Override
         public void initGui() {
-            this.buttonList.add(new GuiButton(5, 5, 5, 80, 20, "Next Shader"));
+            //this.buttonList.add(new GuiButton(5, 5, 5, 80, 20, "Next Shader"));
             int p_73969_1_ = this.height / 2;
             int p_73969_2_ = 24;
             this.buttonList.add(new CustomGuiButton(1, this.width / 2 - 100, p_73969_1_, I18n.format("menu.singleplayer", new Object[0])));

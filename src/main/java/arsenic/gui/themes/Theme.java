@@ -11,8 +11,8 @@ public class Theme implements ISerializable {
 
     private final String name;
     private String logoName = "arsenic";
-    private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo.png");
-    private ResourceLocation altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/" + logoName + "logo_alt.png");
+    private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/classic.png");
+    private ResourceLocation altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/modern.png");
     private int mainColor, darkerColor, white, black, gradientColor;
     private int clickGuiBackground = 0xDD0C0C0C;
     private int clickGuiSeparator = new Color(0, 0, 0, 68).getRGB();
