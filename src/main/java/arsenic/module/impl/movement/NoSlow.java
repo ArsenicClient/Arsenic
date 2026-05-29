@@ -13,6 +13,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.StringProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.EnumAction;
@@ -28,6 +29,8 @@ public class NoSlow extends Module {
 
     public enum NSMode {Hypixel, Grim}
 
+    public final StringProperty warning = new StringProperty("Warning - blink no slow");
+    public final StringProperty warning2 = new StringProperty("In Dev - not recommended");
     public final EnumProperty<NSMode> mode = new EnumProperty<>("Mode", NSMode.Hypixel);
     public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 10, 1));
 
@@ -35,7 +38,6 @@ public class NoSlow extends Module {
     private boolean pendingRelease = false;
     private int ticksElapsed = 0;
 
-    // Normal mode — fires on EventUpdate.Post
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Post> onUpdatePost = event -> {
@@ -48,7 +50,6 @@ public class NoSlow extends Module {
         }
     };
 
-    // Normal mode — blink tick counter on EventLiving
     @RequiresPlayer
     @EventLink
     public final Listener<EventLiving> onLiving = event -> {
