@@ -10,6 +10,7 @@ public class EventSilentRotation implements Event {
     private float speed;
     private boolean doMovementFix = true;
     private boolean doJumpFix = true;
+    private boolean preventDuplicateLook = false;
 
     public EventSilentRotation(float yaw, float pitch,float speed) {
         this.initYaw = yaw;
@@ -55,4 +56,11 @@ public class EventSilentRotation implements Event {
         this.doMovementFix = doMovementFix;
     }
 
+    public boolean isPreventDuplicateLook() {
+        return preventDuplicateLook;
+    }
+
+    public void setPreventDuplicateLook(boolean preventDuplicateLook) {
+        this.preventDuplicateLook = preventDuplicateLook;
+    }
 }

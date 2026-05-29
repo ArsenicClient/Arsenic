@@ -54,6 +54,11 @@ public class RotationUtils extends UtilityClass {
         return new float[]{yaw, pitch};
     }
 
+    public static float getGCD() {
+        float f = mc.gameSettings.mouseSensitivity * 0.6F + 0.2F;
+        return f * f * f * 8.0F * 0.15F;
+    }
+
     public static Vec3 getBestHitVec(final Entity entity) {
         final Vec3 positionEyes = mc.thePlayer.getPositionEyes(1f);
         final float size = entity.getCollisionBorderSize();
