@@ -69,7 +69,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float accPct = enabledAnimationTimer.getPercent();
         if (accPct > 0) {
             int accentCol = RenderUtils.alpha(new Color(getEnabledColor()), (int) (accPct * 200));
-            DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth, y2 + expandY, barWidth, accentCol, new boolean[]{true, true, false, false});
+            DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth / 2f, y2 + expandY, barWidth, accentCol, new boolean[]{true, true, false, false});
         }
 
         buttonComponent.updateComponent(posInfo, ri);

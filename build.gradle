@@ -1,139 +1,117 @@
 buildscript {
     repositories {
-        jcenter()
-        mavenLocal()
         mavenCentral()
-
-        maven {
-            url 'https://jitpack.io'
-        }
-
         maven {
             name = "forge"
             url = "https://files.minecraftforge.net/maven"
         }
-
+        maven {
+            url = "https://jitpack.io"
+        }
+        maven {
+            name = "SpongePowered"
+            url = "https://repo.spongepowered.org/repository/maven-public/"
+        }
         maven {
             url = "https://plugins.gradle.org/m2"
         }
-
-        maven {
-            name = 'SpongePowered'
-            url = 'https://repo.spongepowered.org/repository/maven-public/'
-        }
     }
-
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
-        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.0.10"
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT"
         classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
-        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "org.spongepowered.mixin"
-apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "idea"
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-
-    maven {
-        name = 'spongepowered-repo'
-        url = 'https://repo.spongepowered.org/repository/maven-public/'
-    }
-}
-
-version = "v0.5.1DEV"
-group="arsenic"
+version          = "v0.4.1"
+group            = "arsenic"
 archivesBaseName = "Arsenic"
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
-compileJava.options.encoding = 'UTF-8'
+compileJava.options.encoding = "UTF-8"
 
 minecraft {
-    version = "1.8.9-11.15.1.2318-1.8.9"
-    runDir = "run"
-    mappings = "stable_20"
-    clientJvmArgs += '-Dfml.coreMods.load=arsenic.injection.MixinLoader'
+    version    = "1.8.9-11.15.1.2318-1.8.9"
+    runDir     = "run"
+    mappings   = "stable_20"
+    clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "SpongePowered"
+        url  = "https://repo.spongepowered.org/repository/maven-public/"
+    }
+    jcenter()
 }
 
 configurations {
-    // Adds a reference so that we extend/add on to it with depends so we can grab them and compile them into the jar.
     embed
-    // Grabs what's extended/added on from/to embed and compiles it into the jar when being built.
     compile.extendsFrom embed
 }
 
 dependencies {
-    embed('org.spongepowered:mixin:0.6.12-SNAPSHOT') {
-        exclude module: 'launchwrapper'
+    embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
+        exclude module: "launchwrapper"  // provided by Forge
+        exclude module: "guava"          // provided by Minecraft
+        exclude module: "gson"           // provided by Minecraft
+        exclude module: "log4j"          // provided by Minecraft
+        exclude module: "commons-io"     // provided by Minecraft/Forge
     }
-    implementation 'org.jetbrains:annotations:23.0.0'
-    embed('org.reflections:reflections:0.10.2')
+    compileOnly "org.jetbrains:annotations:23.0.0"
     embed 'com.jagrosh:DiscordIPC:0.4'
+    embed("org.reflections:reflections:0.10.2") {
+        exclude module: "guava"  // provided by Minecraft
+    }
+    embed("org.javassist:javassist:3.28.0-GA")
 }
 
+
 processResources {
-    inputs.property "version", project.version
+    inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
     from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+        include "mcmod.info"
+        expand version: project.version, mcversion: project.minecraft.version
     }
-
     from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+        exclude "mcmod.info"
     }
 }
+
 
 mixin {
     add sourceSets.main, "mixins.arsenic.refmap.json"
 }
 
-shadowJar {
-    dependencies {
-    include('org.spongepowered:mixin')
-    include('org.jetbrains:annotations')
-    include('com.jagrosh:DiscordIPC')
-    }
-
-    classifier = 'full'
-}
-
 jar {
-    from(configurations.embed.collect {
-        it.isDirectory() ? it : zipTree(it)
-    }) {
-        // Excludes/Removes useless bloat files from the compiled jar.
-        exclude 'dummyThing',
-                'LICENSE.txt',
-                'META-INF/MUMFREY.RSA',
-                'META-INF/maven/**',
-                'org/**/*.html'
+    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude "META-INF/MANIFEST.MF"
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+        exclude "META-INF/maven/**"
+        exclude "META-INF/MUMFREY.RSA"
+        exclude "LICENSE.txt"
+        exclude "dummyThing"
     }
+
     manifest.attributes(
-            "MixinConfigs": 'mixins.arsenic.json',
-            "tweakClass": 'org.spongepowered.asm.launch.MixinTweaker',
-            "TweakOrder": 0,
+            "MixinConfigs"               : "mixins.arsenic.json",
+            "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
+            "TweakOrder"                 : 0,
+            "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
             "FMLCorePluginContainsFMLMod": true,
-            "ForceLoadAsMod": true,
-            "ModSide": "CLIENT",
-            "FMLCorePlugin": "arsenic.injection.MixinLoader"
+            "ForceLoadAsMod"             : true,
+            "ModSide"                    : "CLIENT"
     )
 }
-
-configurations {
-    mods
-    shade
-    compile.extendsFrom shade
-}
-
-apply plugin: "idea"
 
 idea {
     module {

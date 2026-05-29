@@ -7,7 +7,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.discord.DiscordRPCManager;
 
-@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.SETTINGS)
+@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.SETTINGS, hidden = true)
 public class DiscordRPCModule extends Module {
 
     private static final long APP_ID = 1508792693688369252L;
