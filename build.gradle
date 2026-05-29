@@ -6,14 +6,14 @@ buildscript {
             url = "https://files.minecraftforge.net/maven"
         }
         maven {
+            url = "https://jitpack.io"
+        }
+        maven {
             name = "SpongePowered"
             url = "https://repo.spongepowered.org/repository/maven-public/"
         }
         maven {
             url = "https://plugins.gradle.org/m2"
-        }
-        maven {
-            url = "https://jitpack.io"
         }
     }
     dependencies {
@@ -26,9 +26,6 @@ apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "org.spongepowered.mixin"
 apply plugin: "idea"
 
-// ─────────────────────────────────────────────
-// Project metadata
-// ─────────────────────────────────────────────
 version          = "v0.4.1"
 group            = "arsenic"
 archivesBaseName = "Arsenic"
@@ -37,9 +34,6 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 compileJava.options.encoding = "UTF-8"
 
-// ─────────────────────────────────────────────
-// Minecraft / ForgeGradle config
-// ─────────────────────────────────────────────
 minecraft {
     version    = "1.8.9-11.15.1.2318-1.8.9"
     runDir     = "run"
@@ -47,32 +41,21 @@ minecraft {
     clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
 }
 
-// ─────────────────────────────────────────────
-// Repositories (compile-time deps)
-// ─────────────────────────────────────────────
 repositories {
     mavenCentral()
     maven {
         name = "SpongePowered"
         url  = "https://repo.spongepowered.org/repository/maven-public/"
     }
+    jcenter()
 }
 
-// ─────────────────────────────────────────────
-// Configurations
-// 'embed' = packed into the final jar at build time
-// ─────────────────────────────────────────────
 configurations {
     embed
     compile.extendsFrom embed
 }
 
-// ─────────────────────────────────────────────
-// Dependencies
-// ─────────────────────────────────────────────
 dependencies {
-    // Mixin MUST be embedded — 1.8.9's launchwrapper cannot find it otherwise.
-    // Exclude things already provided by Minecraft/Forge at runtime to save space.
     embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
         exclude module: "launchwrapper"  // provided by Forge
         exclude module: "guava"          // provided by Minecraft
@@ -80,22 +63,15 @@ dependencies {
         exclude module: "log4j"          // provided by Minecraft
         exclude module: "commons-io"     // provided by Minecraft/Forge
     }
-
-    // Annotation library — only needed at compile time, strip at runtime.
     compileOnly "org.jetbrains:annotations:23.0.0"
-
-    // Reflections requires javassist at runtime to parse class files.
-    // Embed both explicitly — do NOT exclude javassist.
+    embed 'com.jagrosh:DiscordIPC:0.4'
     embed("org.reflections:reflections:0.10.2") {
         exclude module: "guava"  // provided by Minecraft
     }
-    // Embed javassist explicitly in case transitive resolution drops it.
     embed("org.javassist:javassist:3.28.0-GA")
 }
 
-// ─────────────────────────────────────────────
-// Process resources (inject version into mcmod.info)
-// ─────────────────────────────────────────────
+
 processResources {
     inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
@@ -109,18 +85,12 @@ processResources {
     }
 }
 
-// ─────────────────────────────────────────────
-// Mixin refmap generation
-// ─────────────────────────────────────────────
+
 mixin {
     add sourceSets.main, "mixins.arsenic.refmap.json"
 }
 
-// ─────────────────────────────────────────────
-// Jar packaging
-// ─────────────────────────────────────────────
 jar {
-    // Unpack and include all 'embed' deps into the fat jar
     from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude "META-INF/MANIFEST.MF"
         exclude "META-INF/*.SF"
@@ -130,8 +100,6 @@ jar {
         exclude "META-INF/MUMFREY.RSA"
         exclude "LICENSE.txt"
         exclude "dummyThing"
-        // NOTE: removed the broad 'org/**/*.html' pattern — it can accidentally
-        // strip class files from org/javassist and other org/* packages.
     }
 
     manifest.attributes(
@@ -145,9 +113,6 @@ jar {
     )
 }
 
-// ─────────────────────────────────────────────
-// IDEA integration
-// ─────────────────────────────────────────────
 idea {
     module {
         inheritOutputDirs = true

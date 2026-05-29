@@ -58,6 +58,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     protected float drawComponent(RenderInfo ri) {
         float expand = width / 15f;
+        float barWidth = width / 45f;
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTimer.getPercent());
 
         DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, new Color(5, 5, 5, 160).getRGB());
@@ -68,7 +69,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float accPct = enabledAnimationTimer.getPercent();
         if (accPct > 0) {
             int accentCol = RenderUtils.alpha(new Color(getEnabledColor()), (int) (accPct * 200));
-            DrawUtils.drawRoundedRect(x1 + 1, y1 + 3, x1 + 2, y2 + expandY - 3, 1f, accentCol);
+            DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth / 2f, y2 + expandY, barWidth, accentCol, new boolean[]{true, true, false, false});
         }
 
         buttonComponent.updateComponent(posInfo, ri);
