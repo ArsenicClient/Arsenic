@@ -44,7 +44,12 @@ import static arsenic.utils.rotations.RotationUtils.patchGCD;
 public class Scaffold extends Module {
 
 
-    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
+    public BooleanProperty sprint = new BooleanProperty("Sprint", false) {
+        @Override
+        public Boolean getValue() {
+            return super.getValue() || telly.getValue();
+        }
+    };
     public static BooleanProperty keepY = new BooleanProperty("KeepY", false);
     public BooleanProperty telly = new  BooleanProperty("Telly", false);
     private BlockData blockData;
@@ -54,7 +59,7 @@ public class Scaffold extends Module {
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
     public boolean jumpFlag;
-    private static ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
+    private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
 
 
     @Override
