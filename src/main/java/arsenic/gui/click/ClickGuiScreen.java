@@ -124,7 +124,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         //logo
         mc.getTextureManager().bindTexture(logoPath);
         int tempExpand = (int) (x * 0.1f);
+        int logoCol = ThemeManager.getMainColor();
+        GlStateManager.color(((logoCol >> 16) & 0xFF) / 255f, ((logoCol >> 8) & 0xFF) / 255f, (logoCol & 0xFF) / 255f, 1f);
         Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
+        GlStateManager.color(1f, 1f, 1f, 1f);
 
         // draws each module category component
         PosInfo pi = new PosInfo(x + 5, hLineY + 5);

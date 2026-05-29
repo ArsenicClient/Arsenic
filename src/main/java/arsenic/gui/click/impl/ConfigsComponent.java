@@ -245,7 +245,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                     : "you";
             String dateStr = entry.lastModified > 0 ? DATE_FMT.format(new Date(entry.lastModified)) : "unknown";
             String meta = "Modified: " + dateStr + "  \u00b7  " + playerName;
-            ri.getFr().drawString(meta, textX, rowY + 24, ThemeManager.getTextMuted());
+            ri.getFr().drawString(meta, textX, rowY + 24, ThemeManager.getTextSecondary());
 
             if (hovered) {
                 float btnY = rowY + (rowH - 22) / 2f;

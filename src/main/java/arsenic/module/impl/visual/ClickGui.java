@@ -43,55 +43,12 @@ public class ClickGui extends Module {
         CLASSIC, MODERN
     }
 
-    public enum ThemeMode implements Supplier<String> {
-        CLASSIC() {
-            @Override
-            public String get() {
-                return "Classic";
-            }
-        },
-        VOID() {
-            @Override
-            public String get() {
-                return "Void";
-            }
-        },
-        SPECTER() {
-            @Override
-            public String get() {
-                return "Specter";
-            }
-        },
-        EMBER() {
-            @Override
-            public String get() {
-                return "Ember";
-            }
-        },
-        JADE() {
-            @Override
-            public String get() {
-                return "Jade";
-            }
-        },
-        OBSIDIAN() {
-            @Override
-            public String get() {
-                return "Obsidian";
-            }
-        },
-        SAKURA() {
-            @Override
-            public String get() {
-                return "Sakura";
-            }
-        },
-        TOXIN() {
-            @Override
-            public String get() {
-                return "Toxin";
-            }
-        },
+    public enum ThemeMode {
+        CLASSIC, VOID, SPECTER, EMBER, JADE, OBSIDIAN, SAKURA, TOXIN, CLOUD, MONO;
+
+        public String get() {
+            return name().charAt(0) + name().substring(1).toLowerCase();
+        }
     }
 
 }
