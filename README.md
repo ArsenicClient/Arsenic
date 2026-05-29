@@ -27,4 +27,4 @@ A special thanks to everyone who has contributed to the project!
 -   **Stephen:** 
 -   **Cosmic:** 
 
-Reach out to `@kv.v` on Discord if you need help with the setup.
+Reach out to `@kv.dev` on Discord if you need help with the setup.
