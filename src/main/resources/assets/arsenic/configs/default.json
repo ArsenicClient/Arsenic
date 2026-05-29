@@ -112,7 +112,7 @@
     }
   },
   "ClickGUI": {
-    "bind": 38,
+    "bind": 54,
     "enabled": false,
     "Custom Font": {
       "enabled": true
