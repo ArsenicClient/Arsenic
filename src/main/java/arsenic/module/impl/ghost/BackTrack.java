@@ -16,7 +16,6 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.minecraft.PacketUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
@@ -34,6 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static arsenic.utils.lag.LagManager.receivePacket;
 
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.GHOST)
 public class BackTrack extends Module {
@@ -176,7 +177,7 @@ public class BackTrack extends Module {
                 try {
                     Packet<?> packet = packetQueue.remove().getPacket();
                     skipPackets.add(packet);
-                    PacketUtil.receivePacket(packet);
+                    receivePacket(packet);
                 } catch (NullPointerException ignored) {
                 }
             }
@@ -192,7 +193,7 @@ public class BackTrack extends Module {
                 if (packetQueue.element().getTimer().hasFinished()) {
                     Packet<?> packet = packetQueue.remove().getPacket();
                     skipPackets.add(packet);
-                    PacketUtil.receivePacket(packet);
+                    receivePacket(packet);
                 } else {
                     break;
                 }
@@ -303,7 +304,7 @@ public class BackTrack extends Module {
             for (TimedPacket timedPacket : packetQueue) {
                 Packet<?> packet = timedPacket.getPacket();
                 skipPackets.add(packet);
-                PacketUtil.receivePacket(packet);
+                receivePacket(packet);
             }
             packetQueue.clear();
         }
