@@ -9,6 +9,7 @@ import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import arsenic.gui.themes.ThemeManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -36,15 +37,6 @@ import java.util.stream.Collectors;
 
 public class ConfigsComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
 
-    private static final int BG = 0xFF0D0D0F;
-    private static final int CARD_BG = 0xFF111114;
-    private static final int CARD_BORDER = 0xFF1E1E24;
-    private static final int TEXT_PRIMARY = 0xFFDDDDDD;
-    private static final int TEXT_SECONDARY = 0xFF888888;
-    private static final int TEXT_MUTED = 0xFF444444;
-    private static final int HOVER_BG = 0xFF141418;
-    private static final int HOVER_BORDER = 0xFF2A2A35;
-
     private static final String SERVER_URL = "https://ascfg.tranlongdo2506.workers.dev";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("dd.MM HH:mm");
@@ -68,7 +60,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private float inputBoxX, inputBoxY, inputBoxX2, inputBoxY2;
     private String currentConfigName = "";
     private String onlineStatus = "";
-    private int onlineStatusColor = TEXT_PRIMARY;
+    private int onlineStatusColor = ThemeManager.getTextPrimary();
     private String searchQuery = "";
     private final List<OnlineConfig> onlineConfigs = new ArrayList<>();
     private final List<ConfigButton> buttons = new ArrayList<>();
@@ -185,17 +177,17 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             boolean active = i == currentTab;
             int tabIndex = i;
 
-            int bgColor = active ? CARD_BG : (hovered ? HOVER_BG : BG);
+            int bgColor = active ? ThemeManager.getConfigsCard() : (hovered ? ThemeManager.getConfigsHoverBackground() : ThemeManager.getConfigsBackground());
             DrawUtils.drawRoundedRect(tx, y, tx + tabW, y + tabH, 6, bgColor);
 
             if (active) {
-                DrawUtils.drawRoundedOutline(tx, y, tx + tabW + 1, y + tabH + 1, 6, 1, CARD_BORDER);
-                DrawUtils.drawRoundedOutline(tx, y + tabH - 1, tx + tabW + 1, y + tabH + 1, 1, 1, CARD_BG);
+                DrawUtils.drawRoundedOutline(tx, y, tx + tabW + 1, y + tabH + 1, 6, 1, ThemeManager.getConfigsCardBorder());
+                DrawUtils.drawRoundedOutline(tx, y + tabH - 1, tx + tabW + 1, y + tabH + 1, 1, 1, ThemeManager.getConfigsCard());
             }
 
             ResourceLocation tabIcon = i == 0 ? LOCAL_ICON : ONLINE_ICON;
             String label = i == 0 ? "Local" : "Online";
-            int textColor = active ? TEXT_PRIMARY : TEXT_MUTED;
+            int textColor = active ? ThemeManager.getTextPrimary() : ThemeManager.getTextMuted();
 
             float iconSize = tabH - 8;
             drawIcon(tabIcon, tx + 8, y + 4, iconSize, ri);
@@ -234,26 +226,26 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             boolean hovered = mx >= rowX && mx <= rowX + rowW
                     && ri.getMouseY() >= rowY && ri.getMouseY() <= rowY + rowH;
 
-            int bg = entry.active ? selectedBg() : CARD_BG;
-            int border = hovered ? HOVER_BORDER : CARD_BORDER;
+            int bg = entry.active ? selectedBg() : ThemeManager.getConfigsCard();
+            int border = hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder();
             DrawUtils.drawRoundedRect(rowX, rowY, rowX + rowW, rowY + rowH, 8, bg);
             DrawUtils.drawRoundedOutline(rowX, rowY, rowX + rowW, rowY + rowH, 8, 1, border);
 
             float dotSize = 6;
             float dotX = rowX + 12;
             float dotY = rowY + rowH / 2f;
-            int dotColor = entry.active ? accent() : HOVER_BORDER;
+            int dotColor = entry.active ? accent() : ThemeManager.getConfigsHoverBorder();
             DrawUtils.drawCircle(dotX, dotY - dotSize / 2f, dotSize / 2f, dotColor);
 
             float textX = dotX + dotSize + 10;
-            ri.getFr().drawString(entry.name, textX, rowY + 10, TEXT_PRIMARY);
+            ri.getFr().drawString(entry.name, textX, rowY + 10, ThemeManager.getTextPrimary());
 
             String playerName = Minecraft.getMinecraft().thePlayer != null
                     ? Minecraft.getMinecraft().thePlayer.getName()
                     : "you";
             String dateStr = entry.lastModified > 0 ? DATE_FMT.format(new Date(entry.lastModified)) : "unknown";
             String meta = "Modified: " + dateStr + "  \u00b7  " + playerName;
-            ri.getFr().drawString(meta, textX, rowY + 24, TEXT_MUTED);
+            ri.getFr().drawString(meta, textX, rowY + 24, ThemeManager.getTextMuted());
 
             if (hovered) {
                 float btnY = rowY + (rowH - 22) / 2f;
@@ -264,14 +256,14 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                     configManager.deleteConfig(entry.name);
                     configManager.reloadConfigs();
                 });
-                DrawUtils.drawRoundedRect(delX, btnY, delX + 22, btnY + btnH, 5, CARD_BG);
-                DrawUtils.drawRoundedOutline(delX, btnY, delX + 22, btnY + btnH, 5, 1, HOVER_BORDER);
-                ri.getFr().drawString("X", delX + 11, btnY + btnH / 2f, 0xFFE24B4A, ri.getFr().CENTREX, ri.getFr().CENTREY);
+                DrawUtils.drawRoundedRect(delX, btnY, delX + 22, btnY + btnH, 5, ThemeManager.getConfigsCard());
+                DrawUtils.drawRoundedOutline(delX, btnY, delX + 22, btnY + btnH, 5, 1, ThemeManager.getConfigsHoverBorder());
+                ri.getFr().drawString("X", delX + 11, btnY + btnH / 2f, ThemeManager.getError(), ri.getFr().CENTREX, ri.getFr().CENTREY);
 
                 float copyX = delX - 8 - 22;
                 addButton(copyX, btnY, copyX + 22, btnY + btnH, () -> exportConfig(entry.name));
-                DrawUtils.drawRoundedRect(copyX, btnY, copyX + 22, btnY + btnH, 5, CARD_BG);
-                DrawUtils.drawRoundedOutline(copyX, btnY, copyX + 22, btnY + btnH, 5, 1, HOVER_BORDER);
+                DrawUtils.drawRoundedRect(copyX, btnY, copyX + 22, btnY + btnH, 5, ThemeManager.getConfigsCard());
+                DrawUtils.drawRoundedOutline(copyX, btnY, copyX + 22, btnY + btnH, 5, 1, ThemeManager.getConfigsHoverBorder());
                 float iconS = 14;
                 drawIcon(COPY_ICON, copyX + (22 - iconS) / 2f, btnY + (btnH - iconS) / 2f, iconS, ri);
 
@@ -282,7 +274,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                     Arsenic.getArsenic().getConfigManager().reloadConfigs();
                 });
                 DrawUtils.drawRoundedRect(loadX, btnY, loadX + loadW, btnY + btnH, 5, accent());
-                ri.getFr().drawString("Load", loadX + loadW / 2f, btnY + btnH / 2f, 0xFFFFFFFF, ri.getFr().CENTREX, ri.getFr().CENTREY);
+                ri.getFr().drawString("Load", loadX + loadW / 2f, btnY + btnH / 2f, ThemeManager.getWhite(), ri.getFr().CENTREX, ri.getFr().CENTREY);
             }
 
             y += rowH + 6;
@@ -290,7 +282,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
         y += 10;
 
-        DrawUtils.drawRect(x + 5, y, maxX, y + 1, new Color(26, 26, 31).getRGB());
+        DrawUtils.drawRect(x + 5, y, maxX, y + 1, ThemeManager.getSeparator());
         y += 16;
 
         drawSectionLabel("Save current", x + 5, y, ri);
@@ -303,14 +295,14 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         inputBoxY2 = y + inputH;
         float inputW = inputBoxX2 - inputBoxX;
 
-        int inputBorder = isNaming ? accent() : CARD_BORDER;
-        int inputBg = isNaming ? new Color(17, 17, 20).getRGB() : new Color(17, 17, 20).getRGB();
+        int inputBorder = isNaming ? accent() : ThemeManager.getConfigsCardBorder();
+        int inputBg = ThemeManager.getConfigsCard();
         DrawUtils.drawRoundedRect(inputBoxX, inputBoxY, inputBoxX2, inputBoxY2, 6, inputBg);
         DrawUtils.drawRoundedOutline(inputBoxX, inputBoxY, inputBoxX2, inputBoxY2, 6, 1, inputBorder);
 
         boolean showCursor = isNaming && (System.currentTimeMillis() % 1000 < 500);
         String displayText = newConfigName.length() == 0 ? "Config name..." : newConfigName.toString();
-        int displayColor = newConfigName.length() == 0 ? new Color(51, 51, 51).getRGB() : TEXT_PRIMARY;
+        int displayColor = newConfigName.length() == 0 ? ThemeManager.getTextMuted() : ThemeManager.getTextPrimary();
         ri.getFr().drawString(displayText, inputBoxX + 8, inputBoxY + inputH / 2f, displayColor, ri.getFr().CENTREY);
 
         if (showCursor) {
@@ -331,7 +323,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             }
         });
         DrawUtils.drawRoundedRect(saveX, y, saveX + saveW, y + inputH, 6, accent());
-        ri.getFr().drawString("Save", saveX + saveW / 2f, y + inputH / 2f, 0xFFFFFFFF, ri.getFr().CENTREX, ri.getFr().CENTREY);
+        ri.getFr().drawString("Save", saveX + saveW / 2f, y + inputH / 2f, ThemeManager.getWhite(), ri.getFr().CENTREX, ri.getFr().CENTREY);
 
         y += inputH + 10;
 
@@ -340,15 +332,15 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
         float impX = x + 5;
         addButton(impX, y, impX + btnW, y + btnH2, () -> importFromClipboard());
-        DrawUtils.drawRoundedRect(impX, y, impX + btnW, y + btnH2, 6, CARD_BG);
-        DrawUtils.drawRoundedOutline(impX, y, impX + btnW, y + btnH2, 6, 1, CARD_BORDER);
-        drawIconWithText(PASTE_ICON, "Import", impX, y, btnW, btnH2, TEXT_SECONDARY, ri);
+        DrawUtils.drawRoundedRect(impX, y, impX + btnW, y + btnH2, 6, ThemeManager.getConfigsCard());
+        DrawUtils.drawRoundedOutline(impX, y, impX + btnW, y + btnH2, 6, 1, ThemeManager.getConfigsCardBorder());
+        drawIconWithText(PASTE_ICON, "Import", impX, y, btnW, btnH2, ThemeManager.getTextSecondary(), ri);
 
         float expX = x + 5 + btnW + 8;
         addButton(expX, y, expX + btnW, y + btnH2, () -> exportToClipboard());
-        DrawUtils.drawRoundedRect(expX, y, expX + btnW, y + btnH2, 6, CARD_BG);
-        DrawUtils.drawRoundedOutline(expX, y, expX + btnW, y + btnH2, 6, 1, CARD_BORDER);
-        drawIconWithText(COPY_ICON, "Export", expX, y, btnW, btnH2, TEXT_SECONDARY, ri);
+        DrawUtils.drawRoundedRect(expX, y, expX + btnW, y + btnH2, 6, ThemeManager.getConfigsCard());
+        DrawUtils.drawRoundedOutline(expX, y, expX + btnW, y + btnH2, 6, 1, ThemeManager.getConfigsCardBorder());
+        drawIconWithText(COPY_ICON, "Export", expX, y, btnW, btnH2, ThemeManager.getTextSecondary(), ri);
 
         y += btnH2 + 10;
     }
@@ -359,23 +351,23 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         float dx = x + (maxX - x - dialogW) / 2f;
         float dy = y + 20;
 
-        DrawUtils.drawRoundedRect(dx, dy, dx + dialogW, dy + dialogH, 8, CARD_BG);
-        DrawUtils.drawRoundedOutline(dx, dy, dx + dialogW, dy + dialogH, 8, 1, CARD_BORDER);
+        DrawUtils.drawRoundedRect(dx, dy, dx + dialogW, dy + dialogH, 8, ThemeManager.getConfigsCard());
+        DrawUtils.drawRoundedOutline(dx, dy, dx + dialogW, dy + dialogH, 8, 1, ThemeManager.getConfigsCardBorder());
 
-        ri.getFr().drawString("Config name for upload:", dx + 15, dy + 15, TEXT_PRIMARY);
+        ri.getFr().drawString("Config name for upload:", dx + 15, dy + 15, ThemeManager.getTextPrimary());
 
         float inX = dx + 15;
         float inY = dy + 35;
         float inW = dialogW - 30;
         float inH = 28;
 
-        int inBorder = CARD_BORDER;
-        DrawUtils.drawRoundedRect(inX, inY, inX + inW, inY + inH, 6, new Color(17, 17, 20).getRGB());
+        int inBorder = ThemeManager.getConfigsCardBorder();
+        DrawUtils.drawRoundedRect(inX, inY, inX + inW, inY + inH, 6, ThemeManager.getConfigsCard());
         DrawUtils.drawRoundedOutline(inX, inY, inX + inW, inY + inH, 6, 1, inBorder);
 
         boolean showCursor = isUploadNaming && (System.currentTimeMillis() % 1000 < 500);
         String displayText = uploadName.length() == 0 ? "Upload name..." : uploadName.toString();
-        int displayColor = uploadName.length() == 0 ? new Color(51, 51, 51).getRGB() : TEXT_PRIMARY;
+        int displayColor = uploadName.length() == 0 ? ThemeManager.getTextMuted() : ThemeManager.getTextPrimary();
         ri.getFr().drawString(displayText, inX + 8, inY + inH / 2f, displayColor, ri.getFr().CENTREY);
 
         if (showCursor) {
@@ -398,15 +390,15 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
         });
         DrawUtils.drawRoundedRect(uploadX, btnY2, uploadX + btnW2, btnY2 + btnH2, 5, accent());
-        ri.getFr().drawString("Upload", uploadX + btnW2 / 2f, btnY2 + btnH2 / 2f, 0xFFFFFFFF, ri.getFr().CENTREX, ri.getFr().CENTREY);
+        ri.getFr().drawString("Upload", uploadX + btnW2 / 2f, btnY2 + btnH2 / 2f, ThemeManager.getWhite(), ri.getFr().CENTREX, ri.getFr().CENTREY);
 
         addButton(cancelX, btnY2, cancelX + btnW2, btnY2 + btnH2, () -> {
             isUploadNaming = false;
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
         });
-        DrawUtils.drawRoundedRect(cancelX, btnY2, cancelX + btnW2, btnY2 + btnH2, 5, CARD_BG);
-        DrawUtils.drawRoundedOutline(cancelX, btnY2, cancelX + btnW2, btnY2 + btnH2, 5, 1, HOVER_BORDER);
-        ri.getFr().drawString("Cancel", cancelX + btnW2 / 2f, btnY2 + btnH2 / 2f, TEXT_SECONDARY, ri.getFr().CENTREX, ri.getFr().CENTREY);
+        DrawUtils.drawRoundedRect(cancelX, btnY2, cancelX + btnW2, btnY2 + btnH2, 5, ThemeManager.getConfigsCard());
+        DrawUtils.drawRoundedOutline(cancelX, btnY2, cancelX + btnW2, btnY2 + btnH2, 5, 1, ThemeManager.getConfigsHoverBorder());
+        ri.getFr().drawString("Cancel", cancelX + btnW2 / 2f, btnY2 + btnH2 / 2f, ThemeManager.getTextSecondary(), ri.getFr().CENTREX, ri.getFr().CENTREY);
 
         addButton(dx, dy, dx + dialogW, dy + dialogH, () -> {
             isUploadNaming = false;
@@ -425,9 +417,9 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
         float fetchW = rowW / 2f - 4;
         addButton(x + 5, y, x + 5 + fetchW, y + btnH, () -> fetchOnlineConfigs());
-        DrawUtils.drawRoundedRect(x + 5, y, x + 5 + fetchW, y + btnH, 6, CARD_BG);
-        DrawUtils.drawRoundedOutline(x + 5, y, x + 5 + fetchW, y + btnH, 6, 1, CARD_BORDER);
-        drawIconWithText(FETCH_ICON, "Fetch", x + 5, y, fetchW, btnH, TEXT_SECONDARY, ri);
+        DrawUtils.drawRoundedRect(x + 5, y, x + 5 + fetchW, y + btnH, 6, ThemeManager.getConfigsCard());
+        DrawUtils.drawRoundedOutline(x + 5, y, x + 5 + fetchW, y + btnH, 6, 1, ThemeManager.getConfigsCardBorder());
+        drawIconWithText(FETCH_ICON, "Fetch", x + 5, y, fetchW, btnH, ThemeManager.getTextSecondary(), ri);
 
         float upX = x + 5 + rowW / 2f + 4;
         addButton(upX, y, upX + fetchW, y + btnH, () -> {
@@ -436,7 +428,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(this);
         });
         DrawUtils.drawRoundedRect(upX, y, upX + fetchW, y + btnH, 6, accent());
-        drawIconWithText(UPLOAD_ICON, "Upload", upX, y, fetchW, btnH, 0xFFFFFFFF, ri);
+        drawIconWithText(UPLOAD_ICON, "Upload", upX, y, fetchW, btnH, ThemeManager.getWhite(), ri);
 
         y += btnH + 6;
 
@@ -445,14 +437,14 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             y += 12;
         }
 
-        DrawUtils.drawRect(x + 5, y - 2, maxX, y - 1, new Color(26, 26, 31).getRGB());
+        DrawUtils.drawRect(x + 5, y - 2, maxX, y - 1, ThemeManager.getSeparator());
         y += 4;
 
         drawSectionLabel("Online configs", x + 5, y, ri);
         y += 16;
 
         if (onlineConfigs.isEmpty()) {
-            ri.getFr().drawString("No configs fetched.", x + 5, y, TEXT_MUTED);
+            ri.getFr().drawString("No configs fetched.", x + 5, y, ThemeManager.getTextMuted());
             return;
         }
 
@@ -463,11 +455,11 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             boolean hovered = mx >= rowX && mx <= rowX + rowW
                     && ri.getMouseY() >= rowY && ri.getMouseY() <= rowY + rowH;
 
-            int border = hovered ? HOVER_BORDER : CARD_BORDER;
-            DrawUtils.drawRoundedRect(rowX, rowY, rowX + rowW, rowY + rowH, 8, CARD_BG);
+            int border = hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder();
+            DrawUtils.drawRoundedRect(rowX, rowY, rowX + rowW, rowY + rowH, 8, ThemeManager.getConfigsCard());
             DrawUtils.drawRoundedOutline(rowX, rowY, rowX + rowW, rowY + rowH, 8, 1, border);
 
-            ri.getFr().drawString(cfg.name, rowX + 14, rowY + 10, TEXT_PRIMARY);
+            ri.getFr().drawString(cfg.name, rowX + 14, rowY + 10, ThemeManager.getTextPrimary());
 
             float tagX = rowX + 14 + ri.getFr().getWidth(cfg.name) + 10;
             if (!cfg.tags.isEmpty()) {
@@ -481,7 +473,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
             String dateStr = cfg.updatedAt > 0 ? DATE_FMT.format(new Date(cfg.updatedAt)) : "unknown";
             String info = "by " + cfg.author + "  \u00b7  " + dateStr;
-            ri.getFr().drawString(info, rowX + 14, rowY + 28, TEXT_MUTED);
+            ri.getFr().drawString(info, rowX + 14, rowY + 28, ThemeManager.getTextMuted());
 
             if (hovered) {
                 float btnY = rowY + (rowH - 22) / 2f;
@@ -502,11 +494,11 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     }
 
     private int selectedBg() {
-        return RenderUtils.interpolateColoursInt(CARD_BG, getEnabledColor(), 0.08f);
+        return RenderUtils.interpolateColoursInt(ThemeManager.getConfigsCard(), getEnabledColor(), 0.08f);
     }
 
     private void drawSectionLabel(String label, float x, float y, RenderInfo ri) {
-        ri.getFr().drawString(label.toUpperCase(), x, y, TEXT_MUTED);
+        ri.getFr().drawString(label.toUpperCase(), x, y, ThemeManager.getTextMuted());
     }
 
     private void drawIcon(ResourceLocation res, float x, float y, float size, RenderInfo ri) {
@@ -692,13 +684,13 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void fetchOnlineConfigs() {
         new Thread(() -> {
             try {
-                setOnlineStatus("Fetching...", 0xFFFFFFAA);
+                setOnlineStatus("Fetching...", ThemeManager.getStatus());
                 HttpURLConnection conn = openConnection("/api/fetchall");
                 conn.setRequestMethod("GET");
 
                 int responseCode = conn.getResponseCode();
                 if (responseCode != 200) {
-                    setOnlineStatus("Server error: " + responseCode, 0xFFE24B4A);
+                    setOnlineStatus("Server error: " + responseCode, ThemeManager.getError());
                     return;
                 }
 
@@ -710,7 +702,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 } else if (parsed.isJsonObject() && parsed.getAsJsonObject().has("configs")) {
                     arr = parsed.getAsJsonObject().get("configs").getAsJsonArray();
                 } else {
-                    setOnlineStatus("Unexpected response format", 0xFFE24B4A);
+                    setOnlineStatus("Unexpected response format", ThemeManager.getError());
                     return;
                 }
 
@@ -733,7 +725,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 onlineConfigs.addAll(fetched);
                 setOnlineStatus("Fetched " + fetched.size() + " configs", getEnabledColor());
             } catch (Exception e) {
-                setOnlineStatus("Error: " + e.getMessage(), 0xFFE24B4A);
+                setOnlineStatus("Error: " + e.getMessage(), ThemeManager.getError());
             }
         }).start();
     }
@@ -745,7 +737,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void uploadCurrentConfig(String configName) {
         new Thread(() -> {
             try {
-                setOnlineStatus("Uploading...", 0xFFFFFFAA);
+                setOnlineStatus("Uploading...", ThemeManager.getStatus());
                 configManager.saveConfig();
 
                 File configFile = configManager.getCurrentConfig().getDirectory();
@@ -773,10 +765,10 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                     setOnlineStatus("Uploaded successfully", getEnabledColor());
                     needsAutoFetch = true;
                 } else {
-                    setOnlineStatus("Upload failed: " + responseCode, 0xFFE24B4A);
+                    setOnlineStatus("Upload failed: " + responseCode, ThemeManager.getError());
                 }
             } catch (Exception e) {
-                setOnlineStatus("Error: " + e.getMessage(), 0xFFE24B4A);
+                setOnlineStatus("Error: " + e.getMessage(), ThemeManager.getError());
             }
         }).start();
     }
@@ -784,7 +776,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void downloadConfig(OnlineConfig cfg) {
         new Thread(() -> {
             try {
-                setOnlineStatus("Downloading " + cfg.name + "...", 0xFFFFFFAA);
+                setOnlineStatus("Downloading " + cfg.name + "...", ThemeManager.getStatus());
 
                 File configDir = new File(
                         Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
@@ -795,7 +787,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 configManager.reloadConfigs();
                 setOnlineStatus("Downloaded " + cfg.name, getEnabledColor());
             } catch (Exception e) {
-                setOnlineStatus("Error: " + e.getMessage(), 0xFFE24B4A);
+                setOnlineStatus("Error: " + e.getMessage(), ThemeManager.getError());
             }
         }).start();
     }

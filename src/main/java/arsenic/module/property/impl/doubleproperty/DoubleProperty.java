@@ -2,6 +2,7 @@ package arsenic.module.property.impl.doubleproperty;
 
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.click.impl.SearchComponent;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;

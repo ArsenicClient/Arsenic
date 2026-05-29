@@ -1,6 +1,7 @@
 package arsenic.module.property.impl.rangeproperty;
 
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
@@ -73,7 +74,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
                         self.getValueString(),
                         x2 - ((x2 -lineX2)/2f),
                         midPointY,
-                        0xFFFFFFFE,
+                        ThemeManager.getWhite(),
                         ri.getFr().getScaleModifier(0.8f), ri.getFr().CENTREY
                 );
 

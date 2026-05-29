@@ -82,6 +82,34 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
         return currentTheme;
     }
 
+    public static int getMainColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(); }
+    public static int getDarkerColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getDarkerColor(); }
+    public static int getWhite() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getWhite(); }
+    public static int getBlack() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack(); }
+    public static int getGradientColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor(); }
+    public static int getClickGuiBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getClickGuiBackground(); }
+    public static int getClickGuiSeparator() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getClickGuiSeparator(); }
+    public static int getModuleBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getModuleBackground(); }
+    public static int getModuleHover() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getModuleHover(); }
+    public static int getScrollbarTrack() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getScrollbarTrack(); }
+    public static int getScrollbarThumb() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getScrollbarThumb(); }
+    public static int getButtonBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonBackground(); }
+    public static int getButtonCircleShadow() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonCircleShadow(); }
+    public static int getButtonCircleHighlight() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonCircleHighlight(); }
+    public static int getConfigsBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsBackground(); }
+    public static int getConfigsCard() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsCard(); }
+    public static int getConfigsCardBorder() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsCardBorder(); }
+    public static int getSeparator() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getSeparator(); }
+    public static int getConfigsHoverBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsHoverBackground(); }
+    public static int getConfigsHoverBorder() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsHoverBorder(); }
+    public static int getEnumBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getEnumBackground(); }
+    public static int getFolderBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getFolderBackground(); }
+    public static int getTextPrimary() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextPrimary(); }
+    public static int getTextSecondary() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextSecondary(); }
+    public static int getTextMuted() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextMuted(); }
+    public static int getError() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getError(); }
+    public static int getStatus() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getStatus(); }
+
     public void setCurrentTheme(Theme theme) {
         currentTheme = theme;
         Arsenic.getArsenic().getConfigManager().saveClientConfig();

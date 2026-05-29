@@ -1,6 +1,8 @@
 package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
+import arsenic.gui.themes.ThemeManager;
+import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -36,8 +38,8 @@ public abstract class ButtonComponent extends Component {
         Color color = new Color(RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percent));
 
         int trackColor = RenderUtils.interpolateColoursInt(
-                new Color(33, 33, 33, 234).getRGB(),
-                new Color(color.getRed(), color.getGreen(), color.getBlue(), 120).getRGB(),
+                ThemeManager.getButtonBackground(),
+                ColorUtils.setColor(color.getRGB(), 0, 120),
                 percent
         );
         DrawUtils.drawRoundedRect(x2 - buttonWidth, buttonY1, x2, buttonY2, radius * 2, trackColor);
@@ -45,9 +47,9 @@ public abstract class ButtonComponent extends Component {
         float circleOffset = buttonWidth * ((percent - .5f) * 0.8f);
         float knobX = buttonX + buttonWidth / 2f + circleOffset;
 
-        DrawUtils.drawCircle(knobX, midPointY, radius * 1.3f, new Color(0, 0, 0, 60).getRGB());
+        DrawUtils.drawCircle(knobX, midPointY, radius * 1.3f, ThemeManager.getButtonCircleShadow());
         DrawUtils.drawCircle(knobX, midPointY, radius * 1.2f, color.darker().darker().getRGB());
-        DrawUtils.drawCircle(knobX - radius * 0.15f, midPointY - radius * 0.15f, radius * 0.35f, new Color(255, 255, 255, 30).getRGB());
+        DrawUtils.drawCircle(knobX - radius * 0.15f, midPointY - radius * 0.15f, radius * 0.35f, ThemeManager.getButtonCircleHighlight());
 
         return height;
     }
