@@ -59,7 +59,7 @@ public class Scaffold extends Module {
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
     public boolean jumpFlag;
-    private static ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
+    private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
 
 
     @Override
