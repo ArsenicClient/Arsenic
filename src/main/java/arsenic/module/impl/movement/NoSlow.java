@@ -17,6 +17,8 @@ import arsenic.module.property.impl.StringProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.EnumAction;
+import net.minecraft.item.ItemSoup;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.util.BlockPos;
@@ -110,8 +112,9 @@ public class NoSlow extends Module {
     };
 
     public boolean itemInUse() {
-        if (mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem()) return false;
-        return mc.thePlayer.getHeldItem().getItem().getItemUseAction(mc.thePlayer.getHeldItem()) == EnumAction.BLOCK;
+        if (mc.thePlayer.getHeldItem() == null || !mc.thePlayer.isUsingItem())
+            return false;
+        return mc.thePlayer.getHeldItem().getItem() instanceof ItemSword;
     }
 
     public boolean mixinResult() {

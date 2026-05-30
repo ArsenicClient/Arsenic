@@ -63,4 +63,40 @@ public class EventSilentRotation implements Event {
     public void setPreventDuplicateLook(boolean preventDuplicateLook) {
         this.preventDuplicateLook = preventDuplicateLook;
     }
+
+    /**
+     * Fired once per tick after the {@code SilentRotationManager} has settled on the
+     * final rotations it will apply (post GCD-patch, speed limiting and duplicate-look
+     * handling). Read-only: consumers observe the values the manager committed to, they
+     * do not influence them — use the enclosing {@link EventSilentRotation} for that.
+     */
+    public static class Post implements Event {
+
+        private final float yaw, pitch;
+        private final float prevYaw, prevPitch;
+        private final boolean modified;
+        private final float speed;
+
+        public Post(float yaw, float pitch, float prevYaw, float prevPitch, boolean modified, float speed) {
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.prevYaw = prevYaw;
+            this.prevPitch = prevPitch;
+            this.modified = modified;
+            this.speed = speed;
+        }
+
+        public float getYaw() { return yaw; }
+
+        public float getPitch() { return pitch; }
+
+        public float getPrevYaw() { return prevYaw; }
+
+        public float getPrevPitch() { return prevPitch; }
+
+        /** Whether a silent rotation is currently active (the manager is overriding the player's look). */
+        public boolean isModified() { return modified; }
+
+        public float getSpeed() { return speed; }
+    }
 }
