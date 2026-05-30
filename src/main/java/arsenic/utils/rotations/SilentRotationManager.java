@@ -40,6 +40,7 @@ public class SilentRotationManager {
             mc.thePlayer.rotationYaw = yaw;
             pitch = mc.thePlayer.rotationPitch;
             modified = false;
+            postSettled();
             return;
         }
 
@@ -76,7 +77,13 @@ public class SilentRotationManager {
             mc.thePlayer.rotationYaw = yaw;
             pitch = mc.thePlayer.rotationPitch;
         }
+        postSettled();
     };
+
+    private void postSettled() {
+        Arsenic.getArsenic().getEventManager().post(
+                new EventSilentRotation.Post(yaw, pitch, prevYaw, prevPitch, modified, speed));
+    }
 
     @EventLink
     public final Listener<EventUpdate.Pre> eventUpdateListener = event -> {

@@ -9,7 +9,10 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
@@ -49,16 +52,47 @@ public class Scaffold extends Module {
         public Boolean getValue() {
             return super.getValue() || telly.getValue();
         }
+
+        @Override
+        public void setValue(Boolean value) {
+            if(!value) {
+                telly.setValue(false);
+            }
+            super.setValue(value);
+        }
     };
-    public static BooleanProperty keepY = new BooleanProperty("KeepY", false);
+
+    public BooleanProperty keepY = new BooleanProperty("KeepY", false) {
+        @Override
+        public Boolean getValue() {
+            return super.getValue() || telly.getValue();
+        }
+
+        @Override
+        public void setValue(Boolean value) {
+            if(!value) {
+                telly.setValue(false);
+            }
+            super.setValue(value);
+        }
+    };
+
     public BooleanProperty telly = new  BooleanProperty("Telly", false);
+    @PropertyInfo(reliesOn = "Telly", value = "true")
+    public DoubleProperty mY = new DoubleProperty("", new DoubleValue(-0.5, 0.5, 0, 0.01) {
+        @Override
+        public double getInput() {
+            return telly.getValue() ? super.getInput() : 0.3;
+        }
+    });
+
+
     private BlockData blockData;
     private float[] rots = new float[2];
     private boolean solvedRots;
     private float animatedScale;
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
-    public boolean jumpFlag;
     private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
 
 
@@ -79,7 +113,7 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < 0.3;
+        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < mY.getValue().getInput();
         blockData = findBestPlacement();
         Item item = keyBlock();
         event.setSpeed(360f);
@@ -87,26 +121,14 @@ public class Scaffold extends Module {
 
         if(telly.getValue()){
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), mc.gameSettings.keyBindJump.isKeyDown());
-            jumpFlag = false;
         }
 
-        //if the player can place a block without moving rots
         float delta = sprint.getValue() ? 0f : 180f;
         event.setYaw(mc.thePlayer.rotationYaw + delta);
         event.setPitch(rots[1]);
 
-        MovingObjectPosition movingObjectPosition = rayTrace(event);
-        if(item instanceof ItemBlock) {
-            ItemBlock itemBlock = (ItemBlock) item;
-            if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                    && (movingObjectPosition.sideHit != EnumFacing.DOWN)
-                    && (!keepY.getValue() || movingObjectPosition.sideHit != EnumFacing.UP)
-                    && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
-                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
-                place(event);
-                return;
-            }
-        }
+        if(item == null)
+            return;
 
         if(wilLFall && (!telly.getValue() || !mc.thePlayer.onGround)) {
             if (blockData != null) {
@@ -121,12 +143,32 @@ public class Scaffold extends Module {
             }
             event.setYaw(solvedRots ? mc.thePlayer.rotationYaw + 180f : rots[0]);
             event.setPitch(rots[1]);
-            place(event);
         } else if (wilLFall && telly.getValue() && mc.thePlayer.onGround) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
         } else {
             event.setYaw(mc.thePlayer.rotationYaw + delta);
             event.setPitch(rots[1]);
+        }
+    };
+
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventSilentRotation.Post> eventSilentRotationPostListener = event -> {
+        if(keyBlock() == null || blockData == null)
+            return;
+
+        Item item = keyBlock();
+        MovingObjectPosition movingObjectPosition = rayTracePost(event);
+
+        if(item instanceof ItemBlock) {
+            ItemBlock itemBlock = (ItemBlock) item;
+            if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                    && (movingObjectPosition.sideHit != EnumFacing.DOWN)
+                    && (!keepY.getValue() || movingObjectPosition.sideHit != EnumFacing.UP)
+                    && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
+                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
+                placePost(event);
+            }
         }
     };
 
@@ -256,7 +298,7 @@ public class Scaffold extends Module {
         return current + (target - current) * speed;
     }
 
-    public static BlockData findBestPlacement() {
+    public BlockData findBestPlacement() {
         EntityPlayerSP player = mc.thePlayer;
         BlockPos playerPos = new BlockPos(player);
         BlockPos scanY = playerPos.down();
@@ -265,11 +307,6 @@ public class Scaffold extends Module {
         double bestDist = Double.MAX_VALUE;
 
         Vec3 eyes = player.getPositionEyes(1.0f);
-
-        // Player AABB center for proximity checks
-        double playerCX = player.posX;
-        double playerCY = player.posY + player.height / 2.0;
-        double playerCZ = player.posZ;
 
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
@@ -280,7 +317,7 @@ public class Scaffold extends Module {
                 if (!state.getBlock().isFullCube()) continue;
 
                 List<EnumFacing> facings = new ArrayList<>(Arrays.asList(EnumFacing.HORIZONTALS));
-                if (!player.onGround && mc.thePlayer.motionY < 0 && !keepY.getValue()) {
+                if (!player.onGround && mc.thePlayer.motionY < mY.getValue().getInput() && !keepY.getValue()) {
                     facings.add(EnumFacing.UP);
                 }
 
@@ -291,63 +328,17 @@ public class Scaffold extends Module {
                     BlockPos neighbor = pos.offset(facing);
                     IBlockState neighborState = mc.theWorld.getBlockState(neighbor);
 
-                    if (neighborState.getBlock() != Blocks.air) continue;
+                    if (neighborState.getBlock() != Blocks.air)
+                        continue;
 
-                    // --- FILTER 1: skip if placing here is redundant ---
-                    // "redundant" = there's already a solid block between the player and this placement
-                    // i.e. the neighbor (new block pos) is farther from the player than an existing block
-                    // that already covers the same column. Simpler check: if there's already a solid block
-                    // at playerPos (directly below player feet), this placement isn't the closest useful one.
-                    // We measure distance from player AABB center to the center of the neighbor block.
-                    double neighborCX = neighbor.getX() + 0.5;
-                    double neighborCY = neighbor.getY() + 0.5;
-                    double neighborCZ = neighbor.getZ() + 0.5;
-
-                    double distToPlayer = Math.sqrt(
-                            (neighborCX - playerCX) * (neighborCX - playerCX) +
-                                    (neighborCY - playerCY) * (neighborCY - playerCY) +
-                                    (neighborCZ - playerCZ) * (neighborCZ - playerCZ)
-                    );
-
-                    // Check if any already-solid block is closer to the player than this neighbor
-                    // (meaning this placement would be behind an existing block relative to player)
-                    boolean redundant = false;
-                    for (int rx = -1; rx <= 1 && !redundant; rx++) {
-                        for (int rz = -1; rz <= 1 && !redundant; rz++) {
-                            BlockPos existing = scanY.add(rx, 1, rz); // one above scan level = at player feet
-                            IBlockState existingState = mc.theWorld.getBlockState(existing);
-                            if (existingState.getBlock() == Blocks.air) continue;
-                            if (!existingState.getBlock().isFullCube()) continue;
-
-                            double exCX = existing.getX() + 0.5;
-                            double exCY = existing.getY() + 0.5;
-                            double exCZ = existing.getZ() + 0.5;
-                            double distExisting = Math.sqrt(
-                                    (exCX - playerCX) * (exCX - playerCX) +
-                                            (exCY - playerCY) * (exCY - playerCY) +
-                                            (exCZ - playerCZ) * (exCZ - playerCZ)
-                            );
-
-                            // If there's an existing solid block closer to the player in the same
-                            // horizontal column as the proposed neighbor, this placement is redundant
-                            if (existing.getX() == neighbor.getX() && existing.getZ() == neighbor.getZ()
-                                    && distExisting < distToPlayer) {
-                                redundant = true;
-                            }
-                        }
-                    }
-                    if (redundant) continue;
-
-                    // Face center for distance ranking
                     double faceX = pos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
                     double faceY = pos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
                     double faceZ = pos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
 
                     double dist = eyes.distanceTo(new Vec3(faceX, faceY, faceZ));
-                    if (dist >= bestDist) continue;
+                    if (dist >= bestDist)
+                        continue;
 
-                    // --- FILTER 2: raytrace validation ---
-                    // Compute the rotations we'd use for this placement and raytrace to confirm it hits
                     float[] rots = getRotationsForFace(pos, facing);
                     if (rots == null) {
                         rots = getFreeRotationsForFace(pos, facing);
@@ -372,11 +363,12 @@ public class Scaffold extends Module {
             }
         }
 
+
         return best;
     }
 
 
-    public MovingObjectPosition rayTrace(EventSilentRotation event) {
+    private MovingObjectPosition rayTracePost(EventSilentRotation.Post event) {
         Vec3 vec3 = mc.thePlayer.getPositionEyes(1);
         Vec3 vec31 = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(event.getPitch(), event.getYaw());
         Vec3 vec32 = vec3.addVector(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5);
@@ -389,17 +381,19 @@ public class Scaffold extends Module {
                 || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
             mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
         }
+        if(mc.thePlayer.inventory.getCurrentItem() == null)
+            return null;
         return mc.thePlayer.inventory.getCurrentItem().getItem();
     }
 
 
 
-    private void place(EventSilentRotation event) {
+    private void placePost(EventSilentRotation.Post event) {
         if (blockData == null) {
             return;
         }
 
-        MovingObjectPosition objectOver = rayTrace(event);
+        MovingObjectPosition objectOver = rayTracePost(event);
         BlockPos blockpos = objectOver.getBlockPos();
         if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
                 || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
