@@ -1,5 +1,6 @@
 package arsenic.command.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,20 @@ public class BindCommand extends Command {
 
     @Override
     public List<String> getAutoComplete(String str, int arg, List<String> list) {
-        return arg == 0 ? autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getModules().stream().map(Module::getName).collect(Collectors.toList()), str) : list;
+        if (arg == 0)
+            return autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getModules().stream().map(Module::getName).collect(Collectors.toList()), str);
+        if (arg == 1)
+            return autoCompleteHelper(keyNames(), str);
+        return list;
+    }
+
+    private static List<String> keyNames() {
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < Keyboard.KEYBOARD_SIZE; i++) {
+            String name = Keyboard.getKeyName(i);
+            if (name != null)
+                names.add(name);
+        }
+        return names;
     }
 }

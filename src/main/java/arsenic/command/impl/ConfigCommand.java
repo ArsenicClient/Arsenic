@@ -14,10 +14,10 @@ import java.util.stream.Collectors;
 
 import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
 
-@CommandInfo(name = "config", args = { "save/load/list", "config name" }, aliases = { "c" }, help = "helps you manipulate configs", minArgs = 1)
+@CommandInfo(name = "config", args = { "save/load/list/delete", "config name" }, aliases = { "c" }, help = "helps you manipulate configs", minArgs = 1)
 public class ConfigCommand extends Command {
     //don't scroll down if you wish to have living braincells
-    ArrayList<String> args = new ArrayList<>(Arrays.asList("list", "load", "save"));
+    ArrayList<String> args = new ArrayList<>(Arrays.asList("list", "load", "save", "delete"));
     @Override
     public void execute(String[] args) {
         ConfigManager configManager = Arsenic.getArsenic().getConfigManager();
@@ -55,6 +55,22 @@ public class ConfigCommand extends Command {
                     PlayerUtils.addWaterMarkedMessageToChat("could not create/save a config with the name "+ args[1]);
                 }
                 break;
+            case "delete":
+                if (args.length == 1) {
+                    PlayerUtils.addWaterMarkedMessageToChat("I need the name of the config");
+                    break;
+                }
+                if (!configManager.getConfigList().contains(args[1])) {
+                    PlayerUtils.addWaterMarkedMessageToChat(args[1] + " does not exist");
+                    break;
+                }
+                if (configManager.getCurrentConfig().getName().equalsIgnoreCase(args[1])) {
+                    PlayerUtils.addWaterMarkedMessageToChat("you can't delete the config you're currently using");
+                    break;
+                }
+                configManager.deleteConfig(args[1]);
+                PlayerUtils.addWaterMarkedMessageToChat("deleted " + args[1]);
+                break;
             default:
                 PlayerUtils.addWaterMarkedMessageToChat( args[0] + " is not a valid argument");
                 break;
@@ -62,7 +78,15 @@ public class ConfigCommand extends Command {
     }
 
     @Override
-    protected List<String> getAutoComplete(String str, int arg, List<String> list) {
-        return arg == 0 ? autoCompleteHelper(args, str) : list;
+    public List<String> getAutoComplete(String[] args) {
+        String current = args[args.length - 1];
+        if (args.length <= 1)
+            return autoCompleteHelper(this.args, current);
+
+        // "load" and "delete" act on existing configs, so complete from the saved config names
+        String sub = args[0].toLowerCase();
+        if (sub.equals("load") || sub.equals("delete"))
+            return autoCompleteHelper(new ArrayList<>(Arsenic.getArsenic().getConfigManager().getConfigList()), current);
+        return Collections.emptyList();
     }
 }

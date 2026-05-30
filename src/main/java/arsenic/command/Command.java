@@ -39,6 +39,15 @@ public abstract class Command {
         return getAutoComplete(str, arg, new ArrayList<>());
     }
 
+    /**
+     * Autocomplete entry point given every typed token (the last token is the one being completed).
+     * Defaults to the single-token variant; override this when a later argument's suggestions
+     * depend on an earlier one (e.g. {@code .set <module> <setting>}).
+     */
+    public List<String> getAutoComplete(String[] args) {
+        return args.length == 0 ? new ArrayList<>() : getAutoComplete(args[args.length - 1], args.length - 1);
+    }
+
     //str and arg are used when this method is @Overridden
     protected List<String> getAutoComplete(String str, int arg, List<String> completions) {
         return completions;

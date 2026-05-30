@@ -66,9 +66,11 @@
             String moduleCount = "Modules: " + Arsenic.getArsenic().getModuleManager().getModules().size();
             long settingCount = Arsenic.getArsenic().getModuleManager().getModules().stream().mapToLong(module -> module.getProperties().size()).sum();
             String settingCountStr = "Settings: " + settingCount;
+            String commandCount = "Commands: " + Arsenic.getArsenic().getCommandManager().getCommandCount();
 
             mc.fontRendererObj.drawStringWithShadow(moduleCount, this.width - mc.fontRendererObj.getStringWidth(moduleCount) - 2, 2, -1);
             mc.fontRendererObj.drawStringWithShadow(settingCountStr, this.width - mc.fontRendererObj.getStringWidth(settingCountStr) - 2, 2 + mc.fontRendererObj.FONT_HEIGHT, -1);
+            mc.fontRendererObj.drawStringWithShadow(commandCount, this.width - mc.fontRendererObj.getStringWidth(commandCount) - 2, 2 + mc.fontRendererObj.FONT_HEIGHT * 2, -1);
 
 
             String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
