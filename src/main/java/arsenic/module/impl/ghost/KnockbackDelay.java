@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static arsenic.utils.lag.LagManager.receivePacket;
 
-@ModuleInfo(name = "Knockback Delay", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.GHOST)
 public class KnockbackDelay extends Module {
 
     public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 1000, 200, 300, 10));

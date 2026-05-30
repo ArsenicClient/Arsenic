@@ -15,7 +15,10 @@ import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 
 import java.awt.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
 
@@ -51,6 +54,21 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
     public void prevMode() {
         value = modes[(value.ordinal() == 0 ? modes.length : value.ordinal()) - 1];
+    }
+
+    // selects a mode by its name (case-insensitive); returns false if no such mode exists
+    public boolean setByName(String name) {
+        for (T opt : modes) {
+            if (opt.name().equalsIgnoreCase(name)) {
+                setValue(opt);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<String> getModeNames() {
+        return Arrays.stream(modes).map(Enum::name).collect(Collectors.toList());
     }
 
     @Override
