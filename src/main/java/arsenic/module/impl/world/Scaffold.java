@@ -304,20 +304,51 @@ public class Scaffold extends Module {
         BlockPos scanY = playerPos.down();
 
         BlockData best = null;
-        double bestDist = Double.MAX_VALUE;
+        double bestScore = Double.MAX_VALUE;
 
-        Vec3 eyes = player.getPositionEyes(1.0f);
+        // The cell the player is about to occupy — this is what the scaffold actually needs to
+        // support, not whatever face happens to be closest to the eyes. Centre it on the
+        // predicted bounding box so selection follows the direction of travel.
+        AxisAlignedBB predicted = ScaffoldUtil.getPredictedBoundingBox(1.0);
+        double targetX = (predicted.minX + predicted.maxX) * 0.5;
+        double targetZ = (predicted.minZ + predicted.maxZ) * 0.5;
+        double targetY = scanY.getY() + 0.5;
 
+        // Score of the best block ALREADY supporting the target cell. If no candidate beats this,
+        // a placement would be redundant — the player is already standing on something at least as
+        // good, so we return null rather than spend a block.
+        double existingScore = Double.MAX_VALUE;
+
+        // When KeepY is off and the player is airborne (jumping / falling), also scan the layer
+        // below so the block directly under the player can be towered: its UP face creates a block
+        // at the player's feet. On ground we only need the regular support layer.
+        boolean tower = !player.onGround && !keepY.getValue();
+        int lowestLayer = tower ? -1 : 0;
+
+        for (int layer = 0; layer >= lowestLayer; layer--) {
+            BlockPos layerPos = scanY.add(0, layer, 0);
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
-                BlockPos pos = scanY.add(x, 0, z);
+                BlockPos pos = layerPos.add(x, 0, z);
                 IBlockState state = mc.theWorld.getBlockState(pos);
 
                 if (state.getBlock() == Blocks.air) continue;
                 if (!state.getBlock().isFullCube()) continue;
 
+                // This block already exists on the support layer. Record how well it fills the
+                // target cell so we can compare any new placement against what's already there.
+                double exDx = (pos.getX() + 0.5) - targetX;
+                double exDz = (pos.getZ() + 0.5) - targetZ;
+                double exDy = (pos.getY() + 0.5) - targetY;
+                double exScore = exDx * exDx + exDz * exDz + exDy * exDy * 0.25;
+                if (exScore < existingScore)
+                    existingScore = exScore;
+
                 List<EnumFacing> facings = new ArrayList<>(Arrays.asList(EnumFacing.HORIZONTALS));
-                if (!player.onGround && mc.thePlayer.motionY < mY.getValue().getInput() && !keepY.getValue()) {
+                // Allow towering whenever airborne with KeepY off — whether rising or falling — so a
+                // block under the player's feet is a valid candidate. The listener's wilLFall check
+                // still governs WHEN a block is actually spent.
+                if (tower) {
                     facings.add(EnumFacing.UP);
                 }
 
@@ -331,12 +362,20 @@ public class Scaffold extends Module {
                     if (neighborState.getBlock() != Blocks.air)
                         continue;
 
-                    double faceX = pos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
-                    double faceY = pos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
-                    double faceZ = pos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
+                    // The block we'd actually create occupies `neighbor`. Score it by how well it
+                    // fills the cell the player is heading into, so we never return a face whose
+                    // resulting block sits further from the player's path than one already placed.
+                    double nbCenterX = neighbor.getX() + 0.5;
+                    double nbCenterY = neighbor.getY() + 0.5;
+                    double nbCenterZ = neighbor.getZ() + 0.5;
 
-                    double dist = eyes.distanceTo(new Vec3(faceX, faceY, faceZ));
-                    if (dist >= bestDist)
+                    double dx = nbCenterX - targetX;
+                    double dz = nbCenterZ - targetZ;
+                    double dy = nbCenterY - targetY;
+                    // Horizontal alignment with the path dominates; vertical offset is a soft tiebreak.
+                    double score = dx * dx + dz * dz + dy * dy * 0.25;
+
+                    if (score >= bestScore)
                         continue;
 
                     float[] rots = getRotationsForFace(pos, facing);
@@ -357,12 +396,19 @@ public class Scaffold extends Module {
                     if (!hit.getBlockPos().equals(pos)) continue;
                     if (hit.sideHit != facing) continue;
 
-                    bestDist = dist;
+                    bestScore = score;
                     best = new BlockData(pos, facing);
                 }
             }
         }
+        }
 
+
+        // A block is already supporting the target cell at least as well as anything we could
+        // place — placing now would just waste a block, so signal "nothing to do".
+        if (best != null && existingScore <= bestScore) {
+            return null;
+        }
 
         return best;
     }
