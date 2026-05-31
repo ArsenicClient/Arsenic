@@ -11,7 +11,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.ServerInfo;
@@ -27,7 +26,6 @@ public class KillAura extends Module {
 
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
-    public BooleanProperty autoBlock = new BooleanProperty("Autoblock", false);
     public EntityPlayer target = null;
     private final MSTimer attackTimer = new MSTimer();
     private final ServerInfo serverInfo = Arsenic.getArsenic().getServerInfo();
@@ -53,7 +51,7 @@ public class KillAura extends Module {
     public final Listener<EventTick> eventTickListener = event -> {
         target = TargetManager.getTarget();
         if (target != null && mc.thePlayer.canEntityBeSeen(target) && attackTimer.hasTimeElapsed(getAttackDelay())) {
-            if (RotationUtils.getDistanceToEntityBox(target) <= 3 && !serverInfo.blocking) {
+            if (RotationUtils.getDistanceToEntityBox(target) <= 3 && (!serverInfo.blocking || !mc.thePlayer.isUsingItem())) {
                 mc.thePlayer.swingItem();
                 mc.playerController.attackEntity(mc.thePlayer, target);
                 attackTimer.reset();
