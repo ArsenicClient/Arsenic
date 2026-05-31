@@ -25,7 +25,7 @@ import net.minecraft.util.BlockPos;
 
 import java.awt.*;
 
-@ModuleInfo(name = "Packet Consume", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Packet Consume", category = ModuleCategory.PLAYER, dev = true)
 public class PacketConsume extends Module {
 
     public final BooleanProperty food = new BooleanProperty("Food", true);
