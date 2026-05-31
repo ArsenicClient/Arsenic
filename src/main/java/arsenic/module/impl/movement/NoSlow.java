@@ -34,7 +34,7 @@ public class NoSlow extends Module {
     public final StringProperty warning = new StringProperty("Warning - blink no slow");
     public final StringProperty warning2 = new StringProperty("In Dev - not recommended");
     public final EnumProperty<NSMode> mode = new EnumProperty<>("Mode", NSMode.Hypixel);
-    public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 10, 1));
+    public final DoubleProperty maxTicks = new DoubleProperty("Max Ticks", new DoubleValue(1, 20, 5, 1));
 
     private boolean fakePacket;
     private boolean pendingRelease = false;
