@@ -1,55 +1,9 @@
-Arsenic v0.6 - Changelog
-=========================
-
-[+] New Files
-    Bedbreaker.java - replaces Fucker (renamed, not dev-only)
-    GuiChangelog.java - in-game scrollable changelog viewer
-    aurora.fsh / wave.fsh - new main menu shaders
-    changelog.txt - this file
-
-[-] Removed
-    Fucker.java - replaced by Bedbreaker.java
-
-[*] TargetHUD - Major Overhaul
-    New Face/Simple modes with glassy background shader
-    Show Armor bar below health bar
-    Show Ping display (ms) in top-right
-    Damage flash animation (300ms red border on hit)
-    Configurable fade time (1-10s)
-    Stick mode wrapped in try-finally to prevent GL state corruption
-    clampAlpha() helper prevents Color constructor crashes
-    Smaller layout: Face 160x55, Simple 130x38
-
-[*] Tracers - Rewritten
-    Now uses GLU.gluProject for 2D screen-space lines
-    Projects to player feet position for accurate targeting
-    Configurable origin (Center/Top/Bottom) and line width
-    Anti-aliased lines with GL_LINE_SMOOTH
-    Depth-culls off-screen players
-
-[*] Nametags
-    New showArmor property with armor icon + value
-    Custom drawRect with full alpha control (removed Gui.drawRect)
-    Theme-colored top/bottom borders
-    All text uses drawStringWithShadow
-    Separate health bar below nameplate
-
-[*] Scaffold Block Counter - Redesigned
-    Ring progress arc with animated fill
-    BPS/BPM tracking (512-timestamp sliding window over 3s)
-    Placement flash animation (300ms glow)
-    Right info panel: Blocks label, BPS/BPM values, progress bar
-    Position now saved to config
-
-[*] Custom Main Menu
-    New shaders: aurora (aurora borealis), wave (gradient wave)
-    2-column button layout: [SP/MP] [Mods/Options] [Quit/Changelog]
-    Changelog button opens local viewer
-    Next Shader button top-right
-    Hover animations on buttons (200ms fade)
-    Subtitle: "Arsenic Client - Arsenic Team"
-    Cleaner stats display (mods count, module count)
-
-[*] EventBus
-    Per-listener try-catch: one bad listener doesn't kill the bus
-    Removed chat spam - errors go to stderr only
+[+] Replaced Fucker with Bedbreaker.java, added GuiChangelog.java, add new main menu shaders.
+[-] Removed Fucker.java (replaced by Bedbreaker.java).
+[~] Overhauled TargetHUD
+[~] Rewritten Tracers
+[+~] Upgraded Nametags
+[~] Redesigned Scaffold Block Counter + upgraded scaff
+[~] Updated Custom Main Menu w/ a 2-column button layout, and a local changelog viewer.
+[~] Enhanced EventBus with per-listener try-catch blocks and moved error logs to stderr to prevent chat spam.
+[+] Added Fakelag and BedPlates
