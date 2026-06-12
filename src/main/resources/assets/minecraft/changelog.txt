@@ -1,0 +1,9 @@
+[+] Replaced Fucker with Bedbreaker.java, added GuiChangelog.java, add new main menu shaders.
+[-] Removed Fucker.java (replaced by Bedbreaker.java).
+[~] Overhauled TargetHUD
+[~] Rewritten Tracers
+[+~] Upgraded Nametags
+[~] Redesigned Scaffold Block Counter + upgraded scaff
+[~] Updated Custom Main Menu w/ a 2-column button layout, and a local changelog viewer.
+[~] Enhanced EventBus with per-listener try-catch blocks and moved error logs to stderr to prevent chat spam.
+[+] Added Fakelag and BedPlates
