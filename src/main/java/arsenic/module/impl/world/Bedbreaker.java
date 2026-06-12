@@ -27,8 +27,8 @@ import net.minecraft.util.MathHelper;
 
 
 
-@ModuleInfo(name = "Fucker", category = ModuleCategory.WORLD, dev = true)
-public class Fucker extends Module {
+@ModuleInfo(name = "Bedbreaker", category = ModuleCategory.WORLD)
+public class Bedbreaker extends Module {
 
     public enum Mode {
         Legit,
@@ -132,11 +132,6 @@ public class Fucker extends Module {
 
             currentTarget = breakTarget;
             breakTimer.reset();
-        }
-
-        Block blockAtBed = mc.theWorld.getBlockState(nearestBed).getBlock();
-        if (!(blockAtBed instanceof BlockBed)) {
-            toggle();
         }
     }
 

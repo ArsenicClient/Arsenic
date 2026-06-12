@@ -17,6 +17,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.world.Scaffold;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.font.FontRendererExtension;
@@ -60,6 +61,7 @@ public class HUD extends Module {
     public static int keybindsX = 4;
     public static int keybindsY = 80;
     List<ModuleRenderInfo> nameList;
+    private float moduleListScale = 1.0f;
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
@@ -145,15 +147,27 @@ public class HUD extends Module {
                 .sorted(arraylistSort.getValue().getComparator())
                 .collect(Collectors.toList());
 
+        // Smooth animation for array list visibility
+        moduleListScale = nameList.isEmpty() ? Math.max(0, moduleListScale - 0.1f) : Math.min(1.0f, moduleListScale + 0.1f);
+        if (moduleListScale < 0.01f) return;
+
         AtomicInteger i = new AtomicInteger();
         float startY = arrayListY;
         nameList.forEach(m -> {
             float mX = x + arrayListX - m.length;
             int color = colorMode.getValue().getColor(4, i.get() * 20);
 
+            // Smooth fade and scale animation for each module
+            float itemAlpha = Math.min(1.0f, moduleListScale + (float) i.get() * 0.05f);
+            if (itemAlpha < 0.05f) {
+                i.addAndGet(10);
+                return;
+            }
+
             switch (arraylistBackground.getValue()) {
                 case RECTANGLE:
-                    Gui.drawRect((int) (x + arrayListX), (int) (startY + i.get()), (int) mX - 6, (int) (startY + i.get() + 10), new Color(0, 0, 0, (int) opacity).getRGB());
+                    int bgColor = new Color(0, 0, 0, (int) (opacity * itemAlpha)).getRGB();
+                    Gui.drawRect((int) (x + arrayListX), (int) (startY + i.get()), (int) mX - 6, (int) (startY + i.get() + 10), bgColor);
                     break;
                 case BAR:
                 case NONE:
@@ -233,6 +247,8 @@ public class HUD extends Module {
         pos.addProperty("keybindsY", keybindsY);
         pos.addProperty("radarX", Radar.radarX);
         pos.addProperty("radarY", Radar.radarY);
+        pos.addProperty("blockCounterX", Scaffold.blockCounterX);
+        pos.addProperty("blockCounterY", Scaffold.blockCounterY);
         obj.add("positions", pos);
 
         obj.addProperty("bind", getKeybind());
@@ -258,6 +274,8 @@ public class HUD extends Module {
                 keybindsY = pos.get("keybindsY").getAsInt();
                 Radar.radarX = pos.get("radarX").getAsInt();
                 Radar.radarY = pos.get("radarY").getAsInt();
+                Scaffold.blockCounterX = pos.get("blockCounterX").getAsInt();
+                Scaffold.blockCounterY = pos.get("blockCounterY").getAsInt();
             }
         } catch (NullPointerException | IllegalArgumentException e) {
             Arsenic.getArsenic().getLogger().info("Error loading HUD positions (first launch or update)");
@@ -329,6 +347,7 @@ public class HUD extends Module {
         private boolean draggingCoords;
         private boolean draggingKeybinds;
         private boolean draggingRadar;
+        private boolean draggingBlockCounter;
         private int dragOffsetX, dragOffsetY;
         private ScaledResolution sr;
 
@@ -358,8 +377,8 @@ public class HUD extends Module {
                 DrawUtils.drawBorderedRoundedRect(sr.getScaledWidth() + arrayListX - 6, arrayListY, sr.getScaledWidth() + arrayListX + 2, arrayListY + 20, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
                 fr.drawString("Module List", sr.getScaledWidth() + arrayListX - 4, arrayListY + 5, 0xFFFFFFFF);
 
-                DrawUtils.drawBorderedRoundedRect(targetHUDX - 2, targetHUDY - 2, targetHUDX + 152, targetHUDY + 52, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
-                fr.drawString("TargetHUD", targetHUDX + 40, targetHUDY + 20, 0xFFFFFFFF);
+                DrawUtils.drawBorderedRoundedRect(targetHUDX - 2, targetHUDY - 2, targetHUDX + 166, targetHUDY + 64, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
+                fr.drawString("TargetHUD", targetHUDX + 30, targetHUDY + 25, 0xFFFFFFFF);
 
                 DrawUtils.drawBorderedRoundedRect(coordsX - 2, coordsY - 2, coordsX + fr.getWidth("XYZ: 0 / 0 / 0") + 4, coordsY + 12, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
                 fr.drawString("Coordinates", coordsX, coordsY, 0xFFFFFFFF);
@@ -370,6 +389,13 @@ public class HUD extends Module {
 
                 DrawUtils.drawBorderedRoundedRect(Radar.radarX - 2, Radar.radarY - 2, Radar.radarX + 124, Radar.radarY + 124, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
                 fr.drawString("Radar", Radar.radarX + 42, Radar.radarY + 56, 0xFFFFFFFF);
+
+                int bcW = 120;
+                int bcH = 42;
+                int bcX = Scaffold.blockCounterX != -1 ? Scaffold.blockCounterX : (sr.getScaledWidth() - bcW) / 2;
+                int bcY = Scaffold.blockCounterY != -1 ? Scaffold.blockCounterY : sr.getScaledHeight() - 42 - bcH;
+                DrawUtils.drawBorderedRoundedRect(bcX - 2, bcY - 2, bcX + bcW + 2, bcY + bcH + 2, 3, 1, color, new Color(0, 0, 0, 80).getRGB());
+                fr.drawString("Block Counter", bcX + 20, bcY + 16, 0xFFFFFFFF);
             }
 
             super.drawScreen(mouseX, mouseY, partialTicks);
@@ -396,8 +422,8 @@ public class HUD extends Module {
                     dragOffsetY = mouseY - arrayListY;
                 }
 
-                if (mouseX >= targetHUDX - 2 && mouseX <= targetHUDX + 152
-                        && mouseY >= targetHUDY - 2 && mouseY <= targetHUDY + 52) {
+                if (mouseX >= targetHUDX - 2 && mouseX <= targetHUDX + 166
+                        && mouseY >= targetHUDY - 2 && mouseY <= targetHUDY + 64) {
                     draggingTargetHUD = true;
                     dragOffsetX = mouseX - targetHUDX;
                     dragOffsetY = mouseY - targetHUDY;
@@ -422,6 +448,20 @@ public class HUD extends Module {
                     draggingRadar = true;
                     dragOffsetX = mouseX - Radar.radarX;
                     dragOffsetY = mouseY - Radar.radarY;
+                }
+
+                int bcW = 120;
+                int bcH = 42;
+                int bcX = Scaffold.blockCounterX != -1 ? Scaffold.blockCounterX : (sr.getScaledWidth() - bcW) / 2;
+                int bcY = Scaffold.blockCounterY != -1 ? Scaffold.blockCounterY : sr.getScaledHeight() - 42 - bcH;
+                if (mouseX >= bcX - 2 && mouseX <= bcX + bcW + 2
+                        && mouseY >= bcY - 2 && mouseY <= bcY + bcH + 2) {
+                    draggingBlockCounter = true;
+                    // If position was default (-1), set it to current display position so dragging works
+                    if (Scaffold.blockCounterX == -1) Scaffold.blockCounterX = bcX;
+                    if (Scaffold.blockCounterY == -1) Scaffold.blockCounterY = bcY;
+                    dragOffsetX = mouseX - Scaffold.blockCounterX;
+                    dragOffsetY = mouseY - Scaffold.blockCounterY;
                 }
             }
         }
@@ -454,6 +494,10 @@ public class HUD extends Module {
                     Radar.radarX = mouseX - dragOffsetX;
                     Radar.radarY = mouseY - dragOffsetY;
                 }
+                if (draggingBlockCounter) {
+                    Scaffold.blockCounterX = mouseX - dragOffsetX;
+                    Scaffold.blockCounterY = mouseY - dragOffsetY;
+                }
             }
         }
 
@@ -466,6 +510,7 @@ public class HUD extends Module {
             draggingCoords = false;
             draggingKeybinds = false;
             draggingRadar = false;
+            draggingBlockCounter = false;
         }
 
         @Override
@@ -486,6 +531,8 @@ public class HUD extends Module {
                 keybindsY = 80;
                 Radar.radarX = 4;
                 Radar.radarY = 4;
+                Scaffold.blockCounterX = -1;
+                Scaffold.blockCounterY = -1;
             }
         }
 
