@@ -12,28 +12,21 @@ import arsenic.module.property.impl.StringProperty;
 @ModuleInfo(name = "NameHider", category = ModuleCategory.PLAYER)
 public class NameHider extends Module {
 
-    public final StringProperty customName = new StringProperty("Hidden");
-
-    private String originalName;
+    public static final StringProperty customName = new StringProperty("ArsenicClient");
+    private static String originalName;
+    public static final StringProperty playerName = new StringProperty("_Jxx");
 
     @Override
     protected void onEnable() {
         if (mc.thePlayer != null) {
             originalName = mc.thePlayer.getDisplayName().getUnformattedText();
+            playerName.setValue(originalName);
         }
     }
 
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventTick> onTick = event -> {
-        if (!mc.thePlayer.getDisplayName().getUnformattedText().equals(customName.getValue())) {
-            originalName = mc.thePlayer.getDisplayName().getUnformattedText();
-        }
-    };
-
-    public String format(String text) {
-        if (mc.thePlayer != null) {
-            text = text.replace(originalName != null ? originalName : mc.thePlayer.getName(), customName.getValue());
+    public static String format(String text) {
+        if (originalName != null) {
+            text = text.replace(originalName, customName.getValue());
         }
         return text;
     }
