@@ -8,7 +8,6 @@ import arsenic.injection.accessor.IMixinS14PacketEntity;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.ghost.backtrack.TimedPacket;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
 import arsenic.module.property.impl.EnumProperty;
@@ -16,6 +15,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.lag.LagManager;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
@@ -29,17 +29,13 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import static arsenic.utils.lag.LagManager.receivePacket;
+import java.util.function.Predicate;
 
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.GHOST)
 public class BackTrack extends Module {
 
-    private static final int MAX_PACKET_QUEUE_SIZE = 50;
+    // packet types this module ever asks LagManager to delay - used to target releases/discards.
+    private static final Predicate<Packet<?>> TRACKED_PACKETS = p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
     public final RangeProperty distanceRange = new RangeProperty("Distance", new RangeValue(0, 6, 0, 4.0, 0.1));
@@ -49,8 +45,6 @@ public class BackTrack extends Module {
     public final EnumProperty<ReleaseStyle> releaseStyle = new EnumProperty<>("Style", ReleaseStyle.PULSE);
     public final BooleanProperty smart = new BooleanProperty("Smart", true);
 
-    private final Queue<TimedPacket> packetQueue = new ConcurrentLinkedQueue<>();
-    private final List<Packet<?>> skipPackets = new ArrayList<>();
     private final MSTimer cycleTimer = new MSTimer();
     private Vec3 vec3;
     private EntityPlayer target;
@@ -58,16 +52,48 @@ public class BackTrack extends Module {
 
     @Override
     public void onEnable() {
-        packetQueue.clear();
-        skipPackets.clear();
         vec3 = null;
         target = null;
         currentLatency = 0;
+        LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
+        LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
+        LagManager.delay(S14PacketEntity.S17PacketEntityLookMove.class, this::onEntityMove);
+        LagManager.delay(S18PacketEntityTeleport.class, this::onEntityTeleport);
     }
 
     @Override
     public void onDisable() {
+        LagManager.undelay(S14PacketEntity.S15PacketEntityRelMove.class);
+        LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
+        LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
+        LagManager.undelay(S18PacketEntityTeleport.class);
         releaseAll();
+    }
+
+    private long onEntityMove(Packet<?> raw) {
+        if (target == null || vec3 == null)
+            return 0L;
+
+        IMixinS14PacketEntity wrapper = (IMixinS14PacketEntity) raw;
+        if (wrapper.getEntityId() != target.getEntityId())
+            return 0L;
+
+
+        S14PacketEntity packet = (S14PacketEntity) raw;
+        vec3 = vec3.addVector(packet.func_149062_c() / 32.0D, packet.func_149061_d() / 32.0D, packet.func_149064_e() / 32.0D);
+        return (long) currentLatency;
+    }
+
+    private long onEntityTeleport(Packet<?> raw) {
+        if (target == null)
+            return 0L;
+
+        S18PacketEntityTeleport packet = (S18PacketEntityTeleport) raw;
+        if (packet.getEntityId() != target.getEntityId())
+            return 0L;
+
+        vec3 = new Vec3(packet.getX() / 32.0D, packet.getY() / 32.0D, packet.getZ() / 32.0D);
+        return (long) currentLatency;
     }
 
     @RequiresPlayer
@@ -100,15 +126,9 @@ public class BackTrack extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketIncoming = event -> {
-        Packet<?> packet = event.getPacket();
-        if (skipPackets.contains(packet)) {
-            skipPackets.remove(packet);
-            return;
-        }
-
         try {
             if (mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) {
-                packetQueue.clear();
+                LagManager.discardDelayed(TRACKED_PACKETS);
                 return;
             }
 
@@ -120,11 +140,12 @@ public class BackTrack extends Module {
             if (event.isCancelled())
                 return;
 
+            Packet<?> packet = event.getPacket();
+
             if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
                 releaseAll();
                 target = null;
                 vec3 = null;
-                return;
             } else if (packet instanceof S13PacketDestroyEntities) {
                 S13PacketDestroyEntities wrapper = (S13PacketDestroyEntities) packet;
                 for (int id : wrapper.getEntityIDs()) {
@@ -136,33 +157,6 @@ public class BackTrack extends Module {
                     }
                 }
             }
-
-            if (packet instanceof S14PacketEntity) {
-                S14PacketEntity s14PacketEntity = (S14PacketEntity) packet;
-                IMixinS14PacketEntity wrapper = (IMixinS14PacketEntity) packet;
-                if (wrapper.getEntityId() == target.getEntityId()) {
-                    if (packetQueue.size() >= MAX_PACKET_QUEUE_SIZE)
-                        return;
-                    vec3 = vec3.addVector(s14PacketEntity.func_149062_c() / 32.0D, s14PacketEntity.func_149061_d() / 32.0D,
-                            s14PacketEntity.func_149064_e() / 32.0D);
-                    TimedPacket timedPacket = new TimedPacket(packet, currentLatency);
-                    timedPacket.getTimer().start();
-                    packetQueue.add(timedPacket);
-                    event.cancel();
-                }
-
-            } else if (packet instanceof S18PacketEntityTeleport) {
-                S18PacketEntityTeleport wrapper = (S18PacketEntityTeleport) packet;
-                if (wrapper.getEntityId() == target.getEntityId()) {
-                    if (packetQueue.size() >= MAX_PACKET_QUEUE_SIZE)
-                        return;
-                    vec3 = new Vec3(wrapper.getX() / 32.0D, wrapper.getY() / 32.0D, wrapper.getZ() / 32.0D);
-                    TimedPacket timedPacket = new TimedPacket(packet, currentLatency);
-                    timedPacket.getTimer().start();
-                    packetQueue.add(timedPacket);
-                    event.cancel();
-                }
-            }
         } catch (NullPointerException ignored) {
         }
     };
@@ -170,39 +164,41 @@ public class BackTrack extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
+        if (target == null)
+            return;
+
         if (releaseStyle.getValue() == ReleaseStyle.PULSE) {
             if (!cycleTimer.hasTimeElapsed(currentLatency))
                 return;
-            while (!packetQueue.isEmpty()) {
-                try {
-                    Packet<?> packet = packetQueue.remove().getPacket();
-                    skipPackets.add(packet);
-                    receivePacket(packet);
-                } catch (NullPointerException ignored) {
-                }
-            }
+            releaseAll();
             cycleTimer.reset();
-            if (packetQueue.isEmpty() && target != null) {
-                vec3 = target.getPositionVector();
-            }
-            return;
         }
 
-        while (!packetQueue.isEmpty()) {
+        // SMOOTH packets are auto-released by LagManager as their individual timers finish;
+        // either way, once nothing's left queued, snap back in sync with the real position.
+        if (LagManager.countDelayed(TRACKED_PACKETS) == 0) {
+            vec3 = target.getPositionVector();
+        }
+    };
+
+
+    @EventLink
+    public final Listener<EventAttack> eventAttack = event -> {
+        final Vec3 targetPos = event.getTarget().getPositionVector();
+        if (currentLatency == 0 && event.getTarget() instanceof EntityPlayer && target == null) {
+            vec3 = targetPos;
+            target = (EntityPlayer) event.getTarget();
+
             try {
-                if (packetQueue.element().getTimer().hasFinished()) {
-                    Packet<?> packet = packetQueue.remove().getPacket();
-                    skipPackets.add(packet);
-                    receivePacket(packet);
-                } else {
-                    break;
-                }
+                final double distance = RotationUtils.getDistanceToEntityBox(target);
+                if (!distanceRange.hasInRange(distance))
+                    return;
+
             } catch (NullPointerException ignored) {
             }
-        }
 
-        if (packetQueue.isEmpty() && target != null) {
-            vec3 = target.getPositionVector();
+            currentLatency = (int) latencyRange.getValue().getRandomInRange();
+            cycleTimer.reset();
         }
     };
 
@@ -277,37 +273,8 @@ public class BackTrack extends Module {
         GlStateManager.popMatrix();
     };
 
-    @EventLink
-    public final Listener<EventAttack> eventAttack = event -> {
-        final Vec3 targetPos = event.getTarget().getPositionVector();
-        if (event.getTarget() instanceof EntityPlayer) {
-            if (target == null || event.getTarget() != target) {
-                vec3 = targetPos;
-            }
-            target = (EntityPlayer) event.getTarget();
-
-            try {
-                final double distance = RotationUtils.getDistanceToEntityBox(target);
-                if (!distanceRange.hasInRange(distance))
-                    return;
-
-            } catch (NullPointerException ignored) {
-            }
-
-            currentLatency = (int) latencyRange.getValue().getRandomInRange();
-            cycleTimer.reset();
-        }
-    };
-
     public void releaseAll() {
-        if (!packetQueue.isEmpty()) {
-            for (TimedPacket timedPacket : packetQueue) {
-                Packet<?> packet = timedPacket.getPacket();
-                skipPackets.add(packet);
-                receivePacket(packet);
-            }
-            packetQueue.clear();
-        }
+        LagManager.releaseDelayed(TRACKED_PACKETS);
     }
 
     public enum EspMode {

@@ -8,7 +8,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.ghost.backtrack.TimedPacket;
+import arsenic.utils.lag.TimedPacket;
 import arsenic.module.property.impl.StringProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;

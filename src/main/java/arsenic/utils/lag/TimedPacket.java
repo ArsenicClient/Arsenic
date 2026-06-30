@@ -1,4 +1,4 @@
-package arsenic.module.impl.ghost.backtrack;
+package arsenic.utils.lag;
 
 import arsenic.utils.timer.Timer;
 import net.minecraft.network.Packet;
