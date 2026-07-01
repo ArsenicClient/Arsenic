@@ -18,6 +18,7 @@ import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
 import net.minecraft.util.Vec3;
+import org.w3c.dom.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,19 +26,11 @@ import java.util.List;
 @ModuleInfo(name = "FakeLag", category = ModuleCategory.GHOST)
 public class FakeLag extends Module {
 
-    public enum ReleaseMode {
-        Instant,
-        Smooth
-    }
-
     public final DoubleProperty enableRange = new DoubleProperty("Enable Range", new DoubleValue(4, 64, 20, 1));
-    public final DoubleProperty safeRange = new DoubleProperty("Safe Range", new DoubleValue(1, 20, 5, 0.5));
+    public final DoubleProperty safeRange = new DoubleProperty("Disable Range", new DoubleValue(1, 20, 5, 0.5));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 2000, 100, 200, 10));
     public final DoubleProperty buildupDuration = new DoubleProperty("Buildup Duration", new DoubleValue(0, 3000, 600, 50));
-    public final DoubleProperty buildupDelay = new DoubleProperty("Buildup Delay", new DoubleValue(0, 5000, 500, 50));
-    public final EnumProperty<ReleaseMode> releaseMode = new EnumProperty<>("Release Mode", ReleaseMode.Smooth);
-    @PropertyInfo(reliesOn = "Release Mode", value = "Smooth")
-    public final DoubleProperty releaseChunk = new DoubleProperty("Release Chunk", new DoubleValue(1, 10, 1, 1));
+    public final DoubleProperty buildupDelay = new DoubleProperty("Cooldown", new DoubleValue(0, 5000, 500, 50));
     private static final int MAX_POSITION_HISTORY = 400;
 
     private final List<Vec3> positionHistory = new ArrayList<>();
@@ -62,14 +55,12 @@ public class FakeLag extends Module {
         findClosestPlayer();
 
         if (closestDistance <= safeRange.getValue().getInput()) {
-            // an enemy is already too close - never start a buildup, and bail out instantly if one was running
             if (lagging)
                 stopLag(true);
             return;
         }
 
         if (closestDistance > enableRange.getValue().getInput()) {
-            // nobody worth lagging for anymore, release normally if we were running
             if (lagging)
                 stopLag(false);
             return;
@@ -90,7 +81,10 @@ public class FakeLag extends Module {
     };
 
     @EventLink
-    public final Listener<EventAttack> eventAttack = event -> stopLag(false);
+    public final Listener<EventAttack> eventAttack = event -> {
+        if(event.getTarget() instanceof EntityPlayer)
+            stopLag(false);
+    };
 
     private void recordPosition() {
         positionHistory.add(0, new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
@@ -155,12 +149,7 @@ public class FakeLag extends Module {
         lagging = false;
         lastReleaseTime = System.currentTimeMillis();
         LagManager.undelayOutgoing(Packet.class);
-
-        if (!emergency && releaseMode.getValue() == ReleaseMode.Smooth) {
-            LagManager.releaseDelayedOutgoingChunked(LagManager.ALL_PACKETS, (int) releaseChunk.getValue());
-        } else {
-            LagManager.releaseDelayedOutgoing(LagManager.ALL_PACKETS);
-        }
+        LagManager.releaseDelayedOutgoing(LagManager.ALL_PACKETS);
     }
 
     private void reset() {

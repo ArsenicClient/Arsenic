@@ -107,6 +107,11 @@ public final class LagManager {
     public final Listener<EventTick> onTick = event -> {
         incomingDelay.releaseFinished(LagManager::receivePacket);
         outgoingDelay.releaseFinished(LagManager::sendPacket);
+
+        // chunked releases get one slice of packets per tick, on top of whatever
+        // releaseFinished already let through naturally this tick.
+        incomingDelay.processChunkedReleases(LagManager::receivePacket);
+        outgoingDelay.processChunkedReleases(LagManager::sendPacket);
     };
 
     // ---- legacy outgoing "hold while acquired" API ----
@@ -190,6 +195,18 @@ public final class LagManager {
         incomingDelay.releaseMatching(filter, LagManager::receivePacket);
     }
 
+    /**
+     * Like {@link #releaseDelayed}, but releases at most {@code chunkSize} matching packets
+     * per tick instead of all of them at once, so a large queue drains gradually rather than
+     * arriving in a single burst. Packets are released oldest-first. The job keeps running
+     * across ticks (via {@link #onTick}) until nothing left in the queue matches {@code filter},
+     * at which point it removes itself automatically. A {@code chunkSize <= 0} falls back to
+     * an immediate full release.
+     */
+    public static void releaseDelayedChunked(Predicate<Packet<?>> filter, int chunkSize) {
+        incomingDelay.releaseMatchingChunked(filter, chunkSize, LagManager::receivePacket);
+    }
+
     /** Drops every currently-queued delayed incoming packet matching {@code filter} without replaying it. */
     public static void discardDelayed(Predicate<Packet<?>> filter) {
         incomingDelay.discard(filter);
@@ -219,6 +236,17 @@ public final class LagManager {
     /** Immediately sends every currently-queued delayed outgoing packet matching {@code filter}, skipping the rest of its delay. */
     public static void releaseDelayedOutgoing(Predicate<Packet<?>> filter) {
         outgoingDelay.releaseMatching(filter, LagManager::sendPacket);
+    }
+
+    /**
+     * Outgoing counterpart of {@link #releaseDelayedChunked}. Releases at most {@code chunkSize}
+     * matching queued outgoing packets per tick (oldest-first) instead of sending them all in
+     * one go, e.g. so a fake-lag module can trickle its held packets back out smoothly instead
+     * of producing a single, easily-flagged burst. A {@code chunkSize <= 0} falls back to an
+     * immediate full release via {@link #releaseDelayedOutgoing}.
+     */
+    public static void releaseDelayedOutgoingChunked(Predicate<Packet<?>> filter, int chunkSize) {
+        outgoingDelay.releaseMatchingChunked(filter, chunkSize, LagManager::sendPacket);
     }
 
     /** Drops every currently-queued delayed outgoing packet matching {@code filter} without ever sending it. */
@@ -259,6 +287,7 @@ public final class LagManager {
         private final Map<Class<?>, Function<Packet<?>, Long>> handlers = new ConcurrentHashMap<>();
         private final Queue<TimedPacket> queue = new ConcurrentLinkedQueue<>();
         private final Set<Packet<?>> skip = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        private final Queue<ChunkedRelease> chunkedReleases = new ConcurrentLinkedQueue<>();
 
         void bind(Class<?> packetClass, Function<Packet<?>, Long> fn) {
             handlers.put(packetClass, fn);
@@ -320,6 +349,48 @@ public final class LagManager {
             }
         }
 
+        /** Queues a chunked release job; actual draining happens in {@link #processChunkedReleases}. */
+        void releaseMatchingChunked(Predicate<Packet<?>> filter, int chunkSize, Consumer<Packet<?>> releaser) {
+            if (chunkSize <= 0) {
+                releaseMatching(filter, releaser);
+                return;
+            }
+            chunkedReleases.add(new ChunkedRelease(filter, chunkSize));
+        }
+
+        /** Drains up to {@code chunkSize} matching packets per active job, oldest-first, once per tick. */
+        void processChunkedReleases(Consumer<Packet<?>> releaser) {
+            if (chunkedReleases.isEmpty())
+                return;
+
+            Iterator<ChunkedRelease> jobs = chunkedReleases.iterator();
+            while (jobs.hasNext()) {
+                ChunkedRelease job = jobs.next();
+                int released = 0;
+
+                Iterator<TimedPacket> it = queue.iterator();
+                while (it.hasNext() && released < job.chunkSize) {
+                    TimedPacket timedPacket = it.next();
+                    if (job.filter.test(timedPacket.getPacket())) {
+                        it.remove();
+                        skip.add(timedPacket.getPacket());
+                        releaser.accept(timedPacket.getPacket());
+                        released++;
+                    }
+                }
+
+                if (!anyMatch(job.filter))
+                    jobs.remove();
+            }
+        }
+
+        private boolean anyMatch(Predicate<Packet<?>> filter) {
+            for (TimedPacket timedPacket : queue)
+                if (filter.test(timedPacket.getPacket()))
+                    return true;
+            return false;
+        }
+
         void discard(Predicate<Packet<?>> filter) {
             queue.removeIf(timedPacket -> filter.test(timedPacket.getPacket()));
         }
@@ -330,6 +401,17 @@ public final class LagManager {
                 if (filter.test(timedPacket.getPacket()))
                     n++;
             return n;
+        }
+
+        /** A pending chunked-release job: keep releasing up to {@code chunkSize} matching packets per tick. */
+        private static final class ChunkedRelease {
+            final Predicate<Packet<?>> filter;
+            final int chunkSize;
+
+            ChunkedRelease(Predicate<Packet<?>> filter, int chunkSize) {
+                this.filter = filter;
+                this.chunkSize = chunkSize;
+            }
         }
     }
 

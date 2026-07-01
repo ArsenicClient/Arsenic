@@ -54,7 +54,7 @@ public class BackTrack extends Module {
     public void onEnable() {
         vec3 = null;
         target = null;
-        currentLatency = 0;
+        LagManager.delay(S14PacketEntity.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S17PacketEntityLookMove.class, this::onEntityMove);
@@ -63,6 +63,7 @@ public class BackTrack extends Module {
 
     @Override
     public void onDisable() {
+        LagManager.undelay(S14PacketEntity.class);
         LagManager.undelay(S14PacketEntity.S15PacketEntityRelMove.class);
         LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
         LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
@@ -102,24 +103,23 @@ public class BackTrack extends Module {
         if (target == null || vec3 == null)
             return;
 
+        final double distance = RotationUtils.getDistanceToEntityBox(target);
+        if (!distanceRange.hasInRange(distance)) {
+            releaseAll();
+            target = null;
+            vec3 = null;
+            return;
+        }
+
         if (smart.getValue() && target.hurtTime <= 2) {
             double realDist = mc.thePlayer.getDistanceToEntity(target);
             double backtrackDist = mc.thePlayer.getDistance(vec3.xCoord, vec3.yCoord, vec3.zCoord);
             if (realDist + 0.5 < backtrackDist) {
-                currentLatency = 0;
                 releaseAll();
                 target = null;
                 vec3 = null;
                 return;
             }
-        }
-
-        final double distance = RotationUtils.getDistanceToEntityBox(target);
-        if (!distanceRange.hasInRange(distance)) {
-            currentLatency = 0;
-            releaseAll();
-            target = null;
-            vec3 = null;
         }
     };
 
@@ -173,29 +173,19 @@ public class BackTrack extends Module {
             releaseAll();
             cycleTimer.reset();
         }
-
-        // SMOOTH packets are auto-released by LagManager as their individual timers finish;
-        // either way, once nothing's left queued, snap back in sync with the real position.
-        if (LagManager.countDelayed(TRACKED_PACKETS) == 0) {
-            vec3 = target.getPositionVector();
-        }
     };
 
 
     @EventLink
     public final Listener<EventAttack> eventAttack = event -> {
-        final Vec3 targetPos = event.getTarget().getPositionVector();
-        if (currentLatency == 0 && event.getTarget() instanceof EntityPlayer && target == null) {
-            vec3 = targetPos;
+        if (event.getTarget() instanceof EntityPlayer && target != event.getTarget()) {
+
+            final double distance = RotationUtils.getDistanceToEntityBox(event.getTarget());
+            if (!distanceRange.hasInRange(distance))
+                return;
+
+            vec3 = event.getTarget().getPositionVector();
             target = (EntityPlayer) event.getTarget();
-
-            try {
-                final double distance = RotationUtils.getDistanceToEntityBox(target);
-                if (!distanceRange.hasInRange(distance))
-                    return;
-
-            } catch (NullPointerException ignored) {
-            }
 
             currentLatency = (int) latencyRange.getValue().getRandomInRange();
             cycleTimer.reset();

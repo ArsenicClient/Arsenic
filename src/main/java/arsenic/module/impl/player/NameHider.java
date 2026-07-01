@@ -9,7 +9,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.StringProperty;
 
-@ModuleInfo(name = "NameHider", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "NameHider", category = ModuleCategory.PLAYER, hidden = true)
 public class NameHider extends Module {
 
     public static final StringProperty customName = new StringProperty("ArsenicClient");
@@ -26,7 +26,7 @@ public class NameHider extends Module {
 
     public static String format(String text) {
         if (originalName != null) {
-            text = text.replace(originalName, customName.getValue());
+            return text.replace(originalName, customName.getValue());
         }
         return text;
     }
