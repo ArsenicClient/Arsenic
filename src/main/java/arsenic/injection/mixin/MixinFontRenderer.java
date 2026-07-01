@@ -31,15 +31,15 @@ public abstract class MixinFontRenderer implements IFontRenderer {
     public abstract int drawString(String p_drawString_1_, float p_drawString_2_, float p_drawString_3_,
             int p_drawString_4_, boolean p_drawString_5_);
 
-    @ModifyVariable(method = "getStringWidth", at = @At("HEAD"), argsOnly = true)
-    private String modifyGetStringWidthArg(String p_getStringWidth_1_) {
-        return format(p_getStringWidth_1_);
+    @ModifyVariable(
+            method = "renderString",
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private String formatRenderedText(String text) {
+        return format(text);
     }
 
-    @ModifyVariable(method = "drawString*", at = @At("HEAD"), argsOnly = true)
-    private String modifyDrawStringArg(String p_drawString_1_) {
-        return format(p_drawString_1_);
-    }
 
     @Override
     public void drawString(String text, float x, float y, int color) {

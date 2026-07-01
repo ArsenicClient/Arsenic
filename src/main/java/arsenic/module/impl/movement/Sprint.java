@@ -14,7 +14,7 @@ import arsenic.module.property.impl.EnumProperty;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.potion.Potion;
 
-@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT, hidden = true)
 public class Sprint extends Module {
     public final EnumProperty<sMode> sprintMode = new EnumProperty<>("Mode: ", sMode.Legit);
     public final BooleanProperty allDirections = new BooleanProperty("All Directions", false);
