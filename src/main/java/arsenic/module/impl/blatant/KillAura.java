@@ -29,6 +29,8 @@ public class KillAura extends Module {
     public EntityPlayer target = null;
     private final MSTimer attackTimer = new MSTimer();
     private final ServerInfo serverInfo = Arsenic.getArsenic().getServerInfo();
+    private boolean wasUsingItem = false;
+
 
     @Override
     protected void onEnable() {
@@ -49,16 +51,22 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTickListener = event -> {
-        target = TargetManager.getTarget();
-        if (target != null && mc.thePlayer.canEntityBeSeen(target) && attackTimer.hasTimeElapsed(getAttackDelay())) {
-            if (RotationUtils.getDistanceToEntityBox(target) <= 3 && (!serverInfo.blocking || !mc.thePlayer.isUsingItem())) {
-                mc.thePlayer.swingItem();
-                mc.playerController.attackEntity(mc.thePlayer, target);
-                attackTimer.reset();
-            }
-        }
-    };
+        boolean usingItem = mc.thePlayer.isUsingItem();
 
+        target = TargetManager.getTarget();
+        if (target != null
+                && mc.thePlayer.canEntityBeSeen(target)
+                && attackTimer.hasTimeElapsed(getAttackDelay())
+                && !usingItem
+                && !wasUsingItem // skip the tick RELEASE_USE_ITEM was sent
+                && RotationUtils.getDistanceToEntityBox(target) <= 3) {
+            mc.thePlayer.swingItem();
+            mc.playerController.attackEntity(mc.thePlayer, target);
+            attackTimer.reset();
+        }
+
+        wasUsingItem = usingItem;
+    };
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {

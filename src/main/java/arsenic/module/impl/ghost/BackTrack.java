@@ -8,52 +8,60 @@ import arsenic.injection.accessor.IMixinS14PacketEntity;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
-import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
-import org.lwjgl.opengl.GL11;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.GHOST)
 public class BackTrack extends Module {
 
-    // packet types this module ever asks LagManager to delay - used to target releases/discards.
-    private static final Predicate<Packet<?>> TRACKED_PACKETS = p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
+    private static final Predicate<Packet<?>> ALL_TRACKED =
+            p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
-    public final RangeProperty distanceRange = new RangeProperty("Distance", new RangeValue(0, 6, 0, 4.0, 0.1));
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
     public final ColourProperty espColor = new ColourProperty("Color", 0xFFFFFFFF);
-    public final DoubleProperty wireframeWidth = new DoubleProperty("Wireframe Width", new DoubleValue(0.5, 5.0, 2.0, 0.1));
-    public final EnumProperty<ReleaseStyle> releaseStyle = new EnumProperty<>("Style", ReleaseStyle.PULSE);
-    public final BooleanProperty smart = new BooleanProperty("Smart", true);
 
-    private final MSTimer cycleTimer = new MSTimer();
-    private Vec3 vec3;
-    private EntityPlayer target;
-    private int currentLatency = 0;
+    // entityId → per-target backtrack state
+    private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();
+
+    private static class TrackEntry {
+        // Server-ahead position, updated by each delayed movement packet before it's released.
+        // Volatile because the packet thread writes and the render/main thread reads.
+        volatile Vec3 vec3;
+        final int latency;
+        final EntityPlayer player;
+
+        TrackEntry(EntityPlayer player, Vec3 vec3, int latency) {
+            this.player = player;
+            this.vec3 = vec3;
+            this.latency = latency;
+        }
+    }
+
+    // ---- Lifecycle ----
 
     @Override
     public void onEnable() {
-        vec3 = null;
-        target = null;
+        tracked.clear();
         LagManager.delay(S14PacketEntity.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
@@ -68,169 +76,137 @@ public class BackTrack extends Module {
         LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
         LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
         LagManager.undelay(S18PacketEntityTeleport.class);
-        releaseAll();
+        LagManager.releaseDelayed(ALL_TRACKED); // instant flush on disable
+        tracked.clear();
     }
 
+    // ---- Packet delay handlers ----
+
     private long onEntityMove(Packet<?> raw) {
-        if (target == null || vec3 == null)
-            return 0L;
-
-        IMixinS14PacketEntity wrapper = (IMixinS14PacketEntity) raw;
-        if (wrapper.getEntityId() != target.getEntityId())
-            return 0L;
-
+        TrackEntry entry = tracked.get(((IMixinS14PacketEntity) raw).getEntityId());
+        if (entry == null) return 0L;
 
         S14PacketEntity packet = (S14PacketEntity) raw;
-        vec3 = vec3.addVector(packet.func_149062_c() / 32.0D, packet.func_149061_d() / 32.0D, packet.func_149064_e() / 32.0D);
-        return (long) currentLatency;
+        // addVector creates a new Vec3, so the volatile write is safe
+        entry.vec3 = entry.vec3.addVector(
+                packet.func_149062_c() / 32.0D,
+                packet.func_149061_d() / 32.0D,
+                packet.func_149064_e() / 32.0D
+        );
+        return (long) entry.latency;
     }
 
     private long onEntityTeleport(Packet<?> raw) {
-        if (target == null)
-            return 0L;
-
         S18PacketEntityTeleport packet = (S18PacketEntityTeleport) raw;
-        if (packet.getEntityId() != target.getEntityId())
-            return 0L;
+        TrackEntry entry = tracked.get(packet.getEntityId());
+        if (entry == null) return 0L;
 
-        vec3 = new Vec3(packet.getX() / 32.0D, packet.getY() / 32.0D, packet.getZ() / 32.0D);
-        return (long) currentLatency;
+        entry.vec3 = new Vec3(packet.getX() / 32.0D, packet.getY() / 32.0D, packet.getZ() / 32.0D);
+        return (long) entry.latency;
     }
 
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventUpdate.Pre> eventUpdate = event -> {
-        if (target == null || vec3 == null)
-            return;
-
-        final double distance = RotationUtils.getDistanceToEntityBox(target);
-        if (!distanceRange.hasInRange(distance)) {
-            releaseAll();
-            target = null;
-            vec3 = null;
-            return;
-        }
-
-        if (smart.getValue() && target.hurtTime <= 2) {
-            double realDist = mc.thePlayer.getDistanceToEntity(target);
-            double backtrackDist = mc.thePlayer.getDistance(vec3.xCoord, vec3.yCoord, vec3.zCoord);
-            if (realDist + 0.5 < backtrackDist) {
-                releaseAll();
-                target = null;
-                vec3 = null;
-                return;
-            }
-        }
-    };
+    // ---- Attack: start / refresh tracking ----
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventPacket.Incoming.Pre> eventPacketIncoming = event -> {
-        try {
-            if (mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) {
-                LagManager.discardDelayed(TRACKED_PACKETS);
-                return;
-            }
+    public final Listener<EventAttack> eventAttack = event -> {
+        if (!(event.getTarget() instanceof EntityPlayer)) return;
 
-            if (target == null) {
-                releaseAll();
-                return;
-            }
+        EntityPlayer target = (EntityPlayer) event.getTarget();
 
-            if (event.isCancelled())
-                return;
-
-            Packet<?> packet = event.getPacket();
-
-            if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
-                releaseAll();
-                target = null;
-                vec3 = null;
-            } else if (packet instanceof S13PacketDestroyEntities) {
-                S13PacketDestroyEntities wrapper = (S13PacketDestroyEntities) packet;
-                for (int id : wrapper.getEntityIDs()) {
-                    if (id == target.getEntityId()) {
-                        target = null;
-                        vec3 = null;
-                        releaseAll();
-                        return;
-                    }
-                }
-            }
-        } catch (NullPointerException ignored) {
+        if (!tracked.containsKey(target.getEntityId())) {
+            tracked.put(target.getEntityId(), new TrackEntry(
+                    target,
+                    target.getPositionVector(),
+                    (int) latencyRange.getValue().getRandomInRange()
+            ));
         }
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
-        if (target == null)
-            return;
+        if (tracked.isEmpty()) return;
+        int pingTicks = Math.max(1, LagManager.getPingAsTicks());
 
-        if (releaseStyle.getValue() == ReleaseStyle.PULSE) {
-            if (!cycleTimer.hasTimeElapsed(currentLatency))
-                return;
-            releaseAll();
-            cycleTimer.reset();
+        Iterator<Map.Entry<Integer, TrackEntry>> it = tracked.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, TrackEntry> mapEntry = it.next();
+            TrackEntry entry = mapEntry.getValue();
+            EntityPlayer target = entry.player;
+            Vec3 vec3 = entry.vec3;
+            if (target.isDead || mc.theWorld.getEntityByID(target.getEntityId()) == null) {
+                LagManager.releaseDelayed(filterFor(target.getEntityId()));
+                it.remove();
+                continue;
+            }
+            if (RotationUtils.getDistanceToEntityBox(target) <= 3.0) continue;
+
+            double px = mc.thePlayer.posX;
+            double pz = mc.thePlayer.posZ;
+
+            double bdx = vec3.xCoord - px;
+            double bdz = vec3.zCoord - pz;
+            double backtrackDist = Math.sqrt(bdx * bdx + bdz * bdz);
+
+            double rdx = target.posX - px;
+            double rdz = target.posZ - pz;
+            double realDist = Math.sqrt(rdx * rdx + rdz * rdz);
+
+            double futureX = target.posX + target.motionX * pingTicks;
+            double futureZ = target.posZ + target.motionZ * pingTicks;
+            double fdx = futureX - px;
+            double fdz = futureZ - pz;
+            double futureDist = Math.sqrt(fdx * fdx + fdz * fdz);
+
+            if (realDist < backtrackDist || futureDist < backtrackDist) {
+                releaseSmooth(target.getEntityId());
+                it.remove();
+            }
         }
     };
 
+    // ---- Incoming packets: server corrections and entity removal ----
 
+    @RequiresPlayer
     @EventLink
-    public final Listener<EventAttack> eventAttack = event -> {
-        if (event.getTarget() instanceof EntityPlayer && target != event.getTarget()) {
-
-            final double distance = RotationUtils.getDistanceToEntityBox(event.getTarget());
-            if (!distanceRange.hasInRange(distance))
+    public final Listener<EventPacket.Incoming.Pre> eventPacketIncoming = event -> {
+        try {
+            if (mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) {
+                LagManager.discardDelayed(ALL_TRACKED);
+                tracked.clear();
                 return;
+            }
 
-            vec3 = event.getTarget().getPositionVector();
-            target = (EntityPlayer) event.getTarget();
+            if (event.isCancelled()) return;
 
-            currentLatency = (int) latencyRange.getValue().getRandomInRange();
-            cycleTimer.reset();
+            Packet<?> packet = event.getPacket();
+
+            if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
+                // Server is rubber-banding us or we're disconnecting — instant flush, not smooth
+                LagManager.releaseDelayed(ALL_TRACKED);
+                tracked.clear();
+            } else if (packet instanceof S13PacketDestroyEntities) {
+                for (int id : ((S13PacketDestroyEntities) packet).getEntityIDs()) {
+                    if (tracked.remove(id) != null)
+                        LagManager.releaseDelayed(filterFor(id));
+                }
+            }
+        } catch (NullPointerException ignored) {
         }
     };
+
+    // ---- ESP ----
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> eventRenderWorldLast = event -> {
-        if (target == null || vec3 == null || target.isDead || currentLatency == 0)
-            return;
+        if (tracked.isEmpty()) return;
 
         EspMode mode = espMode.getValue();
-        if (mode == EspMode.NONE)
-            return;
+        if (mode == EspMode.NONE) return;
 
         Color color = new Color(espColor.getValue());
-
-        double x = vec3.xCoord - mc.getRenderManager().viewerPosX;
-        double y = vec3.yCoord - mc.getRenderManager().viewerPosY;
-        double z = vec3.zCoord - mc.getRenderManager().viewerPosZ;
-
-        if (mode == EspMode.MODEL) {
-            double dx = vec3.xCoord - target.posX;
-            double dy = vec3.yCoord - target.posY;
-            double dz = vec3.zCoord - target.posZ;
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(dx, dy, dz);
-            GlStateManager.disableDepth();
-            GlStateManager.enableBlend();
-            mc.getRenderManager().renderEntityStatic(target, event.partialTicks, false);
-            GlStateManager.enableDepth();
-            GlStateManager.disableBlend();
-            GlStateManager.popMatrix();
-            return;
-        }
-
-        AxisAlignedBB playerBB = target.getEntityBoundingBox();
-        double w = playerBB.maxX - playerBB.minX;
-        double h = playerBB.maxY - playerBB.minY;
-
-        AxisAlignedBB bb = new AxisAlignedBB(
-                x - w / 2, y, z - w / 2,
-                x + w / 2, y + h, z + w / 2
-        );
 
         GlStateManager.pushMatrix();
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -239,20 +215,54 @@ public class BackTrack extends Module {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glDepthMask(false);
 
-        switch (mode) {
-            case BOX:
-                GL11.glLineWidth(2.0F);
-                RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
-                break;
+        for (TrackEntry entry : tracked.values()) {
+            Vec3 vec3 = entry.vec3;
+            EntityPlayer target = entry.player;
+            if (vec3 == null || target.isDead) continue;
 
-            case FILLED:
-                RenderUtils.drawShadedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), 63);
-                break;
+            if (mode == EspMode.MODEL) {
+                // Translate by the XZ delta only; Y is anchored to the player so it stays grounded
+                double dx = vec3.xCoord - target.posX;
+                double dz = vec3.zCoord - target.posZ;
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(dx, 0, dz);
+                GlStateManager.disableDepth();
+                GlStateManager.enableBlend();
+                mc.getRenderManager().renderEntityStatic(target, event.partialTicks, false);
+                GlStateManager.enableDepth();
+                GlStateManager.disableBlend();
+                GlStateManager.popMatrix();
+                continue;
+            }
 
-            case WIREFRAME:
-                GL11.glLineWidth((float) wireframeWidth.getValue().getInput());
-                RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
-                break;
+            // Build a bounding box at the backtracked XZ but at our own Y,
+            // matching the player's real hitbox dimensions.
+            double rx = vec3.xCoord - mc.getRenderManager().viewerPosX;
+            double ry = vec3.yCoord - mc.getRenderManager().viewerPosY;
+            double rz = vec3.zCoord - mc.getRenderManager().viewerPosZ;
+
+            AxisAlignedBB playerBB = target.getEntityBoundingBox();
+            double w = playerBB.maxX - playerBB.minX;
+            double h = playerBB.maxY - playerBB.minY;
+
+            AxisAlignedBB bb = new AxisAlignedBB(
+                    rx - w / 2, ry, rz - w / 2,
+                    rx + w / 2, ry + h, rz + w / 2
+            );
+
+            switch (mode) {
+                case BOX:
+                    GL11.glLineWidth(2.0F);
+                    RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                    break;
+                case FILLED:
+                    RenderUtils.drawShadedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), 63);
+                    break;
+                case WIREFRAME:
+                    GL11.glLineWidth(1.5F);
+                    RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                    break;
+            }
         }
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -263,15 +273,24 @@ public class BackTrack extends Module {
         GlStateManager.popMatrix();
     };
 
-    public void releaseAll() {
-        LagManager.releaseDelayed(TRACKED_PACKETS);
+    // ---- Helpers ----
+    /** Per-entity packet predicate so releases only drain one target's queue. */
+    private static Predicate<Packet<?>> filterFor(int entityId) {
+        return p -> {
+            if (p instanceof S14PacketEntity)
+                return ((IMixinS14PacketEntity) p).getEntityId() == entityId;
+            if (p instanceof S18PacketEntityTeleport)
+                return ((S18PacketEntityTeleport) p).getEntityId() == entityId;
+            return false;
+        };
+    }
+
+    /** Smooth (chunked) release for a single target when backtrack is no longer beneficial. */
+    private void releaseSmooth(int entityId) {
+        LagManager.releaseDelayedChunked(filterFor(entityId), 3);
     }
 
     public enum EspMode {
-        NONE, BOX, FILLED, MODEL, WIREFRAME
-    }
-
-    public enum ReleaseStyle {
-        PULSE, SMOOTH
+        NONE, BOX, FILLED, WIREFRAME, MODEL
     }
 }
