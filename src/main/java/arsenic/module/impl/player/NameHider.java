@@ -26,7 +26,7 @@ public class NameHider extends Module {
 
     public static String format(String text) {
         if (originalName != null) {
-            return text.replace(originalName, customName.getValue());
+            return text.replaceAll(originalName, customName.getValue());
         }
         return text;
     }
