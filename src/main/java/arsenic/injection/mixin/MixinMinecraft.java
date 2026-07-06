@@ -9,7 +9,6 @@ import arsenic.main.MinecraftAPI;
 import arsenic.module.impl.ghost.Clicker;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
-import arsenic.module.impl.movement.NoSlow;
 import arsenic.module.impl.player.FastPlace;
 import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -68,15 +67,6 @@ public abstract class MixinMinecraft {
             MinecraftAPI.KEY_CODE = null;
         }
         return state;
-    }
-
-    @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z", ordinal = 0))
-    public boolean redirectIsUsingItem(EntityPlayerSP instance) {
-        NoSlow noSlow = Arsenic.getArsenic().getModuleManager().getModuleByClass(NoSlow.class);
-        if(!noSlow.isEnabled()) {
-            return instance.isUsingItem();
-        }
-        return noSlow.mixinResult();
     }
 
 

@@ -13,23 +13,25 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.MovingObjectPosition;
 
 import java.security.SecureRandom;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.BLATANT)
 public class KillAura extends Module {
 
+    public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1));
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
-    public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 100, 20, 50,1));
     public EntityPlayer target = null;
+    private boolean wasUsingItem;
     private final MSTimer attackTimer = new MSTimer();
-    private final ServerInfo serverInfo = Arsenic.getArsenic().getServerInfo();
-    private boolean wasUsingItem = false;
 
 
     @Override
@@ -45,28 +47,32 @@ public class KillAura extends Module {
         float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
         event.setYaw(rots[0]);
         event.setPitch(rots[1]);
-        event.setSpeed(360f);
+        event.setSpeed((float) speed.getValue().getRandomInRange());
     };
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventTick> eventTickListener = event -> {
+    public final Listener<EventSilentRotation.Post> eventTickListener = event -> {
         boolean usingItem = mc.thePlayer.isUsingItem();
-
         target = TargetManager.getTarget();
-        if (target != null
-                && mc.thePlayer.canEntityBeSeen(target)
-                && attackTimer.hasTimeElapsed(getAttackDelay())
-                && !usingItem
-                && !wasUsingItem // skip the tick RELEASE_USE_ITEM was sent
-                && RotationUtils.getDistanceToEntityBox(target) <= 3) {
-            mc.thePlayer.swingItem();
-            mc.playerController.attackEntity(mc.thePlayer, target);
-            attackTimer.reset();
+        MovingObjectPosition raytrace = event.getRayTraceEntity();
+        if(raytrace != null && raytrace.entityHit != null) {
+            if (target != null
+                    && raytrace.entityHit.getEntityId() == target.getEntityId()
+                    && mc.thePlayer.canEntityBeSeen(target)
+                    && attackTimer.hasTimeElapsed(getAttackDelay())
+                    && !usingItem
+                    && !wasUsingItem
+                    && RotationUtils.getDistanceToEntityBox(target) <= 3) {
+                mc.thePlayer.swingItem();
+                mc.playerController.attackEntity(mc.thePlayer, target);
+                attackTimer.reset();
+            }
         }
-
         wasUsingItem = usingItem;
     };
+
+
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {

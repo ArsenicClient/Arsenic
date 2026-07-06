@@ -2,7 +2,6 @@ package arsenic.injection.mixin;
 
 import arsenic.event.impl.*;
 import arsenic.injection.accessor.IMixinEntityPlayerSP;
-import arsenic.module.impl.movement.NoSlow;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -75,18 +74,17 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
             }
         }
     }
+
+    @Inject(method = "onUpdate", at = @At("RETURN"))
+    private void onUpdatePost(CallbackInfo ci) {
+        Arsenic.getInstance().getEventManager().post(new EventTick.Post());
+    }
+
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
     public void onLivingUpdate(CallbackInfo ci) {
         Arsenic.getInstance().getEventManager().post(new EventLiving());
     }
 
-    @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isUsingItem()Z"))
-    private boolean noSlowMixin(EntityPlayerSP instance) {
-        NoSlow noSlow = Arsenic.getInstance().getModuleManager().getModuleByClass(NoSlow.class);
-        if(!noSlow.isEnabled() || !instance.isUsingItem())
-            return instance.isUsingItem();
-        return noSlow.mixinResult();
-    }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("RETURN"))
     private void onUpdateWalkingPlayerPost(CallbackInfo ci) {

@@ -2,6 +2,7 @@ package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
+import arsenic.module.impl.movement.AutoBlock;
 import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
@@ -58,6 +59,7 @@ public abstract class MixinItemRenderer {
 
     @Inject(method = "renderItemInFirstPerson", at = @At("HEAD"), cancellable = true)
     public void renderItemInFirstPerson(float partialTicks, CallbackInfo ci) {
+        AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
         try {
             float f = 1.0F - (this.prevEquippedProgress + (this.equippedProgress - this.prevEquippedProgress) * partialTicks);
             EntityPlayerSP player = this.mc.thePlayer;
@@ -73,7 +75,7 @@ public abstract class MixinItemRenderer {
             if (this.itemToRender != null) {
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0) {
+                } else if (player.getItemInUseCount() > 0 || autoBlock.isBlocked()) {
                     EnumAction action =  this.itemToRender.getItemUseAction();
                     switch (action) {
                         case NONE:
