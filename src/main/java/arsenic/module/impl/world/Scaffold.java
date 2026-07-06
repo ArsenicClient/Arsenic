@@ -158,7 +158,7 @@ public class Scaffold extends Module {
             return;
 
         Item item = keyBlock();
-        MovingObjectPosition movingObjectPosition = rayTracePost(event);
+        MovingObjectPosition movingObjectPosition = event.getRayTrace();
 
         if(item instanceof ItemBlock) {
             ItemBlock itemBlock = (ItemBlock) item;
@@ -414,13 +414,6 @@ public class Scaffold extends Module {
     }
 
 
-    private MovingObjectPosition rayTracePost(EventSilentRotation.Post event) {
-        Vec3 vec3 = mc.thePlayer.getPositionEyes(1);
-        Vec3 vec31 = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(event.getPitch(), event.getYaw());
-        Vec3 vec32 = vec3.addVector(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5);
-        return mc.thePlayer.worldObj.rayTraceBlocks(vec3, vec32, false, false, true);
-    }
-
 
     private Item keyBlock() {
         if (mc.thePlayer.inventory.getCurrentItem() == null
@@ -439,7 +432,7 @@ public class Scaffold extends Module {
             return;
         }
 
-        MovingObjectPosition objectOver = rayTracePost(event);
+        MovingObjectPosition objectOver = event.getRayTrace();
         BlockPos blockpos = objectOver.getBlockPos();
         if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
                 || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {

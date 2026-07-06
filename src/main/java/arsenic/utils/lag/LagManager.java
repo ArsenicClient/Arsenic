@@ -1,5 +1,6 @@
 package arsenic.utils.lag;
 
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -67,6 +68,7 @@ public final class LagManager {
         return currentPing / 50;
     }
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.OutGoing> onOutgoing = event -> {
         Packet<?> packet = event.getPacket();
@@ -89,6 +91,7 @@ public final class LagManager {
         }
     };
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> onIncoming = event -> {
         Packet<?> packet = event.getPacket();

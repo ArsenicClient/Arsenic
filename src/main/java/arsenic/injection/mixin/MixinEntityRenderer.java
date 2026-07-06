@@ -37,11 +37,11 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     private void renderWorldPass(int pass, float partialTicks, long finishTimeNano, CallbackInfo callbackInfo) {
         Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(mc.renderGlobal, partialTicks));
     }
+
     /**
      * @author kv
      * @reason reach
      */
-
     @Overwrite
     public void getMouseOver(float p_getMouseOver_1_) {
         Entity entity = this.mc.getRenderViewEntity();
