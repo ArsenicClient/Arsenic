@@ -2,7 +2,8 @@ package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.blatant.AutoBlock;
+import arsenic.module.impl.movement.AutoBlock;
+import arsenic.module.impl.movement.AutoBlock;
 import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
