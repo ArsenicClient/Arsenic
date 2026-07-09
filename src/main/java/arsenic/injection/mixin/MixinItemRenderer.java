@@ -2,7 +2,7 @@ package arsenic.injection.mixin;
 
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.movement.AutoBlock;
+import arsenic.module.impl.blatant.AutoBlock;
 import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
@@ -75,7 +75,7 @@ public abstract class MixinItemRenderer {
             if (this.itemToRender != null) {
                 if (this.itemToRender.getItem() instanceof ItemMap) {
                     this.renderItemMap(player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0 || autoBlock.isBlocked()) {
+                } else if (player.getItemInUseCount() > 0) {
                     EnumAction action =  this.itemToRender.getItemUseAction();
                     switch (action) {
                         case NONE:

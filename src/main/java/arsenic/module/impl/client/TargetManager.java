@@ -62,7 +62,7 @@ public class TargetManager extends Module {
     @EventLink
     public Listener<EventAttack> eventAttackListener = e -> {
         lockedTarget = e.getTarget() instanceof EntityPlayer
-                && mc.thePlayer.getDistanceToEntity(e.getTarget()) <= lockDist.getValue().getInput()
+                && RotationUtils.getDistanceToEntityBox(e.getTarget()) <= lockDist.getValue().getInput()
                 ? (EntityPlayer) e.getTarget()
                 : lockedTarget;
     };
@@ -147,10 +147,10 @@ public class TargetManager extends Module {
     }
 
     public enum SortMode {
-        Distance(player -> mc.thePlayer.getDistanceToEntity(player)),
+        Distance(player -> (float) RotationUtils.getDistanceToEntityBox(player)),
         HurtSwitch(player -> (float) player.hurtTime),
         // Sorts ascending by predicted server hurt time — player closest to 0 (hittable) is preferred
-        SmartSwitch(player -> getServerHurtTimeOnPacketArrival(player)),
+        SmartSwitch(TargetManager::getServerHurtTimeOnPacketArrival),
         Fov(player -> (float) Math.abs(RotationUtils.fovFromEntity(player))),
         Lock(player -> player == lockedTarget ? 0f : 1f),
         Health(EntityLivingBase::getHealth);

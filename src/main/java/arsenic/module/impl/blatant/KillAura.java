@@ -42,6 +42,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
+        target = TargetManager.getTarget();
         if (target == null)
             return;
         float[] rots = RotationUtils.getRotationsToEntity(target); //smoothing is already done in rotation manager.
@@ -54,18 +55,14 @@ public class KillAura extends Module {
     @EventLink
     public final Listener<EventSilentRotation.Post> eventTickListener = event -> {
         boolean usingItem = mc.thePlayer.isUsingItem();
-        target = TargetManager.getTarget();
         MovingObjectPosition raytrace = event.getRayTraceEntity();
-        if(raytrace != null && raytrace.entityHit != null) {
-            if (target != null
-                    && raytrace.entityHit.getEntityId() == target.getEntityId()
-                    && mc.thePlayer.canEntityBeSeen(target)
-                    && attackTimer.hasTimeElapsed(getAttackDelay())
+        if(target != null && raytrace != null && raytrace.entityHit != null) {
+            if (attackTimer.hasTimeElapsed(getAttackDelay())
                     && !usingItem
                     && !wasUsingItem
-                    && RotationUtils.getDistanceToEntityBox(target) <= 3) {
+                    && RotationUtils.getDistanceToEntityBox(raytrace.entityHit) <= 3) {
                 mc.thePlayer.swingItem();
-                mc.playerController.attackEntity(mc.thePlayer, target);
+                mc.playerController.attackEntity(mc.thePlayer, raytrace.entityHit);
                 attackTimer.reset();
             }
         }
