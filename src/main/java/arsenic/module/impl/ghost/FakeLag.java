@@ -7,8 +7,6 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
@@ -18,12 +16,11 @@ import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
 import net.minecraft.util.Vec3;
-import org.w3c.dom.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "FakeLag", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "LagRange", category = ModuleCategory.GHOST)
 public class FakeLag extends Module {
 
     public final DoubleProperty enableRange = new DoubleProperty("Enable Range", new DoubleValue(4, 64, 20, 1));

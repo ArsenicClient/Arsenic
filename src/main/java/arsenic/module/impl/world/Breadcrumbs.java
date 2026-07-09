@@ -20,7 +20,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Breadcrumbs", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Breadcrumbs", category = ModuleCategory.WORLD, hidden = true)
 public class Breadcrumbs extends Module {
 
     public final DoubleProperty maxPoints = new DoubleProperty("Max points", new DoubleValue(50, 2000, 500, 50));

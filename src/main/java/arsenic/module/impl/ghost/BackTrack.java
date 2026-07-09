@@ -135,12 +135,15 @@ public class BackTrack extends Module {
             TrackEntry entry = mapEntry.getValue();
             EntityPlayer target = entry.player;
             Vec3 vec3 = entry.vec3;
+
             if (target.isDead || mc.theWorld.getEntityByID(target.getEntityId()) == null) {
                 LagManager.releaseDelayed(filterFor(target.getEntityId()));
                 it.remove();
                 continue;
             }
-            if (RotationUtils.getDistanceToEntityBox(target) <= 3.0) continue;
+
+            if (RotationUtils.getDistanceToEntityBox(target) <= 3.0)
+                continue;
 
             double px = mc.thePlayer.posX;
             double pz = mc.thePlayer.posZ;
@@ -166,38 +169,7 @@ public class BackTrack extends Module {
         }
     };
 
-    // ---- Incoming packets: server corrections and entity removal ----
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventPacket.Incoming.Pre> eventPacketIncoming = event -> {
-        try {
-            if (mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) {
-                LagManager.discardDelayed(ALL_TRACKED);
-                tracked.clear();
-                return;
-            }
-
-            if (event.isCancelled()) return;
-
-            Packet<?> packet = event.getPacket();
-
-            if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
-                // Server is rubber-banding us or we're disconnecting — instant flush, not smooth
-                LagManager.releaseDelayed(ALL_TRACKED);
-                tracked.clear();
-            } else if (packet instanceof S13PacketDestroyEntities) {
-                for (int id : ((S13PacketDestroyEntities) packet).getEntityIDs()) {
-                    if (tracked.remove(id) != null)
-                        LagManager.releaseDelayed(filterFor(id));
-                }
-            }
-        } catch (NullPointerException ignored) {
-        }
-    };
-
     // ---- ESP ----
-
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> eventRenderWorldLast = event -> {

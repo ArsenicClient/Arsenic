@@ -4,9 +4,9 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRunTick;
 import arsenic.event.impl.EventLiving;
-import arsenic.main.Arsenic;
+import arsenic.event.impl.EventRender2D;
+import arsenic.event.impl.EventRunTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -15,14 +15,8 @@ import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
-import arsenic.injection.accessor.IMixinMinecraft;
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.util.BlockPos;
 
 @ModuleInfo(name = "Clicker", category = ModuleCategory.GHOST)
 public class Clicker extends Module {
@@ -41,7 +35,7 @@ public class Clicker extends Module {
     
     @RequiresPlayer
     @EventLink(Priorities.VERY_LOW)
-    public final Listener<EventRunTick> eventRunTickListener = e -> {
+    public final Listener<EventRender2D> eventRunTickListener = e -> {
         if (!lmbDown)
             return;
 
@@ -65,17 +59,8 @@ public class Clicker extends Module {
             int key = mc.gameSettings.keyBindAttack.getKeyCode();
             KeyBinding.onTick(key);
             prevCps = cps;
-            randomize();
+            cps = (long) rangeProperty.getValue().getRandomInRange();
             timer.reset();
         }
     };
-
-    private void randomize() {
-        cps = (long) JavaUtils.getRandom(rangeProperty.getValue().getMin(),rangeProperty.getValue().getMax());
-    }
-
-    @Override
-    protected void onEnable() {
-        randomize();
-    }
 }
