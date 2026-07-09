@@ -1,93 +1,79 @@
 package arsenic.module.impl.ghost;
 
-import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
+import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.utils.lag.TimedPacket;
-import arsenic.module.property.impl.StringProperty;
+import arsenic.module.impl.client.TargetManager;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.utils.lag.LagManager;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.rotations.RotationUtils;
+import arsenic.utils.timer.MSTimer;
+import ibxm.Player;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.network.play.server.S40PacketDisconnect;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
-import static arsenic.utils.lag.LagManager.receivePacket;
+import static arsenic.utils.lag.LagManager.releaseDelayed;
 
-@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.GHOST, dev = true)
+@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.GHOST)
 public class KnockbackDelay extends Module {
 
-    public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 1000, 200, 300, 10));
-    public final DoubleProperty chance = new DoubleProperty("Chance %", new DoubleValue(0, 100, 100, 1));
-    public final StringProperty warning = new StringProperty("This may silent flag");
+    public enum DelayMode {Normal, AntiCombo}
 
-    private final Queue<TimedPacket> packetQueue = new ConcurrentLinkedQueue<>();
-    private final List<Packet<?>> skipPackets = new ArrayList<>();
-    private long holdUntil = 0;
+    public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 500, 200, 300, 10));
+    public final EnumProperty<DelayMode> mode = new EnumProperty<>("Mode", DelayMode.AntiCombo);
+    public final DoubleProperty coolDown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 1000, 500, 1));
+    private final MSTimer releaseTimer = new MSTimer();
+    private final MSTimer cdTimer = new MSTimer();
+    private long lag = 0;
+    private boolean lagging = false;
 
     @Override
     protected void onDisable() {
-        releaseAll();
+        releaseDelayed(p -> true);
+        LagManager.undelay(Packet.class);
+        lagging = false;
+        cdTimer.reset();
     }
 
-    @RequiresPlayer
     @EventLink
-    public final Listener<EventPacket.Incoming.Pre> onPacket = event -> {
-        Packet<?> packet = event.getPacket();
-
-        if (skipPackets.contains(packet)) {
-            skipPackets.remove(packet);
-            return;
-        }
-
-        if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
-            releaseAll();
-            return;
-        }
-
-        if (packet instanceof S12PacketEntityVelocity) {
-            S12PacketEntityVelocity vel = (S12PacketEntityVelocity) packet;
-            if (vel.getEntityID() == mc.thePlayer.getEntityId()) {
-                if (Math.random() * 100 <= chance.getValue().getInput()) {
-                    int low = (int) delay.getValue().getMin();
-                    int high = (int) delay.getValue().getMax();
-                    holdUntil = System.currentTimeMillis() + (high > low ? low + (long) (Math.random() * (high - low + 1)) : low);
-                }
-            }
-        }
-
-        if (System.currentTimeMillis() < holdUntil) {
-            event.cancel();
-            packetQueue.add(new TimedPacket(packet, 0));
+    public Listener<EventUpdate.Pre> preListener = event -> {
+        if(releaseTimer.finished(lag))  {
+            releaseDelayed(p -> true);
+            LagManager.undelay(Packet.class);
+            lagging = false;
+            cdTimer.reset();
         }
     };
 
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventTick> onTick = event -> {
-        if (System.currentTimeMillis() >= holdUntil && !packetQueue.isEmpty()) {
-            releaseAll();
-        }
+    @EventLink(Priorities.HIGH)
+    public Listener<EventPacket.Incoming.Pre> listener = event -> {
+       if(event.getPacket() instanceof S12PacketEntityVelocity) {
+           S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
+           if(p.getMotionX() != 0 && p.getMotionZ() != 0 && !lagging && releaseTimer.finished((long) coolDown.getValue().getInput())) {
+               EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
+               if(mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000)  && RotationUtils.getDistanceToEntityBox(target) <= 3)
+                   return;
+               lagging = true;
+               lag = (long) delay.getValue().getRandomInRange();
+               releaseTimer.reset();
+               LagManager.delay(Packet.class, pk -> lag);
+           }
+       }
     };
 
-    private void releaseAll() {
-        holdUntil = 0;
-        while (!packetQueue.isEmpty()) {
-            Packet<?> packet = packetQueue.poll().getPacket();
-            skipPackets.add(packet);
-            receivePacket(packet);
-        }
-    }
 }

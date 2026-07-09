@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@ModuleInfo(name = "Targets", category = ModuleCategory.SETTINGS)
+@ModuleInfo(name = "Targets", category = ModuleCategory.SETTINGS, hidden = true)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),
@@ -42,15 +42,12 @@ public class TargetManager extends Module {
     public final DoubleProperty lockDist = new DoubleProperty("Locked Distance", new DoubleValue(3, 10, 5, 0.1));
 
     private static EntityPlayer lockedTarget;
-
-    // entityId -> estimated server-side hurt time
     private static final Map<Integer, Float> serverHurtTime = new HashMap<>();
-    // entityId -> game time when we sent the attack packet
     private static final Map<Integer, Long> attackSentTime = new HashMap<>();
 
     @Override
-    protected void onEnable() {
-        this.setEnabled(false);
+    protected void onDisable() {
+        this.setEnabled(true);
     }
 
     private static double getFOV() {
@@ -86,6 +83,11 @@ public class TargetManager extends Module {
         }
     };
 
+    public static float getTimeSinceLastClientSidedHit(EntityPlayer player) {
+        int entityId = player.getEntityId();
+        Long sentTime = attackSentTime.getOrDefault(entityId, System.currentTimeMillis() + 1000L);
+        return System.currentTimeMillis() - sentTime;
+    }
 
     //get
     public static float getServerHurtTimeOnPacketArrival(EntityPlayer player) {
@@ -128,8 +130,9 @@ public class TargetManager extends Module {
     }
 
     public static EntityPlayer getTarget() {
-        List<EntityPlayer> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput());
+        List<EntityPlayer> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput() + 1);
         en.removeIf(player -> !isValidTarget(player));
+        en.removeIf(player -> !(RotationUtils.getDistanceToEntityBox(player) < distance.getValue().getInput()));
         return en.isEmpty() ? null : en.stream()
                 .min(Comparator.comparingDouble(target -> sortMode.getValue().sv.value(target)))
                 .get();

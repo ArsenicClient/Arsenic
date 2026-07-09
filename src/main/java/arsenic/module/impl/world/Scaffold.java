@@ -93,6 +93,15 @@ public class Scaffold extends Module {
     private float animatedScale;
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
+    private float animatedRingFill = 0f;
+    private int maxBlockCount = 0;
+    private int blocksPlacedInSession = 0;
+    private float animatedBlockCount = 0f;
+    private static final int BPS_SAMPLE_WINDOW_MS = 3000;
+    private final long[] placementTimestamps = new long[512];
+    private int placementHead = 0;
+    private int placementCount = 0;
+    private float blockFlashIntensity = 0f;
     private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
 
 
@@ -243,52 +252,265 @@ public class Scaffold extends Module {
     }
 
     private void drawBlockCounter() {
-        int blockCount = getBlockCount();
-        if (blockCount == 0 && animatedScale < 0.01f) return;
-
-        float alpha = Math.min(1f, animatedScale);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
         if (fr == null) return;
 
-        String text = String.valueOf(blockCount);
-        int iconSize = 16;
-        int padding = 4;
-        int textWidth = (int) fr.getWidth(text);
-        int bw = iconSize + padding + textWidth + padding * 2;
-        int bh = iconSize + padding * 2;
+        int blockCount = getBlockCount();
+        float alpha = Math.min(1f, animatedScale);
 
-        ScaledResolution sr = new ScaledResolution(mc);
-        int x = blockCounterX;
-        int y = blockCounterY;
-        if (x == -1) x = (sr.getScaledWidth() - bw) / 2;
-        if (y == -1) y = sr.getScaledHeight() - 40 - bh;
+        HudDimensions d = computeHudDimensions();
+        if (d == null) return;
+
+        if (blockCount > maxBlockCount) {
+            maxBlockCount = blockCount;
+        }
+        animatedBlockCount = interpolate(animatedBlockCount, blockCount, 0.15f);
+        float displayCount = Math.max(0, Math.min(maxBlockCount, animatedBlockCount));
+        animatedRingFill = maxBlockCount > 0 ? displayCount / maxBlockCount : 0f;
 
         GL11.glPushMatrix();
-        GL11.glTranslated(x + bw / 2.0, y + bh / 2.0, 0);
-        GL11.glScalef(animatedScale, animatedScale, 1.0f);
-        GL11.glTranslated(-(x + bw / 2.0), -(y + bh / 2.0), 0);
+        applyScaleTransform(d.cx, d.cy);
 
-        int bgColor = new Color(26, 26, 26, (int)(alpha * 128)).getRGB();
-        DrawUtils.drawRoundedRect(x, y, x + bw, y + bh, 6, bgColor);
+        float flashI = blockFlashIntensity;
+        int bgBase = 26;
+        int bgR = bgBase, bgG = bgBase, bgB = bgBase;
+        if (flashI > 0f) {
+            int theme = getThemeColor();
+            int tr = (theme >> 16) & 0xFF;
+            int tg = (theme >> 8)  & 0xFF;
+            int tb =  theme        & 0xFF;
+            bgR = (int)(bgBase + (tr - bgBase) * flashI * 0.55f);
+            bgG = (int)(bgBase + (tg - bgBase) * flashI * 0.55f);
+            bgB = (int)(bgBase + (tb - bgBase) * flashI * 0.55f);
+        }
+        float pillR = d.h / 2f;
+        int bgColor = new Color(bgR, bgG, bgB, (int)(alpha * 140)).getRGB();
+        DrawUtils.drawRoundedRect(d.x, d.y, d.x + d.w, d.y + d.h, pillR, bgColor);
 
-        int borderColor = (int)(alpha * 0xFF) << 24 | getThemeColor();
-        DrawUtils.drawBorderedRoundedRect(x, y, x + bw, y + bh, 6, 1.5f, borderColor, 0x00000000);
+        int themeColor = getThemeColor();
+        int borderColor = flashI > 0f
+                ? ((int)(alpha * 0xFF) << 24) | interpolateColor(themeColor, themeColor, flashI)
+                : ((int)(alpha * 0xFF) << 24) | themeColor;
+        if (flashI > 0f) {
+            int br = Math.min(255, ((themeColor >> 16) & 0xFF) + (int)(flashI * 80));
+            int bg = Math.min(255, ((themeColor >> 8)  & 0xFF) + (int)(flashI * 80));
+            int bb = Math.min(255, ( themeColor        & 0xFF) + (int)(flashI * 80));
+            borderColor = ((int)(alpha * 0xFF) << 24) | (br << 16) | (bg << 8) | bb;
+        }
+        DrawUtils.drawRoundedOutline(d.x, d.y, d.x + d.w, d.y + d.h, pillR, 1.5f, borderColor);
 
-        GL11.glColor4f(1, 1, 1, alpha);
-        ItemStack stack = mc.thePlayer.inventory.getCurrentItem();
-        if (stack != null && stack.getItem() instanceof ItemBlock) {
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(0, 0, 1);
-            RenderHelper.enableGUIStandardItemLighting();
-            mc.getRenderItem().renderItemIntoGUI(stack, x + padding, y + padding);
-            RenderHelper.disableStandardItemLighting();
-            GlStateManager.popMatrix();
+        float ringCX = d.x + d.ringRadius + d.ringPad;
+        float ringCY = d.cy;
+        float ringR   = d.ringRadius;
+
+        int ringTrackColor = new Color(255, 255, 255, (int)(alpha * 25)).getRGB();
+        drawArc(ringCX, ringCY, ringR, 2.5f, 0f, 1f, ringTrackColor);
+
+        float fill = animatedRingFill;
+        int arcColor;
+        if (fill > 0.5f) {
+            arcColor = borderColor;
+        } else if (fill > 0.25f) {
+            float t = (0.5f - fill) / 0.25f;
+            arcColor = ((int)(alpha * 0xFF) << 24) | interpolateColor(themeColor, 0xFFBE50, t);
+        } else {
+            float t = Math.min(1f, (0.25f - fill) / 0.25f);
+            arcColor = ((int)(alpha * 0xFF) << 24) | interpolateColor(0xFFBE50, 0xFF6E64, t);
+        }
+        if (flashI > 0f) {
+            int ar = Math.min(255, ((arcColor >> 16) & 0xFF) + (int)(flashI * 60));
+            int ag = Math.min(255, ((arcColor >> 8)  & 0xFF) + (int)(flashI * 60));
+            int ab = Math.min(255, ( arcColor        & 0xFF) + (int)(flashI * 60));
+            arcColor = ((int)(alpha * 0xFF) << 24) | (ar << 16) | (ag << 8) | ab;
+        }
+        if (fill > 0.0001f) {
+            drawArc(ringCX, ringCY, ringR, 2.5f, 0f, fill, arcColor);
         }
 
-        fr.drawStringWithShadow(text, x + padding + iconSize + padding, y + (bh - fr.getHeight(text)) / 2f, (int)(alpha * 0xFF) << 24 | 0xFFFFFF);
+        String countStr = String.valueOf(blockCount);
+
+        int textColor = ((int)(alpha * 0xFF) << 24) | 0xFFFFFF;
+        if (flashI > 0.01f) {
+            float popScale = 1f + flashI * 0.20f;
+            GL11.glPushMatrix();
+            GL11.glTranslatef(ringCX, ringCY, 0f);
+            GL11.glScalef(popScale, popScale, 1f);
+            GL11.glTranslatef(-ringCX, -ringCY, 0f);
+            fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
+            GL11.glPopMatrix();
+        } else {
+            fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
+        }
+
+        float textX  = ringCX + ringR + d.ringPad + 3f;
+        float labelY = d.y + 5f;
+
+        String label = "Blocks";
+        float labelH = (float) fr.getHeight(label);
+        int labelColor = ((int)(alpha * 0xFF) << 24) | 0x999999;
+        fr.drawStringWithShadow(label, textX, labelY, labelColor);
+
+        float bps = computeBps();
+        String bpsStr  = String.format("%.1f", bps);
+        String bpsUnit = " BPS";
+        float bpsY = labelY + labelH + 2f;
+        int whiteColor = ((int)(alpha * 0xFF) << 24) | 0xFFFFFF;
+        int unitColor  = ((int)(alpha * 0xFF) << 24) | themeColor;
+        fr.drawStringWithShadow(bpsStr, textX, bpsY, whiteColor);
+        fr.drawStringWithShadow(bpsUnit, textX + (float) fr.getWidth(bpsStr), bpsY, unitColor);
+
+        float dividerX = textX + (float) fr.getWidth(bpsStr + bpsUnit) + 4f;
+        fr.drawStringWithShadow(" | ", dividerX, bpsY, labelColor);
+        float afterDiv = dividerX + (float) fr.getWidth(" | ");
+
+        int bpm = Math.round(bps * 60f);
+        String bpmStr  = String.valueOf(bpm);
+        String bpmUnit = " BPM";
+        fr.drawStringWithShadow(bpmStr, afterDiv, bpsY, new Color(
+                255, 255, 255, (int)(alpha * 180)).getRGB());
+        fr.drawStringWithShadow(bpmUnit, afterDiv + (float) fr.getWidth(bpmStr), bpsY,
+                new Color((themeColor >> 16) & 0xFF, (themeColor >> 8) & 0xFF, themeColor & 0xFF,
+                        (int)(alpha * 120)).getRGB());
+
+        float barY  = bpsY + (float) fr.getHeight(bpsStr) + 3f;
+        float barW  = d.w - (textX - d.x) - d.ringPad;
+        float barH  = 2.5f;
+        int barBg   = new Color(255, 255, 255, (int)(alpha * 20)).getRGB();
+        int barFill = new Color(
+                (arcColor >> 16) & 0xFF,
+                (arcColor >> 8)  & 0xFF,
+                arcColor        & 0xFF,
+                (int)(alpha * 180)).getRGB();
+        DrawUtils.drawRoundedRect(textX, barY, textX + barW, barY + barH, barH / 2f, barBg);
+        if (fill > 0.0001f) {
+            DrawUtils.drawRoundedRect(textX, barY, textX + barW * fill, barY + barH, barH / 2f, barFill);
+        }
+
+        String pctStr = Math.round(fill * 100f) + "%";
+        fr.drawStringWithShadow(pctStr, textX + barW - (float) fr.getWidth(pctStr),
+                barY + barH + 4f, labelColor);
 
         GL11.glPopMatrix();
     }
+
+    private int interpolateColor(int color1, int color2, float t) {
+        int r1 = (color1 >> 16) & 0xFF, g1 = (color1 >> 8) & 0xFF, b1 = color1 & 0xFF;
+        int r2 = (color2 >> 16) & 0xFF, g2 = (color2 >> 8) & 0xFF, b2 = color2 & 0xFF;
+        int r  = (int)(r1 + (r2 - r1) * t);
+        int g  = (int)(g1 + (g2 - g1) * t);
+        int b  = (int)(b1 + (b2 - b1) * t);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    // ── HUD geometry helpers ──────────────────────────────────────────────────
+
+    private static class HudDimensions {
+        int x, y, w, h;
+        float cx, cy;
+        float ringRadius, ringPad;
+    }
+
+    private HudDimensions computeHudDimensions() {
+        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        if (fr == null) return null;
+
+        int blockCount = getBlockCount();
+        String countStr  = String.valueOf(blockCount);
+        float bps        = computeBps();
+        int   bpm        = Math.round(bps * 60f);
+        String bpsLine   = String.format("%.1f BPS | %d BPM", bps, bpm);
+
+        float ringRadius = 14f;
+        float ringPad    = 6f;
+        float ringDiam   = ringRadius * 2f;
+        float textW      = (float) Math.max(fr.getWidth("Blocks"), fr.getWidth(bpsLine));
+        float rightPad   = 13f;
+
+        int w = (int)(ringPad + ringDiam + ringPad + textW + rightPad);
+        int h = 42;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int x = blockCounterX != -1 ? blockCounterX : (sr.getScaledWidth() - w) / 2;
+        int y = blockCounterY != -1 ? blockCounterY : sr.getScaledHeight() - 42 - h;
+
+        HudDimensions d = new HudDimensions();
+        d.x = x; d.y = y; d.w = w; d.h = h;
+        d.cx = x + w / 2f; d.cy = y + h / 2f;
+        d.ringRadius = ringRadius; d.ringPad = ringPad;
+        return d;
+    }
+
+    private void applyScaleTransform(float cx, float cy) {
+        GL11.glTranslated(cx, cy, 0);
+        GL11.glScalef(animatedScale, animatedScale, 1.0f);
+        GL11.glTranslated(-cx, -cy, 0);
+    }
+
+    private static void drawArc(float cx, float cy, float radius,
+                                float lineWidth, float startFraction, float endFraction,
+                                int color) {
+        float a = ((color >> 24) & 0xFF) / 255f;
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8)  & 0xFF) / 255f;
+        float b = ( color        & 0xFF) / 255f;
+
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
+        GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
+        GL11.glLineWidth(lineWidth);
+        GL11.glColor4f(r, g, b, a);
+
+        int segments = 64;
+        int start = (int)(startFraction * segments);
+        int end   = (int)(endFraction   * segments);
+
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (int i = start; i <= end; i++) {
+            double angle = -Math.PI / 2.0 + (i / (double) segments) * 2.0 * Math.PI;
+            GL11.glVertex2f(cx + (float)(Math.cos(angle) * radius),
+                    cy + (float)(Math.sin(angle) * radius));
+        }
+        GL11.glEnd();
+
+        GL11.glLineWidth(1f);
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glPopAttrib();
+
+        RenderUtils.resetColor();
+    }
+
+    // ── BPS / BPM tracking ────────────────────────────────────────────────────
+
+    private void recordPlacement() {
+        long now = System.currentTimeMillis();
+        placementTimestamps[placementHead % placementTimestamps.length] = now;
+        placementHead++;
+        placementCount = Math.min(placementCount + 1, placementTimestamps.length);
+        blocksPlacedInSession = Math.min(blocksPlacedInSession + 1, 2304);
+        blockFlashIntensity = 1.0f;
+    }
+
+    private float computeBps() {
+        if (placementCount == 0) return 0f;
+        long now     = System.currentTimeMillis();
+        long cutoff  = now - BPS_SAMPLE_WINDOW_MS;
+        int  inWindow = 0;
+        int  total    = Math.min(placementCount, placementTimestamps.length);
+        int  start    = placementHead - total;
+        if (start < 0) start += placementTimestamps.length;
+        for (int i = 0; i < total; i++) {
+            int idx = (start + i) % placementTimestamps.length;
+            if (placementTimestamps[idx] > cutoff) inWindow++;
+        }
+        float windowSecs = BPS_SAMPLE_WINDOW_MS / 1000f;
+        return inWindow / windowSecs;
+    }
+
 
     private int getThemeColor() {
         return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
@@ -417,7 +639,7 @@ public class Scaffold extends Module {
 
     private Item keyBlock() {
         if (mc.thePlayer.inventory.getCurrentItem() == null
-                || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)) {
+                || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock) || mc.thePlayer.inventory.getCurrentItem().stackSize <= 1) {
             mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
         }
         if(mc.thePlayer.inventory.getCurrentItem() == null)
@@ -445,6 +667,7 @@ public class Scaffold extends Module {
         );
 
         mc.thePlayer.swingItem();
+        recordPlacement();
     }
 
     public static float[] getRotationsForFace(BlockPos blockPos, EnumFacing facing) {

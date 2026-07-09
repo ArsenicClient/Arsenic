@@ -166,7 +166,7 @@ public class ScaffoldUtil extends UtilityClass {
     public static int getBlockSlot() {
         for (int i = 0; i < 9; i++) {
             final ItemStack itemStack = mc.thePlayer.inventory.mainInventory[i];
-            if (itemStack != null && itemStack.getItem() instanceof ItemBlock && itemStack.stackSize > 0) {
+            if (itemStack != null && itemStack.getItem() instanceof ItemBlock && itemStack.stackSize > 1) {
                 final ItemBlock itemBlock = (ItemBlock) itemStack.getItem();
 
                 if (isBlockValid(itemBlock.getBlock())) {
