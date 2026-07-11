@@ -17,6 +17,7 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
@@ -36,28 +37,29 @@ public class BackTrack extends Module {
     private static final Predicate<Packet<?>> ALL_TRACKED =
             p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
+    public enum BacktrackMode {NORMAL, PULSE}
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
+    public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
     public final ColourProperty espColor = new ColourProperty("Color", 0xFFFFFFFF);
 
-    // entityId → per-target backtrack state
     private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();
 
     private static class TrackEntry {
-        // Server-ahead position, updated by each delayed movement packet before it's released.
-        // Volatile because the packet thread writes and the render/main thread reads.
         volatile Vec3 vec3;
         final int latency;
         final EntityPlayer player;
+        final long trackStart;
 
         TrackEntry(EntityPlayer player, Vec3 vec3, int latency) {
             this.player = player;
             this.vec3 = vec3;
             this.latency = latency;
+            trackStart = System.currentTimeMillis();
         }
+
     }
 
-    // ---- Lifecycle ----
 
     @Override
     public void onEnable() {
@@ -80,20 +82,18 @@ public class BackTrack extends Module {
         tracked.clear();
     }
 
-    // ---- Packet delay handlers ----
 
     private long onEntityMove(Packet<?> raw) {
         TrackEntry entry = tracked.get(((IMixinS14PacketEntity) raw).getEntityId());
         if (entry == null) return 0L;
 
         S14PacketEntity packet = (S14PacketEntity) raw;
-        // addVector creates a new Vec3, so the volatile write is safe
         entry.vec3 = entry.vec3.addVector(
                 packet.func_149062_c() / 32.0D,
                 packet.func_149061_d() / 32.0D,
                 packet.func_149064_e() / 32.0D
         );
-        return (long) entry.latency;
+        return entry.latency;
     }
 
     private long onEntityTeleport(Packet<?> raw) {
@@ -102,72 +102,80 @@ public class BackTrack extends Module {
         if (entry == null) return 0L;
 
         entry.vec3 = new Vec3(packet.getX() / 32.0D, packet.getY() / 32.0D, packet.getZ() / 32.0D);
-        return (long) entry.latency;
+        return entry.latency;
     }
 
-    // ---- Attack: start / refresh tracking ----
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventAttack> eventAttack = event -> {
+        if(backtrackMode.getValue() != BacktrackMode.NORMAL) return;
         if (!(event.getTarget() instanceof EntityPlayer)) return;
 
         EntityPlayer target = (EntityPlayer) event.getTarget();
 
-        if (!tracked.containsKey(target.getEntityId())) {
-            tracked.put(target.getEntityId(), new TrackEntry(
-                    target,
-                    target.getPositionVector(),
-                    (int) latencyRange.getValue().getRandomInRange()
-            ));
-        }
+        tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
+                target,
+                target.getPositionVector(),
+                (int) latencyRange.getValue().getRandomInRange()
+        ));
+    };
+
+
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventPacket.Incoming> listener = event -> {
+        if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
+        if (!(event.getPacket() instanceof S0BPacketAnimation)) return;
+
+        S0BPacketAnimation packet = (S0BPacketAnimation) event.getPacket();
+        if (packet.getAnimationType() != 1) return;
+
+        Entity entity = mc.theWorld.getEntityByID(packet.getEntityID());
+        if (!(entity instanceof EntityPlayer)) return;
+
+        EntityPlayer target = (EntityPlayer) entity;
+        if (RotationUtils.getDistanceToEntityBox(target) >= 3.0) return;
+
+        tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
+                target,
+                target.getPositionVector(),
+                (int) latencyRange.getValue().getRandomInRange()
+        ));
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
-        if (tracked.isEmpty()) return;
-        int pingTicks = Math.max(1, LagManager.getPingAsTicks());
+        if (tracked.isEmpty())
+            return;
 
-        Iterator<Map.Entry<Integer, TrackEntry>> it = tracked.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, TrackEntry> mapEntry = it.next();
+        tracked.entrySet().removeIf(mapEntry -> {
             TrackEntry entry = mapEntry.getValue();
             EntityPlayer target = entry.player;
-            Vec3 vec3 = entry.vec3;
+            int entityId = target.getEntityId();
 
-            if (target.isDead || mc.theWorld.getEntityByID(target.getEntityId()) == null) {
-                LagManager.releaseDelayed(filterFor(target.getEntityId()));
-                it.remove();
-                continue;
+            boolean isGone = target.isDead || mc.theWorld.getEntityByID(entityId) == null;
+            if (isGone) {
+                LagManager.releaseDelayed(filterFor(entityId));
+                return true;
             }
 
-            if (RotationUtils.getDistanceToEntityBox(target) <= 3.0)
-                continue;
-
-            double px = mc.thePlayer.posX;
-            double pz = mc.thePlayer.posZ;
-
-            double bdx = vec3.xCoord - px;
-            double bdz = vec3.zCoord - pz;
-            double backtrackDist = Math.sqrt(bdx * bdx + bdz * bdz);
-
-            double rdx = target.posX - px;
-            double rdz = target.posZ - pz;
-            double realDist = Math.sqrt(rdx * rdx + rdz * rdz);
-
-            double futureX = target.posX + target.motionX * pingTicks;
-            double futureZ = target.posZ + target.motionZ * pingTicks;
-            double fdx = futureX - px;
-            double fdz = futureZ - pz;
-            double futureDist = Math.sqrt(fdx * fdx + fdz * fdz);
-
-            if (realDist < backtrackDist || futureDist < backtrackDist) {
-                releaseSmooth(target.getEntityId());
-                it.remove();
+            boolean shouldRemove = false;
+            if (backtrackMode.getValue() == BacktrackMode.NORMAL) {
+                shouldRemove = RotationUtils.getDistanceToEntityBox(target) > 3.0;
+            } else if (backtrackMode.getValue() == BacktrackMode.PULSE) {
+                shouldRemove = System.currentTimeMillis() - entry.trackStart > entry.latency;
             }
-        }
+
+            if (shouldRemove) {
+                LagManager.releaseDelayed(filterFor(entityId));
+            }
+
+            return shouldRemove;
+        });
     };
+
 
     // ---- ESP ----
     @RequiresPlayer
@@ -245,8 +253,6 @@ public class BackTrack extends Module {
         GlStateManager.popMatrix();
     };
 
-    // ---- Helpers ----
-    /** Per-entity packet predicate so releases only drain one target's queue. */
     private static Predicate<Packet<?>> filterFor(int entityId) {
         return p -> {
             if (p instanceof S14PacketEntity)
@@ -257,10 +263,6 @@ public class BackTrack extends Module {
         };
     }
 
-    /** Smooth (chunked) release for a single target when backtrack is no longer beneficial. */
-    private void releaseSmooth(int entityId) {
-        LagManager.releaseDelayedChunked(filterFor(entityId), 3);
-    }
 
     public enum EspMode {
         NONE, BOX, FILLED, WIREFRAME, MODEL

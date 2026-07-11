@@ -35,8 +35,9 @@ public class KnockbackDelay extends Module {
     public enum DelayMode {Normal, AntiCombo}
 
     public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 500, 200, 300, 10));
+    public final DoubleProperty chance = new DoubleProperty("Chance %", new DoubleValue(0, 100, 100, 1));
     public final EnumProperty<DelayMode> mode = new EnumProperty<>("Mode", DelayMode.AntiCombo);
-    public final DoubleProperty coolDown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 1000, 500, 1));
+    public final DoubleProperty coolDown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 5000, 500, 100));
     private final MSTimer releaseTimer = new MSTimer();
     private final MSTimer cdTimer = new MSTimer();
     private long lag = 0;
@@ -65,6 +66,8 @@ public class KnockbackDelay extends Module {
        if(event.getPacket() instanceof S12PacketEntityVelocity) {
            S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
            if(p.getMotionX() != 0 && p.getMotionZ() != 0 && !lagging && releaseTimer.finished((long) coolDown.getValue().getInput())) {
+               if(Math.random() > chance.getValue().getInput()/100f)
+                   return;
                EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
                if(mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000)  && RotationUtils.getDistanceToEntityBox(target) <= 3)
                    return;
