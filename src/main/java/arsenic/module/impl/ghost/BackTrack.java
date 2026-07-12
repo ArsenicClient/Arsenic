@@ -13,6 +13,7 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.lag.LagManager;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.renderer.GlStateManager;
@@ -63,22 +64,19 @@ public class BackTrack extends Module {
 
     @Override
     public void onEnable() {
+        PlayerUtils.addMessageToChat("Enabled");
         tracked.clear();
         LagManager.delay(S14PacketEntity.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
-        LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
-        LagManager.delay(S14PacketEntity.S17PacketEntityLookMove.class, this::onEntityMove);
         LagManager.delay(S18PacketEntityTeleport.class, this::onEntityTeleport);
     }
 
     @Override
     public void onDisable() {
+        LagManager.releaseDelayed(ALL_TRACKED);
         LagManager.undelay(S14PacketEntity.class);
         LagManager.undelay(S14PacketEntity.S15PacketEntityRelMove.class);
-        LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
-        LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
         LagManager.undelay(S18PacketEntityTeleport.class);
-        LagManager.releaseDelayed(ALL_TRACKED); // instant flush on disable
         tracked.clear();
     }
 
@@ -124,17 +122,18 @@ public class BackTrack extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventPacket.Incoming> listener = event -> {
+    public final Listener<EventPacket.Incoming.Pre> listener = event -> {
         if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
-        if (!(event.getPacket() instanceof S0BPacketAnimation)) return;
+        if (!(event.getPacket() instanceof S19PacketEntityStatus)) return;
 
-        S0BPacketAnimation packet = (S0BPacketAnimation) event.getPacket();
-        if (packet.getAnimationType() != 1) return;
+        S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
+        if (packet.getOpCode() != 2) return; //hurt animation
 
-        Entity entity = mc.theWorld.getEntityByID(packet.getEntityID());
+        Entity entity = packet.getEntity(mc.theWorld);
         if (!(entity instanceof EntityPlayer)) return;
 
         EntityPlayer target = (EntityPlayer) entity;
+        if (entity == mc.thePlayer) return;
         if (RotationUtils.getDistanceToEntityBox(target) >= 3.0) return;
 
         tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
@@ -142,6 +141,7 @@ public class BackTrack extends Module {
                 target.getPositionVector(),
                 (int) latencyRange.getValue().getRandomInRange()
         ));
+
     };
 
     @RequiresPlayer
@@ -155,11 +155,6 @@ public class BackTrack extends Module {
             EntityPlayer target = entry.player;
             int entityId = target.getEntityId();
 
-            boolean isGone = target.isDead || mc.theWorld.getEntityByID(entityId) == null;
-            if (isGone) {
-                LagManager.releaseDelayed(filterFor(entityId));
-                return true;
-            }
 
             boolean shouldRemove = false;
             if (backtrackMode.getValue() == BacktrackMode.NORMAL) {
@@ -177,7 +172,7 @@ public class BackTrack extends Module {
     };
 
 
-    // ---- ESP ----
+
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> eventRenderWorldLast = event -> {
