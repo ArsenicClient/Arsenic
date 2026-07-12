@@ -22,11 +22,8 @@ public final class LagManager {
 
     public static final Predicate<Packet<?>> ALL_PACKETS = p -> true;
 
-    // ---- outgoing "hold while acquired" mechanism (indefinite, predicate-based) ----
     private static final Map<Class<?>, Predicate<Packet<?>>> holders = new ConcurrentHashMap<>();
     private static final List<Packet<?>> buffer = Collections.synchronizedList(new ArrayList<>());
-
-    // ---- "delay by function" mechanism, one channel per direction ----
     private static final PacketDelayChannel incomingDelay = new PacketDelayChannel();
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
@@ -54,7 +51,6 @@ public final class LagManager {
                 }
             }
         } catch (Exception e) {
-            // Silently handle any errors
         }
     }
 
@@ -73,7 +69,6 @@ public final class LagManager {
     public final Listener<EventPacket.OutGoing> onOutgoing = event -> {
         Packet<?> packet = event.getPacket();
 
-        // a packet we delayed and are now replaying - let it through once.
         if (outgoingDelay.consumeSkip(packet))
             return;
 
@@ -110,14 +105,10 @@ public final class LagManager {
     public final Listener<EventTick> onTick = event -> {
         incomingDelay.releaseFinished(LagManager::receivePacket);
         outgoingDelay.releaseFinished(LagManager::sendPacket);
-
-        // chunked releases get one slice of packets per tick, on top of whatever
-        // releaseFinished already let through naturally this tick.
         incomingDelay.processChunkedReleases(LagManager::receivePacket);
         outgoingDelay.processChunkedReleases(LagManager::sendPacket);
     };
 
-    // ---- legacy outgoing "hold while acquired" API ----
 
     public static void acquire(Class<?> holderClass, Predicate<Packet<?>> filter) {
         holders.put(holderClass, filter);
@@ -169,100 +160,53 @@ public final class LagManager {
         }
     }
 
-    // ---- incoming delay-by-function API ----
-
-    /**
-     * Binds a delay function to an incoming packet class. Whenever a packet whose exact
-     * class is {@code packetClass} is received, {@code delayFunction} is invoked with that
-     * packet and should return the number of milliseconds to hold it for before it's released
-     * back into the normal packet-handling pipeline. Returning {@code 0} (or {@code null})
-     * lets the packet through immediately, untouched.
-     * <p>
-     * Pass {@code Packet.class} itself to match every incoming packet, regardless of its
-     * concrete type, as a wildcard. An exact class match always takes priority over the wildcard.
-     * <p>
-     * Only one delay function may be bound per packet class (or the wildcard) at a time;
-     * binding a new one replaces the previous.
-     */
     public static void delay(Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
         incomingDelay.bind(packetClass, delayFunction);
     }
 
-    /** Unbinds any delay function previously bound to {@code packetClass}. Does not flush pending packets. */
     public static void undelay(Class<?> packetClass) {
         incomingDelay.unbind(packetClass);
     }
 
-    /** Immediately replays every currently-queued delayed incoming packet matching {@code filter}, skipping the rest of its delay. */
     public static void releaseDelayed(Predicate<Packet<?>> filter) {
         incomingDelay.releaseMatching(filter, LagManager::receivePacket);
     }
 
-    /**
-     * Like {@link #releaseDelayed}, but releases at most {@code chunkSize} matching packets
-     * per tick instead of all of them at once, so a large queue drains gradually rather than
-     * arriving in a single burst. Packets are released oldest-first. The job keeps running
-     * across ticks (via {@link #onTick}) until nothing left in the queue matches {@code filter},
-     * at which point it removes itself automatically. A {@code chunkSize <= 0} falls back to
-     * an immediate full release.
-     */
     public static void releaseDelayedChunked(Predicate<Packet<?>> filter, int chunkSize) {
         incomingDelay.releaseMatchingChunked(filter, chunkSize, LagManager::receivePacket);
     }
 
-    /** Drops every currently-queued delayed incoming packet matching {@code filter} without replaying it. */
     public static void discardDelayed(Predicate<Packet<?>> filter) {
         incomingDelay.discard(filter);
     }
 
-    /** Number of queued delayed incoming packets matching {@code filter}. */
     public static int countDelayed(Predicate<Packet<?>> filter) {
         return incomingDelay.count(filter);
     }
 
-    // ---- outgoing delay-by-function API (same mechanism, opposite direction) ----
-
-    /**
-     * Binds a delay function to an outgoing packet class. Same semantics as {@link #delay},
-     * but for packets the client is sending rather than receiving. Pass {@code Packet.class}
-     * to match every outgoing packet as a wildcard (e.g. for a fake-lag style effect).
-     */
     public static void delayOutgoing(Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
         outgoingDelay.bind(packetClass, delayFunction);
     }
 
-    /** Unbinds any delay function previously bound to {@code packetClass} for outgoing packets. */
     public static void undelayOutgoing(Class<?> packetClass) {
         outgoingDelay.unbind(packetClass);
     }
 
-    /** Immediately sends every currently-queued delayed outgoing packet matching {@code filter}, skipping the rest of its delay. */
     public static void releaseDelayedOutgoing(Predicate<Packet<?>> filter) {
         outgoingDelay.releaseMatching(filter, LagManager::sendPacket);
     }
 
-    /**
-     * Outgoing counterpart of {@link #releaseDelayedChunked}. Releases at most {@code chunkSize}
-     * matching queued outgoing packets per tick (oldest-first) instead of sending them all in
-     * one go, e.g. so a fake-lag module can trickle its held packets back out smoothly instead
-     * of producing a single, easily-flagged burst. A {@code chunkSize <= 0} falls back to an
-     * immediate full release via {@link #releaseDelayedOutgoing}.
-     */
     public static void releaseDelayedOutgoingChunked(Predicate<Packet<?>> filter, int chunkSize) {
         outgoingDelay.releaseMatchingChunked(filter, chunkSize, LagManager::sendPacket);
     }
 
-    /** Drops every currently-queued delayed outgoing packet matching {@code filter} without ever sending it. */
     public static void discardDelayedOutgoing(Predicate<Packet<?>> filter) {
         outgoingDelay.discard(filter);
     }
 
-    /** Number of queued delayed outgoing packets matching {@code filter}. */
     public static int countDelayedOutgoing(Predicate<Packet<?>> filter) {
         return outgoingDelay.count(filter);
     }
-
-    // ---- raw send/receive ----
 
     public static void sendPacket(Packet<?> packet) {
         if (mc.getNetHandler() != null)
@@ -280,11 +224,6 @@ public final class LagManager {
         }
     }
 
-    /**
-     * Self-contained holder + queue + skip-list for one direction (incoming or outgoing) of the
-     * delay-by-function mechanism. Keeps {@link LagManager} from duplicating this bookkeeping
-     * for both directions.
-     */
     private static final class PacketDelayChannel {
 
         private final Map<Class<?>, Function<Packet<?>, Long>> handlers = new ConcurrentHashMap<>();
@@ -300,12 +239,10 @@ public final class LagManager {
             handlers.remove(packetClass);
         }
 
-        /** Call once per incoming/outgoing event for this packet, before {@link #offer}. */
         boolean consumeSkip(Packet<?> packet) {
             return skip.remove(packet);
         }
 
-        /** Returns true if the packet was queued (and should be cancelled by the caller). */
         boolean offer(Packet<?> packet) {
             if (handlers.isEmpty())
                 return false;
@@ -352,7 +289,6 @@ public final class LagManager {
             }
         }
 
-        /** Queues a chunked release job; actual draining happens in {@link #processChunkedReleases}. */
         void releaseMatchingChunked(Predicate<Packet<?>> filter, int chunkSize, Consumer<Packet<?>> releaser) {
             if (chunkSize <= 0) {
                 releaseMatching(filter, releaser);
@@ -361,7 +297,6 @@ public final class LagManager {
             chunkedReleases.add(new ChunkedRelease(filter, chunkSize));
         }
 
-        /** Drains up to {@code chunkSize} matching packets per active job, oldest-first, once per tick. */
         void processChunkedReleases(Consumer<Packet<?>> releaser) {
             if (chunkedReleases.isEmpty())
                 return;
@@ -406,7 +341,6 @@ public final class LagManager {
             return n;
         }
 
-        /** A pending chunked-release job: keep releasing up to {@code chunkSize} matching packets per tick. */
         private static final class ChunkedRelease {
             final Predicate<Packet<?>> filter;
             final int chunkSize;
