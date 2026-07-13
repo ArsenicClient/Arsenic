@@ -68,6 +68,8 @@ public class BackTrack extends Module {
         tracked.clear();
         LagManager.delay(S14PacketEntity.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
+        LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
+        LagManager.delay(S14PacketEntity.S17PacketEntityLookMove.class, this::onEntityMove);
         LagManager.delay(S18PacketEntityTeleport.class, this::onEntityTeleport);
     }
 
@@ -76,6 +78,8 @@ public class BackTrack extends Module {
         LagManager.releaseDelayed(ALL_TRACKED);
         LagManager.undelay(S14PacketEntity.class);
         LagManager.undelay(S14PacketEntity.S15PacketEntityRelMove.class);
+        LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
+        LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
         LagManager.undelay(S18PacketEntityTeleport.class);
         tracked.clear();
     }
