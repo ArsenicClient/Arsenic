@@ -39,6 +39,7 @@ public abstract class Component implements IContainable {
             return false;
         if(mouseX < x2 && mouseY < y2) {
             clickComponent(mouseX, mouseY, mouseButton);
+            playClickSound();
             return true;
         } else if(mouseX < (x2 + expandX) && mouseY < (y2 + expandY)) {
             if (this instanceof IContainer) {
@@ -86,6 +87,12 @@ public abstract class Component implements IContainable {
     protected abstract float drawComponent(RenderInfo ri);
 
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {}
+
+    // Plays a click sound for any component. SoundUtils debounces so nested
+    // dispatch (a module row containing a toggle) only makes one sound.
+    protected void playClickSound() {
+        arsenic.utils.java.SoundUtils.cmajStep();
+    }
 
     public void mouseUpdate(int mouseX, int mouseY) {}
 

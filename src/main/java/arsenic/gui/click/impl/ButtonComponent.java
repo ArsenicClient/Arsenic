@@ -3,6 +3,7 @@ package arsenic.gui.click.impl;
 import arsenic.gui.click.Component;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.java.ColorUtils;
+import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
@@ -57,6 +58,15 @@ public abstract class ButtonComponent extends Component {
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
         setEnabled(!isEnabled());
+    }
+
+    @Override
+    protected void playClickSound() {
+        // toggle walks up the scale when turning on, down when turning off
+        if (isEnabled())
+            SoundUtils.cmajUp();
+        else
+            SoundUtils.cmajDown();
     }
 
     @Override

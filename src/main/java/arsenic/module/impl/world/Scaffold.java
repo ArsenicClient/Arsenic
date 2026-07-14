@@ -13,6 +13,8 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.rangeproperty.RangeProperty;
+import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
@@ -38,6 +40,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.util.*;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
@@ -47,44 +50,17 @@ import static arsenic.utils.rotations.RotationUtils.patchGCD;
 public class Scaffold extends Module {
 
 
-    public BooleanProperty sprint = new BooleanProperty("Sprint", false) {
-        @Override
-        public Boolean getValue() {
-            return super.getValue() || telly.getValue();
-        }
+    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
 
-        @Override
-        public void setValue(Boolean value) {
-            if(!value) {
-                telly.setValue(false);
-            }
-            super.setValue(value);
-        }
-    };
+    public BooleanProperty keepY = new BooleanProperty("KeepY", false);
 
-    public BooleanProperty keepY = new BooleanProperty("KeepY", false) {
-        @Override
-        public Boolean getValue() {
-            return super.getValue() || telly.getValue();
-        }
-
-        @Override
-        public void setValue(Boolean value) {
-            if(!value) {
-                telly.setValue(false);
-            }
-            super.setValue(value);
-        }
-    };
-
-    public BooleanProperty telly = new  BooleanProperty("Telly", false);
-    @PropertyInfo(reliesOn = "Telly", value = "true")
-    public DoubleProperty mY = new DoubleProperty("", new DoubleValue(-0.5, 0.5, 0, 0.01) {
-        @Override
-        public double getInput() {
-            return telly.getValue() ? super.getInput() : 0.3;
-        }
-    });
+    // Rotation speed cap (degrees/tick), randomised per tick for a more human feel.
+    public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1));
+    // Eagle == built-in SafeWalk: sneak whenever a step would carry the player off a ledge.
+    public final BooleanProperty eagle = new BooleanProperty("Eagle", false);
+    // Look-ahead safety for Eagle, mirroring SafeWalk's "Safety" property.
+    @PropertyInfo(reliesOn = "Eagle", value = "true")
+    public final DoubleProperty eagleSafety = new DoubleProperty("Safety", new DoubleValue(1, 3, 1, 0.1));
 
 
     private BlockData blockData;
@@ -116,32 +92,32 @@ public class Scaffold extends Module {
     @Override
     protected void onDisable() {
         animatedScale = 0f;
+        setShift(false);
         super.onDisable();
     }
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < mY.getValue().getInput();
+        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < 0.3;
         blockData = findBestPlacement();
         Item item = keyBlock();
-        event.setSpeed(360f);
+        event.setSpeed((float) rotationSpeed.getValue().getRandomInRange());
         event.setPreventDuplicateLook(true);
 
-        if(telly.getValue()){
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), mc.gameSettings.keyBindJump.isKeyDown());
-        }
-
-        float delta = sprint.getValue() ? 0f : 180f;
-        event.setYaw(mc.thePlayer.rotationYaw + delta);
+        // Base yaw follows the direction of travel (opposite of movement) rather than raw player
+        // yaw. e.g. W+A -> face opposite the forward-left vector, so the placed line trails the
+        // player's actual path. Sprint keeps facing forward.
+        float baseYaw = getBaseYaw();
+        event.setYaw(baseYaw);
         event.setPitch(rots[1]);
 
         if(item == null)
             return;
 
-        if(wilLFall && (!telly.getValue() || !mc.thePlayer.onGround)) {
+        if(wilLFall) {
             if (blockData != null) {
-                float[] solved = getRotationsForFace(blockData.getPosition(), blockData.getFacing());
+                float[] solved = getRotationsForFace(blockData.getPosition(), blockData.getFacing(), baseYaw);
                 if (solved != null) {
                     rots = solved;
                     solvedRots = true;
@@ -150,35 +126,86 @@ public class Scaffold extends Module {
                     rots = getFreeRotationsForFace(blockData.getPosition(), blockData.getFacing());
                 }
             }
-            event.setYaw(solvedRots ? mc.thePlayer.rotationYaw + 180f : rots[0]);
+            event.setYaw(solvedRots ? baseYaw : rots[0]);
             event.setPitch(rots[1]);
-        } else if (wilLFall && telly.getValue() && mc.thePlayer.onGround) {
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
         } else {
-            event.setYaw(mc.thePlayer.rotationYaw + delta);
+            event.setYaw(baseYaw);
             event.setPitch(rots[1]);
         }
     };
 
+    // Yaw the scaffold should point at: opposite the player's movement input (so blocks trail
+    // the path), or straight ahead while sprinting. Read from the raw movement keys — NOT from
+    // movementInput, whose forward/strafe get rewritten by the silent-rotation movement fix,
+    // which would feed the yaw back into itself. Idle -> face backward (rotationYaw + 180).
+    private float getBaseYaw() {
+        if (sprint.getValue()) {
+            return mc.thePlayer.rotationYaw;
+        }
+
+        int forward = 0, strafe = 0;
+        if (mc.gameSettings.keyBindForward.isKeyDown()) forward++;
+        if (mc.gameSettings.keyBindBack.isKeyDown())    forward--;
+        if (mc.gameSettings.keyBindLeft.isKeyDown())    strafe++;
+        if (mc.gameSettings.keyBindRight.isKeyDown())   strafe--;
+
+        float offset;
+        if (forward > 0) {
+            offset = strafe == 0 ? 180f : (strafe > 0 ? 135f : -135f);
+        } else if (forward < 0) {
+            offset = strafe == 0 ? 0f : (strafe > 0 ? 45f : -45f);
+        } else {
+            offset = strafe == 0 ? 180f : (strafe > 0 ? 90f : -90f);
+        }
+        return mc.thePlayer.rotationYaw + offset;
+    }
+
+    private void updateShift(boolean placedThisTick) {
+        // Safety shift (grounded only): if no block was placed this tick and the player will fall
+        // next tick, sneak so they don't step off the edge. Covers the case where the rotation was
+        // simply too slow to aim at the target in time.
+        boolean shift = mc.thePlayer.onGround && !placedThisTick && ScaffoldUtil.willFallNextTick();
+
+        // Eagle (built-in SafeWalk): sneak whenever a step would carry the player off a ledge,
+        // using the same look-ahead safety SafeWalk exposes.
+        if (eagle.getValue() && ScaffoldUtil.willFallNextTick(eagleSafety.getValue().getInput())) {
+            shift = true;
+        }
+        setShift(shift);
+    }
+
+    // Force sneak on when shift is requested; otherwise fall back to the player's physical key
+    // so we never cancel a manual crouch.
+    private void setShift(boolean shift) {
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(),
+                shift || Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
+    }
+
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> eventSilentRotationPostListener = event -> {
-        if(keyBlock() == null || blockData == null)
-            return;
+        // Whether we actually placed a block this tick — determined here, AFTER the speed-capped
+        // rotation has settled, so we know if the aim genuinely reached the target face.
+        boolean placed = false;
 
         Item item = keyBlock();
-        MovingObjectPosition movingObjectPosition = event.getRayTrace();
-
-        if(item instanceof ItemBlock) {
+        if (item instanceof ItemBlock && blockData != null) {
             ItemBlock itemBlock = (ItemBlock) item;
-            if (movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+            MovingObjectPosition movingObjectPosition = event.getRayTrace();
+            if (movingObjectPosition != null
+                    && movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
                     && (movingObjectPosition.sideHit != EnumFacing.DOWN)
                     && (!keepY.getValue() || movingObjectPosition.sideHit != EnumFacing.UP)
                     && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
                 blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
                 placePost(event);
+                placed = true;
             }
         }
+
+        // Shift decision lives here so safety-shift can react to whether a block was actually
+        // placed this tick (a target can exist but be unreachable if rotations were too slow).
+        updateShift(placed);
     };
 
 
@@ -522,6 +549,7 @@ public class Scaffold extends Module {
 
     public BlockData findBestPlacement() {
         EntityPlayerSP player = mc.thePlayer;
+        float baseYaw = getBaseYaw();
         BlockPos playerPos = new BlockPos(player);
         BlockPos scanY = playerPos.down();
 
@@ -600,7 +628,7 @@ public class Scaffold extends Module {
                     if (score >= bestScore)
                         continue;
 
-                    float[] rots = getRotationsForFace(pos, facing);
+                    float[] rots = getRotationsForFace(pos, facing, baseYaw);
                     if (rots == null) {
                         rots = getFreeRotationsForFace(pos, facing);
                     }
@@ -670,14 +698,13 @@ public class Scaffold extends Module {
         recordPlacement();
     }
 
-    public static float[] getRotationsForFace(BlockPos blockPos, EnumFacing facing) {
+    public static float[] getRotationsForFace(BlockPos blockPos, EnumFacing facing, float lockedYaw) {
         EntityPlayerSP player = mc.thePlayer;
 
         double eyeX = player.posX;
         double eyeY = player.posY + player.getEyeHeight();
         double eyeZ = player.posZ;
 
-        float lockedYaw = player.rotationYaw + 180f;
         float yawRad = (float) Math.toRadians(lockedYaw);
 
         double hx = -Math.sin(yawRad);

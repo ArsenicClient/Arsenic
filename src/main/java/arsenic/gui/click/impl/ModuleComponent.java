@@ -8,6 +8,7 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.java.ColorUtils;
+import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.*;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
@@ -133,6 +134,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     public boolean recieveInput(int key) {
         Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
+        SoundUtils.cmajTone(5);
         if (key == 1) {
             self.setKeybind(0);
             return true;

@@ -85,6 +85,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
+        drawShaderBackdrop();
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
         int x = width / 8;
@@ -155,6 +156,33 @@ public class ClickGuiScreen extends CustomGuiScreen {
         GlStateManager.popMatrix();
 
         getFontRenderer().resetScale();
+
+        drawShaderOverlay();
+    }
+
+    // Fullscreen animated shader rendered behind the whole ClickGUI. Overdone on purpose.
+    private void drawShaderBackdrop() {
+        if (module == null || !module.shaderBackground.getValue())
+            return;
+
+        String fsh = module.backgroundShader.getValue().fsh;
+        float alpha = (float) (module.backgroundOpacity.getValue().getInput() / 100.0);
+        float speed = (float) module.backgroundSpeed.getValue().getInput();
+        if (alpha <= 0.001f)
+            return;
+
+        RenderUtils.resetColor();
+        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(fsh, alpha, speed);
+        RenderUtils.resetColor();
+    }
+
+    // Subtle VHS/scanline pass layered over everything for extra flair.
+    private void drawShaderOverlay() {
+        if (module == null || !module.scanlineOverlay.getValue())
+            return;
+        RenderUtils.resetColor();
+        arsenic.utils.render.shader.ShaderUtil.renderFullscreen("vhsGlitch", 0.10f, 1.0f);
+        RenderUtils.resetColor();
     }
 
     @Override
@@ -218,6 +246,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        arsenic.utils.java.SoundUtils.tick();
         if(alwaysKeyboardInput != null) {
             alwaysKeyboardInput.recieveInput(keyCode);
             if (alwaysKeyboardInput != null) return;
