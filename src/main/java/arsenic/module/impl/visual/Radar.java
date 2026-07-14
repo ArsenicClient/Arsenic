@@ -13,7 +13,9 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.List;
@@ -27,6 +29,7 @@ public class Radar extends Module {
     public final BooleanProperty showSelf = new BooleanProperty("Show Self", true);
     public final BooleanProperty showInvis = new BooleanProperty("Show Invisible", false);
     public final BooleanProperty showBackground = new BooleanProperty("Background", true);
+    public final BooleanProperty fixed = new BooleanProperty("Fixed", false);
 
     public static int radarX = 4;
     public static int radarY = 4;
@@ -65,10 +68,16 @@ public class Radar extends Module {
             double dx = player.posX - mc.thePlayer.posX;
             double dz = player.posZ - mc.thePlayer.posZ;
 
-            double cos = Math.cos(yawRad);
-            double sin = Math.sin(yawRad);
-            double right = dx * cos + dz * sin;
-            double forward = -dx * sin + dz * cos;
+            double right, forward;
+            if (fixed.getValue()) {
+                right = dx;
+                forward = -dz;
+            } else {
+                double cos = Math.cos(yawRad);
+                double sin = Math.sin(yawRad);
+                right = dx * cos + dz * sin;
+                forward = -dx * sin + dz * cos;
+            }
 
             float px = (float) (cx + right * scale);
             float py = (float) (cy - forward * scale);
@@ -77,7 +86,27 @@ public class Radar extends Module {
                 continue;
 
             if (player == mc.thePlayer) {
-                DrawUtils.drawCircle(px, py, 2, new Color(0, 255, 0, 200).getRGB());
+                if (fixed.getValue()) {
+                    GL11.glPushMatrix();
+                    GlStateManager.translate(px, py, 0);
+                    GlStateManager.rotate(mc.thePlayer.rotationYaw + 180, 0, 0, 1);
+
+                    GL11.glEnable(GL11.GL_BLEND);
+                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                    GL11.glDisable(GL11.GL_TEXTURE_2D);
+                    GlStateManager.color(0, 1, 0, 0.78f);
+                    GL11.glBegin(GL11.GL_TRIANGLES);
+                    GL11.glVertex2d(0, -5);
+                    GL11.glVertex2d(-3, 4);
+                    GL11.glVertex2d(3, 4);
+                    GL11.glEnd();
+                    GL11.glEnable(GL11.GL_TEXTURE_2D);
+                    GL11.glDisable(GL11.GL_BLEND);
+
+                    GL11.glPopMatrix();
+                } else {
+                    DrawUtils.drawCircle(px, py, 2, new Color(0, 255, 0, 200).getRGB());
+                }
             } else {
                 DrawUtils.drawCircle(px, py, 2, new Color(theme).getRGB());
             }
