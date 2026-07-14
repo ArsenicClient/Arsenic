@@ -26,7 +26,7 @@ apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "org.spongepowered.mixin"
 apply plugin: "idea"
 
-version          = "v0.7"
+version          = "v1.0"
 group            = "arsenic"
 archivesBaseName = "Arsenic"
 
