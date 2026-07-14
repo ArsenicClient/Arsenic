@@ -2,6 +2,7 @@ package arsenic.event.impl;
 
 import arsenic.event.types.Event;
 import arsenic.injection.accessor.IMixinEntity;
+import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;
@@ -16,7 +17,7 @@ public class EventSilentRotation implements Event {
     private final float initPitch;
     private float yaw, pitch;
     private float speed;
-    private boolean doMovementFix = true;
+    private SilentRotationManager.MovementFix movementFix = SilentRotationManager.MovementFix.SILENT;
     private boolean doJumpFix = true;
     private boolean preventDuplicateLook = false;
     private static Minecraft mc = Minecraft.getMinecraft();
@@ -49,8 +50,8 @@ public class EventSilentRotation implements Event {
         this.speed = speed;
     }
 
-    public boolean doMovementFix() {
-        return doMovementFix;
+    public SilentRotationManager.MovementFix getMovementFix() {
+        return movementFix;
     }
 
     public boolean doJumpFix(){
@@ -61,8 +62,8 @@ public class EventSilentRotation implements Event {
         this.doJumpFix = doJumpFix;
     }
 
-    public void setDoMovementFix(boolean doMovementFix) {
-        this.doMovementFix = doMovementFix;
+    public void setMovementFix(SilentRotationManager.MovementFix movementFix) {
+        this.movementFix = movementFix;
     }
 
     public boolean isPreventDuplicateLook() {

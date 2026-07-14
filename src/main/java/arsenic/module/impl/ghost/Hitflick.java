@@ -15,6 +15,7 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.lag.LagManager;
+import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.entity.Entity;
 
 @ModuleInfo(name = "Hitflick", category = ModuleCategory.GHOST)
@@ -52,10 +53,11 @@ public class Hitflick extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onSilentRotation = event -> {
-        event.setSpeed(180);
         switch (state) {
             case FLICKING_AWAY:
                 event.setYaw(flickYaw);
+                event.setSpeed(360f);
+                event.setMovementFix(SilentRotationManager.MovementFix.STRICT);
                 state = FlickState.RESTORING;
                 break;
 
