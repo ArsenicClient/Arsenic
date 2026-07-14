@@ -18,7 +18,7 @@ public class SilentRotationManager {
     public float pitch ;
     private float prevPitch;
     private boolean modified;
-    private boolean doMovementFix;
+    private MovementFix movementFix = MovementFix.SILENT;
     private boolean doJumpFix;
     private float lastPlaceYawDelta = -1f;
     private float speed;
@@ -30,7 +30,7 @@ public class SilentRotationManager {
         prevYaw = yaw;
         prevPitch = pitch;
 
-        doMovementFix = rotation.doMovementFix();
+        movementFix = rotation.getMovementFix();
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
 
@@ -114,7 +114,9 @@ public class SilentRotationManager {
 
     @EventLink
     public final Listener<EventMove> eventMoveListener = event -> {
-        if(!modified || !doMovementFix)
+        // OFF: no movement fix. STRICT/SILENT: motion is computed with the silent yaw so the
+        // server-side prediction matches the rotation we send.
+        if(!modified || movementFix == MovementFix.OFF)
             return;
 
         event.setYaw(yaw);
@@ -122,7 +124,10 @@ public class SilentRotationManager {
 
     @EventLink
     public final Listener<EventMovementInput> eventMovementInputListener = event -> {
-        if(!modified || !doMovementFix || (event.getSpeed() == 0 && event.getStrafe() == 0)) return;
+        // Only SILENT rewrites the movement keys so the intended travel direction is preserved
+        // under the silent yaw. STRICT leaves the keys alone (player moves relative to the yaw).
+        if(!modified || movementFix != MovementFix.SILENT || (event.getSpeed() == 0 && event.getStrafe() == 0))
+            return;
         float moveAngle = wrapAngleToPi(normaliseYaw(mc.thePlayer.rotationYaw) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
         float moveKeyAngle = wrapAngleToPi(moveAngle - (float) Math.toRadians(yaw));
         float speedValue = (moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0;
@@ -172,6 +177,18 @@ public class SilentRotationManager {
         float diff = currentYaw - targetYaw;
         float n = Math.round(diff / 360.0f);
         return targetYaw + n * 360.0f;
+    }
+
+    /**
+     * OFF    — no movement correction at all.
+     * STRICT — motion is computed with the silent yaw, but the movement keys are left untouched.
+     * SILENT — motion is computed with the silent yaw AND the movement keys are rewritten so the
+     *          player still travels in the direction they intended.
+     */
+    public enum MovementFix {
+        OFF,
+        STRICT,
+        SILENT
     }
 
 }
