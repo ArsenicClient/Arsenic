@@ -1,0 +1,12 @@
+{
+  "cmaj0": { "category": "master", "sounds": ["arsenic:cmaj0"] },
+  "cmaj1": { "category": "master", "sounds": ["arsenic:cmaj1"] },
+  "cmaj2": { "category": "master", "sounds": ["arsenic:cmaj2"] },
+  "cmaj3": { "category": "master", "sounds": ["arsenic:cmaj3"] },
+  "cmaj4": { "category": "master", "sounds": ["arsenic:cmaj4"] },
+  "cmaj5": { "category": "master", "sounds": ["arsenic:cmaj5"] },
+  "cmaj6": { "category": "master", "sounds": ["arsenic:cmaj6"] },
+  "cmaj7": { "category": "master", "sounds": ["arsenic:cmaj7"] },
+  "tick":  { "category": "master", "sounds": ["arsenic:tick"] },
+  "click": { "category": "master", "sounds": ["arsenic:click"] }
+}

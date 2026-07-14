@@ -29,7 +29,7 @@ import scala.sys.BooleanProp;
 
 import static arsenic.utils.lag.LagManager.*;
 
-@ModuleInfo(name = "AutoBlock", category = ModuleCategory.BLATANT)
+@ModuleInfo(name = "AutoBlock", category = ModuleCategory.BLATANT, dev = true)
 public class AutoBlock extends Module {
 
     public final DoubleProperty cps = new DoubleProperty("CPS", new DoubleValue(1, 10, 8, 0.5));

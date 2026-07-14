@@ -21,11 +21,27 @@
 
         private ShaderUtil backgroundShader;
         private int currentShaderIndex = 0;
-        private final List<String> backgroundShaders = Arrays.asList("zippyZaps", "rainbowShader", "kvShader");
+        private final List<String> backgroundShaders = Arrays.asList(
+                "nebula", "plasma", "aurora", "starfield", "matrix", "synthwave",
+                "warpTunnel", "voronoiGlow", "fractalPyramid", "liquidChrome",
+                "hexGrid", "fireStorm", "oceanCaustics", "vhsGlitch",
+                "zippyZaps", "rainbowShader", "kvShader");
+        // auto-cycle the menu background every few seconds
+        private static final long CYCLE_MS = 8000L;
+        private long lastCycle = System.currentTimeMillis();
 
 
         public Screen() {
             backgroundShader = new ShaderUtil(backgroundShaders.get(currentShaderIndex));
+        }
+
+        private void tickBackgroundCycle() {
+            long now = System.currentTimeMillis();
+            if (now - lastCycle >= CYCLE_MS) {
+                lastCycle = now;
+                currentShaderIndex = (currentShaderIndex + 1) % backgroundShaders.size();
+                backgroundShader = new ShaderUtil(backgroundShaders.get(currentShaderIndex));
+            }
         }
 
         @Override
@@ -46,6 +62,7 @@
             // DO NOT DELETE - SCREEN WILL GO WHITE IF DELETED
             Gui.drawRect(0, 0, 0, 0, new Color(255, 255, 255, 40).getRGB());
 
+            tickBackgroundCycle();
 
             backgroundShader.init();
             backgroundShader.setUniformf("time", (System.currentTimeMillis() % 1000000) / 5000f);

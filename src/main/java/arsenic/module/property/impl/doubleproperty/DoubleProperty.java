@@ -109,12 +109,18 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 hovered = tDiff < radius;
             }
 
+            private double lastSoundValue = Double.NaN;
+
             private void handleMovement(int mouseX, int mouseY) {
                 if (!Mouse.isButtonDown(0)) clicked = false;
                 if(Mouse.isButtonDown(0) && clicked) {
                     float mousePercent = (mouseX - lineX1) / lineWidth;
                     getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
                     onValueUpdate();
+                    if (getValue().getInput() != lastSoundValue) {
+                        lastSoundValue = getValue().getInput();
+                        arsenic.utils.java.SoundUtils.tick();
+                    }
                 }
             }
         };

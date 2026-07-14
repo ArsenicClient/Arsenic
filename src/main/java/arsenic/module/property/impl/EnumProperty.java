@@ -166,11 +166,13 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             int box = (int) (mouseOffset/boxHeight);
             if(box == 0) {
                 click(mouseX, mouseY, mouseButton);
+                arsenic.utils.java.SoundUtils.cmajStep();
                 return true;
             }
             setValue(modes[box - 1]);
             open = !open;
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysClickedComponent(null);
+            arsenic.utils.java.SoundUtils.cmajStep();
             return true;
         }
 

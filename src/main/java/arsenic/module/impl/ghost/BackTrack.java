@@ -64,7 +64,6 @@ public class BackTrack extends Module {
 
     @Override
     public void onEnable() {
-        PlayerUtils.addMessageToChat("Enabled");
         tracked.clear();
         LagManager.delay(S14PacketEntity.class, this::onEntityMove);
         LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
@@ -83,6 +82,14 @@ public class BackTrack extends Module {
         LagManager.undelay(S18PacketEntityTeleport.class);
         tracked.clear();
     }
+
+    @EventLink
+    public final Listener<EventPlayerJoinWorld> onJoinWorld = event -> {
+        // Re-initialise (re-bind the packet delays, clear stale tracks) whenever the local player
+        // joins a new world — the previous world's entity tracks no longer mean anything.
+        if (event.getEntity() == mc.thePlayer)
+            onEnable();
+    };
 
 
     private long onEntityMove(Packet<?> raw) {

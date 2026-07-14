@@ -3,12 +3,15 @@ package arsenic.utils.render.shader;
 import arsenic.utils.java.FileUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.ResourceLocation;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -16,6 +19,97 @@ import static org.lwjgl.opengl.GL20.*;
 public class ShaderUtil {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private final int programID;
+
+    // ----- fullscreen shader registry (uses this same class, no duplication) -----
+
+    /** Blend factor constants (some LWJGL builds don't expose these in GL14). */
+    private static final int GL_CONSTANT_ALPHA_ = 0x8003;
+    private static final int GL_ONE_MINUS_CONSTANT_ALPHA_ = 0x8004;
+
+    /** Every fullscreen shader available in {@code assets/minecraft/shaders/*.fsh}. */
+    public static final String[] BACKGROUNDS = {
+            "plasma", "aurora", "starfield", "matrix", "synthwave",
+            "warpTunnel", "voronoiGlow", "fractalPyramid", "liquidChrome",
+            "hexGrid", "fireStorm", "oceanCaustics", "nebula", "vhsGlitch",
+            "zippyZaps", "rainbowShader", "kvShader"
+    };
+
+    public enum BlendMode {
+        NORMAL, ADDITIVE, SCREEN
+    }
+
+    private static final Map<String, ShaderUtil> FULLSCREEN_CACHE = new LinkedHashMap<>();
+
+    /** Lazily compiles and caches a fullscreen shader by name. */
+    public static ShaderUtil getCached(String name) {
+        ShaderUtil s = FULLSCREEN_CACHE.get(name);
+        if (s == null) {
+            s = new ShaderUtil(name);
+            FULLSCREEN_CACHE.put(name, s);
+        }
+        return s;
+    }
+
+    public static void renderFullscreen(String name, float alpha, float speed) {
+        renderFullscreen(name, alpha, speed, BlendMode.NORMAL);
+    }
+
+    /**
+     * Draws the named shader across the whole framebuffer, independent of GUI scale,
+     * restoring GL state through {@link GlStateManager} so GUI colours are untouched.
+     */
+    public static void renderFullscreen(String name, float alpha, float speed, BlendMode blend) {
+        if (alpha <= 0.001f)
+            return;
+
+        ShaderUtil shader = getCached(name);
+        int w = mc.displayWidth;
+        int h = mc.displayHeight;
+
+        // scale-independent fullscreen projection (actual pixels)
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0.0, w, h, 0.0, -1.0, 1.0);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        GlStateManager.disableAlpha();
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        org.lwjgl.opengl.GL14.glBlendColor(1f, 1f, 1f, alpha);
+        switch (blend) {
+            case ADDITIVE:
+                GlStateManager.blendFunc(GL_CONSTANT_ALPHA_, GL_ONE);
+                break;
+            case SCREEN:
+                GlStateManager.blendFunc(GL_ONE_MINUS_DST_COLOR, GL_CONSTANT_ALPHA_);
+                break;
+            default:
+                GlStateManager.blendFunc(GL_CONSTANT_ALPHA_, GL_ONE_MINUS_CONSTANT_ALPHA_);
+                break;
+        }
+
+        shader.init();
+        shader.setUniformf("time", ((System.currentTimeMillis() % 1000000L) / 5000f) * speed);
+        shader.setUniformf("resolution", w, h);
+        drawQuads(0, 0, w, h);
+        shader.unload();
+
+        // restore
+        org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableAlpha();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
 
     public ShaderUtil(String fragmentShaderLoc, String vertexShaderLoc) {
         int program = glCreateProgram();
