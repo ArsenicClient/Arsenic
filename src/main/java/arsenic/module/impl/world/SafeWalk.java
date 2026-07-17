@@ -63,6 +63,10 @@ public class SafeWalk extends Module {
     public final Listener<EventLiving> tickEvent = tickEvent -> {
         // Early exits
         Mode mode = shiftMode.getValue();
+        if (mc.currentScreen != null) {
+            mode.accept(false);
+            return;
+        }
         if (onlySPressed.getValue() && !mc.gameSettings.keyBindBack.isKeyDown()) {
             mode.accept(Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
             return;
