@@ -23,12 +23,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static arsenic.utils.lag.LagManager.releaseDelayed;
-
 @ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.GHOST)
 public class KnockbackDelay extends Module {
 
@@ -45,17 +39,19 @@ public class KnockbackDelay extends Module {
 
     @Override
     protected void onDisable() {
-        releaseDelayed(p -> true);
-        LagManager.undelay(Packet.class);
+        LagManager.releaseDelayedFor(KnockbackDelay.class);
+        LagManager.undelay(KnockbackDelay.class);
         lagging = false;
         cdTimer.reset();
     }
 
     @EventLink
     public Listener<EventUpdate.Pre> preListener = event -> {
-        if(releaseTimer.finished(lag))  {
-            releaseDelayed(p -> true);
-            LagManager.undelay(Packet.class);
+        // Only act while we're actually holding packets, otherwise the lag==0 initial state
+        // makes releaseTimer.finished() perpetually true and drains other modules' queues.
+        if(lagging && releaseTimer.finished(lag))  {
+            LagManager.releaseDelayedFor(KnockbackDelay.class);
+            LagManager.undelay(KnockbackDelay.class);
             lagging = false;
             cdTimer.reset();
         }
@@ -74,7 +70,7 @@ public class KnockbackDelay extends Module {
                lagging = true;
                lag = (long) delay.getValue().getRandomInRange();
                releaseTimer.reset();
-               LagManager.delay(Packet.class, pk -> lag);
+               LagManager.delay(KnockbackDelay.class, Packet.class, pk -> lag);
            }
        }
     };
