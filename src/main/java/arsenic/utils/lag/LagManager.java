@@ -160,16 +160,38 @@ public final class LagManager {
         }
     }
 
-    public static void delay(Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
-        incomingDelay.bind(packetClass, delayFunction);
+    /**
+     * Register an incoming-packet delay under a holder key with a custom selector.
+     * Multiple holders may be interested in the same packet; when a packet arrives every
+     * matching holder is polled and the largest requested delay wins (the packet is tagged
+     * with that holder so it can be released independently).
+     */
+    public static void delay(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> delayFunction) {
+        incomingDelay.bind(holderKey, selector, delayFunction);
     }
 
-    public static void undelay(Class<?> packetClass) {
-        incomingDelay.unbind(packetClass);
+    /** Convenience: delay all packets that are instances of {@code packetClass}. */
+    public static void delay(Class<?> holderKey, Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
+        incomingDelay.bind(holderKey, packetClass::isInstance, delayFunction);
+    }
+
+    /** Remove a holder's incoming delay binding. Does not release packets it already holds. */
+    public static void undelay(Class<?> holderKey) {
+        incomingDelay.unbind(holderKey);
     }
 
     public static void releaseDelayed(Predicate<Packet<?>> filter) {
         incomingDelay.releaseMatching(filter, LagManager::receivePacket);
+    }
+
+    /** Release every delayed packet owned by {@code holderKey}. */
+    public static void releaseDelayedFor(Class<?> holderKey) {
+        incomingDelay.releaseOwned(holderKey, p -> true, LagManager::receivePacket);
+    }
+
+    /** Release delayed packets owned by {@code holderKey} that also match {@code filter}. */
+    public static void releaseDelayedFor(Class<?> holderKey, Predicate<Packet<?>> filter) {
+        incomingDelay.releaseOwned(holderKey, filter, LagManager::receivePacket);
     }
 
     public static void releaseDelayedChunked(Predicate<Packet<?>> filter, int chunkSize) {
@@ -184,12 +206,20 @@ public final class LagManager {
         return incomingDelay.count(filter);
     }
 
-    public static void delayOutgoing(Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
-        outgoingDelay.bind(packetClass, delayFunction);
+    public static void delayOutgoing(Class<?> holderKey, Function<Packet<?>, Long> delayFunction) {
+        outgoingDelay.bind(holderKey, holderKey::isInstance, delayFunction);
     }
 
-    public static void undelayOutgoing(Class<?> packetClass) {
-        outgoingDelay.unbind(packetClass);
+    public static void delayOutgoing(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> delayFunction) {
+        outgoingDelay.bind(holderKey, selector, delayFunction);
+    }
+
+    public static void undelayOutgoing(Class<?> holderKey) {
+        outgoingDelay.unbind(holderKey);
+    }
+
+    public static void releaseDelayedOutgoingFor(Class<?> holderKey) {
+        outgoingDelay.releaseOwned(holderKey, p -> true, LagManager::sendPacket);
     }
 
     public static void releaseDelayedOutgoing(Predicate<Packet<?>> filter) {
@@ -224,19 +254,30 @@ public final class LagManager {
         }
     }
 
+    private static final class DelayRule {
+        final Predicate<Packet<?>> selector;
+        final Function<Packet<?>, Long> delayFn;
+
+        DelayRule(Predicate<Packet<?>> selector, Function<Packet<?>, Long> delayFn) {
+            this.selector = selector;
+            this.delayFn = delayFn;
+        }
+    }
+
     private static final class PacketDelayChannel {
 
-        private final Map<Class<?>, Function<Packet<?>, Long>> handlers = new ConcurrentHashMap<>();
+        // holderKey -> its delay rule. Keyed by the module that owns the delay, not the packet type.
+        private final Map<Class<?>, DelayRule> handlers = new ConcurrentHashMap<>();
         private final Queue<TimedPacket> queue = new ConcurrentLinkedQueue<>();
         private final Set<Packet<?>> skip = Collections.newSetFromMap(new ConcurrentHashMap<>());
         private final Queue<ChunkedRelease> chunkedReleases = new ConcurrentLinkedQueue<>();
 
-        void bind(Class<?> packetClass, Function<Packet<?>, Long> fn) {
-            handlers.put(packetClass, fn);
+        void bind(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> fn) {
+            handlers.put(holderKey, new DelayRule(selector, fn));
         }
 
-        void unbind(Class<?> packetClass) {
-            handlers.remove(packetClass);
+        void unbind(Class<?> holderKey) {
+            handlers.remove(holderKey);
         }
 
         boolean consumeSkip(Packet<?> packet) {
@@ -247,20 +288,41 @@ public final class LagManager {
             if (handlers.isEmpty())
                 return false;
 
-            Function<Packet<?>, Long> handler = handlers.get(packet.getClass());
-            if (handler == null)
-                handler = handlers.get(Packet.class); // wildcard fallback
-            if (handler == null)
+            // Poll every interested holder; the largest requested delay wins and owns the packet.
+            long bestDelay = 0L;
+            Class<?> winner = null;
+            for (Map.Entry<Class<?>, DelayRule> entry : handlers.entrySet()) {
+                DelayRule rule = entry.getValue();
+                if (!rule.selector.test(packet))
+                    continue;
+                Long delayMillis = rule.delayFn.apply(packet);
+                if (delayMillis == null || delayMillis <= 0)
+                    continue;
+                if (delayMillis > bestDelay) {
+                    bestDelay = delayMillis;
+                    winner = entry.getKey();
+                }
+            }
+
+            if (winner == null)
                 return false;
 
-            Long delayMillis = handler.apply(packet);
-            if (delayMillis == null || delayMillis <= 0)
-                return false;
-
-            TimedPacket timedPacket = new TimedPacket(packet, delayMillis);
+            TimedPacket timedPacket = new TimedPacket(packet, bestDelay, winner);
             timedPacket.getTimer().start();
             queue.add(timedPacket);
             return true;
+        }
+
+        void releaseOwned(Class<?> holderKey, Predicate<Packet<?>> filter, Consumer<Packet<?>> releaser) {
+            Iterator<TimedPacket> it = queue.iterator();
+            while (it.hasNext()) {
+                TimedPacket timedPacket = it.next();
+                if (timedPacket.isOwnedBy(holderKey) && filter.test(timedPacket.getPacket())) {
+                    it.remove();
+                    skip.add(timedPacket.getPacket());
+                    releaser.accept(timedPacket.getPacket());
+                }
+            }
         }
 
         void releaseFinished(Consumer<Packet<?>> releaser) {

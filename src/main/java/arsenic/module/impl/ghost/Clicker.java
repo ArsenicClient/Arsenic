@@ -27,6 +27,7 @@ public class Clicker extends Module {
     final MSTimer timer = new MSTimer();
     private long cps,prevCps,lastSound;
     private boolean lmbDown;
+    private int lastDropTick = -1;
     
     @EventLink
     public final Listener<EventLiving> eventLivingListener = e -> {
@@ -40,7 +41,12 @@ public class Clicker extends Module {
             return;
 
         if (drop.getValue()) {
-            if (mc.thePlayer.ticksExisted % 12 == 0) {
+            // This listener fires per render frame, so a raw ticksExisted % 12 check is true for
+            // every frame of that tick and over-subtracts at high FPS (pinning cps to 1 and killing
+            // the clicker). Only apply the drop once per qualifying game tick.
+            int tick = mc.thePlayer.ticksExisted;
+            if (tick % 12 == 0 && tick != lastDropTick) {
+                lastDropTick = tick;
                 cps -= (long) JavaUtils.getRandom(1,3);
             }
         }

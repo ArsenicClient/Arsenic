@@ -65,22 +65,23 @@ public class BackTrack extends Module {
     @Override
     public void onEnable() {
         tracked.clear();
-        LagManager.delay(S14PacketEntity.class, this::onEntityMove);
-        LagManager.delay(S14PacketEntity.S15PacketEntityRelMove.class, this::onEntityMove);
-        LagManager.delay(S14PacketEntity.S16PacketEntityLook.class, this::onEntityMove);
-        LagManager.delay(S14PacketEntity.S17PacketEntityLookMove.class, this::onEntityMove);
-        LagManager.delay(S18PacketEntityTeleport.class, this::onEntityTeleport);
+        // All S15/S16/S17 move packets are subclasses of S14PacketEntity, so one selector covers them.
+        LagManager.delay(BackTrack.class, ALL_TRACKED, this::onDelayPacket);
     }
 
     @Override
     public void onDisable() {
-        LagManager.releaseDelayed(ALL_TRACKED);
-        LagManager.undelay(S14PacketEntity.class);
-        LagManager.undelay(S14PacketEntity.S15PacketEntityRelMove.class);
-        LagManager.undelay(S14PacketEntity.S16PacketEntityLook.class);
-        LagManager.undelay(S14PacketEntity.S17PacketEntityLookMove.class);
-        LagManager.undelay(S18PacketEntityTeleport.class);
+        LagManager.releaseDelayedFor(BackTrack.class);
+        LagManager.undelay(BackTrack.class);
         tracked.clear();
+    }
+
+    private long onDelayPacket(Packet<?> raw) {
+        if (raw instanceof S18PacketEntityTeleport)
+            return onEntityTeleport(raw);
+        if (raw instanceof S14PacketEntity)
+            return onEntityMove(raw);
+        return 0L;
     }
 
     @EventLink
@@ -175,7 +176,7 @@ public class BackTrack extends Module {
             }
 
             if (shouldRemove) {
-                LagManager.releaseDelayed(filterFor(entityId));
+                LagManager.releaseDelayedFor(BackTrack.class, filterFor(entityId));
             }
 
             return shouldRemove;
