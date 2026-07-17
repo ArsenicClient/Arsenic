@@ -248,7 +248,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         arsenic.utils.java.SoundUtils.tick();
         if(alwaysKeyboardInput != null) {
-            alwaysKeyboardInput.recieveInput(keyCode);
+            if(alwaysKeyboardInput.recieveInput(keyCode)) return;
             if (alwaysKeyboardInput != null) return;
         }
         ((SearchComponent) searchComponent).recieveInput(keyCode);
