@@ -26,12 +26,10 @@ public class ShaderUtil {
     private static final int GL_CONSTANT_ALPHA_ = 0x8003;
     private static final int GL_ONE_MINUS_CONSTANT_ALPHA_ = 0x8004;
 
-    /** Every fullscreen shader available in {@code assets/minecraft/shaders/*.fsh}. */
+    /** Selectable background shaders (see {@code ClickGui.BgShader}). */
     public static final String[] BACKGROUNDS = {
-            "plasma", "aurora", "starfield", "matrix", "synthwave",
-            "warpTunnel", "voronoiGlow", "fractalPyramid", "liquidChrome",
-            "hexGrid", "fireStorm", "oceanCaustics", "nebula", "vhsGlitch",
-            "zippyZaps", "rainbowShader", "kvShader"
+            "aurora", "starfield", "synthwave", "liquidChrome",
+            "fireStorm", "oceanCaustics", "nebula", "zippyZaps"
     };
 
     public enum BlendMode {
@@ -54,13 +52,29 @@ public class ShaderUtil {
         renderFullscreen(name, alpha, speed, BlendMode.NORMAL);
     }
 
+    public static void renderFullscreen(String name, float alpha, float speed, BlendMode blend) {
+        renderFullscreen(name, alpha, speed, blend, 0, 0f);
+    }
+
     /**
      * Draws the named shader across the whole framebuffer, independent of GUI scale,
      * restoring GL state through {@link GlStateManager} so GUI colours are untouched.
+     * <p>
+     * When {@code tintStrength > 0} the result is pulled toward {@code tintColor}
+     * (an ARGB int, alpha ignored) so the background can be made to match the GUI's
+     * theme colour. The same colour is also handed to the shader as a
+     * {@code themeColor} uniform (harmlessly ignored by shaders that don't use it).
+     *
+     * @param tintColor    ARGB colour to tint toward - pass {@code ThemeManager.getMainColor()}
+     * @param tintStrength 0 = untouched shader, 1 = fully washed to the theme colour
      */
-    public static void renderFullscreen(String name, float alpha, float speed, BlendMode blend) {
+    public static void renderFullscreen(String name, float alpha, float speed, BlendMode blend, int tintColor, float tintStrength) {
         if (alpha <= 0.001f)
             return;
+
+        float tr = ((tintColor >> 16) & 0xFF) / 255f;
+        float tg = ((tintColor >> 8) & 0xFF) / 255f;
+        float tb = (tintColor & 0xFF) / 255f;
 
         ShaderUtil shader = getCached(name);
         int w = mc.displayWidth;
@@ -95,8 +109,17 @@ public class ShaderUtil {
         shader.init();
         shader.setUniformf("time", ((System.currentTimeMillis() % 1000000L) / 5000f) * speed);
         shader.setUniformf("resolution", w, h);
+        shader.setUniformf("themeColor", tr, tg, tb);
         drawQuads(0, 0, w, h);
         shader.unload();
+
+        // Wash the shader toward the theme colour so the background matches the GUI.
+        if (tintStrength > 0f) {
+            org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
+            GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            GlStateManager.color(tr, tg, tb, Math.min(1f, tintStrength) * alpha);
+            drawQuads(0, 0, w, h);
+        }
 
         // restore
         org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
@@ -105,6 +128,53 @@ public class ShaderUtil {
         GlStateManager.enableAlpha();
         GlStateManager.color(1f, 1f, 1f, 1f);
 
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
+
+    /**
+     * Draws the "paperBurn" dissolve across the whole screen on top of the GUI.
+     * The shader discards burnt-through fragments (revealing the GUI beneath) and
+     * paints an ember edge over the remaining sheet.
+     *
+     * @param progress  0 = sheet fully covers the GUI, 1 = fully burnt away
+     * @param tintColor ARGB theme colour the paper is faintly tinted with
+     */
+    public static void renderBurn(float progress, int tintColor) {
+        ShaderUtil shader = getCached("paperBurn");
+        int w = mc.displayWidth;
+        int h = mc.displayHeight;
+        float tr = ((tintColor >> 16) & 0xFF) / 255f;
+        float tg = ((tintColor >> 8) & 0xFF) / 255f;
+        float tb = (tintColor & 0xFF) / 255f;
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0.0, w, h, 0.0, -1.0, 1.0);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        GlStateManager.disableAlpha();
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+
+        shader.init();
+        shader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
+        shader.setUniformf("resolution", w, h);
+        shader.setUniformf("progress", progress);
+        shader.setUniformf("themeColor", tr, tg, tb);
+        drawQuads(0, 0, w, h);
+        shader.unload();
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableAlpha();
+        GlStateManager.color(1f, 1f, 1f, 1f);
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
         glMatrixMode(GL_MODELVIEW);

@@ -1,6 +1,7 @@
 #version 120
 uniform float time;
 uniform vec2 resolution;
+uniform vec3 themeColor;
 
 float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9, 78.2))) * 43758.5); }
 
@@ -17,5 +18,15 @@ void main() {
     float scan = 0.85 + 0.15 * sin(uv.y * resolution.y * 1.5);
     col *= scan;
     col += (hash(uv + time) - 0.5) * 0.15;
+
+    // recolour the whole effect to the GUI's theme colour: keep the animated
+    // brightness/scanline pattern but drive its hue from themeColor. Falls back
+    // to the original look if no theme colour was supplied.
+    vec3 tc = themeColor;
+    if (max(tc.r, max(tc.g, tc.b)) > 0.001) {
+        float lum = dot(col, vec3(0.333));
+        col = tc * (0.35 + 1.15 * lum);
+    }
+
     gl_FragColor = vec4(col, 1.0);
 }

@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
     protected final ModuleCategory self;
     protected final ResourceLocation icon;
-    protected float scroll, maxHeight;
+    protected float scroll, targetScroll, maxHeight;
     protected boolean isCC, isHovered;
     protected List<ModuleComponent> contentsL = new ArrayList<>();
     protected List<ModuleComponent> contentsR = new ArrayList<>();
@@ -58,12 +58,18 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     @Override
     protected float drawComponent(RenderInfo ri) {
         float anim = Math.max(enabledTimer.getPercent(), hoverTimer.getPercent());
-        expandX = anim * (width / 14f);
+        expandX = anim * (width / 40f);
         int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
         int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
 
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+
+        // lift the active/hovered pill toward the viewer
+        if (anim > 0.01f)
+            DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
+                    arsenic.module.impl.visual.ClickGui.shadowSpread(height * 0.18f),
+                    arsenic.module.impl.visual.ClickGui.shadowAlpha((int) (130 * anim)), 4);
 
         DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
 
@@ -86,6 +92,10 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
         maxHeight = 0;
+        // ease the actual scroll toward the target each frame for smooth wheel scrolling
+        scroll += (targetScroll - scroll) * arsenic.module.impl.visual.ClickGui.scrollEase();
+        if (Math.abs(targetScroll - scroll) < 0.5f)
+            scroll = targetScroll;
         drawSection(contentsL, pi, ri);
     }
 
@@ -109,18 +119,28 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         Arsenic.getArsenic().getClickGuiScreen().setCmcc(this);
     }
 
+    @Override
+    protected void playClickSound() {
+        // switching category gets its own chord (G major)
+        arsenic.utils.java.SoundUtils.chordCategory();
+    }
+
     public void clickChildren(int mouseX, int mouseY, int mouseButton) {
         this.contents.forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
     }
 
     public void setCurrentCategory(boolean currentCategory) {
         this.isCC = currentCategory;
-        if (currentCategory) scroll = 0;
+        if (currentCategory) {
+            scroll = 0;
+            targetScroll = 0;
+        }
     }
 
     public void scroll(int scroll) {
-        this.scroll += scroll;
-        this.scroll = Math.max(Math.min(0, this.scroll), -maxHeight);
+        // move the target; drawLeft eases the visible scroll toward it
+        this.targetScroll += scroll;
+        this.targetScroll = Math.max(Math.min(0, this.targetScroll), -maxHeight);
     }
 
     public void subtractFromMaxScrollHeight(float f) {

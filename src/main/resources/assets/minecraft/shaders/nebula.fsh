@@ -18,8 +18,10 @@ float fbm(vec2 p){
 
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / resolution.y;
-    vec2 q = vec2(fbm(uv * 3.0 + time * 0.1), fbm(uv * 3.0 - time * 0.12));
-    float f = fbm(uv * 3.0 + q * 2.0);
+    // drift the whole field so the nebula visibly flows across the screen
+    uv += vec2(time * 0.04, time * 0.02);
+    vec2 q = vec2(fbm(uv * 3.0 + time * 0.25), fbm(uv * 3.0 - time * 0.30));
+    float f = fbm(uv * 3.0 + q * 2.0 + time * 0.15);
     vec3 col = mix(vec3(0.05, 0.0, 0.15), vec3(0.9, 0.2, 0.6), f);
     col = mix(col, vec3(0.1, 0.4, 0.9), clamp(q.x * q.x, 0.0, 1.0));
     col += vec3(hash(uv * 800.0)) * step(0.995, hash(floor(uv * 400.0)));

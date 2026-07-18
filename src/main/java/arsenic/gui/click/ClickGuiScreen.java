@@ -44,6 +44,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private long openTime;
     private static final int OPEN_ANIMATION_DURATION = 400;
 
+    // burn-away open/close transition
+    private boolean closing = false;
+    private long closeStartTime;
+    private static final int BURN_DURATION = 700;
+
     //called once
     public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
@@ -59,12 +64,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void doInit() {
         super.doInit();
         openTime = System.currentTimeMillis();
+        closing = false;
     }
 
     public void drawBloom() {
         if (getFontRenderer() == null)
             return;
         rescale(this.scale);
+        DrawUtils.overrideScaleFactor = this.scale;
         int x = width / 8;
         int y = height / 6;
         x1 = width - x;
@@ -80,11 +87,39 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
         ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
+        DrawUtils.overrideScaleFactor = -1f;
         rescaleMC();
     }
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
+        // render corner rounding as if always on GUI scale Normal, and point the
+        // drop shadows away from the configured "sun"
+        DrawUtils.overrideScaleFactor = this.scale;
+        if (module != null) {
+            double ang = Math.toRadians(module.sunAngle.getValue().getInput());
+            DrawUtils.shadowDirX = (float) -Math.cos(ang);
+            DrawUtils.shadowDirY = (float) Math.sin(ang);
+        }
+
+        // burn transition: 1 = fully revealed, <1 = paper still covering the GUI
+        long nowMs = System.currentTimeMillis();
+        boolean burn = module != null && module.burnTransition.getValue();
+        float burnProgress = 1f;
+        if (burn) {
+            if (closing) {
+                float cp = Math.min(1f, (nowMs - closeStartTime) / (float) BURN_DURATION);
+                burnProgress = 1f - cp;             // paper reforms over the GUI
+                if (cp >= 1f) {                     // fully covered -> actually close
+                    DrawUtils.overrideScaleFactor = -1f;
+                    mc.displayGuiScreen(null);
+                    return;
+                }
+            } else {
+                burnProgress = Math.min(1f, (nowMs - openTime) / (float) BURN_DURATION);
+            }
+        }
+
         drawShaderBackdrop();
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
         getFontRenderer().setScale(height/450f);
@@ -97,25 +132,28 @@ public class ClickGuiScreen extends CustomGuiScreen {
                 ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
                 : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
 
-        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
-        float eased = 1f - (float) Math.pow(1f - openProgress, 3);
-
         GlStateManager.pushMatrix();
-        if (eased < 1f) {
-            float scale = 0.85f + eased * 0.15f;
-            float centerX = width / 2f;
-            float centerY = height / 2f;
-            GlStateManager.translate(centerX, centerY, 0);
-            GlStateManager.scale(scale, scale, 1f);
-            GlStateManager.translate(-centerX, -centerY, 0);
-        }
 
-        // main container
+        // main container - base layer, lifted off the shader backdrop
         RenderUtils.resetColor();
+        DrawUtils.drawShadow(x, y, x1, y1, 30f, ClickGui.shadowSpread(10f), ClickGui.shadowAlpha(190), 7);
         DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ThemeManager.getClickGuiBackground());
+        DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(28));
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
+
+        // raised sidebar panel sized to wrap the category pills with even margins
+        int catWidth = 10 * (width / 100);
+        float leftColW = vLineX - x;
+        float catMargin = leftColW * 0.06f;      // gap between panel edge and pill
+        float catStartX = x + leftColW * 0.10f;  // pills inset from the container edge
+        float expandMax = catWidth / 40f;        // matches the pill's slide (below)
+        float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
+        float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
+        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, ClickGui.shadowSpread(6f), ClickGui.shadowAlpha(150), 6);
+        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, ThemeManager.getModuleBackground());
+        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(22));
 
         // vertical line
         DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
@@ -130,8 +168,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
         GlStateManager.color(1f, 1f, 1f, 1f);
 
-        // draws each module category component
-        PosInfo pi = new PosInfo(x + 5, hLineY + 5);
+        // draws each module category component, aligned inside the sidebar panel
+        PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
         components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
 
         //search
@@ -158,6 +196,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
         getFontRenderer().resetScale();
 
         drawShaderOverlay();
+
+        // burning-paper sheet on top - dissolves to reveal the GUI (open) or
+        // reforms over it (close). Guarded so a shader hiccup can't hide the GUI.
+        if (burn && burnProgress < 1f) {
+            try {
+                arsenic.utils.render.shader.ShaderUtil.renderBurn(burnProgress, ThemeManager.getMainColor());
+            } catch (Exception ignored) {
+            }
+        }
+
+        DrawUtils.overrideScaleFactor = -1f; // restore for HUD rendering
     }
 
     // Fullscreen animated shader rendered behind the whole ClickGUI. Overdone on purpose.
@@ -172,7 +221,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
             return;
 
         RenderUtils.resetColor();
-        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(fsh, alpha, speed);
+        // tint the backdrop toward the GUI's theme colour (managed via ThemeManager)
+        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(
+                fsh, alpha, speed,
+                arsenic.utils.render.shader.ShaderUtil.BlendMode.NORMAL,
+                ThemeManager.getMainColor(), 0.45f);
         RenderUtils.resetColor();
     }
 
@@ -181,7 +234,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (module == null || !module.scanlineOverlay.getValue())
             return;
         RenderUtils.resetColor();
-        arsenic.utils.render.shader.ShaderUtil.renderFullscreen("vhsGlitch", 0.10f, 1.0f);
+        // hand the theme colour to the scanline shader so it matches the GUI
+        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(
+                "vhsGlitch", 0.10f, 1.0f,
+                arsenic.utils.render.shader.ShaderUtil.BlendMode.NORMAL,
+                ThemeManager.getMainColor(), 0f);
         RenderUtils.resetColor();
     }
 
@@ -241,7 +298,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        cmcc.scroll(i * 15);
+        cmcc.scroll(i * 30);
     }
 
     @Override
@@ -250,6 +307,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if(alwaysKeyboardInput != null) {
             if(alwaysKeyboardInput.recieveInput(keyCode)) return;
             if (alwaysKeyboardInput != null) return;
+        }
+        // ESC plays the burn-away close; a second ESC while burning closes instantly
+        if (keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE
+                && module != null && module.burnTransition.getValue()) {
+            if (!closing) {
+                closing = true;
+                closeStartTime = System.currentTimeMillis();
+            } else {
+                mc.displayGuiScreen(null);
+            }
+            return;
         }
         ((SearchComponent) searchComponent).recieveInput(keyCode);
         super.keyTyped(typedChar, keyCode);

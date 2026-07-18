@@ -64,7 +64,10 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float barWidth = width / 45f;
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTimer.getPercent());
 
+        // cards are the closest layer - a stronger drop shadow + light rim
+        DrawUtils.drawShadow(x1, y1, x2, y2 + expandY, expand, arsenic.module.impl.visual.ClickGui.shadowSpread(expand * 0.7f), arsenic.module.impl.visual.ClickGui.shadowAlpha(150), 5);
         DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ThemeManager.getModuleBackground());
+        DrawUtils.drawEdgeHighlight(x1, y1, x2, y2 + expandY, expand, ThemeManager.getMainColor(), arsenic.module.impl.visual.ClickGui.edgeAlpha(20));
 
         if (hoverTimer.getPercent() > 0)
             DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ColorUtils.setColor(ThemeManager.getModuleHover(), 0, (int) (15 * hoverTimer.getPercent())));
@@ -72,7 +75,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float accPct = enabledAnimationTimer.getPercent();
         if (accPct > 0) {
             int accentCol = ColorUtils.setColor(getEnabledColor(), 0, (int) (accPct * 200));
-            DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth / 2f, y2 + expandY, barWidth, accentCol, new boolean[]{true, true, false, false});
+            // draw the card's exact rounded shape in the accent colour, clipped to a
+            // thin strip on the left so the bar traces the card's corner rounding
+            ScissorUtils.subScissor((int) x1, (int) y1, (int) (x1 + barWidth), (int) (y2 + expandY));
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, accentCol);
+            ScissorUtils.endSubScissor();
         }
 
         buttonComponent.updateComponent(posInfo, ri);
@@ -107,6 +114,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
         if (mouseX < bindX && mouseButton == 1) {
             open = !open;
+            SoundUtils.chordOpen();
             return;
         } else if (mouseX > bindX && mouseX < x1 + (width * 0.85)) {
             binding = !binding;
@@ -134,7 +142,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     public boolean recieveInput(int key) {
         Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
-        SoundUtils.cmajTone(5);
+        SoundUtils.chordKeybind();
         if (key == 1) {
             self.setKeybind(0);
             return true;

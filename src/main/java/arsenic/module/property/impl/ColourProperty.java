@@ -126,7 +126,8 @@ public class ColourProperty extends SerializableProperty<Integer> { //TODO: fix 
                 if(!clicked) return;
                 float mousePercent = (mouseX - lineX1) / lineWidth;
                 setColor(helping, (int) (mousePercent * 255));
-                arsenic.utils.java.SoundUtils.tick();
+                // ringing tone tracks the channel value: C (min) up to C (max)
+                arsenic.utils.java.SoundUtils.slide(mousePercent);
             }
 
 
