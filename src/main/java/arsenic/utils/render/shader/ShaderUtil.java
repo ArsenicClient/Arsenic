@@ -143,13 +143,14 @@ public class ShaderUtil {
      * fragments are discarded (fading to transparent, no black char) and the
      * burning edge glows in the theme colour.
      *
-     * @param progress    0 = box fully covered, 1 = fully burnt away
+     * @param progress    0 = fully gone, 1 = fully present
      * @param tintColor   ARGB theme colour used for the ember/burn edge
-     * @param sheetColor  ARGB colour of the covering sheet (match the box background)
+     * @param style       transition style (ClickGui.Transition ordinal):
+     *                    0 = paper burn, 1 = dissolve, 2 = glitch, 3 = fade
      * @param bx1,by1,bx2,by2 main box rect in top-down pixels
      * @param bradius     box corner radius in pixels
      */
-    public static void renderBurnComposite(int guiTexture, float progress, int tintColor,
+    public static void renderBurnComposite(int guiTexture, float progress, int tintColor, int style,
                                            float bx1, float by1, float bx2, float by2, float bradius) {
         ShaderUtil shader = getCached("paperBurn");
         int w = mc.displayWidth;
@@ -183,11 +184,62 @@ public class ShaderUtil {
         shader.setUniformf("boxMin", bx1, by1);
         shader.setUniformf("boxMax", bx2, by2);
         shader.setUniformf("boxRadius", bradius);
+        shader.setUniformi("style", style);
         org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
         arsenic.utils.render.RenderUtils.bindTexture(guiTexture);
         drawQuads(0, 0, w, h);
         shader.unload();
 
+        GlStateManager.enableAlpha();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
+
+    /**
+     * Multiplies the currently-bound framebuffer's contents by the burn
+     * transition's per-pixel "keep" factor (dst *= keep), so post-processing
+     * masks (blur / bloom stencils) vanish exactly where the ClickGUI has
+     * transitioned away instead of lingering at full strength. Call with the
+     * mask FBO bound; the box rect is in top-down real pixels.
+     */
+    public static void renderBurnMaskFade(float progress, int style,
+                                          float bx1, float by1, float bx2, float by2, float bradius) {
+        ShaderUtil shader = getCached("burnMaskFade");
+        int w = mc.displayWidth;
+        int h = mc.displayHeight;
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0.0, w, h, 0.0, -1.0, 1.0);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        GlStateManager.disableAlpha();
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_ZERO, GL_SRC_ALPHA); // dst *= src alpha ("keep")
+        GlStateManager.color(1f, 1f, 1f, 1f);
+
+        shader.init();
+        // NOTE: must match renderBurnComposite's time formula so the mask's
+        // noise field lines up with the composite's within the same frame
+        shader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
+        shader.setUniformf("resolution", w, h);
+        shader.setUniformf("progress", progress);
+        shader.setUniformf("boxMin", bx1, by1);
+        shader.setUniformf("boxMax", bx2, by2);
+        shader.setUniformf("boxRadius", bradius);
+        shader.setUniformi("style", style);
+        drawQuads(0, 0, w, h);
+        shader.unload();
+
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
         GlStateManager.color(1f, 1f, 1f, 1f);
         glMatrixMode(GL_PROJECTION);

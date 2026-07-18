@@ -48,6 +48,7 @@ public class PostProcessing extends Module {
             EventShader.Bloom bloomEvent = new EventShader.Bloom((int) shadowRadius.getValue().getInput(), (int) shadowOffset.getValue().getInput());
             Arsenic.getInstance().getEventManager().getBus().post(bloomEvent);
             RenderUtils.resetColor();
+            applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
             KawaseBloom.renderBlur(stencilFramebuffer.framebufferTexture, bloomEvent.getIterations(), bloomEvent.getOffset());
         }
@@ -61,9 +62,28 @@ public class PostProcessing extends Module {
             EventShader.Blur blurEvent = new EventShader.Blur((int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput());
             Arsenic.getInstance().getEventManager().getBus().post(blurEvent);
             RenderUtils.resetColor();
+            applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
             KawaseBlur.renderBlur(stencilFramebuffer.framebufferTexture, (int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput());
         }
+    }
+
+    /**
+     * While the ClickGUI's open/close transition is mid-flight, multiplies the
+     * currently-bound mask FBO by the transition's per-pixel "keep" factor so
+     * blur and bloom vanish exactly where the GUI has burnt/dissolved away
+     * (they render outside the burn capture and would otherwise stay at full
+     * strength, then pop off). Note: this fades the whole mask, so any other
+     * listeners' shapes fade with the GUI during the transition - acceptable,
+     * since the transition only runs while the ClickGUI owns the screen.
+     */
+    private void applyBurnMaskFade() {
+        arsenic.gui.click.ClickGuiScreen screen = Arsenic.getArsenic().getClickGuiScreen();
+        if (screen == null || mc.currentScreen != screen || !screen.isBurnActive())
+            return;
+        float[] box = screen.getBurnBoxPx();
+        ShaderUtil.renderBurnMaskFade(screen.currentBurnProgress(), screen.getTransitionStyleId(),
+                box[0], box[1], box[2], box[3], box[4]);
     }
 
     @EventLink

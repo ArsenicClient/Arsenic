@@ -58,6 +58,40 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
     }
 
+    // ---------------------------------------------------------------
+    //  Transition state, exposed so PostProcessing can fade its blur/bloom
+    //  masks in step with the open/close transition (they render outside the
+    //  burn capture and would otherwise linger at full strength).
+    // ---------------------------------------------------------------
+
+    /** 1 = fully present, 0 = fully transitioned out. */
+    public float currentBurnProgress() {
+        if (module == null || !module.burnTransition.getValue())
+            return 1f;
+        int dur = burnDurationMs();
+        long nowMs = System.currentTimeMillis();
+        if (closing)
+            return Math.max(0f, 1f - (nowMs - closeStartTime) / (float) dur);
+        return Math.min(1f, (nowMs - openTime) / (float) dur);
+    }
+
+    /** True while the open/close transition is mid-flight. */
+    public boolean isBurnActive() {
+        return module != null && module.burnTransition.getValue() && currentBurnProgress() < 1f;
+    }
+
+    /** ClickGui.Transition ordinal, passed to the shaders as the style uniform. */
+    public int getTransitionStyleId() {
+        return module == null ? 0 : module.transition.getValue().ordinal();
+    }
+
+    /** Main box rect + corner radius in top-down real pixels: {x1, y1, x2, y2, radius}. */
+    public float[] getBurnBoxPx() {
+        float s = this.scale;
+        int bx = width / 8, by = height / 6;
+        return new float[]{bx * s, by * s, (width - bx) * s, (height - by) * s, 30f * s};
+    }
+
     //called once
     public void init(ClickGui clickGui) {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
@@ -103,32 +137,16 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
-        // render corner rounding as if always on GUI scale Normal, and point the
-        // drop shadows away from the configured "sun"
+        // render corner rounding as if always on GUI scale Normal
         DrawUtils.overrideScaleFactor = this.scale;
-        if (module != null) {
-            double ang = Math.toRadians(module.sunAngle.getValue().getInput());
-            DrawUtils.shadowDirX = (float) -Math.cos(ang);
-            DrawUtils.shadowDirY = (float) Math.sin(ang);
-        }
 
-        // burn transition: 1 = fully present, <1 = mid burn (dissolving to transparent)
-        long nowMs = System.currentTimeMillis();
-        int dur = burnDurationMs();
+        // burn transition: 1 = fully present, <1 = mid transition (to transparent)
         boolean burn = module != null && module.burnTransition.getValue();
-        float burnProgress = 1f;
-        if (burn) {
-            if (closing) {
-                float cp = Math.min(1f, (nowMs - closeStartTime) / (float) dur);
-                burnProgress = 1f - cp;             // GUI burns away
-                if (cp >= 1f) {                     // fully gone -> actually close
-                    DrawUtils.overrideScaleFactor = -1f;
-                    mc.displayGuiScreen(null);
-                    return;
-                }
-            } else {
-                burnProgress = Math.min(1f, (nowMs - openTime) / (float) dur);
-            }
+        float burnProgress = burn ? currentBurnProgress() : 1f;
+        if (burn && closing && burnProgress <= 0f) { // fully gone -> actually close
+            DrawUtils.overrideScaleFactor = -1f;
+            mc.displayGuiScreen(null);
+            return;
         }
 
         // While mid-burn, render the whole GUI into an offscreen buffer so the
@@ -239,7 +257,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
                 float s = this.scale;
                 arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
                         burnFbo.framebufferTexture, burnProgress, ThemeManager.getMainColor(),
-                        x * s, y * s, x1 * s, y1 * s, 30f * s);
+                        getTransitionStyleId(), x * s, y * s, x1 * s, y1 * s, 30f * s);
             } catch (Exception e) {
                 try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
             }

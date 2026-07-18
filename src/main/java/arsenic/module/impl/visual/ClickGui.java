@@ -26,6 +26,7 @@ public class ClickGui extends Module {
     public final DoubleProperty backgroundSpeed = new DoubleProperty("Background Speed", new DoubleValue(0.1, 5, 1, 0.1));
     public final BooleanProperty scanlineOverlay = new BooleanProperty("Scanline Overlay", false);
     public final BooleanProperty burnTransition = new BooleanProperty("Burn Transition", true);
+    public final EnumProperty<Transition> transition = new EnumProperty<>("Transition", Transition.BURN);
     public final DoubleProperty burnTime = new DoubleProperty("Burn Time", new DoubleValue(0.2, 3.0, 0.7, 0.1));
     public final BooleanProperty sounds = new BooleanProperty("CMaj Sounds", true);
 
@@ -35,8 +36,6 @@ public class ClickGui extends Module {
     public final DoubleProperty shadowStrength = new DoubleProperty("Shadow Strength", new DoubleValue(0, 200, 100, 5));
     public final DoubleProperty elevation = new DoubleProperty("Elevation", new DoubleValue(0, 200, 100, 5));
     public final DoubleProperty edgeGlow = new DoubleProperty("Edge Glow", new DoubleValue(0, 500, 100, 5));
-    // where the light source sits (degrees) - shadows are cast away from it. 90 = top (shadows fall down).
-    public final DoubleProperty sunAngle = new DoubleProperty("Sun Angle", new DoubleValue(0, 360, 90, 5));
     public final EnumProperty<ThemeMode> themeMode = new EnumProperty<ThemeMode>("Theme", ThemeMode.CLASSIC) {
         @Override
         public void onValueUpdate() {
@@ -98,6 +97,12 @@ public class ClickGui extends Module {
 
     public enum LogoMode {
         CLASSIC, MODERN
+    }
+
+    /** Open/close transition styles. Ordinals are passed straight to
+     *  paperBurn.fsh / burnMaskFade.fsh as the {@code style} uniform. */
+    public enum Transition {
+        BURN, DISSOLVE, GLITCH, FADE
     }
 
     public enum BgShader {
