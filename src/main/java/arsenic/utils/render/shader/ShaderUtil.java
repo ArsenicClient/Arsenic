@@ -117,6 +117,10 @@ public class ShaderUtil {
         if (tintStrength > 0f) {
             org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
             GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            // during burn capture this wash must accumulate true coverage, or the
+            // backdrop's FBO alpha lands well below its on-screen opacity and the
+            // burn composite over-reveals the world behind it
+            arsenic.utils.render.RenderUtils.applyGuiBlend();
             GlStateManager.color(tr, tg, tb, Math.min(1f, tintStrength) * alpha);
             drawQuads(0, 0, w, h);
         }
@@ -135,14 +139,18 @@ public class ShaderUtil {
     }
 
     /**
-     * Draws the "paperBurn" dissolve across the whole screen on top of the GUI.
-     * The shader discards burnt-through fragments (revealing the GUI beneath) and
-     * paints an ember edge over the remaining sheet.
+     * Draws the "paperBurn" dissolve, masked to the main GUI box. Burnt-through
+     * fragments are discarded (fading to transparent, no black char) and the
+     * burning edge glows in the theme colour.
      *
-     * @param progress  0 = sheet fully covers the GUI, 1 = fully burnt away
-     * @param tintColor ARGB theme colour the paper is faintly tinted with
+     * @param progress    0 = box fully covered, 1 = fully burnt away
+     * @param tintColor   ARGB theme colour used for the ember/burn edge
+     * @param sheetColor  ARGB colour of the covering sheet (match the box background)
+     * @param bx1,by1,bx2,by2 main box rect in top-down pixels
+     * @param bradius     box corner radius in pixels
      */
-    public static void renderBurn(float progress, int tintColor) {
+    public static void renderBurnComposite(int guiTexture, float progress, int tintColor,
+                                           float bx1, float by1, float bx2, float by2, float bradius) {
         ShaderUtil shader = getCached("paperBurn");
         int w = mc.displayWidth;
         int h = mc.displayHeight;
@@ -159,20 +167,27 @@ public class ShaderUtil {
         glLoadIdentity();
 
         GlStateManager.disableAlpha();
-        GlStateManager.disableTexture2D();
+        GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // premultiplied-alpha blend: the captured GUI is premultiplied, so intact
+        // pixels reproduce it exactly (fully opaque) instead of washing out
+        GlStateManager.blendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.color(1f, 1f, 1f, 1f);
 
         shader.init();
+        shader.setUniformi("gui", 0);
         shader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
         shader.setUniformf("resolution", w, h);
         shader.setUniformf("progress", progress);
         shader.setUniformf("themeColor", tr, tg, tb);
+        shader.setUniformf("boxMin", bx1, by1);
+        shader.setUniformf("boxMax", bx2, by2);
+        shader.setUniformf("boxRadius", bradius);
+        org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+        arsenic.utils.render.RenderUtils.bindTexture(guiTexture);
         drawQuads(0, 0, w, h);
         shader.unload();
 
-        GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
         GlStateManager.color(1f, 1f, 1f, 1f);
         glMatrixMode(GL_PROJECTION);

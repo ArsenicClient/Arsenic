@@ -2,7 +2,6 @@ package arsenic.utils.font;
 
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
 import static org.lwjgl.opengl.GL11.GL_LINES;
-import static org.lwjgl.opengl.GL11.GL_NEAREST;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
 import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
@@ -153,12 +152,17 @@ public class TTFontRenderer implements IFontRenderer {
         graphics.setColor(new Color(255, 255, 255, 0));
         graphics.fillRect(0, 0, characterImage.getWidth(), characterImage.getHeight());
         graphics.setColor(Color.WHITE);
-        // Setup rendering hints
+        // Setup rendering hints - push AWT toward the highest-quality glyph raster
         if (antiAlias)
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         if (fracMetrics)
             graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
         graphics.drawString(String.valueOf(character), margin, fontMetrics.getAscent());
 
@@ -182,16 +186,35 @@ public class TTFontRenderer implements IFontRenderer {
                 buffer.put((byte) ((pixel >> 16) & 0xFF));
                 buffer.put((byte) ((pixel >> 8) & 0xFF));
                 buffer.put((byte) (pixel & 0xFF));
-                buffer.put((byte) ((pixel >> 24) & 0xFF));
+
+                // Sharpen coverage instead of binarizing: anything at ~55%+ coverage
+                // becomes fully opaque (solid interior, no background bleed-through),
+                // anything under ~10% is dropped, and the narrow band between ramps
+                // linearly. After the 0.5x downscale that leaves roughly a 1px smooth
+                // edge - text reads as one solid color but stays crisp, not jagged.
+                int alpha = (pixel >> 24) & 0xFF;
+                if (alpha <= 24)
+                    alpha = 0;
+                else if (alpha >= 140)
+                    alpha = 255;
+                else
+                    alpha = (alpha - 24) * 255 / (140 - 24);
+                buffer.put((byte) alpha);
             }
         }
 
         buffer.flip();
 
         glBindTexture(GL_TEXTURE_2D, textureId);
-        // Set filtering
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        // Clamp to edge so linear filtering never bleeds the opposite side of the glyph
+        glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
+        // LINEAR filtering: the glyph is rasterized at 2x and drawn at 0.5x, so
+        // linear minification is a clean supersample. NEAREST here skips every other
+        // texel and shreds the edges. No mipmaps - level 1 would box-filter glyph
+        // texels against transparent ones and wash the whole string out.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         // Upload texture
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
                 buffer);
@@ -202,6 +225,26 @@ public class TTFontRenderer implements IFontRenderer {
             return;
 
         glPushMatrix();
+
+        // Snapshot every piece of GL state we touch. Minecraft 1.8.9 GUIs leave
+        // texture/alpha-test/blend/lighting state in unpredictable configurations
+        // depending on what was drawn before us (which is why the font only looked
+        // right on some backgrounds). Restoring via glPopAttrib also keeps the real
+        // GL state in sync with GlStateManager's cache afterwards.
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT
+                | GL11.GL_TEXTURE_BIT | GL11.GL_LINE_BIT);
+
+        glEnable(GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        // Alpha test (commonly left on as GREATER 0.1 by vanilla) clips the
+        // antialiased edge pixels and makes text look thin and jagged.
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        // Make sure the glyph texture is combined with glColor the way we expect,
+        // even if something set a different texture env mode earlier.
+        GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
 
         if ((color & 0xFC000000) == 0) { color |= 0xFF000000; }
         if (color == 0x20FFFFFF) { color = 0xFFAFAFAF; }
@@ -229,9 +272,6 @@ public class TTFontRenderer implements IFontRenderer {
         float g = (float) (color >> 8 & 255) / 255.0F;
         float b = (float) (color & 255) / 255.0F;
 
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
         glColor4f(r / multiplier, g / multiplier, b / multiplier, a);
 
         for (int i = 0; i < length; i++) {
@@ -240,6 +280,8 @@ public class TTFontRenderer implements IFontRenderer {
             if (previous == COLOR_INVOKER)
                 continue;
             if (character == COLOR_INVOKER) {
+                if (i + 1 >= length)
+                    break;
                 int index = "0123456789ABCDEFKLMNOR".indexOf(text.charAt(i + 1));
                 if (index < 16) {
                     obfuscated = false;
@@ -276,13 +318,15 @@ public class TTFontRenderer implements IFontRenderer {
 
                 drawChar(charData, x, y);
                 if (strikethrough)
-                    drawLine(0, charData.height / 2f, charData.width, charData.height / 2f, 3);
+                    drawLine(x, y + charData.height / 2f, x + charData.width, y + charData.height / 2f, 3);
                 if (underlined)
-                    drawLine(0, charData.height - 15, charData.width, charData.height - 15, 3);
+                    drawLine(x, y + charData.height - 15, x + charData.width, y + charData.height - 15, 3);
                 x += charData.width - (2 * margin);
             }
         }
-        GL11.glDisable(GL11.GL_BLEND);
+
+        // Restores blend/alpha-test/texture/lighting/color exactly as we found them.
+        GL11.glPopAttrib();
         glPopMatrix();
     }
 

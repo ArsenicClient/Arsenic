@@ -184,7 +184,7 @@ public class DrawUtils extends UtilityClass {
         Color color = new Color((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, (c >> 24) & 0xFF);
         RenderUtils.resetColor();
         RenderUtils.startBlend();
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        RenderUtils.applyGuiBlend();
         RenderUtils.setAlphaLimit(0);
         roundedShader.init();
 

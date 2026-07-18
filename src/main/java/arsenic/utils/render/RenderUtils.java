@@ -10,6 +10,7 @@ import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.utils.java.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -56,9 +57,37 @@ public class RenderUtils extends UtilityClass {
         GlStateManager.enableAlpha();
         GlStateManager.alphaFunc(GL_GREATER,  alphaLimit * 0.01f);
     }
+    /**
+     * True while the ClickGUI is being captured into the burn-transition FBO.
+     * With plain (SRC_ALPHA, 1-SRC_ALPHA) blending the src factor also applies
+     * to the alpha channel, so an empty FBO accumulates srcA^2 instead of srcA
+     * - the capture reads too transparent and the burn composite lets the world
+     * bleed through, then "snaps" opaque when the burn ends. While this flag is
+     * set, GUI draws use separate alpha factors (ONE, 1-SRC_ALPHA) so FBO alpha
+     * is true coverage and the composite reproduces on-screen opacity exactly.
+     */
+    public static boolean captureCoverage = false;
+
+    /** Standard GUI transparency blend; coverage-correct during burn capture. */
+    public static void applyGuiBlend() {
+        if (captureCoverage) {
+            // sync GlStateManager's cache, then force the real GL state with a
+            // raw call - the cache is often stale here because of the raw
+            // glBlendFunc calls sprinkled through the render helpers
+            GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            OpenGlHelper.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        } else {
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+    }
+
     public static void startBlend() {
         GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (captureCoverage) {
+            applyGuiBlend();
+        } else {
+            GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
     }
     public static void endBlend() {
         GlStateManager.disableBlend();
