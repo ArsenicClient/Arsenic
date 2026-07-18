@@ -12,6 +12,7 @@ public class DrawUtils extends UtilityClass {
 
     public static ShaderUtil roundedShader = new ShaderUtil("roundedRect");
     private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
+    private static final ShaderUtil shadowShader = new ShaderUtil("roundedRectShadow");
 
     /**
      * When > 0, rounded-rect corner masking uses this fixed scale factor instead
@@ -20,13 +21,6 @@ public class DrawUtils extends UtilityClass {
      * GUI-scale setting. HUD elements leave it at -1 to use the real scale.
      */
     public static float overrideScaleFactor = -1f;
-
-    /**
-     * Unit direction the drop shadows are cast in (screen space, +y = down).
-     * Driven by the ClickGUI "Sun Angle" setting so the light source can be moved.
-     */
-    public static float shadowDirX = 0f;
-    public static float shadowDirY = 1f;
 
     public static void drawRect(float x, float y, float x1, float y1, int color) {
         float finalX = x * 2f;
@@ -128,11 +122,11 @@ public class DrawUtils extends UtilityClass {
         drawGradientRound(x,y,x1-x,y1-y,radius,bl,tl,br,tr);
     }
     /**
-     * Soft directional drop shadow. Layers grow outward with a quadratic alpha
-     * falloff (dark and tight against the element, fading softly outward) and
-     * are cast downward so the element reads as physically raised toward the
-     * viewer. Larger {@code spread}/{@code alpha} = the element floats higher,
-     * i.e. appears closer. Draw this BEFORE the element's own fill.
+     * Soft elevation shadow - the element reads as hovering slightly above
+     * whatever is behind it. Two feathered passes: a centred ambient halo that
+     * hugs every side (the "raised" cue) and a key shadow with a small fixed
+     * downward drop (soft overhead light). Larger {@code spread}/{@code alpha}
+     * = the element floats higher. Draw this BEFORE the element's own fill.
      *
      * @param radius corner radius of the element being shadowed
      * @param spread elevation - how far (px) the shadow reaches / how high it floats
@@ -142,23 +136,44 @@ public class DrawUtils extends UtilityClass {
         drawShadow(x1, y1, x2, y2, radius, spread, alpha, 6);
     }
 
+    /** {@code layers} is kept for call-site compatibility; the shadow is now a
+     *  smooth single-pass feather, so it is ignored. */
     public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha, int layers) {
-        if (alpha <= 0 || layers <= 0)
+        if (alpha <= 0 || spread <= 0f)
             return;
-        // cast the shadow away from the light source ("sun"); distance scales with elevation
-        float offX = shadowDirX * spread * 0.6f;
-        float offY = shadowDirY * spread * 0.6f;
-        // largest, faintest layer first; darkest tightest layer last (on top)
-        for (int i = layers; i >= 1; i--) {
-            float t = i / (float) layers;            // 1 = outer edge, ~0 = tight to element
-            float grow = spread * t;
-            float fade = (1f - t) * (1f - t);        // quadratic: strong near element
-            int a = (int) (alpha * fade);
-            if (a <= 0)
-                continue;
-            int col = new Color(0, 0, 0, Math.min(255, a)).getRGB();
-            drawRoundedRect(x1 - grow + offX, y1 - grow + offY, x2 + grow + offX, y2 + grow + offY, radius + grow, col);
-        }
+        // ambient: tight centred halo on all sides - sells the hover
+        drawBlurredShadow(x1, y1, x2, y2, radius, spread * 0.55f, (int) (alpha * 0.5f), 0f);
+        // key: soft overhead light - small fixed drop straight down, no sun smear
+        drawBlurredShadow(x1, y1, x2, y2, radius, spread, (int) (alpha * 0.7f), spread * 0.35f);
+    }
+
+    /**
+     * One feathered shadow pass via the roundedRectShadow shader: a single quad
+     * whose alpha falls off smoothly with SDF distance from the element edge.
+     * {@code dropY} shifts the whole shadow down (screen space, GUI units).
+     */
+    public static void drawBlurredShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha, float dropY) {
+        if (alpha <= 0 || spread <= 0f)
+            return;
+        float sf = overrideScaleFactor > 0 ? overrideScaleFactor : new ScaledResolution(mc).getScaleFactor();
+        float w = x2 - x1, h = y2 - y1;
+        float qx = x1 - spread, qy = y1 - spread + dropY;
+        float qw = w + spread * 2f, qh = h + spread * 2f;
+        RenderUtils.resetColor();
+        RenderUtils.startBlend();
+        RenderUtils.applyGuiBlend(); // coverage-correct during the burn capture
+        RenderUtils.setAlphaLimit(0);
+        shadowShader.init();
+        shadowShader.setUniformf("quadSize", qw * sf, qh * sf);
+        shadowShader.setUniformf("rectSize", w * sf, h * sf);
+        // radius deliberately unscaled - same convention as roundedRect.fsh, so
+        // the shadow's corners match the element exactly on every GUI scale
+        shadowShader.setUniformf("radius", Math.max(0f, radius));
+        shadowShader.setUniformf("spread", spread * sf);
+        shadowShader.setUniformf("color", 0f, 0f, 0f, Math.min(255, alpha) / 255f);
+        ShaderUtil.drawQuads(qx, qy, qw, qh);
+        shadowShader.unload();
+        RenderUtils.endBlend();
     }
 
     /**
