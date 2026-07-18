@@ -22,7 +22,7 @@ import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import java.util.HashSet;
 import java.util.Set;
 
-@ModuleInfo(name = "StaffDetector", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "StaffDetector", category = ModuleCategory.PLAYER, dev = true)
 public class StaffDetector extends Module {
 
     private static final String[] STAFF_PREFIXES = {

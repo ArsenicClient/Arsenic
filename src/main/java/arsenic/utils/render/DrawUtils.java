@@ -13,6 +13,21 @@ public class DrawUtils extends UtilityClass {
     public static ShaderUtil roundedShader = new ShaderUtil("roundedRect");
     private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
 
+    /**
+     * When > 0, rounded-rect corner masking uses this fixed scale factor instead
+     * of the live GUI scale. The ClickGUI renders at a constant scale (Normal),
+     * so it sets this while drawing to keep corner rounding identical on every
+     * GUI-scale setting. HUD elements leave it at -1 to use the real scale.
+     */
+    public static float overrideScaleFactor = -1f;
+
+    /**
+     * Unit direction the drop shadows are cast in (screen space, +y = down).
+     * Driven by the ClickGUI "Sun Angle" setting so the light source can be moved.
+     */
+    public static float shadowDirX = 0f;
+    public static float shadowDirY = 1f;
+
     public static void drawRect(float x, float y, float x1, float y1, int color) {
         float finalX = x * 2f;
         float finalY = y * 2f;
@@ -112,6 +127,58 @@ public class DrawUtils extends UtilityClass {
         Color tr = new Color((topRight >> 16) & 0xFF, (topRight >> 8) & 0xFF, topRight & 0xFF, (topRight >> 24) & 0xFF);
         drawGradientRound(x,y,x1-x,y1-y,radius,bl,tl,br,tr);
     }
+    /**
+     * Soft directional drop shadow. Layers grow outward with a quadratic alpha
+     * falloff (dark and tight against the element, fading softly outward) and
+     * are cast downward so the element reads as physically raised toward the
+     * viewer. Larger {@code spread}/{@code alpha} = the element floats higher,
+     * i.e. appears closer. Draw this BEFORE the element's own fill.
+     *
+     * @param radius corner radius of the element being shadowed
+     * @param spread elevation - how far (px) the shadow reaches / how high it floats
+     * @param alpha  darkness of the shadow's core (0-255)
+     */
+    public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha) {
+        drawShadow(x1, y1, x2, y2, radius, spread, alpha, 6);
+    }
+
+    public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha, int layers) {
+        if (alpha <= 0 || layers <= 0)
+            return;
+        // cast the shadow away from the light source ("sun"); distance scales with elevation
+        float offX = shadowDirX * spread * 0.6f;
+        float offY = shadowDirY * spread * 0.6f;
+        // largest, faintest layer first; darkest tightest layer last (on top)
+        for (int i = layers; i >= 1; i--) {
+            float t = i / (float) layers;            // 1 = outer edge, ~0 = tight to element
+            float grow = spread * t;
+            float fade = (1f - t) * (1f - t);        // quadratic: strong near element
+            int a = (int) (alpha * fade);
+            if (a <= 0)
+                continue;
+            int col = new Color(0, 0, 0, Math.min(255, a)).getRGB();
+            drawRoundedRect(x1 - grow + offX, y1 - grow + offY, x2 + grow + offX, y2 + grow + offY, radius + grow, col);
+        }
+    }
+
+    /**
+     * Subtle light rim around a raised element - a faint "glass edge" that,
+     * together with the drop shadow beneath, sells the sense that the element
+     * sits above the layer behind it. Draw this AFTER the element's fill.
+     *
+     * @param color base RGB of the rim (alpha byte ignored)
+     * @param alpha rim opacity (0-255)
+     */
+    public static void drawEdgeHighlight(float x1, float y1, float x2, float y2, float radius, int color, int alpha) {
+        if (alpha <= 0)
+            return;
+        // thicker, softer rim: a brighter inner line plus a fainter wider glow
+        int inner = (Math.min(255, alpha) << 24) | (color & 0x00FFFFFF);
+        int outer = (Math.min(255, alpha / 2) << 24) | (color & 0x00FFFFFF);
+        drawRoundedOutline(x1, y1, x2, y2, radius, 3.0f, outer);
+        drawRoundedOutline(x1, y1, x2, y2, radius, 1.5f, inner);
+    }
+
     public static void drawShaderRect(float x, float y, float width, float height, float radius, int c) {
         //this is done to fix alpha issues with the rect. Don't chage it - cosmic
         Color color = new Color((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, (c >> 24) & 0xFF);
@@ -222,10 +289,10 @@ public class DrawUtils extends UtilityClass {
         glLineWidth(1.0f);
     }
     private static void setupRoundedRectUniforms(float x, float y, float width, float height, float radius, ShaderUtil roundedTexturedShader) {
-        ScaledResolution sr = new ScaledResolution(mc);
-        roundedTexturedShader.setUniformf("location", x * sr.getScaleFactor(),
-                (mc.displayHeight - (height * sr.getScaleFactor())) - (y * sr.getScaleFactor()));
-        roundedTexturedShader.setUniformf("rectSize", width * sr.getScaleFactor(), height * sr.getScaleFactor());
+        float sf = overrideScaleFactor > 0 ? overrideScaleFactor : new ScaledResolution(mc).getScaleFactor();
+        roundedTexturedShader.setUniformf("location", x * sf,
+                (mc.displayHeight - (height * sf)) - (y * sf));
+        roundedTexturedShader.setUniformf("rectSize", width * sf, height * sf);
         roundedTexturedShader.setUniformf("radius", radius);
     }
 }

@@ -6,8 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.util.ResourceLocation;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * Plays the client's UI sounds through Minecraft's own sound engine
  * (SoundHandler + sounds.json), rather than javax audio clips. This means no
@@ -25,8 +23,10 @@ public class SoundUtils {
             "cmaj0", "cmaj1", "cmaj2", "cmaj3", "cmaj4", "cmaj5", "cmaj6", "cmaj7"
     };
 
-    private static final AtomicInteger STEP = new AtomicInteger(0);
     private static volatile long lastGuiSound = 0L;
+    private static volatile long lastSlide = 0L;
+    /** How often the slider tone re-triggers so it reads as one continuous ring. */
+    private static final long SLIDE_INTERVAL_MS = 50L;
 
     // ---------------------------------------------------------------
     //  Core playback (Minecraft sound engine)
@@ -54,8 +54,25 @@ public class SoundUtils {
     }
 
     // ---------------------------------------------------------------
-    //  CMaj helpers for the ClickGUI
+    //  Chord voicings - every UI action gets its own chord, all of them
+    //  diatonic to C major. Indices map into CMAJ (0=C 1=D 2=E 3=F 4=G
+    //  5=A 6=B 7=C'). Simultaneous notes = a chord rather than a bleep.
     // ---------------------------------------------------------------
+
+    /** I  - C major (C E G): bright and resolved. Turning something ON. */
+    private static final int[] CHORD_ENABLE   = { 0, 2, 4 };
+    /** vi - A minor (A C E): softer, settling. Turning something OFF. */
+    private static final int[] CHORD_DISABLE  = { 2, 5, 7 };
+    /** V  - G major (D G B): forward motion. Switching category. */
+    private static final int[] CHORD_CATEGORY = { 1, 4, 6 };
+    /** IV - F major (F A C): opening up. Expanding a module / settings. */
+    private static final int[] CHORD_OPEN     = { 3, 5, 7 };
+    /** ii - D minor (D F A): a small turn. Cycling an enum option. */
+    private static final int[] CHORD_ENUM     = { 1, 3, 5 };
+    /** iii- E minor (E G B): contemplative. Setting / clearing a keybind. */
+    private static final int[] CHORD_KEYBIND  = { 2, 4, 6 };
+    /** Neutral open fifth (C G): generic click that isn't any of the above. */
+    private static final int[] CHORD_CLICK    = { 0, 4 };
 
     private static boolean guiSoundsEnabled() {
         try {
@@ -66,48 +83,90 @@ public class SoundUtils {
         }
     }
 
-    /** Debounced play so nested click dispatch doesn't stack duplicate notes. */
-    private static void guiPlay(String name, float pitch) {
+    /**
+     * Plays a whole chord as one gesture. The debounce is checked once for the
+     * chord (not per note) so nested click dispatch collapses to a single
+     * chord, but the individual notes all sound together.
+     */
+    private static void chord(int[] degrees) {
         if (!guiSoundsEnabled())
             return;
         long now = System.currentTimeMillis();
         if (now - lastGuiSound < DEBOUNCE_MS)
             return;
         lastGuiSound = now;
-        playEvent(name, pitch);
+        for (int d : degrees) {
+            int idx = Math.max(0, Math.min(CMAJ.length - 1, d));
+            playEvent(CMAJ[idx], 1.0f);
+        }
     }
 
-    /** Plays a specific scale degree (0..7), clamped. */
+    // ---------------------------------------------------------------
+    //  Semantic, per-action chords
+    // ---------------------------------------------------------------
+
+    /** Turning a module/button ON. */
+    public static void chordEnable()   { chord(CHORD_ENABLE); }
+    /** Turning a module/button OFF. */
+    public static void chordDisable()  { chord(CHORD_DISABLE); }
+    /** Switching the selected category (or search). */
+    public static void chordCategory() { chord(CHORD_CATEGORY); }
+    /** Opening/expanding a module panel or settings. */
+    public static void chordOpen()     { chord(CHORD_OPEN); }
+    /** Cycling through an enum property. */
+    public static void chordEnum()     { chord(CHORD_ENUM); }
+    /** Setting or clearing a keybind. */
+    public static void chordKeybind()  { chord(CHORD_KEYBIND); }
+    /** Generic click that doesn't have a more specific meaning. */
+    public static void chordClick()    { chord(CHORD_CLICK); }
+
+    /** Plays a single scale degree (0..7) as a chord of one note. */
     public static void note(int degree) {
-        int d = Math.max(0, Math.min(CMAJ.length - 1, degree));
-        guiPlay(CMAJ[d], 1.0f);
+        chord(new int[]{ degree });
     }
 
-    /** Generic click: next note ascending through the scale, wrapping. */
-    public static void cmajStep() {
-        int idx = STEP.getAndUpdate(i -> (i + 1) % CMAJ.length);
-        guiPlay(CMAJ[idx % CMAJ.length], 1.0f);
+    // ---------------------------------------------------------------
+    //  Back-compat aliases (kept so existing call sites keep working)
+    // ---------------------------------------------------------------
+
+    /** @deprecated use {@link #chordClick()}. */
+    public static void cmajStep()          { chordClick(); }
+    /** @deprecated use {@link #chordEnable()}. */
+    public static void cmajUp()            { chordEnable(); }
+    /** @deprecated use {@link #chordDisable()}. */
+    public static void cmajDown()          { chordDisable(); }
+    /** @deprecated use a semantic chord method. */
+    public static void cmajTone(int degree){ chordKeybind(); }
+
+    /**
+     * A near-continuous ringing tone for slider drags. Pitch tracks the slider
+     * position: the min end rings at C, the max end rings at the C one octave
+     * above (pitch 1.0 -> 2.0). Re-triggered on a short interval so it reads as
+     * one sustained, sliding tone rather than discrete ticks. Uses its own
+     * throttle so it isn't swallowed by the chord debounce.
+     *
+     * @param fraction slider position, 0 (min) .. 1 (max)
+     */
+    public static void slide(float fraction) {
+        if (!guiSoundsEnabled())
+            return;
+        long now = System.currentTimeMillis();
+        if (now - lastSlide < SLIDE_INTERVAL_MS)
+            return;
+        lastSlide = now;
+        float f = Math.max(0f, Math.min(1f, fraction));
+        // C at the min bound, up a full octave to C at the max bound
+        playEvent(CMAJ[0], 1.0f + f);
     }
 
-    /** Enabling something: step up the scale. */
-    public static void cmajUp() {
-        int idx = STEP.getAndUpdate(i -> (i + 1) % CMAJ.length);
-        guiPlay(CMAJ[idx % CMAJ.length], 1.0f);
-    }
-
-    /** Disabling something: step down the scale. */
-    public static void cmajDown() {
-        int idx = STEP.getAndUpdate(i -> (i - 1 + CMAJ.length) % CMAJ.length);
-        guiPlay(CMAJ[(idx + CMAJ.length) % CMAJ.length], 1.0f);
-    }
-
-    /** A fixed scale note (e.g. category switch, opening settings). */
-    public static void cmajTone(int degree) {
-        note(degree);
-    }
-
-    /** Soft high tick for hovers and slider drags (pitched up a little). */
+    /** Soft high tick for hovers, typing and slider drags (pitched up). */
     public static void tick() {
-        guiPlay("tick", 1.2f);
+        if (!guiSoundsEnabled())
+            return;
+        long now = System.currentTimeMillis();
+        if (now - lastGuiSound < DEBOUNCE_MS)
+            return;
+        lastGuiSound = now;
+        playEvent("tick", 1.2f);
     }
 }

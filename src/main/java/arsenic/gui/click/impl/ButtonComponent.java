@@ -57,16 +57,21 @@ public abstract class ButtonComponent extends Component {
 
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
-        setEnabled(!isEnabled());
+        boolean turningOn = !isEnabled();
+        setEnabled(turningOn);
+        // Base the chord on what the user asked for, not the resulting state:
+        // some modules disable themselves inside onEnable(), which would
+        // otherwise make an "enable" click play the disable chord.
+        if (turningOn)
+            SoundUtils.chordEnable();  // C major - bright, switching ON
+        else
+            SoundUtils.chordDisable(); // A minor - soft, switching OFF
     }
 
     @Override
     protected void playClickSound() {
-        // toggle walks up the scale when turning on, down when turning off
-        if (isEnabled())
-            SoundUtils.cmajUp();
-        else
-            SoundUtils.cmajDown();
+        // The enable/disable chord is played in clickComponent (based on
+        // intent), so there's nothing to add here.
     }
 
     @Override

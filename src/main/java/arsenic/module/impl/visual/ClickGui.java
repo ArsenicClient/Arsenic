@@ -25,7 +25,17 @@ public class ClickGui extends Module {
     public final DoubleProperty backgroundOpacity = new DoubleProperty("Background Opacity", new DoubleValue(0, 100, 45, 1));
     public final DoubleProperty backgroundSpeed = new DoubleProperty("Background Speed", new DoubleValue(0.1, 5, 1, 0.1));
     public final BooleanProperty scanlineOverlay = new BooleanProperty("Scanline Overlay", false);
+    public final BooleanProperty burnTransition = new BooleanProperty("Burn Transition", true);
     public final BooleanProperty sounds = new BooleanProperty("CMaj Sounds", true);
+
+    // --- 3D depth (drop shadows, elevation & edge glow) ---
+    // 100 = the built-in defaults; slide up for more pop, down for a flatter look.
+    public final BooleanProperty depth = new BooleanProperty("3D Depth", true);
+    public final DoubleProperty shadowStrength = new DoubleProperty("Shadow Strength", new DoubleValue(0, 200, 100, 5));
+    public final DoubleProperty elevation = new DoubleProperty("Elevation", new DoubleValue(0, 200, 100, 5));
+    public final DoubleProperty edgeGlow = new DoubleProperty("Edge Glow", new DoubleValue(0, 500, 100, 5));
+    // where the light source sits (degrees) - shadows are cast away from it. 90 = top (shadows fall down).
+    public final DoubleProperty sunAngle = new DoubleProperty("Sun Angle", new DoubleValue(0, 360, 90, 5));
     public final EnumProperty<ThemeMode> themeMode = new EnumProperty<ThemeMode>("Theme", ThemeMode.CLASSIC) {
         @Override
         public void onValueUpdate() {
@@ -49,16 +59,50 @@ public class ClickGui extends Module {
 
     public final ClickGuiScreen getScreen() { return screen; }
 
+    // ---------------------------------------------------------------
+    //  Depth helpers - the GUI render pulls its shadow/edge values through
+    //  these so the "3D Depth" sliders take effect live. A base value is the
+    //  built-in look at 100%; the slider scales it. When depth is off the
+    //  shadow/edge alphas return 0 so nothing is drawn.
+    // ---------------------------------------------------------------
+    private static ClickGui self() {
+        try {
+            return Arsenic.getArsenic().getModuleManager().getModuleByClass(ClickGui.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static int shadowAlpha(int base) {
+        ClickGui cg = self();
+        if (cg == null || !cg.depth.getValue()) return 0;
+        return (int) (base * (cg.shadowStrength.getValue().getInput() / 100.0));
+    }
+
+    public static float shadowSpread(float base) {
+        ClickGui cg = self();
+        if (cg == null) return base;
+        return (float) (base * (cg.elevation.getValue().getInput() / 100.0));
+    }
+
+    public static int edgeAlpha(int base) {
+        ClickGui cg = self();
+        if (cg == null || !cg.depth.getValue()) return 0;
+        return (int) (base * (cg.edgeGlow.getValue().getInput() / 100.0));
+    }
+
+    public static float scrollEase() {
+        return 0.15f; // fixed smooth-scroll easing
+    }
+
     public enum LogoMode {
         CLASSIC, MODERN
     }
 
     public enum BgShader {
-        PLASMA("plasma"), AURORA("aurora"), STARFIELD("starfield"), MATRIX("matrix"),
-        SYNTHWAVE("synthwave"), WARP("warpTunnel"), VORONOI("voronoiGlow"),
-        FRACTAL("fractalPyramid"), CHROME("liquidChrome"), HEXGRID("hexGrid"),
-        FIRESTORM("fireStorm"), CAUSTICS("oceanCaustics"), NEBULA("nebula"),
-        VHS("vhsGlitch"), ZIPPYZAPS("zippyZaps"), RAINBOW("rainbowShader");
+        AURORA("aurora"), STARFIELD("starfield"), SYNTHWAVE("synthwave"),
+        CHROME("liquidChrome"), FIRESTORM("fireStorm"), CAUSTICS("oceanCaustics"),
+        NEBULA("nebula"), ZIPPYZAPS("zippyZaps");
 
         public final String fsh;
 

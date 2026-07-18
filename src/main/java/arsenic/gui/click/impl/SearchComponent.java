@@ -55,7 +55,9 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         String imlosingmymind = inp.length() == 0 ? gui.getCmcc() == this ? "Search" : "Press \"/\" to toggle search" : inp.toString();
         int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
 
+        DrawUtils.drawShadow(x, y - 10, x1, y + 10, 8, ClickGui.shadowSpread(5f), ClickGui.shadowAlpha(150), 5);
         DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, ThemeManager.getClickGuiBackground());
+        DrawUtils.drawEdgeHighlight(x, y - 10, x1, y + 10, 8, ThemeManager.getMainColor(), ClickGui.edgeAlpha(22));
 
         if (Arsenic.getInstance().getModuleManager().getModuleByClass(ClickGui.class).customFont.getValue()) {
             Arsenic.getInstance().getFonts().Icon.drawString("B", x + 3, y - 3, ThemeManager.getWhite());
@@ -79,6 +81,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
 
     public boolean recieveInput(int key) {
         this.scroll = 0;
+        this.targetScroll = 0;
         if (key == Keyboard.KEY_SLASH){
             toggleSearch();
             return false;
