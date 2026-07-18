@@ -65,21 +65,17 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         int color = RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), enabledAnimationTimer.getPercent());
 
         // cards are the closest layer - a stronger drop shadow + light rim
-        DrawUtils.drawShadow(x1, y1, x2, y2 + expandY, expand, arsenic.module.impl.visual.ClickGui.shadowSpread(expand * 0.7f), arsenic.module.impl.visual.ClickGui.shadowAlpha(150), 5);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ThemeManager.getModuleBackground());
-        DrawUtils.drawEdgeHighlight(x1, y1, x2, y2 + expandY, expand, ThemeManager.getMainColor(), arsenic.module.impl.visual.ClickGui.edgeAlpha(20));
+        DrawUtils.drawShadow(x1, y1, x2, y2 + expandY, expand /2f, arsenic.module.impl.visual.ClickGui.shadowSpread(expand * 0.5f * 0.7f), arsenic.module.impl.visual.ClickGui.shadowAlpha(150), 5);
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand /2f, ThemeManager.getModuleBackground());
+        DrawUtils.drawEdgeHighlight(x1, y1, x2, y2 + expandY, expand /2f, ThemeManager.getMainColor(), arsenic.module.impl.visual.ClickGui.edgeAlpha(20));
 
         if (hoverTimer.getPercent() > 0)
-            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, ColorUtils.setColor(ThemeManager.getModuleHover(), 0, (int) (15 * hoverTimer.getPercent())));
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand /2f, ColorUtils.setColor(ThemeManager.getModuleHover(), 0, (int) (15 * hoverTimer.getPercent())));
 
         float accPct = enabledAnimationTimer.getPercent();
         if (accPct > 0) {
             int accentCol = ColorUtils.setColor(getEnabledColor(), 0, (int) (accPct * 200));
-            // draw the card's exact rounded shape in the accent colour, clipped to a
-            // thin strip on the left so the bar traces the card's corner rounding
-            ScissorUtils.subScissor((int) x1, (int) y1, (int) (x1 + barWidth), (int) (y2 + expandY));
-            DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand, accentCol);
-            ScissorUtils.endSubScissor();
+            DrawUtils.drawRoundedRect(x1, y1, x1 + barWidth / 2f, y2 + expandY, expand /2f, accentCol, new boolean[]{true, true, false, false});
         }
 
         buttonComponent.updateComponent(posInfo, ri);

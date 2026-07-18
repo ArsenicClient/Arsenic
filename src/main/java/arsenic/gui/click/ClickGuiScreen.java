@@ -48,6 +48,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private boolean closing = false;
     private long closeStartTime;
     private static final int BURN_DURATION = 700;
+    private net.minecraft.client.shader.Framebuffer burnFbo;
+
+    private int burnDurationMs() {
+        try {
+            return (int) (module.burnTime.getValue().getInput() * 1000);
+        } catch (Exception e) {
+            return BURN_DURATION;
+        }
+    }
 
     //called once
     public void init(ClickGui clickGui) {
@@ -65,6 +74,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.doInit();
         openTime = System.currentTimeMillis();
         closing = false;
+        RenderUtils.captureCoverage = false; // safety: never leak into normal rendering
     }
 
     public void drawBloom() {
@@ -102,21 +112,41 @@ public class ClickGuiScreen extends CustomGuiScreen {
             DrawUtils.shadowDirY = (float) Math.sin(ang);
         }
 
-        // burn transition: 1 = fully revealed, <1 = paper still covering the GUI
+        // burn transition: 1 = fully present, <1 = mid burn (dissolving to transparent)
         long nowMs = System.currentTimeMillis();
+        int dur = burnDurationMs();
         boolean burn = module != null && module.burnTransition.getValue();
         float burnProgress = 1f;
         if (burn) {
             if (closing) {
-                float cp = Math.min(1f, (nowMs - closeStartTime) / (float) BURN_DURATION);
-                burnProgress = 1f - cp;             // paper reforms over the GUI
-                if (cp >= 1f) {                     // fully covered -> actually close
+                float cp = Math.min(1f, (nowMs - closeStartTime) / (float) dur);
+                burnProgress = 1f - cp;             // GUI burns away
+                if (cp >= 1f) {                     // fully gone -> actually close
                     DrawUtils.overrideScaleFactor = -1f;
                     mc.displayGuiScreen(null);
                     return;
                 }
             } else {
-                burnProgress = Math.min(1f, (nowMs - openTime) / (float) BURN_DURATION);
+                burnProgress = Math.min(1f, (nowMs - openTime) / (float) dur);
+            }
+        }
+
+        // While mid-burn, render the whole GUI into an offscreen buffer so the
+        // dissolve can reveal true transparency (the world), not the GUI beneath.
+        boolean captured = false;
+        if (burn && burnProgress < 1f) {
+            try {
+                burnFbo = arsenic.utils.render.shader.ShaderUtil.createFrameBuffer(burnFbo);
+                burnFbo.framebufferColor = new float[]{0f, 0f, 0f, 0f};
+                burnFbo.framebufferClear();
+                burnFbo.bindFramebuffer(false);
+                captured = true;
+                // GUI alpha must accumulate as true coverage while captured so
+                // the burn composite reproduces on-screen opacity exactly
+                RenderUtils.captureCoverage = true;
+            } catch (Exception e) {
+                captured = false;
+                RenderUtils.captureCoverage = false;
             }
         }
 
@@ -197,12 +227,21 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         drawShaderOverlay();
 
-        // burning-paper sheet on top - dissolves to reveal the GUI (open) or
-        // reforms over it (close). Guarded so a shader hiccup can't hide the GUI.
-        if (burn && burnProgress < 1f) {
+        RenderUtils.captureCoverage = false; // capture done - back to normal blending
+
+        // Composite the captured GUI back to the screen through the burn shader:
+        // burnt areas become transparent (world shows), the edge glows in the
+        // theme colour, and everything outside the box fades. Guarded with a
+        // plain blit fallback so a shader hiccup can never hide the GUI.
+        if (captured) {
+            mc.getFramebuffer().bindFramebuffer(true); // restore the main render target
             try {
-                arsenic.utils.render.shader.ShaderUtil.renderBurn(burnProgress, ThemeManager.getMainColor());
-            } catch (Exception ignored) {
+                float s = this.scale;
+                arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
+                        burnFbo.framebufferTexture, burnProgress, ThemeManager.getMainColor(),
+                        x * s, y * s, x1 * s, y1 * s, 30f * s);
+            } catch (Exception e) {
+                try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
             }
         }
 

@@ -26,6 +26,7 @@ public class ClickGui extends Module {
     public final DoubleProperty backgroundSpeed = new DoubleProperty("Background Speed", new DoubleValue(0.1, 5, 1, 0.1));
     public final BooleanProperty scanlineOverlay = new BooleanProperty("Scanline Overlay", false);
     public final BooleanProperty burnTransition = new BooleanProperty("Burn Transition", true);
+    public final DoubleProperty burnTime = new DoubleProperty("Burn Time", new DoubleValue(0.2, 3.0, 0.7, 0.1));
     public final BooleanProperty sounds = new BooleanProperty("CMaj Sounds", true);
 
     // --- 3D depth (drop shadows, elevation & edge glow) ---

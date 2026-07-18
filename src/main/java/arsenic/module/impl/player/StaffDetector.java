@@ -118,7 +118,7 @@ public class StaffDetector extends Module {
                 NotificationManager.show(new Notification(NotificationType.WARNING, "StaffDetector", message, 3));
                 break;
         }
-    }
+    }   
 
     public enum WarnMode {
         CHAT, NOTIFICATION
