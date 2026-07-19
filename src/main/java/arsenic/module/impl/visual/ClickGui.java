@@ -21,10 +21,10 @@ public class ClickGui extends Module {
 
     // --- overdone shader eye-candy ---
     public final BooleanProperty shaderBackground = new BooleanProperty("Shader Background", true);
-    public final EnumProperty<BgShader> backgroundShader = new EnumProperty<>("Background", BgShader.ZIPPYZAPS);
+    public final EnumProperty<BgShader> backgroundShader = new EnumProperty<>("Background", BgShader.FIRESTORM);
     public final DoubleProperty backgroundOpacity = new DoubleProperty("Background Opacity", new DoubleValue(0, 100, 45, 1));
     public final DoubleProperty backgroundSpeed = new DoubleProperty("Background Speed", new DoubleValue(0.1, 5, 1, 0.1));
-    public final BooleanProperty scanlineOverlay = new BooleanProperty("Scanline Overlay", false);
+    public final BooleanProperty scanlineOverlay = new BooleanProperty("Scanline Overlay", true);
     public final BooleanProperty burnTransition = new BooleanProperty("Burn Transition", true);
     public final EnumProperty<Transition> transition = new EnumProperty<>("Transition", Transition.BURN);
     public final DoubleProperty burnTime = new DoubleProperty("Burn Time", new DoubleValue(0.2, 3.0, 0.7, 0.1));
@@ -36,7 +36,7 @@ public class ClickGui extends Module {
     public final DoubleProperty shadowStrength = new DoubleProperty("Shadow Strength", new DoubleValue(0, 200, 100, 5));
     public final DoubleProperty elevation = new DoubleProperty("Elevation", new DoubleValue(0, 200, 100, 5));
     public final DoubleProperty edgeGlow = new DoubleProperty("Edge Glow", new DoubleValue(0, 500, 100, 5));
-    public final EnumProperty<ThemeMode> themeMode = new EnumProperty<ThemeMode>("Theme", ThemeMode.CLASSIC) {
+    public final EnumProperty<ThemeMode> themeMode = new EnumProperty<ThemeMode>("Theme", ThemeMode.EMBER) {
         @Override
         public void onValueUpdate() {
             Arsenic.getArsenic().getThemeManager().setCurrentTheme(Arsenic.getArsenic().getThemeManager().getContentByJsonKey(getValue().get()));

@@ -15,6 +15,7 @@ import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 
@@ -24,6 +25,7 @@ public class Clicker extends Module {
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 1));
     public final BooleanProperty drop = new BooleanProperty("Drop Cps", true);
     public final BooleanProperty playSound = new BooleanProperty("Click Sound", true);
+    public final BooleanProperty weaponOnly = new BooleanProperty("Weapon only", false);
     final MSTimer timer = new MSTimer();
     private long cps,prevCps,lastSound;
     private boolean lmbDown;
@@ -38,6 +40,9 @@ public class Clicker extends Module {
     @EventLink(Priorities.VERY_LOW)
     public final Listener<EventRender2D> eventRunTickListener = e -> {
         if (!lmbDown)
+            return;
+
+        if (weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return;
 
         if (drop.getValue()) {

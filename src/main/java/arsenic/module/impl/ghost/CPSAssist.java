@@ -16,7 +16,7 @@ import net.minecraft.item.ItemStack;
 
 import java.awt.*;
 
-@ModuleInfo(name = "CPSAssist", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "CPSAssist", category = ModuleCategory.GHOST, dev = true)
 public class CPSAssist extends Module {
 
     public final DoubleProperty chance = new DoubleProperty("Chance", new DoubleValue(0, 100, 80, 1));

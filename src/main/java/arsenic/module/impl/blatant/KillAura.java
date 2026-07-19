@@ -11,6 +11,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -29,6 +30,7 @@ public class KillAura extends Module {
 
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1));
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 10, 1, 1));
+    public final EnumProperty<TargetEffect> effect = new EnumProperty<>("Effect", TargetEffect.CIRCLE);
     public EntityPlayer target = null;
     private boolean wasUsingItem;
     private final MSTimer attackTimer = new MSTimer();
@@ -75,9 +77,26 @@ public class KillAura extends Module {
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
         if(target == null)
             return;
-        RenderUtils.drawCircle(target, event.partialTicks, 0.7, Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor(), 255);
+        int col = Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
+        switch (effect.getValue()) {
+            case CIRCLE:
+                RenderUtils.drawCircle(target, event.partialTicks, 0.7, col, 255);
+                break;
+            case ORBIT:
+                RenderUtils.drawTargetOrbit(target, event.partialTicks, 0.85, col, 255);
+                break;
+            case PULSE:
+                RenderUtils.drawTargetPulse(target, event.partialTicks, 0.7, col, 255);
+                break;
+            case NONE:
+                return;
+        }
         RenderUtils.resetColor();
     };
+
+    public enum TargetEffect {
+        CIRCLE, ORBIT, PULSE, NONE
+    }
 
 
     private long getAttackDelay() {

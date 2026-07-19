@@ -12,6 +12,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 @ModuleInfo(name = "Auto Tool",category = ModuleCategory.PLAYER)
@@ -20,6 +21,7 @@ public class AutoTool extends Module {
     public final BooleanProperty diableRight = new BooleanProperty("Disable while right click", true);
     public final BooleanProperty requireClicking = new BooleanProperty("Require Mouse down", true);
     public final BooleanProperty swapBack = new BooleanProperty("Swap to previous slot", true);
+    public final BooleanProperty shiftOnly = new BooleanProperty("Shift only", false);
     private int previousSlot = -1;
     private int ticksHovered;
     private BlockPos currentBlock;
@@ -39,6 +41,10 @@ public class AutoTool extends Module {
     @EventLink
     public final Listener<EventTick> onTick = event -> {
         if (!mc.inGameHasFocus || mc.currentScreen != null || (diableRight.getValue() && Mouse.isButtonDown(1)) || !mc.thePlayer.capabilities.allowEdit) {
+            resetVariables();
+            return;
+        }
+        if (shiftOnly.getValue() && !Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode())) {
             resetVariables();
             return;
         }

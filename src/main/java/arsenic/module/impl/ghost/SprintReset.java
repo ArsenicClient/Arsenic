@@ -10,12 +10,13 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.rotations.RotationUtils;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 
 import static arsenic.utils.lag.LagManager.getPing;
 
-@ModuleInfo(name = "WTap",category = ModuleCategory.GHOST)
-public class WTap extends Module {
+@ModuleInfo(name = "Sprint Reset",category = ModuleCategory.GHOST)
+public class SprintReset extends Module {
     public int hurtTime = 1;
     public EntityPlayer target;
     public final EnumProperty<wMode> mode = new EnumProperty<>("Mode", wMode.COMBO);
@@ -59,12 +60,20 @@ public class WTap extends Module {
                     target = null;
                 }
                 break;
+            case UNSPRINT:
+                if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                    mc.thePlayer.setSprinting(false);
+                    target = null;
+                }
+                break;
         }
     };
 
     public enum wMode {
         NORMAL,
-        COMBO
+        COMBO,
+        UNSPRINT
     }
 
 }

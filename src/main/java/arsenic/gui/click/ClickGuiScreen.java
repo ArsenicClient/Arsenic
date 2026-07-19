@@ -383,6 +383,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void mouseRelease(int mouseX, int mouseY, int state) {
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
+        // The module list (current category) and search results are handled outside `components`,
+        // so their release must be dispatched explicitly — otherwise draggable property components
+        // like the colour picker never see the mouse-up and stay stuck in the "clicked" state.
+        if (cmcc != null) cmcc.handleRelease(mouseX, mouseY, state);
+        if (searchComponent != null) searchComponent.handleRelease(mouseX, mouseY, state);
         super.mouseRelease(mouseX, mouseY, state);
     }
 

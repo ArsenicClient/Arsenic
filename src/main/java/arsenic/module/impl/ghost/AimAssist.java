@@ -3,10 +3,7 @@ package arsenic.module.impl.ghost;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventSilentRotation;
-import arsenic.event.impl.EventTick;
-import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -14,21 +11,12 @@ import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
-import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
-import org.lwjgl.opengl.GL11;
-
-import java.awt.*;
 
 import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
 
@@ -36,15 +24,16 @@ import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
 public class AimAssist extends Module {
 
     public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 50, 10, 1));
-    public final EnumProperty<aMode> mode = new EnumProperty<>("Mode:", aMode.Silent);
-    private float prevPartialTicks, yawDelta, pitchDelta;
+    public final EnumProperty<aMode> mode = new EnumProperty<>("Mode:", aMode.Additive);
+    private float yawDelta, pitchDelta;
+    private boolean active;
     private EntityLivingBase target;
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventTickListener = event -> {
         if (!mc.gameSettings.keyBindAttack.isKeyDown()) {
-            setNullRots();
+            clearTarget();
             return;
         }
 
@@ -54,57 +43,31 @@ public class AimAssist extends Module {
             if (p != null) {
                 Block bl = mc.theWorld.getBlockState(p).getBlock();
                 if (!(bl instanceof BlockLiquid)) {
-                    setNullRots();
+                    clearTarget();
                     return;
                 }
             }
         }
+
         if (target == null) {
-            setNullRots();
+            clearTarget();
             return;
         }
 
-
         float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
-        if(mode.getValue() == aMode.Silent) {
+        if (mode.getValue() == aMode.Silent) {
             event.setSpeed((float) speed.getValue().getInput());
             event.setYaw((float) (rotationsToTarget[0] + Math.random() - Math.random()));
             event.setPitch((float) (rotationsToTarget[1] + Math.random() - Math.random()));
+            active = false;
             return;
         }
+
         yawDelta = getYawDelta((float) (rotationsToTarget[0] + Math.random() - Math.random()));
-        pitchDelta = getPitchDelta((float) (rotationsToTarget[1] + Math.random() - Math.random()));
-        prevPartialTicks = 0;
+        pitchDelta = -getPitchDelta((float) (rotationsToTarget[1] + Math.random() - Math.random()));
+        active = true;
     };
 
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventRenderWorldLast> eventGameLoopListener = event -> {
-        if(target != null)
-            drawTargetShader(event);
-        if(mode.getValue() == aMode.Silent || (yawDelta == 0 && pitchDelta == 0))
-            return;
-
-        float partialTicksElapsed = event.partialTicks - prevPartialTicks;
-
-        // Add the delta to the current rotations
-        float newYaw = mc.thePlayer.rotationYaw + (yawDelta * partialTicksElapsed);
-        float newPitch = mc.thePlayer.rotationPitch + (pitchDelta * partialTicksElapsed);
-
-        // Clamp pitch to valid range [-90, 90]
-        newPitch = MathHelper.clamp_float(newPitch, -90.0f, 90.0f);
-
-        float[] rotations = RotationUtils.patchGCD(
-                new float[]{mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch},
-                new float[]{newYaw, newPitch}
-        );
-
-        mc.thePlayer.rotationYaw = rotations[0];
-        mc.thePlayer.rotationPitch = rotations[1];
-
-        // Store the current partialTicks for next frame calculation
-        prevPartialTicks = event.partialTicks;
-    };
 
     private float getYawDelta(float targetYaw) {
         float delta = wrapAngleTo180_float(wrapAngleTo180_float(targetYaw) - wrapAngleTo180_float(mc.thePlayer.rotationYaw));
@@ -118,38 +81,60 @@ public class AimAssist extends Module {
         return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
     }
 
-    private void setNullRots() {
-        this.yawDelta = 0;
-        this.pitchDelta = 0;
+    private void clearTarget() {
+        pitchDelta = 0;
+        yawDelta = 0;
+        this.active = false;
+        this.target = null;
+    }
+
+    public float modifyYaw(float yaw) {
+        if (mode.getValue() == aMode.Silent || target == null) {
+            return yaw;
+        } if(mode.getValue() == aMode.Normal) {
+            return yawDelta;
+        } else if(mode.getValue() == aMode.Additive) {
+            return yawDelta + yaw;
+        } else if (mode.getValue() == aMode.Adaptive) {
+            float correctDir = Math.signum(yawDelta);
+            if (correctDir == 0 || yaw == 0) {
+                return yaw;
+            }
+            float strength = (float) (speed.getValue().getInput() / 10.0f);
+            if (Math.signum(yaw) == correctDir) {
+                return yaw * (1.0f + strength);
+            }
+            return yaw * (1.0f - Math.min(strength, 1.0f));
+        }
+        return yaw;
+    }
+
+    public float modifyPitch(float pitch) {
+        if (mode.getValue() == aMode.Silent || target == null) {
+            return pitch;
+        } else if(mode.getValue() == aMode.Normal) {
+            return pitchDelta;
+        }  else if(mode.getValue() == aMode.Additive) {
+            return pitchDelta + pitch;
+        } else if (mode.getValue() == aMode.Adaptive) {
+            float correctDir = Math.signum(pitchDelta);
+            if (correctDir == 0 || pitch == 0) {
+                return pitch;
+            }
+            float strength = (float) (speed.getValue().getInput() / 10.0f);
+            if (Math.signum(pitch) == correctDir) {
+                return pitch * (1.0f + strength);
+            }
+            return pitch * (1.0f - Math.min(strength, 1.0f));
+        }
+        return pitch;
     }
 
     public enum aMode {
         Silent,
-        Normal;
-    }
-
-    private void drawTargetShader(EventRenderWorldLast event) {
-        IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
-        double x = (target.lastTickPosX + (target.posX - target.lastTickPosX) * event.partialTicks) - renderManager.getRenderPosX();
-        double y = (target.lastTickPosY + (target.posY - target.lastTickPosY) * event.partialTicks) - renderManager.getRenderPosY();
-        double z = (target.lastTickPosZ + (target.posZ - target.lastTickPosZ) * event.partialTicks) - renderManager.getRenderPosZ();
-        AxisAlignedBB axisalignedbb = target.getEntityBoundingBox();
-        AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(axisalignedbb.minX - target.posX + x, axisalignedbb.minY - target.posY + y, axisalignedbb.minZ - target.posZ + z, axisalignedbb.maxX - target.posX + x, axisalignedbb.maxY - target.posY + y, axisalignedbb.maxZ - target.posZ + z);
-        Color color = target.hurtTime > 0 ? new Color(210, 43, 43, 100) : new Color(249, 246, 238);
-        GlStateManager.pushMatrix();
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glDepthMask(false);
-        GL11.glLineWidth(2.0F);
-        RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDepthMask(true);
-        GL11.glLineWidth(1.0F);
-        GlStateManager.popMatrix();
+        Normal,
+        Additive,
+        Adaptive;
     }
 
 }
