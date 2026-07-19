@@ -26,7 +26,6 @@ public class AimAssist extends Module {
     public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 50, 10, 1));
     public final EnumProperty<aMode> mode = new EnumProperty<>("Mode:", aMode.Additive);
     private float yawDelta, pitchDelta;
-    private boolean active;
     private EntityLivingBase target;
 
     @RequiresPlayer
@@ -54,19 +53,31 @@ public class AimAssist extends Module {
             return;
         }
 
-        float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
+
         if (mode.getValue() == aMode.Silent) {
+            float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
             event.setSpeed((float) speed.getValue().getInput());
             event.setYaw((float) (rotationsToTarget[0] + Math.random() - Math.random()));
             event.setPitch((float) (rotationsToTarget[1] + Math.random() - Math.random()));
-            active = false;
-            return;
         }
-
-        yawDelta = getYawDelta((float) (rotationsToTarget[0] + Math.random() - Math.random()));
-        pitchDelta = -getPitchDelta((float) (rotationsToTarget[1] + Math.random() - Math.random()));
-        active = true;
     };
+
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventSilentRotation.Post> rayTraceListener = event -> {
+        if (mode.getValue() == aMode.Silent || target == null)
+            return;
+        float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
+        if(event.getRayTrace().entityHit == null) {
+            yawDelta = getYawDelta((float) (rotationsToTarget[0] + Math.random() - Math.random()));
+            pitchDelta = -getPitchDelta((float) (rotationsToTarget[1] + Math.random() - Math.random()));
+        } else {
+            yawDelta = getYawDelta((float) (rotationsToTarget[0]));
+            pitchDelta = -getPitchDelta((float) (rotationsToTarget[1]));
+        }
+    };
+
+
 
 
     private float getYawDelta(float targetYaw) {
@@ -84,7 +95,6 @@ public class AimAssist extends Module {
     private void clearTarget() {
         pitchDelta = 0;
         yawDelta = 0;
-        this.active = false;
         this.target = null;
     }
 

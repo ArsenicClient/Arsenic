@@ -1,38 +1,40 @@
 package arsenic.module.impl.player;
 
-import arsenic.asm.RequiresPlayer;
-import arsenic.event.bus.Listener;
-import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventTick;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.StringProperty;
 
-@ModuleInfo(name = "NameHider", category = ModuleCategory.PLAYER, hidden = true, dev = true)
+@ModuleInfo(name = "NameHider", category = ModuleCategory.PLAYER, hidden = true, dev = false)
 public class NameHider extends Module {
 
     public static final StringProperty customName = new StringProperty("ArsenicClient");
-    private static String originalName;
-    public static final StringProperty playerName = new StringProperty("_Jxx");
 
-    @Override
-    protected void onEnable() {
-        if (mc.thePlayer != null) {
-            originalName = mc.thePlayer.getDisplayName().getUnformattedText();
-            playerName.setValue(originalName);
-        }
-    }
-
+    /**
+     * Called from MixinFontRenderer for every string that gets rendered.
+     * Resolves the real name live (so it always matches, no stale/null cache),
+     * only acts while the module is enabled, and uses a literal replace so
+     * regex/colour-code characters in either name don't break or crash it.
+     */
     public static String format(String text) {
-        if (originalName != null) {
-            return text.replaceAll(originalName, customName.getValue());
+        if (text == null || text.isEmpty() || mc.thePlayer == null) {
+            return text;
         }
-        return text;
-    }
 
-    @Override
-    protected void onDisable() {
-        originalName = null;
+        NameHider module = Arsenic.getInstance().getModuleManager().getModuleByClass(NameHider.class);
+        if (module == null || !module.isEnabled()) {
+            return text;
+        }
+
+        String realName = mc.thePlayer.getName();
+        String replacement = customName.getValue();
+        if (realName == null || realName.isEmpty() || replacement == null || !text.contains(realName)) {
+            return text;
+        }
+
+        // Literal replacement of every occurrence, preserving any surrounding
+        // colour/formatting codes (unlike replaceAll, which treats args as regex).
+        return text.replace(realName, replacement);
     }
 }
