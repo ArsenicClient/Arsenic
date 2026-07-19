@@ -15,7 +15,7 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import static arsenic.utils.lag.LagManager.getPing;
 
-@ModuleInfo(name = "Sprint Reset",category = ModuleCategory.GHOST)
+@ModuleInfo(name = "SprintReset",category = ModuleCategory.GHOST)
 public class SprintReset extends Module {
     public int hurtTime = 1;
     public EntityPlayer target;

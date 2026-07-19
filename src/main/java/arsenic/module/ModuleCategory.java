@@ -13,7 +13,6 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
     SETTINGS,
     GHOST,
     BLATANT,
-    OTHER,
     MOVEMENT,
     CONFIGS,
     SEARCH {

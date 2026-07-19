@@ -13,7 +13,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
 
-@ModuleInfo(name = "AutoEat", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoEat", category = ModuleCategory.PLAYER, dev = true)
 public class AutoEat extends Module {
 
     public final DoubleProperty healthThreshold = new DoubleProperty("Health Threshold", new DoubleValue(1, 20, 15, 0.5));

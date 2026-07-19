@@ -15,7 +15,7 @@ import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
-@ModuleInfo(name = "Auto Tool",category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER)
 public class AutoTool extends Module {
     public final DoubleProperty hoverDelay = new DoubleProperty("Hover Delay", new DoubleValue(0, 20, 0, 1));
     public final BooleanProperty diableRight = new BooleanProperty("Disable while right click", true);
