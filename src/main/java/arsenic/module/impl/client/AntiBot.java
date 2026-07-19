@@ -16,7 +16,7 @@ import java.util.Collection;
 
 //TODO: recode le unique code
 
-@ModuleInfo(name = "AntiBot", category = ModuleCategory.SETTINGS)
+@ModuleInfo(name = "AntiBot", category = ModuleCategory.SETTINGS, hidden = true)
 public class AntiBot extends Module {
     public static BooleanProperty nameChecks = new BooleanProperty("Name Checks", true),
             invisCheck = new BooleanProperty("Invis Checks", false),

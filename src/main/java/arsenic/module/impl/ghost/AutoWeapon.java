@@ -14,7 +14,7 @@ import net.minecraft.util.MovingObjectPosition;
 
 import java.util.Collection;
 
-@ModuleInfo(name = "AutoWeapon", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "AutoWeapon", category = ModuleCategory.GHOST, dev = true)
 public class AutoWeapon extends Module {
 
     private int prevSlot;

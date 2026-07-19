@@ -12,8 +12,11 @@ import net.minecraft.world.World;
 import com.mojang.authlib.GameProfile;
 
 import arsenic.main.Arsenic;
+import arsenic.module.impl.ghost.HitSelect;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.util.MovingObjectPosition;
 
 import static arsenic.main.MinecraftAPI.mouseDownLastTick;
 
@@ -83,6 +86,23 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
     public void onLivingUpdate(CallbackInfo ci) {
         Arsenic.getInstance().getEventManager().post(new EventLiving());
+    }
+
+    // When HitSelect holds a hit, suppress the swing too - EntityPlayerSP#swingItem plays the
+    // animation AND sends C0APacketAnimation, so cancelling here means a held hit produces no
+    // arm swing and no swing packet, keeping it invisible to the server. The swing fires before
+    // the attack in clickMouse, so we decide from the pointed entity and let the attack hook
+    // reuse the same (idempotent) decision.
+    @Inject(method = "swingItem", at = @At("HEAD"), cancellable = true)
+    private void arsenic$hitSelectSwing(CallbackInfo ci) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.objectMouseOver == null
+                || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY)
+            return;
+
+        HitSelect hitSelect = Arsenic.getArsenic().getModuleManager().getModuleByClass(HitSelect.class);
+        if (hitSelect != null && hitSelect.shouldBlock(mc.objectMouseOver.entityHit))
+            ci.cancel();
     }
 
 

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@ModuleInfo(name = "Targets", category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "Targets", category = ModuleCategory.SETTINGS, hidden = true, enabled = true)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),
