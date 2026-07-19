@@ -527,6 +527,129 @@ public class RenderUtils extends UtilityClass {
     }
 
 
+    // ---------------------------------------------------------------
+    //  Alternative target effects (KillAura "Effect" dropdown). All share the
+    //  same GL state block as drawCircle and tint with the theme colour.
+    // ---------------------------------------------------------------
+
+    /** Interpolated render position of an entity, viewer-relative: {x, y, z}. */
+    private static double[] entityRenderPos(Entity entity) {
+        float pt = ((IMixinMinecraft) mc).getTimer().renderPartialTicks;
+        return new double[]{
+                interpolate(entity.lastTickPosX, entity.posX, pt) - mc.getRenderManager().viewerPosX,
+                interpolate(entity.lastTickPosY, entity.posY, pt) - mc.getRenderManager().viewerPosY,
+                interpolate(entity.lastTickPosZ, entity.posZ, pt) - mc.getRenderManager().viewerPosZ};
+    }
+
+    private static void beginWorldEffect() {
+        glPushMatrix();
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(false);
+        glShadeModel(GL_SMOOTH);
+        GlStateManager.disableCull();
+        GlStateManager.color(1, 1, 1, 1);
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    }
+
+    private static void endWorldEffect() {
+        glShadeModel(GL_FLAT);
+        glDepthMask(true);
+        glEnable(GL_DEPTH_TEST);
+        GlStateManager.enableCull();
+        glDisable(GL_LINE_SMOOTH);
+        glLineWidth(1f);
+        glEnable(GL_TEXTURE_2D);
+        glPopMatrix();
+        glColor4f(1f, 1f, 1f, 1f);
+    }
+
+    /** Glowing orbs circling the target, each dragging a fading trail. */
+    public static void drawTargetOrbit(Entity entity, float partialTicks, double rad, int color, float alpha) {
+        beginWorldEffect();
+        double[] p = entityRenderPos(entity);
+        double x = p[0], z = p[2];
+        double t = (System.currentTimeMillis() % 100000L) / 1000.0;
+        float aN = alpha / 255f;
+        int orbs = 3;
+        int trail = 28;
+
+        for (int o = 0; o < orbs; o++) {
+            double phase = t * 3.0 + o * (PI2 / orbs);
+            // fading trail sweeping back behind the orb; vertical bob follows
+            // the same motion evaluated back in time so the trail lines up
+            glLineWidth(5f);
+            glBegin(GL_LINE_STRIP);
+            for (int i = 0; i <= trail; i++) {
+                double back = i * 0.045;
+                double tt = t - back / 3.0;
+                double ang = phase - back;
+                double yo = p[1] + entity.height * 0.5 + Math.sin(tt * 2.0 + o * 2.1) * entity.height * 0.35;
+                color2(color, (1f - i / (float) trail) * 0.8f * aN);
+                glVertex3d(x + Math.cos(ang) * rad, yo, z + Math.sin(ang) * rad);
+            }
+            glEnd();
+
+            // the orb itself: a soft round point with a faint halo behind it
+            double yo = p[1] + entity.height * 0.5 + Math.sin(t * 2.0 + o * 2.1) * entity.height * 0.35;
+            double ox = x + Math.cos(phase) * rad, oz = z + Math.sin(phase) * rad;
+            glEnable(GL_POINT_SMOOTH);
+            glPointSize(16f);
+            glBegin(GL_POINTS);
+            color2(color, 0.25f * aN);
+            glVertex3d(ox, yo, oz);
+            glEnd();
+            glPointSize(8f);
+            glBegin(GL_POINTS);
+            color2(color, aN);
+            glVertex3d(ox, yo, oz);
+            glEnd();
+            glDisable(GL_POINT_SMOOTH);
+        }
+        glPointSize(1f);
+        endWorldEffect();
+    }
+
+    /** Shockwave rings expanding outward from the target's feet over a soft glow disc. */
+    public static void drawTargetPulse(Entity entity, float partialTicks, double rad, int color, float alpha) {
+        beginWorldEffect();
+        double[] p = entityRenderPos(entity);
+        double x = p[0], y = p[1] + 0.02, z = p[2];
+        double t = (System.currentTimeMillis() % 100000L) / 1000.0;
+        float aN = alpha / 255f;
+        int rings = 3;
+        double maxR = rad * 2.2;
+
+        for (int k = 0; k < rings; k++) {
+            double f = (t * 0.8 + k / (double) rings) % 1.0;    // 0..1 expansion
+            double r = 0.15 + f * maxR;
+            float fade = (float) ((1.0 - f) * (1.0 - f)) * 0.9f * aN;
+            glLineWidth((float) (7.0 * (1.0 - f) + 2.5)); // thick at spawn, still visible at full reach
+            glBegin(GL_LINE_LOOP);
+            color2(color, fade);
+            for (int i = 0; i < 72; i++) {
+                double ang = i * PI2 / 72;
+                glVertex3d(x + Math.cos(ang) * r, y, z + Math.sin(ang) * r);
+            }
+            glEnd();
+        }
+
+        // soft filled glow disc at the centre, fading to nothing at the edge
+        glBegin(GL_TRIANGLE_FAN);
+        color2(color, 0.35f * aN);
+        glVertex3d(x, y, z);
+        color2(color, 0f);
+        for (int i = 0; i <= 48; i++) {
+            double ang = i * PI2 / 48;
+            glVertex3d(x + Math.cos(ang) * rad, y, z + Math.sin(ang) * rad);
+        }
+        glEnd();
+        endWorldEffect();
+    }
+
     public static final float PI2 = roundToFloat((Math.PI * 2D));
 
     public static float roundToFloat(double d) {

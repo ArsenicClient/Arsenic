@@ -14,19 +14,38 @@ import arsenic.module.property.impl.ColourProperty;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.util.glu.GLU;
 
 import java.awt.*;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 @ModuleInfo(name = "Tracers", category = ModuleCategory.WORLD, hidden = true)
 public class Tracers extends Module {
 
     public final ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
     public final BooleanProperty bedWars = new BooleanProperty("BedWars", false);
+    public final BooleanProperty offScreenOnly = new BooleanProperty("Off Screen Only", false);
+
+    private final FloatBuffer modelView = BufferUtils.createFloatBuffer(16);
+    private final FloatBuffer projection = BufferUtils.createFloatBuffer(16);
+    private final IntBuffer viewport = BufferUtils.createIntBuffer(16);
+    private final FloatBuffer screenCoords = BufferUtils.createFloatBuffer(3);
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
+        if (offScreenOnly.getValue()) {
+            modelView.clear();
+            projection.clear();
+            viewport.clear();
+            GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelView);
+            GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projection);
+            GL11.glGetInteger(GL11.GL_VIEWPORT, viewport);
+        }
+
         for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
             if (player == mc.thePlayer) continue;
             if (AntiBot.isBot(player)) continue;
@@ -37,6 +56,8 @@ public class Tracers extends Module {
                     - mc.getRenderManager().viewerPosY;
             double z = (player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * event.partialTicks)
                     - mc.getRenderManager().viewerPosZ;
+
+            if (offScreenOnly.getValue() && isOnScreen(x, y + player.height / 2, z)) continue;
 
             Color c = new Color(bedWars.getValue() ? getBedWarsColor(player) : color.getValue());
 
@@ -62,6 +83,22 @@ public class Tracers extends Module {
             GlStateManager.popMatrix();
         }
     };
+
+    /** Projects a viewer-relative point to the screen and checks whether it lands inside the viewport. */
+    private boolean isOnScreen(double x, double y, double z) {
+        screenCoords.clear();
+        if (!GLU.gluProject((float) x, (float) y, (float) z, modelView, projection, viewport, screenCoords))
+            return false;
+        float winX = screenCoords.get(0);
+        float winY = screenCoords.get(1);
+        float winZ = screenCoords.get(2);
+        if (winZ < 0f || winZ > 1f) return false; // behind the camera
+        int vx = viewport.get(0);
+        int vy = viewport.get(1);
+        int vw = viewport.get(2);
+        int vh = viewport.get(3);
+        return winX >= vx && winX <= vx + vw && winY >= vy && winY <= vy + vh;
+    }
 
     private int getBedWarsColor(EntityPlayer player) {
         if (player.getCurrentArmor(2) != null) {

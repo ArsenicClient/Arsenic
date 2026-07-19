@@ -4,6 +4,7 @@ import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventMove;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
+import arsenic.module.impl.ghost.AimAssist;
 import arsenic.module.impl.world.SafeWalk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -59,6 +60,28 @@ public abstract class MixinEntity {
             rotationYaw = cachedYawM;
             ci.cancel();
         }
+    }
+
+    // AimAssist (Normal/Adaptive) hooks the actual mouse-look deltas here, where Minecraft turns
+    // them into a rotation change. Normal overwrites the input; Adaptive multiplies it.
+    @ModifyVariable(method = "setAngles", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private float aimAssistYaw(float yaw) {
+        if ((Object) this != Minecraft.getMinecraft().thePlayer)
+            return yaw;
+        AimAssist aimAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(AimAssist.class);
+        if(!aimAssist.isEnabled())
+            return yaw;
+        return aimAssist.modifyYaw(yaw);
+    }
+
+    @ModifyVariable(method = "setAngles", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    private float aimAssistPitch(float pitch) {
+        if ((Object) this != Minecraft.getMinecraft().thePlayer)
+            return pitch;
+        AimAssist aimAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(AimAssist.class);
+        if(!aimAssist.isEnabled())
+            return pitch;
+        return aimAssist.modifyPitch(pitch);
     }
 
     @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
