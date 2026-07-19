@@ -11,6 +11,7 @@ import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -68,17 +69,17 @@ public class AimAssist extends Module {
         if (mode.getValue() == aMode.Silent || target == null)
             return;
         float[] rotationsToTarget = RotationUtils.getRotationsToEntity(target);
-        if(event.getRayTrace().entityHit == null) {
+        if(event.getRayTraceEntity().entityHit == null) {
             yawDelta = getYawDelta((float) (rotationsToTarget[0] + Math.random() - Math.random()));
             pitchDelta = -getPitchDelta((float) (rotationsToTarget[1] + Math.random() - Math.random()));
-        } else {
+        } else if(mode.getValue() == aMode.Normal) {
             yawDelta = getYawDelta((float) (rotationsToTarget[0]));
             pitchDelta = -getPitchDelta((float) (rotationsToTarget[1]));
+        } else {
+            yawDelta = 0;
+            pitchDelta = 0;
         }
     };
-
-
-
 
     private float getYawDelta(float targetYaw) {
         float delta = wrapAngleTo180_float(wrapAngleTo180_float(targetYaw) - wrapAngleTo180_float(mc.thePlayer.rotationYaw));
