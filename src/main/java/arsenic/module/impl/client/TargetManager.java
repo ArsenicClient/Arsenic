@@ -45,9 +45,16 @@ public class TargetManager extends Module {
     private static final Map<Integer, Float> serverHurtTime = new HashMap<>();
     private static final Map<Integer, Long> attackSentTime = new HashMap<>();
 
+    // Intentionally always-on: this hidden SETTINGS module backs the aura/target logic,
+    // so the incoming 'enabled' flag is deliberately ignored.
     @Override
-    protected void onDisable() {
-        this.setEnabled(true);
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(true);
+    }
+
+    @Override
+    public void setEnabledSilently(boolean enabled) {
+        super.setEnabledSilently(true);
     }
 
     private static double getFOV() {
@@ -66,17 +73,22 @@ public class TargetManager extends Module {
 
     @EventLink
     public Listener<EventPacket.OutGoing> eventPacketListener = e -> {
+        // Guard: outgoing packets can fire before/while the world is null (login, world switch).
+        if (mc.theWorld == null)
+            return;
+
         Packet<?> packet = e.getPacket();
 
         if (packet instanceof C02PacketUseEntity) {
             C02PacketUseEntity useEntity = (C02PacketUseEntity) packet;
             Entity entity = useEntity.getEntityFromWorld(mc.theWorld);
             if (useEntity.getAction() == C02PacketUseEntity.Action.ATTACK) {
-                if(!(entity instanceof EntityPlayer))
+                if (!(entity instanceof EntityPlayer))
                     return;
-                if(getServerHurtTimeOnPacketArrival((EntityPlayer) entity) > 0)
+                if (getServerHurtTimeOnPacketArrival((EntityPlayer) entity) > 0)
                     return;
-                int entityId = useEntity.getEntityFromWorld(mc.theWorld).getEntityId();
+                // Reuse the already-validated, non-null entity instead of re-querying the world.
+                int entityId = entity.getEntityId();
                 long sentTime = mc.theWorld.getTotalWorldTime();
                 attackSentTime.put(entityId, sentTime);
             }
@@ -84,13 +96,22 @@ public class TargetManager extends Module {
     };
 
     public static float getTimeSinceLastClientSidedHit(EntityPlayer player) {
-        int entityId = player.getEntityId();
-        Long sentTime = attackSentTime.getOrDefault(entityId, System.currentTimeMillis() + 1000L);
-        return System.currentTimeMillis() - sentTime;
+        // attackSentTime stores world-tick timestamps, so this must be measured in world ticks too
+        // (the old version subtracted world ticks from System.currentTimeMillis(), which was garbage).
+        if (mc.theWorld == null || player == null)
+            return Float.MAX_VALUE;
+
+        Long sentTick = attackSentTime.get(player.getEntityId());
+        if (sentTick == null)
+            return Float.MAX_VALUE;
+
+        return mc.theWorld.getTotalWorldTime() - sentTick;
     }
 
-    //get
     public static float getServerHurtTimeOnPacketArrival(EntityPlayer player) {
+        if (mc.theWorld == null || player == null)
+            return Float.MAX_VALUE;
+
         int entityId = player.getEntityId();
         Long sentTime = attackSentTime.get(entityId);
         long now = mc.theWorld.getTotalWorldTime();
@@ -139,20 +160,17 @@ public class TargetManager extends Module {
     }
 
     private static boolean isValidTarget(EntityPlayer ep) {
-        return (
-                (ep != mc.thePlayer)
-                        && (bots.getValue() || !AntiBot.isBot(ep))
-                        && (teams.getValue() || !PlayerUtils.isEntityTeamSameAsPlayer(ep)
-                        && (invis.getValue() || !ep.isInvisible())
-                        && (unArmoured.getValue() || !PlayerUtils.isPlayerWearingArmour(ep))
-                        && PlayerUtils.withinFov(ep, (float) getFOV())
-                ));
+        return (ep != mc.thePlayer)
+                && (bots.getValue()       || !AntiBot.isBot(ep))
+                && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
+                && (invis.getValue()      || !ep.isInvisible())
+                && (unArmoured.getValue() || !PlayerUtils.isPlayerWearingArmour(ep))
+                && PlayerUtils.withinFov(ep, (float) getFOV());
     }
 
     public enum SortMode {
         Distance(player -> (float) RotationUtils.getDistanceToEntityBox(player)),
         HurtSwitch(player -> (float) player.hurtTime),
-        // Sorts ascending by predicted server hurt time — player closest to 0 (hittable) is preferred
         SmartSwitch(TargetManager::getServerHurtTimeOnPacketArrival),
         Fov(player -> (float) Math.abs(RotationUtils.fovFromEntity(player))),
         Lock(player -> player == lockedTarget ? 0f : 1f),

@@ -106,7 +106,7 @@ public final class EventBus<Event> implements Bus<Event> {
 
             while (i < listenersSize) { listeners.get(i++).call(event); }
         } catch (Exception e){
-            PlayerUtils.addWaterMarkedMessageToChat(e.getClass().getSimpleName() + " IN THE EVENT BUS!");
+           // PlayerUtils.addWaterMarkedMessageToChat(e.getClass().getSimpleName() + " IN THE EVENT BUS!");
             System.out.println("\u001B[31m"+"ERROR IN THE EVENT BUS");
             e.printStackTrace();
             System.out.println("StackTrace Ends"+"\u001B[0m");
