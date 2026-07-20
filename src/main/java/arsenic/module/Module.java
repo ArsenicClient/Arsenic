@@ -129,7 +129,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         setEnabled(!enabled);
     }
 
-    public final void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) {
         if (this.enabled != enabled) {
             this.enabled = enabled;
 
