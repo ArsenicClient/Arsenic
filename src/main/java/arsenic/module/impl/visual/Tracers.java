@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.util.glu.GLU;
 
 import java.awt.*;
 import java.nio.FloatBuffer;
@@ -87,7 +86,7 @@ public class Tracers extends Module {
     /** Projects a viewer-relative point to the screen and checks whether it lands inside the viewport. */
     private boolean isOnScreen(double x, double y, double z) {
         screenCoords.clear();
-        if (!GLU.gluProject((float) x, (float) y, (float) z, modelView, projection, viewport, screenCoords))
+        if (!project((float) x, (float) y, (float) z, modelView, projection, viewport, screenCoords))
             return false;
         float winX = screenCoords.get(0);
         float winY = screenCoords.get(1);
@@ -111,5 +110,38 @@ public class Tracers extends Module {
             }
         }
         return color.getValue();
+    }
+
+    /**
+     * Projects an object-space point to window coordinates. Drop-in replacement for
+     * GLU.gluProject (from the lwjgl_util library, which LabyMod does not ship on the
+     * classpath) using identical math, so behaviour is unchanged.
+     */
+    private static boolean project(float objX, float objY, float objZ,
+                                   FloatBuffer model, FloatBuffer proj, IntBuffer view,
+                                   FloatBuffer winPos) {
+        float[] in = {objX, objY, objZ, 1.0f};
+        float[] out = new float[4];
+        multMatrixVec(model, in, out); // -> eye space
+        multMatrixVec(proj, out, in);  // -> clip space
+        if (in[3] == 0.0f) return false;
+        in[3] = (1.0f / in[3]) * 0.5f;
+        in[0] = in[0] * in[3] + 0.5f;  // -> normalized device coords in [0,1]
+        in[1] = in[1] * in[3] + 0.5f;
+        in[2] = in[2] * in[3] + 0.5f;
+        winPos.put(0, in[0] * view.get(2) + view.get(0));
+        winPos.put(1, in[1] * view.get(3) + view.get(1));
+        winPos.put(2, in[2]);
+        return true;
+    }
+
+    /** Column-major 4x4 matrix times a 4-vector: out = m * in. */
+    private static void multMatrixVec(FloatBuffer m, float[] in, float[] out) {
+        for (int i = 0; i < 4; i++) {
+            out[i] = in[0] * m.get(i)
+                    + in[1] * m.get(4 + i)
+                    + in[2] * m.get(8 + i)
+                    + in[3] * m.get(12 + i);
+        }
     }
 }

@@ -19,7 +19,8 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.util.Color;
+
+import java.awt.Color;
 
 @ModuleInfo(name = "Trajectories", category = ModuleCategory.WORLD, hidden = true)
 public class Trajectories extends Module {
