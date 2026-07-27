@@ -20,6 +20,7 @@ public class EventSilentRotation implements Event {
     private SilentRotationManager.MovementFix movementFix = SilentRotationManager.MovementFix.SILENT;
     private boolean doJumpFix = true;
     private boolean preventDuplicateLook = false;
+    private boolean blockUserInput = false;
     private static Minecraft mc = Minecraft.getMinecraft();
 
     public EventSilentRotation(float yaw, float pitch,float speed) {
@@ -72,6 +73,21 @@ public class EventSilentRotation implements Event {
 
     public void setPreventDuplicateLook(boolean preventDuplicateLook) {
         this.preventDuplicateLook = preventDuplicateLook;
+    }
+
+    public boolean isBlockUserInput() {
+        return blockUserInput;
+    }
+
+    /**
+     * When {@code true}, the player's own attack/use inputs (break block, place block, hit) are
+     * swallowed for this tick — the keybinds behave as if they were never pressed, and queued
+     * presses are drained so nothing fires once blocking stops. Client-side invocations of
+     * {@code clickMouse()}/{@code rightClickMouse()} (Clicker, KillAura, Scaffold, ...) are
+     * unaffected. Defaults to {@code false} and resets every tick, so a module must re-assert it.
+     */
+    public void setBlockUserInput(boolean blockUserInput) {
+        this.blockUserInput = blockUserInput;
     }
 
     /**
