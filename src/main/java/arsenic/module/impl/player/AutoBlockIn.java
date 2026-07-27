@@ -1244,6 +1244,9 @@ public class AutoBlockIn extends Module {
     public final Listener<EventSilentRotation> silentRotationListener = event -> {
         // if (mode.getValue() != AutoBlockInMode.SILENT) return;
         if (preTick()) return;
+        // The module owns the hand while surrounding — the player's own attack/use presses would
+        // break the blocks we just placed or desync the plan, so swallow them for the duration.
+        event.setBlockUserInput(true);
         if (currentAim == null) return;
         event.setMovementFix(SilentRotationManager.MovementFix.OFF);
         event.setJumpFix(false);

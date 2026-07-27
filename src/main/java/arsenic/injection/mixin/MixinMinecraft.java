@@ -17,6 +17,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MovingObjectPosition;
@@ -70,6 +71,37 @@ public abstract class MixinMinecraft {
     }
 
 
+
+    /**
+     * Swallows the player's own attack/use presses while a silent rotation asked for input to be
+     * blocked. The original {@code isPressed()} is still called so the queued press count is
+     * drained — otherwise every press held back would fire in a burst once blocking ends.
+     * Other keybinds (inventory, drop, chat, ...) pass through untouched, and direct client-side
+     * calls to {@code clickMouse()}/{@code rightClickMouse()} are unaffected.
+     */
+    @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z"))
+    public boolean redirectIsPressed(KeyBinding keyBinding) {
+        if (!shouldBlockInput(keyBinding))
+            return keyBinding.isPressed();
+        // drain the whole queue, not just one press
+        while (keyBinding.isPressed()) { }
+        return false;
+    }
+
+    /**
+     * Same as {@link #redirectIsPressed(KeyBinding)} but for the held-down reads — continuous block
+     * breaking ({@code sendClickBlockToController}) and item-use repeat.
+     */
+    @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isKeyDown()Z"))
+    public boolean redirectIsKeyDown(KeyBinding keyBinding) {
+        return keyBinding.isKeyDown() && !shouldBlockInput(keyBinding);
+    }
+
+    private boolean shouldBlockInput(KeyBinding keyBinding) {
+        if (keyBinding != gameSettings.keyBindAttack && keyBinding != gameSettings.keyBindUseItem)
+            return false;
+        return Arsenic.getArsenic().getSilentRotationManager().isBlockingUserInput();
+    }
 
     @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
