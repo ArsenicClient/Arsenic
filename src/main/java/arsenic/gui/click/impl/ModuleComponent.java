@@ -66,8 +66,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
         // cards are the closest layer - a stronger drop shadow + light rim
         DrawUtils.drawShadow(x1, y1, x2, y2 + expandY, expand /2f, arsenic.module.impl.visual.ClickGui.shadowSpread(expand * 0.5f * 0.7f), arsenic.module.impl.visual.ClickGui.shadowAlpha(150), 5);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand /2f, ThemeManager.getModuleBackground());
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand /2f, arsenic.module.impl.visual.ClickGui.glassify(ThemeManager.getModuleBackground()));
         DrawUtils.drawEdgeHighlight(x1, y1, x2, y2 + expandY, expand /2f, ThemeManager.getMainColor(), arsenic.module.impl.visual.ClickGui.edgeAlpha(20));
+        if (arsenic.module.impl.visual.ClickGui.glassEnabled())
+            DrawUtils.drawGlassRect(x1, y1, x2, y2 + expandY, expand /2f,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 12), ThemeManager.getWhite(), arsenic.module.impl.visual.ClickGui.glassStrength() * 0.8f);
 
         if (hoverTimer.getPercent() > 0)
             DrawUtils.drawRoundedRect(x1, y1, x2, y2 + expandY, expand /2f, ColorUtils.setColor(ThemeManager.getModuleHover(), 0, (int) (15 * hoverTimer.getPercent())));

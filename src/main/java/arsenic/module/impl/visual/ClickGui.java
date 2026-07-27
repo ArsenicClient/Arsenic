@@ -30,6 +30,13 @@ public class ClickGui extends Module {
     public final DoubleProperty burnTime = new DoubleProperty("Burn Time", new DoubleValue(0.2, 3.0, 0.7, 0.1));
     public final BooleanProperty sounds = new BooleanProperty("CMaj Sounds", true);
 
+    // --- Liquid Glass surface treatment ---
+    // Frosted, translucent panels with a moving specular sweep and bright edge
+    // rim. Panels go see-through so the shader backdrop shimmers behind them.
+    public final BooleanProperty liquidGlass = new BooleanProperty("Liquid Glass", true);
+    public final DoubleProperty glassStrength = new DoubleProperty("Glass Strength", new DoubleValue(0, 200, 100, 5));
+    public final DoubleProperty glassFrost = new DoubleProperty("Glass Frost", new DoubleValue(20, 100, 55, 5));
+
     // --- 3D depth (drop shadows, elevation & edge glow) ---
     // 100 = the built-in defaults; slide up for more pop, down for a flatter look.
     public final BooleanProperty depth = new BooleanProperty("3D Depth", true);
@@ -93,6 +100,38 @@ public class ClickGui extends Module {
 
     public static float scrollEase() {
         return 0.15f; // fixed smooth-scroll easing
+    }
+
+    // ---------------------------------------------------------------
+    //  Liquid Glass helpers - the GUI render pulls glass state through these so
+    //  the toggle/sliders take effect live.
+    // ---------------------------------------------------------------
+
+    /** True when the liquid-glass surface treatment is enabled. */
+    public static boolean glassEnabled() {
+        ClickGui cg = self();
+        return cg != null && cg.liquidGlass.getValue();
+    }
+
+    /** Highlight/rim intensity for {@code DrawUtils.drawGlassRect}, 0..2. */
+    public static float glassStrength() {
+        ClickGui cg = self();
+        if (cg == null || !cg.liquidGlass.getValue()) return 0f;
+        return (float) (cg.glassStrength.getValue().getInput() / 100.0);
+    }
+
+    /**
+     * Makes a panel background translucent so the backdrop shows through the
+     * glass. When glass is off the colour is returned untouched; otherwise its
+     * alpha is scaled toward the "Glass Frost" amount (lower frost = clearer).
+     */
+    public static int glassify(int argb) {
+        ClickGui cg = self();
+        if (cg == null || !cg.liquidGlass.getValue()) return argb;
+        int a = (argb >> 24) & 0xFF;
+        float frost = (float) (cg.glassFrost.getValue().getInput() / 100.0);
+        int na = Math.max(0, Math.min(255, (int) (a * frost)));
+        return (na << 24) | (argb & 0x00FFFFFF);
     }
 
     public enum LogoMode {

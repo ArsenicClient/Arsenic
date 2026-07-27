@@ -13,6 +13,7 @@ public class DrawUtils extends UtilityClass {
     public static ShaderUtil roundedShader = new ShaderUtil("roundedRect");
     private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
     private static final ShaderUtil shadowShader = new ShaderUtil("roundedRectShadow");
+    private static final ShaderUtil glassShader = new ShaderUtil("liquidGlass");
 
     /**
      * When > 0, rounded-rect corner masking uses this fixed scale factor instead
@@ -192,6 +193,40 @@ public class DrawUtils extends UtilityClass {
         int outer = (Math.min(255, alpha / 2) << 24) | (color & 0x00FFFFFF);
         drawRoundedOutline(x1, y1, x2, y2, radius, 3.0f, outer);
         drawRoundedOutline(x1, y1, x2, y2, radius, 1.5f, inner);
+    }
+
+    /**
+     * Liquid-glass surface treatment - a translucent overlay drawn ON TOP of a
+     * panel's base fill. Adds a faint coloured film, vertical gloss, a slow
+     * moving specular sweep, a bright Fresnel edge rim and a soft top sheen so
+     * the panel reads like a floating pane of frosted glass. Draw AFTER the
+     * element's own rounded-rect fill, in place of (or alongside) drawEdgeHighlight.
+     *
+     * @param filmColor ARGB tint film laid over the panel (low alpha looks best)
+     * @param rimColor  RGB of the rim/specular highlights (alpha byte ignored)
+     * @param strength  highlight intensity, 0 = none .. 1 = full glass
+     */
+    public static void drawGlassRect(float x, float y, float x1, float y1, float radius,
+                                     int filmColor, int rimColor, float strength) {
+        if (strength <= 0f)
+            return;
+        float width = x1 - x, height = y1 - y;
+        Color film = new Color((filmColor >> 16) & 0xFF, (filmColor >> 8) & 0xFF, filmColor & 0xFF, (filmColor >> 24) & 0xFF);
+        float rr = ((rimColor >> 16) & 0xFF) / 255f;
+        float rg = ((rimColor >> 8) & 0xFF) / 255f;
+        float rb = (rimColor & 0xFF) / 255f;
+        RenderUtils.resetColor();
+        RenderUtils.startBlend();
+        RenderUtils.applyGuiBlend();
+        RenderUtils.setAlphaLimit(0);
+        glassShader.init();
+        setupRoundedRectUniforms(x, y, width, height, radius - 1f, glassShader);
+        glassShader.setUniformf("color", film.getRed() / 255f, film.getGreen() / 255f, film.getBlue() / 255f, film.getAlpha() / 255f);
+        glassShader.setUniformf("highlight", rr, rg, rb, Math.min(1f, strength));
+        glassShader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
+        ShaderUtil.drawQuads(x, y, width + 0.6f, height + 0.6f);
+        glassShader.unload();
+        RenderUtils.endBlend();
     }
 
     public static void drawShaderRect(float x, float y, float width, float height, float radius, int c) {
