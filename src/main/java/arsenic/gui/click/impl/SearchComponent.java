@@ -55,7 +55,10 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         String imlosingmymind = inp.length() == 0 ? gui.getCmcc() == this ? "Search" : "Press \"/\" to toggle search" : inp.toString();
         int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
 
-        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, ThemeManager.getClickGuiBackground());
+        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, ClickGui.glassify(ThemeManager.getClickGuiBackground()));
+        if (ClickGui.glassEnabled())
+            DrawUtils.drawGlassRect(x, y - 10, x1, y + 10, 8,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), ClickGui.glassStrength());
 
         if (Arsenic.getInstance().getModuleManager().getModuleByClass(ClickGui.class).customFont.getValue()) {
             Arsenic.getInstance().getFonts().Icon.drawString("B", x + 3, y - 3, ThemeManager.getWhite());

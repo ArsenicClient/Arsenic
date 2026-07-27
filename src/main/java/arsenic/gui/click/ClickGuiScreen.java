@@ -185,8 +185,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         // main container - base layer, lifted off the shader backdrop
         RenderUtils.resetColor();
         DrawUtils.drawShadow(x, y, x1, y1, 30f, ClickGui.shadowSpread(10f), ClickGui.shadowAlpha(190), 7);
-        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ThemeManager.getClickGuiBackground());
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ClickGui.glassify(ThemeManager.getClickGuiBackground()));
         DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(28));
+        if (ClickGui.glassEnabled())
+            DrawUtils.drawGlassRect(x, y, x1, y1, 30f,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 18), ThemeManager.getWhite(), ClickGui.glassStrength());
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
@@ -200,8 +203,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
         float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
         DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, ClickGui.shadowSpread(6f), ClickGui.shadowAlpha(150), 6);
-        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, ThemeManager.getModuleBackground());
+        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, ClickGui.glassify(ThemeManager.getModuleBackground()));
         DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(22));
+        if (ClickGui.glassEnabled())
+            DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), ClickGui.glassStrength());
 
         // vertical line
         DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
