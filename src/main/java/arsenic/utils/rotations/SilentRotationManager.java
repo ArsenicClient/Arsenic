@@ -20,6 +20,7 @@ public class SilentRotationManager {
     private boolean modified;
     private MovementFix movementFix = MovementFix.SILENT;
     private boolean doJumpFix;
+    private boolean blockUserInput;
     private float lastPlaceYawDelta = -1f;
     private float speed;
 
@@ -33,6 +34,7 @@ public class SilentRotationManager {
         movementFix = rotation.getMovementFix();
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
+        blockUserInput = rotation.isBlockUserInput();
 
 
         if (!rotation.hasBeenModified() && !modified) {
@@ -79,6 +81,14 @@ public class SilentRotationManager {
         }
         postSettled();
     };
+
+    /**
+     * @return whether the player's own attack/use input should be swallowed this tick.
+     *         Set per tick via {@link EventSilentRotation#setBlockUserInput(boolean)}; off by default.
+     */
+    public boolean isBlockingUserInput() {
+        return blockUserInput && mc.thePlayer != null;
+    }
 
     private void postSettled() {
         Arsenic.getArsenic().getEventManager().post(
