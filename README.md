@@ -1,6 +1,6 @@
-# Arsenic
+# [Arsenic](https://arsenicclient.github.io/)
 
-Arsenic is a 1.8.9 Minecraft cheat that specifically focuses on the Hypixel and Grim anti-cheat systems. Any features that trigger GrimAC should be removed or refactored. Arsenic is a Forge mod.
+[Arsenic](https://arsenicclient.github.io/) is a 1.8.9 Minecraft cheat that specifically focuses on the Hypixel and Grim anti-cheat systems. Any features that trigger GrimAC should be removed or refactored. Arsenic is a Forge mod.
 
 The client features:
 - Module System
@@ -25,6 +25,6 @@ A special thanks to everyone who has contributed to the project!
 -   **Kv:** 
 -   **Lily:** 
 -   **Stephen:** 
--   **Cosmic:** 
+-   **Cosmic:**
 
 Reach out to `@kv.dev` on Discord if you need help with the setup.
