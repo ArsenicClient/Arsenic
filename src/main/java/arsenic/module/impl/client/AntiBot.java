@@ -6,6 +6,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -13,6 +14,8 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 //TODO: recode le unique code
 
@@ -92,44 +95,77 @@ public class AntiBot extends Module {
 
 
     // UTILS
+    /** Tab entries that are also loaded as entities. Anyone in tab but out of range is skipped. */
     public static ArrayList<EntityPlayer> getPlayerList() {
-        Collection<NetworkPlayerInfo> playerInfoMap = mc.thePlayer.sendQueue.getPlayerInfoMap();
         ArrayList<EntityPlayer> list = new ArrayList<>();
+        if (mc.thePlayer == null || mc.theWorld == null || mc.thePlayer.sendQueue == null) {
+            return list;
+        }
+
+        Collection<NetworkPlayerInfo> playerInfoMap = mc.thePlayer.sendQueue.getPlayerInfoMap();
+        if (playerInfoMap == null) {
+            return list;
+        }
+
         for (NetworkPlayerInfo networkPlayerInfo : playerInfoMap) {
-            list.add(mc.theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName()));
+            if (networkPlayerInfo == null || networkPlayerInfo.getGameProfile() == null) {
+                continue;
+            }
+            // null whenever that player is in tab but not loaded in the world
+            EntityPlayer player = mc.theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName());
+            if (player != null) {
+                list.add(player);
+            }
         }
         return list;
     }
 
     public static boolean inTab(EntityLivingBase en) {
-        if (!mc.isSingleplayer()) {
-            for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
-                if (info != null && info.getGameProfile() != null && info.getGameProfile().getName().contains(en.getName())) {
-                    return true;
-                }
+        if (mc.isSingleplayer() || en == null) {
+            return false;
+        }
+
+        NetHandlerPlayClient netHandler = mc.getNetHandler();
+        if (netHandler == null || netHandler.getPlayerInfoMap() == null) {
+            return false;
+        }
+
+        for (NetworkPlayerInfo info : netHandler.getPlayerInfoMap()) {
+            if (info != null && info.getGameProfile() != null && info.getGameProfile().getName() != null
+                    && info.getGameProfile().getName().contains(en.getName())) {
+                return true;
             }
         }
         return false;
     }
 
+    /**
+     * True when the same UUID appears more than once in the tab list.
+     *
+     * <p>This used to seed itself from {@code getPlayerList().get(0)}, which threw a
+     * NullPointerException on nearly every call: that list is built by mapping tab entries through
+     * {@code World#getPlayerEntityByName}, which returns null for anyone who is in tab but not
+     * loaded as an entity - so entry 0 was usually null. Counting UUIDs directly needs no entities
+     * at all, and matches what the name says.
+     */
     public static boolean isPlayerTwiceInGame() {
-        Collection<NetworkPlayerInfo> playerInfoList = mc.getNetHandler().getPlayerInfoMap();
+        NetHandlerPlayClient netHandler = mc.getNetHandler();
+        if (netHandler == null) {
+            return false;
+        }
+
+        Collection<NetworkPlayerInfo> playerInfoList = netHandler.getPlayerInfoMap();
         if (playerInfoList == null || playerInfoList.isEmpty()) {
             return false;
         }
 
-        String targetPlayerID = getPlayerList().get(0).getGameProfile().getId().toString();
-        if (targetPlayerID == null) {
-            return false;
-        }
-
-        int count = 0;
+        Set<String> seen = new HashSet<>();
         for (NetworkPlayerInfo info : playerInfoList) {
-            if (info != null && targetPlayerID.equals(info.getGameProfile().getId().toString())) {
-                count++;
-                if (count > 1) {
-                    return true;
-                }
+            if (info == null || info.getGameProfile() == null || info.getGameProfile().getId() == null) {
+                continue;
+            }
+            if (!seen.add(info.getGameProfile().getId().toString())) {
+                return true;
             }
         }
         return false;

@@ -4,6 +4,7 @@ import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
+import arsenic.gui.ErrorOverlay;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
@@ -37,6 +38,7 @@ public class Arsenic {
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
     private final LaunchID launchID = new LaunchID();
+    private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
@@ -46,6 +48,7 @@ public class Arsenic {
         getEventManager().subscribe(serverInfo);
         getEventManager().subscribe(notificationManager);
         getEventManager().subscribe(new LagManager());
+        getEventManager().subscribe(errorOverlay);
 
         logger.info("Subscribed managers");
 
@@ -87,6 +90,8 @@ public class Arsenic {
     public final EventManager getEventManager() { return eventManager; }
 
     public final ModuleManager getModuleManager() { return moduleManager; }
+
+    public final ErrorOverlay getErrorOverlay() { return errorOverlay; }
 
     public final Fonts getFonts() { return fonts; }
 
