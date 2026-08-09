@@ -3,6 +3,7 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventRenderThirdPerson;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.Nametags;
+import arsenic.utils.render.ChamsRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
@@ -38,6 +39,35 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
         Nametags nametags = Arsenic.getArsenic().getModuleManager().getModuleByClass(Nametags.class);
         if (nametags != null && nametags.isEnabled())
             cir.setReturnValue(false);
+    }
+
+    /**
+     * Chams. These two are the same injection points Forge exposes as RenderLivingEvent.Pre and
+     * .Post, so the depth offset wraps the whole entity render; the flat colour is applied around
+     * renderModel instead, which keeps it off nametags and the armour layers.
+     */
+    @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("HEAD"))
+    private void chamsPre(T entity, double x, double y, double z, float entityYaw, float partialTicks,
+                          CallbackInfo ci) {
+        ChamsRenderer.pre(entity);
+    }
+
+    @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("RETURN"))
+    private void chamsPost(T entity, double x, double y, double z, float entityYaw, float partialTicks,
+                           CallbackInfo ci) {
+        ChamsRenderer.post(entity);
+    }
+
+    @Inject(method = "renderModel(Lnet/minecraft/entity/EntityLivingBase;FFFFFF)V", at = @At("HEAD"))
+    private void chamsModelPre(T entity, float limbSwing, float limbSwingAmount, float ageInTicks,
+                               float netHeadYaw, float headPitch, float scale, CallbackInfo ci) {
+        ChamsRenderer.beginModel(entity);
+    }
+
+    @Inject(method = "renderModel(Lnet/minecraft/entity/EntityLivingBase;FFFFFF)V", at = @At("RETURN"))
+    private void chamsModelPost(T entity, float limbSwing, float limbSwingAmount, float ageInTicks,
+                                float netHeadYaw, float headPitch, float scale, CallbackInfo ci) {
+        ChamsRenderer.endModel();
     }
 
     @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("HEAD"))

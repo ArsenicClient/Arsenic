@@ -51,7 +51,11 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         keybind = info.keybind();
 
         if (info.enabled()) {
-            setEnabledSilently(true);
+            // Only raise the flag here. Subscribing at this point would hand the bus a subclass
+            // whose field initialisers have not run yet, so every @EventLink Listener field still
+            // reads null and the bus caches call sites that invoke null forever. The actual
+            // subscribe happens in registerProperties(), once construction has finished.
+            enabled = true;
         }
     }
 
@@ -61,8 +65,11 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     public void registerProperties() throws IllegalAccessException {
-        if (enabled) {
-            setEnabledSilently(true);
+        // Called once construction is complete, so the listener fields finally hold real values.
+        // setEnabledSilently would no-op here (the flag is already true), so subscribe directly.
+        if (enabled && !registered) {
+            Arsenic.getInstance().getEventManager().subscribe(this);
+            registered = true;
         }
         for (final Field field : getClass().getFields()) {
             Object fieldObject = field.get(this);

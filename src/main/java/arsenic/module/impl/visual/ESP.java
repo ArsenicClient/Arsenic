@@ -11,6 +11,9 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ColourProperty;
+import arsenic.module.property.impl.FolderProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -23,9 +26,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import org.lwjgl.opengl.GL11;
+import arsenic.gui.themes.ThemeManager;
+import arsenic.utils.render.GlowRenderer;
 import arsenic.utils.render.RenderUtils;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 
 @ModuleInfo(name = "Esp", category = ModuleCategory.WORLD, hidden = true)
@@ -37,8 +46,37 @@ public class ESP extends Module {
     public BooleanProperty boxEsp = new BooleanProperty("Box ESP", true);
     public BooleanProperty healthEsp = new BooleanProperty("Health ESP", false);
 
+    // glow: a soft coloured halo around the player model that shows through walls
+    private final BooleanProperty glow = new BooleanProperty("Glow", false);
+    private final DoubleProperty glowRadius = new DoubleProperty("Glow Radius", new DoubleValue(1, 30, 8, 1));
+    private final DoubleProperty glowStrength = new DoubleProperty("Glow Strength", new DoubleValue(0.5, 8, 3, 0.5));
+    private final BooleanProperty glowOutlineOnly = new BooleanProperty("Glow Outline Only", true);
+    private final DoubleProperty glowFill = new DoubleProperty("Glow Fill", new DoubleValue(0, 100, 15, 5));
+    private final BooleanProperty glowTheme = new BooleanProperty("Glow Theme Colour", true);
+    public final FolderProperty glowFolder =
+            new FolderProperty("Glow ESP", glow, glowRadius, glowStrength, glowOutlineOnly, glowFill, glowTheme);
+
+    // chams: flat coloured models. No framebuffers or shaders involved, so it is unaffected by
+    // whatever a shaderpack is doing with render targets.
+    private final BooleanProperty chams = new BooleanProperty("Chams", false);
+    private final DoubleProperty chamsAlpha = new DoubleProperty("Chams Opacity", new DoubleValue(5, 100, 60, 5));
+    private final BooleanProperty chamsFlat = new BooleanProperty("Chams Flat Colour", true);
+    private final BooleanProperty chamsTheme = new BooleanProperty("Chams Theme Colour", true);
+    public final FolderProperty chamsFolder =
+            new FolderProperty("Chams", chams, chamsFlat, chamsAlpha, chamsTheme);
+
+    private final GlowRenderer glowRenderer = new GlowRenderer();
+    private final List<EntityPlayer> glowTargets = new ArrayList<>();
+
+    @Override
+    protected void onDisable() {
+        glowRenderer.release();
+        glowTargets.clear();
+    }
+
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
+        glowTargets.clear();
         ICamera camera = new Frustum();
         for (EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if (entity == mc.thePlayer)
@@ -53,6 +91,8 @@ public class ESP extends Module {
             AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(axisalignedbb.minX - entity.posX + x, axisalignedbb.minY - entity.posY + y, axisalignedbb.minZ - entity.posZ + z, axisalignedbb.maxX - entity.posX + x, axisalignedbb.maxY - entity.posY + y, axisalignedbb.maxZ - entity.posZ + z);
             if (!camera.isBoundingBoxInFrustum(axisalignedbb1))
                 continue;
+            if (glow.getValue())
+                glowTargets.add(entity);
             Color color = new Color(bedWars.getValue() ? getBedWarsColor(entity) : this.color.getValue());
             GlStateManager.pushMatrix();
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -79,7 +119,56 @@ public class ESP extends Module {
             GL11.glLineWidth(1.0F);
             GlStateManager.popMatrix();
         }
+
+        // The glow composites the whole screen, so it runs once per distinct colour rather than once
+        // per player - normally that is a single pass, but in BedWars each team's colour needs its
+        // own mask or every player would glow whichever colour happened to be first in the list.
+        if (glow.getValue() && !glowTargets.isEmpty()) {
+            Map<Integer, List<EntityPlayer>> byColour = new LinkedHashMap<>();
+            for (EntityPlayer target : glowTargets)
+                byColour.computeIfAbsent(getGlowColour(target), c -> new ArrayList<>()).add(target);
+
+            for (Map.Entry<Integer, List<EntityPlayer>> group : byColour.entrySet())
+                glowRenderer.render(group.getValue(), event.partialTicks, group.getKey(),
+                        (int) glowRadius.getValue().getInput(),
+                        (float) glowStrength.getValue().getInput(),
+                        glowOutlineOnly.getValue(),
+                        (float) glowFill.getValue().getInput() / 100f);
+        }
+        glowTargets.clear();
     };
+
+    /**
+     * BedWars team colour wins when it is on, otherwise the client theme unless the user has opted
+     * out, in which case the module's own colour is used.
+     */
+    private int resolveColour(EntityPlayer entity, boolean useTheme) {
+        if (bedWars.getValue() && entity != null)
+            return getBedWarsColor(entity);
+        return useTheme ? ThemeManager.getMainColor() : color.getValue();
+    }
+
+    private int getGlowColour(EntityPlayer entity) {
+        return resolveColour(entity, glowTheme.getValue());
+    }
+
+    // read by ChamsRenderer from inside RendererLivingEntity#renderModel
+    public boolean isChamsEnabled() {
+        return chams.getValue();
+    }
+
+    public int getChamsColour(net.minecraft.entity.EntityLivingBase entity) {
+        return resolveColour(entity instanceof EntityPlayer ? (EntityPlayer) entity : null,
+                chamsTheme.getValue());
+    }
+
+    public boolean isChamsFlat() {
+        return chamsFlat.getValue();
+    }
+
+    public float getChamsAlpha() {
+        return (float) chamsAlpha.getValue().getInput() / 100f;
+    }
 
     private void drawHealthEsp(EntityPlayer entity, double x, double y, double z) {
         if (!(entity instanceof EntityLivingBase)) return;
