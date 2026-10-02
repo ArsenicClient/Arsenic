@@ -17,7 +17,7 @@ import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.KeyMapping;
 
 @ModuleInfo(name = "Clicker", category = ModuleCategory.COMBAT)
 public class Clicker extends Module {
@@ -42,7 +42,7 @@ public class Clicker extends Module {
 
     @EventLink
     public final Listener<EventLiving> eventLivingListener = e -> {
-        lmbDown = mc.gameSettings.keyBindAttack.isKeyDown();
+        lmbDown = mc.options.keyBindAttack.isKeyDown();
     };
     
     @RequiresPlayer
@@ -57,7 +57,7 @@ public class Clicker extends Module {
         // This listener fires per render frame, so a raw ticksExisted % 12 check is true for
         // every frame of that tick and over-subtracts at high FPS (pinning cps to 1 and killing
         // the clicker). Only apply the drop once per qualifying game tick.
-        int tick = mc.thePlayer.ticksExisted;
+        int tick = mc.player.tickCount;
         if (tick % 12 == 0 && tick != lastDropTick) {
             lastDropTick = tick;
             cps -= (long) JavaUtils.getRandom(1,3);
@@ -72,8 +72,8 @@ public class Clicker extends Module {
                 lastSound = System.currentTimeMillis() + 80;
             }
             //((IMixinMinecraft) mc).leftClick();
-            int key = mc.gameSettings.keyBindAttack.getKeyCode();
-            KeyBinding.onTick(key);
+            int key = mc.options.keyBindAttack.getKeyCode();
+            KeyMapping.onTick(key);
             prevCps = cps;
             cps = (long) rangeProperty.getValue().getRandomInRange();
             timer.reset();

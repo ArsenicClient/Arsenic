@@ -11,7 +11,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.KeyMapping;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -51,23 +51,23 @@ public class AntiAFK extends Module {
 
         switch (mode.getValue()) {
             case Jump:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
+                KeyMapping.setKeyBindState(mc.options.keyBindJump.getKeyCode(), true);
                 break;
             case Forward:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+                KeyMapping.setKeyBindState(mc.options.keyBindForward.getKeyCode(), true);
                 break;
             case Backward:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), true);
+                KeyMapping.setKeyBindState(mc.options.keyBindBack.getKeyCode(), true);
                 break;
             case Strafe:
-                KeyBinding.setKeyBindState(
-                        mc.thePlayer.ticksExisted % 2 == 0 ? mc.gameSettings.keyBindRight.getKeyCode() : mc.gameSettings.keyBindLeft.getKeyCode(),
+                KeyMapping.setKeyBindState(
+                        mc.player.tickCount % 2 == 0 ? mc.options.keyBindRight.getKeyCode() : mc.options.keyBindLeft.getKeyCode(),
                         true
                 );
                 break;
         }
 
-        mc.thePlayer.rotationYaw += mc.thePlayer.ticksExisted % 2 == 0 ? 15 : -15;
+        mc.player.rotationYaw += mc.player.tickCount % 2 == 0 ? 15 : -15;
 
         releaseTimer.reset();
     };
@@ -76,17 +76,17 @@ public class AntiAFK extends Module {
         if (!actionHeld) return;
         switch (currentAction) {
             case Jump:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                KeyMapping.setKeyBindState(mc.options.keyBindJump.getKeyCode(), false);
                 break;
             case Forward:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+                KeyMapping.setKeyBindState(mc.options.keyBindForward.getKeyCode(), false);
                 break;
             case Backward:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
+                KeyMapping.setKeyBindState(mc.options.keyBindBack.getKeyCode(), false);
                 break;
             case Strafe:
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), false);
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), false);
+                KeyMapping.setKeyBindState(mc.options.keyBindLeft.getKeyCode(), false);
+                KeyMapping.setKeyBindState(mc.options.keyBindRight.getKeyCode(), false);
                 break;
         }
         actionHeld = false;
@@ -95,14 +95,14 @@ public class AntiAFK extends Module {
     }
 
     private boolean isPlayerActive() {
-        if (mc.thePlayer.motionX != 0 || mc.thePlayer.motionZ != 0 || mc.thePlayer.motionY != 0) return true;
-        if (Keyboard.isKeyDown(mc.gameSettings.keyBindForward.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindBack.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindRight.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindJump.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.gameSettings.keyBindSprint.getKeyCode())) return true;
+        if (mc.player.motionX != 0 || mc.player.motionZ != 0 || mc.player.motionY != 0) return true;
+        if (Keyboard.isKeyDown(mc.options.keyBindForward.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindBack.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindLeft.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindRight.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindJump.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindSneak.getKeyCode()) ||
+                Keyboard.isKeyDown(mc.options.keyBindSprint.getKeyCode())) return true;
         if (Mouse.isButtonDown(0) || Mouse.isButtonDown(1) || Mouse.isButtonDown(2)) return true;
         return false;
     }

@@ -3,8 +3,9 @@ package arsenic.utils.java;
 import arsenic.main.Arsenic;
 import arsenic.gui.click.GuiStyle;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.resources.Identifier;
 
 /**
  * Plays the client's UI sounds through Minecraft's own sound engine
@@ -44,11 +45,11 @@ public class SoundUtils {
     /** Plays a registered arsenic sound event at the given pitch through the UI channel. */
     public static void playEvent(String name, float pitch) {
         try {
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc == null || mc.getSoundHandler() == null)
+            Minecraft mc = Minecraft.getInstance();
+            if (mc == null || mc.getSoundManager() == null)
                 return;
-            mc.getSoundHandler().playSound(
-                    PositionedSoundRecord.create(new ResourceLocation(DOMAIN, name), pitch));
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(
+                    SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(DOMAIN, name)), pitch));
         } catch (Exception ignored) {
         }
     }

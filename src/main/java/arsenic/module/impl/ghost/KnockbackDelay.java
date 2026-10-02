@@ -19,8 +19,8 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import ibxm.Player;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.Packet;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
 @ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT)
@@ -64,7 +64,7 @@ public class KnockbackDelay extends Module {
            if(p.getMotionX() != 0 && p.getMotionZ() != 0 && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
                if(Math.random() > 100/100f)
                    return;
-               EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
+               Player target = PlayerUtils.getClosestPlayerWithin(5.0);
                if(mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000)  && RotationUtils.getDistanceToEntityBox(target) <= 3)
                    return;
                lagging = true;

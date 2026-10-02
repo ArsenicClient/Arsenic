@@ -13,9 +13,9 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.ChatAllowedCharacters;
-import org.lwjgl.input.Keyboard;
+import net.minecraft.util.StringUtil;
+import com.mojang.blaze3d.platform.InputConstants;
+import arsenic.utils.io.Keys;
 import java.util.stream.Collectors;
 
 public class SearchComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
@@ -83,17 +83,16 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     public boolean recieveInput(int key) {
         this.scroll = 0;
         this.targetScroll = 0;
-        if (key == Keyboard.KEY_SLASH){
+        if (key == InputConstants.KEY_SLASH){
             toggleSearch();
             return false;
         }
 
         if (gui.getCmcc() != this) return false;
-        char keyName = Keyboard.getEventCharacter();
-        //219,220 - mac & 29,157 - windows/linux
-        boolean isCtrlDown =  (Minecraft.isRunningOnMac ? Keyboard.isKeyDown(219) || Keyboard.isKeyDown(220) : Keyboard.isKeyDown(29) || Keyboard.isKeyDown(157));
+        boolean isCtrlDown = Keys.isKeyDown(InputConstants.KEY_LCONTROL) || Keys.isKeyDown(InputConstants.KEY_RCONTROL)
+                || Keys.isKeyDown(227) || Keys.isKeyDown(231); // left/right GUI (cmd) on mac
         switch (key){
-            case Keyboard.KEY_BACK:
+            case InputConstants.KEY_BACKSPACE:
                 if(inp.length() >= 1) {
                     if (!selected) {
                         inp.deleteCharAt(inp.length() - 1);
@@ -103,19 +102,31 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
                     }
                 }
                 break;
-            case Keyboard.KEY_A:
+            case InputConstants.KEY_A:
                 if (isCtrlDown){
                     selected = true;
                 }
                 break;
         }
-        if (ChatAllowedCharacters.isAllowedCharacter(keyName)) {
-            if (selected){
-                inp.delete(0,inp.length());
-                selected = false;
-            }
-            inp.append(keyName);
+        refilter();
+        return false;
+    }
+
+    @Override
+    public boolean recieveChar(char c) {
+        // "/" toggles the search bar; it arrives as a key press too, so it is not typed here
+        if (gui.getCmcc() != this || c == '/' || !StringUtil.isAllowedChatCharacter(c))
+            return false;
+        if (selected){
+            inp.delete(0,inp.length());
+            selected = false;
         }
+        inp.append(c);
+        refilter();
+        return true;
+    }
+
+    private void refilter() {
         contentsL.clear();
         contentsR.clear();
         contents.stream().filter(m -> m.getName().toLowerCase().contains(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(module -> {
@@ -125,7 +136,6 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
                 contentsR.add(module);
             }
         });
-        return false;
     }
 
     @Override

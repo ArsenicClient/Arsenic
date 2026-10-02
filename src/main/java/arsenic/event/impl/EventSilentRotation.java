@@ -1,15 +1,16 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.Event;
-import arsenic.injection.accessor.IMixinEntity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.EntityHitResult;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
-import java.util.List;
 
 public class EventSilentRotation implements Event {
 
@@ -22,7 +23,7 @@ public class EventSilentRotation implements Event {
     private boolean preventDuplicateLook = false;
     private boolean blockUserInput = false;
     private boolean smoothing = true;
-    private static Minecraft mc = Minecraft.getMinecraft();
+    private static Minecraft mc = Minecraft.getInstance();
 
     public EventSilentRotation(float yaw, float pitch,float speed) {
         this.initYaw = yaw;
@@ -138,49 +139,24 @@ public class EventSilentRotation implements Event {
 
         public float getSpeed() { return speed; }
 
-        public MovingObjectPosition getRayTrace() {
-            Vec3 vec3 = mc.thePlayer.getPositionEyes(1);
-            Vec3 vec31 = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw);
-            Vec3 vec32 = vec3.addVector(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5);
-            return mc.thePlayer.worldObj.rayTraceBlocks(vec3, vec32, false, false, true);
+        /** Block the committed rotation is looking at, within vanilla reach. */
+        public HitResult getRayTrace() {
+            Vec3 eyes = mc.player.getEyePosition(1);
+            Vec3 end = eyes.add(Entity.calculateViewVector(pitch, yaw).scale(4.5));
+            return mc.level.clip(new ClipContext(eyes, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, mc.player));
         }
 
-        public MovingObjectPosition getRayTraceEntity() {
-            Vec3 vec3 = mc.thePlayer.getPositionEyes(1);
-            Vec3 vec31 = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw);
-            Vec3 vec32 = vec3.addVector(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5);
-
-            // Raycast blocks
-            MovingObjectPosition blockHit = mc.thePlayer.worldObj.rayTraceBlocks(vec3, vec32, false, false, true);
-            double blockDistance = blockHit != null ? vec3.distanceTo(blockHit.hitVec) : Double.MAX_VALUE;
-
-            // Raycast entities
-            MovingObjectPosition entityHit = null;
-            double entityDistance = Double.MAX_VALUE;
-
-            List<Entity> entities = mc.thePlayer.worldObj.getEntitiesInAABBexcluding(
-                    mc.thePlayer,
-                    mc.thePlayer.getEntityBoundingBox()
-                            .addCoord(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5)
-                            .expand(1, 1, 1),
-                    entity -> entity.canBeCollidedWith()
-            );
-
-            for (Entity entity : entities) {
-                float f = entity.getCollisionBorderSize();
-                AxisAlignedBB aabb = entity.getEntityBoundingBox().expand(f, f, f);
-                MovingObjectPosition hit = aabb.calculateIntercept(vec3, vec32);
-
-                if (hit != null) {
-                    double dist = vec3.distanceTo(hit.hitVec);
-                    if (dist < entityDistance) {
-                        entityHit = new MovingObjectPosition(entity, hit.hitVec);
-                        entityDistance = dist;
-                    }
-                }
-            }
-
-            return entityDistance < blockDistance ? entityHit : blockHit;
+        /** Whatever the committed rotation hits first, entity or block. */
+        public HitResult getRayTraceEntity() {
+            Vec3 eyes = mc.player.getEyePosition(1);
+            Vec3 look = Entity.calculateViewVector(pitch, yaw);
+            Vec3 end = eyes.add(look.scale(4.5));
+            HitResult blockHit = getRayTrace();
+            double blockDistance = blockHit.getType() != HitResult.Type.MISS ? eyes.distanceToSqr(blockHit.getLocation()) : 4.5 * 4.5;
+            AABB area = mc.player.getBoundingBox().expandTowards(look.scale(4.5)).inflate(1, 1, 1);
+            EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(mc.player, eyes, end, area,
+                    e -> !e.isSpectator() && e.isPickable(), blockDistance);
+            return entityHit != null ? entityHit : blockHit;
         }
     }
 }

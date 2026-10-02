@@ -13,10 +13,7 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.resources.Identifier;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -27,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
     protected final ModuleCategory self;
-    protected final ResourceLocation icon;
+    protected final Identifier icon;
     protected float scroll, targetScroll, maxHeight;
     protected boolean isCC, isHovered;
     protected List<ModuleComponent> contentsL = new ArrayList<>();
@@ -38,7 +35,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;
-        icon = new ResourceLocation("arsenic", "icons/" + self.getName().toLowerCase() + ".png");
+        icon = Identifier.fromNamespaceAndPath("arsenic", "icons/" + self.getName().toLowerCase() + ".png");
         contents = self.getContents().stream().map(ModuleComponent::new).sorted(Comparator.comparing(ModuleComponent::getName)).collect(Collectors.toList());
         contents.forEach(module -> {
             if ((contentsL.size() + contentsR.size()) % 2 == 0) {
@@ -62,8 +59,6 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
         int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
 
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         // lift the active/hovered pill toward the viewer
         if (anim > 0.01f)
@@ -83,14 +78,9 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
         float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
-        Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
         // The icons are white glyphs, so they are invisible on a light surface until tinted. Colour
         // modulation multiplies the texture, which is exactly the tint we want.
-        GlStateManager.color(((foreground >> 16) & 0xFF) / 255f, ((foreground >> 8) & 0xFF) / 255f,
-                (foreground & 0xFF) / 255f, 1f);
-        Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
-
-        GlStateManager.color(1f, 1f, 1f, 1f); // reset after texture, not before gradient
+        DrawUtils.drawTexture(icon, iconX, iconY, iconSize, iconSize, 0xFF000000 | foreground);
 
         ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, foreground, ri.getFr().CENTREY);
         return height;

@@ -11,8 +11,8 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.ItemPotion;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.Potion;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.potion.PotionEffect;
 
 import java.util.List;
@@ -45,20 +45,20 @@ public class AutoPot extends Module {
         long now = System.currentTimeMillis();
         if (now - lastThrow < delay.getValue().getInput()) return;
 
-        float healthPct = (mc.thePlayer.getHealth() / mc.thePlayer.getMaxHealth()) * 100.0f;
+        float healthPct = (mc.player.getHealth() / mc.player.getMaxHealth()) * 100.0f;
         if (healthPct > healthThreshold.getValue().getInput()) return;
 
         int potSlot = findBestPot();
         if (potSlot == -1) return;
 
-        int oldSlot = mc.thePlayer.inventory.currentItem;
-        mc.thePlayer.inventory.currentItem = potSlot;
-        mc.thePlayer.rotationPitch = 90;
+        int oldSlot = mc.player.inventory.currentItem;
+        mc.player.inventory.currentItem = potSlot;
+        mc.player.rotationPitch = 90;
         shouldLookDown = true;
         lookDownUntil = now + 200;
-        mc.playerController.updateController();
-        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem());
-        mc.thePlayer.inventory.currentItem = oldSlot;
+        mc.gameMode.updateController();
+        mc.gameMode.sendUseItem(mc.player, mc.level, mc.player.inventory.getCurrentItem());
+        mc.player.inventory.currentItem = oldSlot;
         lastThrow = now;
     };
 
@@ -75,7 +75,7 @@ public class AutoPot extends Module {
 
     private int findBestPot() {
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack == null || !(stack.getItem() instanceof ItemPotion)) continue;
             ItemPotion pot = (ItemPotion) stack.getItem();
             if (HEAL_ONLY) {

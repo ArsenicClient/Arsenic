@@ -9,7 +9,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.network.chat.Component;
 
 @ModuleInfo(name = "RageQuit", category = ModuleCategory.PLAYER)
 public class RageQuit extends Module {
@@ -19,9 +19,9 @@ public class RageQuit extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> onUpdate = event -> {
-        if (mc.thePlayer.getHealth() <= health.getValue().getInput()) {
+        if (mc.player.getHealth() <= health.getValue().getInput()) {
             onDisable();
-            mc.getNetHandler().getNetworkManager().closeChannel(new ChatComponentText(""));
+            mc.getConnection().getNetworkManager().closeChannel(new ChatComponentText(""));
         }
     };
 }

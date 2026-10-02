@@ -2,7 +2,7 @@ package arsenic.utils.font;
 
 import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.render.PosInfo;
-import org.lwjgl.opengl.GL11;
+import arsenic.utils.render.RenderContext;
 
 import java.util.function.BiConsumer;
 
@@ -81,7 +81,8 @@ public class FontRendererExtension<T extends IFontRenderer>{
         float scale = tempScale * this.scale;
         if(scale != 1f) {
             SCALE.accept(posInfo, text);
-            GL11.glScalef(scale, scale, scale);
+            RenderContext.graphics().pose().pushMatrix();
+            RenderContext.graphics().pose().scale(scale, scale);
         }
     }
 
@@ -89,7 +90,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
         float scale = tempScale * this.scale;
         if(scale != 1f) {
             float scaleReciprocal = 1f/(tempScale * this.scale);
-            GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
+            RenderContext.graphics().pose().popMatrix();
         }
         this.tempScale = 1f;
         this.tempScaleReciprocal = 1f;

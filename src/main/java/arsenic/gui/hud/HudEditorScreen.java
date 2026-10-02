@@ -1,6 +1,5 @@
 package arsenic.gui.hud;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -13,9 +12,14 @@ import arsenic.module.impl.visual.HUD;
 import arsenic.module.impl.visual.Radar;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.ScaledResolution;
-import org.lwjgl.input.Keyboard;
+import net.minecraft.client.gui.screens.Screen;
+import arsenic.utils.io.Keys;
+import arsenic.utils.render.RenderContext;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 /**
  * Drag-to-position editor for the HUD.
@@ -30,7 +34,7 @@ import org.lwjgl.input.Keyboard;
  * elements. Whichever guides are active are drawn while the drag is live, so the snap is visible
  * rather than a mystery jump.
  */
-public class HudEditorScreen extends GuiScreen {
+public class HudEditorScreen extends Screen {
 
     /** How close, in HUD pixels, an edge must be before it snaps. */
     private static final int SNAP_DISTANCE = 5;
@@ -39,7 +43,6 @@ public class HudEditorScreen extends GuiScreen {
     private final List<Element> elements = new ArrayList<>();
     private Element dragging;
     private int dragOffsetX, dragOffsetY;
-    private ScaledResolution sr;
 
     /** Guides to draw this frame: {@code {x...}} and {@code {y...}} in screen space. */
     private final List<Float> activeGuidesX = new ArrayList<>();
@@ -73,21 +76,24 @@ public class HudEditorScreen extends GuiScreen {
             this.rightAnchored = rightAnchored;
         }
 
-        float x1(ScaledResolution sr) {
-            return rightAnchored ? sr.getScaledWidth() + getX.getAsInt() - width : getX.getAsInt();
+        float x1(int screenWidth) {
+            return rightAnchored ? screenWidth + getX.getAsInt() - width : getX.getAsInt();
         }
 
         float y1() { return getY.getAsInt(); }
 
-        void moveTo(ScaledResolution sr, float x, float y) {
-            setX.accept(Math.round(rightAnchored ? x + width - sr.getScaledWidth() : x));
+        void moveTo(int screenWidth, float x, float y) {
+            setX.accept(Math.round(rightAnchored ? x + width - screenWidth : x));
             setY.accept(Math.round(y));
         }
     }
 
+    public HudEditorScreen() {
+        super(Component.literal("HUD Editor"));
+    }
+
     @Override
-    public void initGui() {
-        sr = new ScaledResolution(mc);
+    protected void init() {
         elements.clear();
         elements.add(new Element("Module List",
                 () -> HUD.arrayListX, v -> HUD.arrayListX = v,
@@ -118,21 +124,30 @@ public class HudEditorScreen extends GuiScreen {
      */
     private void snapOnScreenElements() {
         for (Element e : elements) {
-            float x1 = e.x1(sr), y1 = e.y1();
+            float x1 = e.x1(width), y1 = e.y1();
             float clampedX = Math.max(-e.width + 12, Math.min(width - 12, x1));
             float clampedY = Math.max(0, Math.min(height - 12, y1));
             if (clampedX != x1 || clampedY != y1)
-                e.moveTo(sr, clampedX, clampedY);
+                e.moveTo(width, clampedX, clampedY);
         }
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        sr = new ScaledResolution(mc);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
+        try (RenderContext ignored = RenderContext.begin(graphics)) {
+            draw(mouseX, mouseY);
+        }
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
+    }
+
+    private void draw(int mouseX, int mouseY) {
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
         // Scrim: dark enough to make the overlay elements legible against any world.
-        drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
+        DrawUtils.drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
 
         // Centre lines, always visible - the primary reference for lining anything up.
         DrawUtils.drawRect(0, height / 2f, width, height / 2f + 0.75f, UITheme.alpha(ThemeManager.getWhite(), 26));
@@ -145,8 +160,6 @@ public class HudEditorScreen extends GuiScreen {
             drawGuides();
             drawButtons(fr, mouseX, mouseY);
         }
-
-        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private void drawHeader(FontRendererExtension<?> fr) {
@@ -164,7 +177,7 @@ public class HudEditorScreen extends GuiScreen {
     }
 
     private void drawElement(FontRendererExtension<?> fr, Element e, int mouseX, int mouseY) {
-        float x1 = e.x1(sr), y1 = e.y1();
+        float x1 = e.x1(width), y1 = e.y1();
         float x2 = x1 + e.width, y2 = y1 + e.height;
         boolean active = dragging == e;
         boolean hovered = mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2;
@@ -228,39 +241,40 @@ public class HudEditorScreen extends GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
-        if (mouseButton != 0)
-            return;
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x(), mouseY = (int) event.y();
+        if (Keys.fromSdlButton(event.button()) != 0)
+            return false;
 
         if (inside(mouseX, mouseY, saveX1, saveY1, saveX2, saveY2)) {
             Arsenic.getArsenic().getConfigManager().saveConfig();
-            mc.displayGuiScreen(null);
-            return;
+            minecraft.gui.setScreen(null);
+            return true;
         }
         if (inside(mouseX, mouseY, resetX1, resetY1, resetX2, resetY2)) {
             HUD.resetPositions();
-            return;
+            return true;
         }
 
         // Topmost first, so overlapping elements pick the one drawn last.
         for (int i = elements.size() - 1; i >= 0; i--) {
             Element e = elements.get(i);
-            float x1 = e.x1(sr), y1 = e.y1();
+            float x1 = e.x1(width), y1 = e.y1();
             if (inside(mouseX, mouseY, x1, y1, x1 + e.width, y1 + e.height)) {
                 dragging = e;
                 dragOffsetX = (int) (mouseX - x1);
                 dragOffsetY = (int) (mouseY - y1);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     @Override
-    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
-        if (dragging == null || clickedMouseButton != 0)
-            return;
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        int mouseX = (int) event.x(), mouseY = (int) event.y();
+        if (dragging == null || Keys.fromSdlButton(event.button()) != 0)
+            return false;
 
         float targetX = mouseX - dragOffsetX;
         float targetY = mouseY - dragOffsetY;
@@ -280,7 +294,8 @@ public class HudEditorScreen extends GuiScreen {
         targetX = Math.max(-dragging.width + 12, Math.min(width - 12, targetX));
         targetY = Math.max(0, Math.min(height - 12, targetY));
 
-        dragging.moveTo(sr, targetX, targetY);
+        dragging.moveTo(width, targetX, targetY);
+        return true;
     }
 
     /**
@@ -319,7 +334,7 @@ public class HudEditorScreen extends GuiScreen {
         for (Element e : elements) {
             if (e == moving)
                 continue;
-            float x1 = e.x1(sr);
+            float x1 = e.x1(width);
             list.add(x1);
             list.add(x1 + e.width / 2f);
             list.add(x1 + e.width);
@@ -344,26 +359,26 @@ public class HudEditorScreen extends GuiScreen {
     }
 
     @Override
-    protected void mouseReleased(int mouseX, int mouseY, int state) {
-        super.mouseReleased(mouseX, mouseY, state);
+    public boolean mouseReleased(MouseButtonEvent event) {
         dragging = null;
         activeGuidesX.clear();
         activeGuidesY.clear();
+        return true;
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode == Keyboard.KEY_ESCAPE) {
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             // Leaving the editor is a commit, not a discard - positions were already applied live.
             Arsenic.getArsenic().getConfigManager().saveConfig();
-            mc.displayGuiScreen(null);
-            return;
+            minecraft.gui.setScreen(null);
+            return true;
         }
-        super.keyTyped(typedChar, keyCode);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean doesGuiPauseGame() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

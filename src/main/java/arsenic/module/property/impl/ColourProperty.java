@@ -12,7 +12,7 @@ import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.input.Mouse;
+import arsenic.utils.io.Keys;
 
 public class ColourProperty extends SerializableProperty<Integer> {
 
@@ -218,7 +218,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
                 super.mouseUpdate(mouseX, mouseY);
-                if (!Mouse.isButtonDown(0))
+                if (!Keys.isMouseDown(0))
                     dragging = -1;
                 if (dragging >= 0)
                     applyFromMouse(mouseX);

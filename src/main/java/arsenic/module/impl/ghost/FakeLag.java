@@ -13,9 +13,9 @@ import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.Packet;
-import net.minecraft.util.Vec3;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,12 +35,12 @@ public class FakeLag extends Module {
     private double targetDelay = 0;
     private long lastReleaseTime = 0;
 
-    private EntityPlayer closestPlayer;
+    private Player closestPlayer;
     private double closestDistance = Double.MAX_VALUE;
 
     @EventLink
     public final Listener<EventTick> eventTickListener = eventTick -> {
-        if (mc.thePlayer == null) {
+        if (mc.player == null) {
             setEnabled(false);
             reset();
             return;
@@ -77,7 +77,7 @@ public class FakeLag extends Module {
 
     @EventLink
     public final Listener<EventAttack> eventAttack = event -> {
-        if(event.getTarget() instanceof EntityPlayer)
+        if(event.getTarget() instanceof Player)
             stopLag(false);
     };
 
@@ -93,7 +93,7 @@ public class FakeLag extends Module {
     }
 
     private void recordPosition() {
-        positionHistory.add(0, new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
+        positionHistory.add(0, new Vec3(mc.player.getX(), mc.player.getY(), mc.player.getZ()));
         while (positionHistory.size() > MAX_POSITION_HISTORY)
             positionHistory.remove(positionHistory.size() - 1);
     }
@@ -103,8 +103,8 @@ public class FakeLag extends Module {
         closestDistance = Double.MAX_VALUE;
 
         // cast to int in case getPlayersWithin only accepts an int radius
-        for (EntityPlayer player : PlayerUtils.getPlayersWithin((int) Math.ceil(20))) {
-            double distance = mc.thePlayer.getDistanceToEntity(player);
+        for (Player player : PlayerUtils.getPlayersWithin((int) Math.ceil(20))) {
+            double distance = mc.player.distanceTo(player);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestPlayer = player;
@@ -121,7 +121,7 @@ public class FakeLag extends Module {
         ticksAgo = Math.max(0, Math.min(ticksAgo, positionHistory.size() - 1));
 
         Vec3 serverSided = positionHistory.get(ticksAgo);
-        Vec3 enemyPos = new Vec3(closestPlayer.posX, closestPlayer.posY, closestPlayer.posZ);
+        Vec3 enemyPos = new Vec3(closestPlayer.getX(), closestPlayer.getY(), closestPlayer.getZ());
 
         double serverSidedDistance = serverSided.distanceTo(enemyPos);
         return serverSidedDistance < closestDistance;

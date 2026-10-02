@@ -13,8 +13,8 @@ import arsenic.module.ModuleInfo;
 import arsenic.utils.minecraft.ContainerUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.Timer;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.init.Items;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.Items;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.*;
 
@@ -36,8 +36,8 @@ public class InvManager extends Module {
 
     private final Runnable closeAction = () -> {
         if(true) {
-            mc.thePlayer.closeScreen();
-            mc.currentScreen = null;
+            mc.player.closeScreen();
+            mc.gui.screen() = null;
         }
     };
 
@@ -78,12 +78,12 @@ public class InvManager extends Module {
     @EventLink
     public final Listener<EventDisplayGuiScreen> guiDisplayListener = event -> {
         shouldSteal = false;
-        if(mc.thePlayer == null || event.getGuiScreen() == null || mc.thePlayer.openContainer == null)
+        if(mc.player == null || event.getGuiScreen() == null || mc.player.openContainer == null)
             return;
-        if(mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer || !(event.getGuiScreen() instanceof GuiContainer))
+        if(mc.player.openContainer != mc.player.inventoryContainer || !(event.getGuiScreen() instanceof AbstractContainerScreen))
             return;
 
-        ContainerPlayer container = (ContainerPlayer) mc.thePlayer.openContainer;
+        ContainerPlayer container = (ContainerPlayer) mc.player.openContainer;
         path = generatePath(container);
         shouldSteal = true;
         timer.start();

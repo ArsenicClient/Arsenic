@@ -21,7 +21,7 @@ import net.minecraft.client.Minecraft;
 
 public class Module implements IContainer<Property<?>>, ISerializable {
 
-    protected static final Minecraft mc = Minecraft.getMinecraft();
+    protected static final Minecraft mc = Minecraft.getInstance();
     protected static final Arsenic client = Arsenic.getInstance();
 
     private final String name;
@@ -231,6 +231,9 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         try {
 
             keybind = obj.get("bind").getAsInt();
+            // configs written by the 1.8 client stored LWJGL2 key codes
+            if (!obj.has("bindFormat"))
+                keybind = arsenic.utils.io.Keys.fromLwjgl2(keybind);
             setEnabledSilently(obj.get("enabled").getAsBoolean());
             if (obj.has("hidden"))
                 hidden = obj.get("hidden").getAsBoolean();
@@ -251,6 +254,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public JsonObject saveInfoToJson(JsonObject obj) {
 
         obj.addProperty("bind", keybind);
+        obj.addProperty("bindFormat", "sdl");
         obj.addProperty("enabled", enabled);
         obj.addProperty("hidden", hidden);
 

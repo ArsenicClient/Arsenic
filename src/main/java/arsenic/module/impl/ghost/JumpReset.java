@@ -24,7 +24,7 @@ public class JumpReset extends Module {
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
         if (event.getPacket() instanceof S12PacketEntityVelocity) {
-            if (((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.thePlayer.getEntityId()) {
+            if (((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.player.getId()) {
                 if(Math.random() <= chance.getValue().getInput()) {
                     shouldJump = true;
                 }

@@ -3,96 +3,88 @@ package arsenic.injection.mixin;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventMove;
 import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
+import arsenic.main.MinecraftAPI;
 import arsenic.module.impl.ghost.AimAssist;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.Vec3;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
-    @Shadow
-    public double motionY;
-    @Shadow
-    public double motionZ;
-    @Shadow
-    public double motionX;
-    @Shadow
-    public boolean isAirBorne;
 
     @Shadow
-    public abstract boolean isSprinting();
-    @Shadow
-    public abstract void moveFlying(float strafe, float forward, float friction);
+    public abstract float getYRot();
 
     @Shadow
-    protected abstract Vec3 getVectorForRotation(float pitch, float yaw);
+    public abstract float getXRot();
 
     @Shadow
-    public float rotationYaw;
+    public abstract Vec3 getDeltaMovement();
+
     @Shadow
-    public float rotationPitch;
-    public boolean secondCall;
+    public abstract void setDeltaMovement(Vec3 deltaMovement);
 
-    public Minecraft minecraft = Minecraft.getMinecraft();
-
-    @Inject(method = "moveFlying", at = @At("HEAD"), cancellable = true)
-    private void moveFlyingHead(float p_moveFlying_1_, float p_moveFlying_2_, float p_moveFlying_3_, CallbackInfo ci) {
-        if ((Object) this == Minecraft.getMinecraft().thePlayer) {
-            if(secondCall) {
-                secondCall = false;
-                return;
-            }
-            EventMove e = new EventMove(p_moveFlying_1_, p_moveFlying_2_, p_moveFlying_3_, rotationYaw);
-            Arsenic.getArsenic().getEventManager().post(e);
-            float cachedYawM = rotationYaw;
-            rotationYaw = e.getYaw();
-            secondCall = true;
-            moveFlying(e.getStrafe(), e.getForward(), e.getFriction());
-            rotationYaw = cachedYawM;
-            ci.cancel();
-        }
+    @Shadow
+    protected static Vec3 getInputVector(Vec3 input, float speed, float yRot) {
+        throw new AssertionError();
     }
 
-    // AimAssist (Normal/Adaptive) hooks the actual mouse-look deltas here, where Minecraft turns
-    // them into a rotation change. Normal overwrites the input; Adaptive multiplies it.
-    @ModifyVariable(method = "setAngles", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float aimAssistYaw(float yaw) {
-        if ((Object) this != Minecraft.getMinecraft().thePlayer)
+    /**
+     * 1.8's moveFlying. Lets the movement fix apply the player's input relative to the silent yaw
+     * instead of the camera yaw, so server-side prediction matches the rotation that was sent.
+     */
+    @Inject(method = "moveRelative", at = @At("HEAD"), cancellable = true)
+    private void arsenic$moveRelative(float speed, Vec3 input, CallbackInfo ci) {
+        if ((Object) this != Minecraft.getInstance().player)
+            return;
+        EventMove event = new EventMove((float) input.x, (float) input.z, speed, getYRot());
+        Arsenic.getArsenic().getEventManager().post(event);
+        Vec3 delta = getInputVector(new Vec3(event.getStrafe(), input.y, event.getForward()), event.getFriction(), event.getYaw());
+        setDeltaMovement(getDeltaMovement().add(delta));
+        ci.cancel();
+    }
+
+    // AimAssist hooks the actual mouse-look deltas here, where Minecraft turns them into a rotation
+    // change, and swallows them while it has a target so the mouse can't fight its turn.
+    @ModifyVariable(method = "turn", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private double arsenic$aimAssistYaw(double yaw) {
+        if ((Object) this != Minecraft.getInstance().player)
             return yaw;
         AimAssist aimAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(AimAssist.class);
-        if(!aimAssist.isEnabled())
+        if (aimAssist == null || !aimAssist.isEnabled())
             return yaw;
-        return aimAssist.modifyYaw(yaw);
+        return aimAssist.modifyYaw((float) yaw);
     }
 
-    @ModifyVariable(method = "setAngles", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    private float aimAssistPitch(float pitch) {
-        if ((Object) this != Minecraft.getMinecraft().thePlayer)
+    @ModifyVariable(method = "turn", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    private double arsenic$aimAssistPitch(double pitch) {
+        if ((Object) this != Minecraft.getInstance().player)
             return pitch;
         AimAssist aimAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(AimAssist.class);
-        if(!aimAssist.isEnabled())
+        if (aimAssist == null || !aimAssist.isEnabled())
             return pitch;
-        return aimAssist.modifyPitch(pitch);
+        return aimAssist.modifyPitch((float) pitch);
     }
 
-    @ModifyVariable(method = "rayTrace", at = @At("STORE"), ordinal = 1)
-    public Vec3 rayTrace(Vec3 vec31) {
-        if((Object) this != Minecraft.getMinecraft().getRenderViewEntity())
-            return vec31;
-        EventLook eventLook = new EventLook(rotationYaw, rotationPitch);
+    /**
+     * The crosshair raycast reads the camera entity's view vector. While a silent rotation is
+     * active the client should pick along the rotation the server sees, not the camera's. The flag
+     * keeps every other caller of getViewVector (rendering, sounds, ...) on the real rotation.
+     */
+    @Inject(method = "getViewVector", at = @At("HEAD"), cancellable = true)
+    private void arsenic$getViewVector(float partialTicks, CallbackInfoReturnable<Vec3> cir) {
+        if (!MinecraftAPI.picking || (Object) this != Minecraft.getInstance().getCameraEntity())
+            return;
+        EventLook eventLook = new EventLook(getYRot(), getXRot());
         Arsenic.getArsenic().getEventManager().post(eventLook);
-        if(!eventLook.hasBeenModified())
-            return vec31;
-        return getVectorForRotation(eventLook.getPitch(), eventLook.getYaw());
+        if (eventLook.hasBeenModified())
+            cir.setReturnValue(Entity.calculateViewVector(eventLook.getPitch(), eventLook.getYaw()));
     }
-
-
 }

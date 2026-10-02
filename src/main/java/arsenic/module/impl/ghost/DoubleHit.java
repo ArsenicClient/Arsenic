@@ -18,7 +18,7 @@ import arsenic.utils.java.SoundUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 
 /**
@@ -49,7 +49,7 @@ import net.minecraft.network.play.client.C02PacketUseEntity;
  * client that has stopped talking to the server.
  *
  * @see LagManager#acquire(Class)
- * @see TargetManager#getServerHurtTimeOnPacketArrival(EntityPlayer)
+ * @see TargetManager#getServerHurtTimeOnPacketArrival(Player)
  */
 @ModuleInfo(name = "DoubleHit", category = ModuleCategory.COMBAT)
 public class DoubleHit extends Module {
@@ -80,7 +80,7 @@ public class DoubleHit extends Module {
     /** A hit older than this no longer counts as "we are inside their invuln window". */
     private static final long HIT_MEMORY_MS = 600L;
 
-    private EntityPlayer target;
+    private Player target;
     /** Written from the netty thread when a hold starts, read from the tick thread. */
     private volatile boolean holding;
 
@@ -110,16 +110,16 @@ public class DoubleHit extends Module {
      * before that has decayed would report the hit we already knew about.
      */
     private boolean pendingCleared;
-    private EntityPlayer pendingTarget;
+    private Player pendingTarget;
     private final MSTimer confirmTimer = new MSTimer();
 
     /** Remember who we hit and when: the hold is only ever justified by our own landed hit. */
     @EventLink
     public final Listener<EventAttack> onAttack = event -> {
-        if (!(event.getTarget() instanceof EntityPlayer))
+        if (!(event.getTarget() instanceof Player))
             return;
 
-        target = (EntityPlayer) event.getTarget();
+        target = (Player) event.getTarget();
         hasHit = true;
         hitTimer.reset();
     };
@@ -143,10 +143,10 @@ public class DoubleHit extends Module {
     @RequiresPlayer
     @EventLink(Priorities.VERY_HIGH)
     public final Listener<EventPacket.OutGoing> onOutgoingAttack = event -> {
-        if (holding || target == null || mc.thePlayer == null)
+        if (holding || target == null || mc.player == null)
             return;
 
-        WorldClient world = mc.theWorld;
+        WorldClient world = mc.level;
         if (world == null || !(event.getPacket() instanceof C02PacketUseEntity))
             return;
 
@@ -165,7 +165,7 @@ public class DoubleHit extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> onUpdate = event -> {
-        if (mc.thePlayer == null || mc.theWorld == null) {
+        if (mc.player == null || mc.level == null) {
             stopHold();
             reset();
             return;
@@ -276,10 +276,10 @@ public class DoubleHit extends Module {
 
     private boolean isTargetValid() {
         return target != null
-                && target != mc.thePlayer
+                && target != mc.player
                 && target.isEntityAlive()
-                && !target.isDead
-                && mc.theWorld.getEntityByID(target.getEntityId()) == target;
+                && !target.isRemoved()
+                && mc.level.getEntityByID(target.getId()) == target;
     }
 
     private void startHold() {
@@ -322,7 +322,7 @@ public class DoubleHit extends Module {
         if (!awaitingConfirmation)
             return;
 
-        if (pendingTarget == null || pendingTarget.isDead || mc.theWorld == null) {
+        if (pendingTarget == null || pendingTarget.isRemoved() || mc.level == null) {
             awaitingConfirmation = false;
             return;
         }

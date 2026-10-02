@@ -2,7 +2,6 @@ package arsenic.config;
 
 import arsenic.utils.interfaces.ISerializable;
 import com.google.gson.JsonObject;
-import org.lwjgl.Sys;
 
 import java.security.SecureRandom;
 

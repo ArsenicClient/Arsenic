@@ -9,15 +9,14 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.item.*;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.awt.Color;
 
@@ -26,15 +25,15 @@ public class Trajectories extends Module {
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (mc.thePlayer.getHeldItem() == null || !(mc.thePlayer.getHeldItem().getItem() instanceof ItemBow)) {
+        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof ItemBow)) {
             return;
         }
 
-        ItemStack heldItem = mc.thePlayer.getHeldItem();
+        ItemStack heldItem = mc.player.getMainHandItem();
         if (!(heldItem.getItem() instanceof ItemBow) && !(heldItem.getItem() instanceof ItemSnowball) && !(heldItem.getItem() instanceof ItemEgg) && !(heldItem.getItem() instanceof ItemEnderPearl)) {
             return;
         }
-        if (heldItem.getItem() instanceof ItemBow && !mc.thePlayer.isUsingItem()) {
+        if (heldItem.getItem() instanceof ItemBow && !mc.player.isUsingItem()) {
             return;
         }
         boolean bow = false;
@@ -42,19 +41,19 @@ public class Trajectories extends Module {
             bow = true;
         }
 
-        float playerYaw = mc.thePlayer.rotationYaw;
-        float playerPitch = mc.thePlayer.rotationPitch;
+        float playerYaw = mc.player.getYRot();
+        float playerPitch = mc.player.getXRot();
 
-        double posX = mc.getRenderManager().viewerPosX - (double) (MathHelper.cos(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
-        double posY = mc.getRenderManager().viewerPosY + (double) mc.thePlayer.getEyeHeight() - (double) 0.1f;
-        double posZ = mc.getRenderManager().viewerPosZ - (double) (MathHelper.sin(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
+        double posX = mc.getRenderManager().viewerPosX - (double) (Mth.cos(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
+        double posY = mc.getRenderManager().viewerPosY + (double) mc.player.getEyeHeight() - (double) 0.1f;
+        double posZ = mc.getRenderManager().viewerPosZ - (double) (Mth.sin(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
 
-        double motionX = (double) (-MathHelper.sin(playerYaw / 180.0f * (float) Math.PI) * MathHelper.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
-        double motionY = (double) (-MathHelper.sin(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
-        double motionZ = (double) (MathHelper.cos(playerYaw / 180.0f * (float) Math.PI) * MathHelper.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
+        double motionX = (double) (-Mth.sin(playerYaw / 180.0f * (float) Math.PI) * Mth.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
+        double motionY = (double) (-Mth.sin(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
+        double motionZ = (double) (Mth.cos(playerYaw / 180.0f * (float) Math.PI) * Mth.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
         int itemInUse = 40;
-        if (mc.thePlayer.getItemInUseCount() > 0 && bow) {
-            itemInUse = mc.thePlayer.getItemInUseCount();
+        if (mc.player.getItemInUseCount() > 0 && bow) {
+            itemInUse = mc.player.getItemInUseCount();
         }
         int n10 = 72000 - itemInUse;
         float f10 = (float) n10 / 20.0f;
@@ -65,29 +64,22 @@ public class Trajectories extends Module {
             f10 = 1.0f;
         }
         RenderUtils.setColor(ThemeManager.getMainColor());
-        GL11.glPushMatrix();
         boolean bl3 = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
         boolean bl4 = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
         boolean bl5 = GL11.glIsEnabled(GL11.GL_BLEND);
         if (bl3) {
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
         }
         if (bl4) {
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
         }
-        GL11.glEnable(GL11.GL_LINE_SMOOTH);
-        GL11.glBlendFunc(770, 771);
         if (!bl5) {
-            GL11.glEnable(GL11.GL_BLEND);
         }
-        float f11 = MathHelper.sqrt_double(motionX * motionX + motionY * motionY + motionZ * motionZ);
+        float f11 = (float) Math.sqrt(motionX * motionX + motionY * motionY + motionZ * motionZ);
         motionX /= f11;
         motionY /= f11;
         motionZ /= f11;
         motionX *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
         motionY *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
         motionZ *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
-        GL11.glLineWidth(1.5f);
         GL11.glBegin(3);
         boolean ground = false;
         MovingObjectPosition target = null;
@@ -96,7 +88,7 @@ public class Trajectories extends Module {
         for (int k = 0; k <= 100 && !ground; ++k) {
             Vec3 start = new Vec3(transform[0], transform[1], transform[2]);
             Vec3 predicted = new Vec3(transform[0] + transform[3], transform[1] + transform[4], transform[2] + transform[5]);
-            MovingObjectPosition rayTraced = mc.theWorld.rayTraceBlocks(start, predicted, false, true, false);
+            MovingObjectPosition rayTraced = mc.level.rayTraceBlocks(start, predicted, false, true, false);
             if (rayTraced == null) {
                 rayTraced = getEntityHit(start, predicted);
                 if (rayTraced != null) {
@@ -114,7 +106,7 @@ public class Trajectories extends Module {
         for (int k = 0; k <= 100 && !ground; ++k) {
             Vec3 start = new Vec3(posX, posY, posZ);
             Vec3 predicted = new Vec3(posX + motionX, posY + motionY, posZ + motionZ);
-            MovingObjectPosition rayTraced = mc.theWorld.rayTraceBlocks(start, predicted, false, true, false);
+            MovingObjectPosition rayTraced = mc.level.rayTraceBlocks(start, predicted, false, true, false);
             if (rayTraced != null) {
                 ground = true;
                 target = rayTraced;
@@ -134,8 +126,6 @@ public class Trajectories extends Module {
             GL11.glVertex3d((posX += (motionX *= f14)) - mc.getRenderManager().viewerPosX, (posY += (motionY -= bow ? 0.05 : 0.03)) - mc.getRenderManager().viewerPosY, (posZ += (motionZ *= f14)) - mc.getRenderManager().viewerPosZ);
         }
         GL11.glEnd();
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_BLEND);
         GL11.glTranslated(posX - mc.getRenderManager().viewerPosX, posY - mc.getRenderManager().viewerPosY, posZ - mc.getRenderManager().viewerPosZ);
         if (target != null && target.sideHit != null) {
             switch (target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK ? target.sideHit.getIndex() : target.sideHit.getIndex()) {
@@ -151,33 +141,28 @@ public class Trajectories extends Module {
                 }
             }
         }
-        double distance = Math.max(mc.thePlayer.getDistance(posX + motionX, posY + motionY, posZ + motionZ) * 0.042830285, 1);
+        double distance = Math.max(mc.player.getDistance(posX + motionX, posY + motionY, posZ + motionZ) * 0.042830285, 1);
         GL11.glScaled(distance, distance, distance);
         this.drawX();
-        GL11.glDisable(GL11.GL_LINE_SMOOTH);
         if (bl3) {
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
         }
         if (bl4) {
-            GL11.glEnable(GL11.GL_TEXTURE_2D );
         }
         if (!bl5) {
-            GL11.glDisable(GL11.GL_BLEND);
         }
-        GL11.glPopMatrix();
     };
 
     public MovingObjectPosition getEntityHit(Vec3 origin, Vec3 destination) {
-        for (Entity e : mc.theWorld.loadedEntityList) {
-            if (!(e instanceof EntityLivingBase)) {
+        for (Entity e : mc.level.loadedEntityList) {
+            if (!(e instanceof LivingEntity)) {
                 continue;
             }
-            if (e instanceof EntityPlayer && AntiBot.isBot(e)) {
+            if (e instanceof Player && AntiBot.isBot(e)) {
                 continue;
             }
-            if (e != mc.thePlayer) {
+            if (e != mc.player) {
                 float expand = 0.3f;
-                AxisAlignedBB boundingBox = e.getEntityBoundingBox().expand(expand, expand, expand);
+                AABB boundingBox = e.getBoundingBox().expand(expand, expand, expand);
                 MovingObjectPosition possibleHit = boundingBox.calculateIntercept(origin, destination);
                 if (possibleHit != null) {
                     return possibleHit;

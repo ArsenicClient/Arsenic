@@ -3,51 +3,44 @@ package arsenic.utils.minecraft;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.Minecraft;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.item.*;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.MathHelper;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerUtils extends UtilityClass {
 
-    private static final Minecraft mc = Minecraft.getMinecraft();
-
     public static void addMessageToChat(String msg) {
-        if (mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText(msg));
+        if (mc.player != null) {
+            mc.player.sendSystemMessage(Component.literal(msg));
         }
     }
 
     public static boolean isPlayerHoldingWeapon() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null)
-            return false;
-        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-        return item instanceof ItemSword || item instanceof ItemAxe;
+        return ItemUtils.isWeapon(mc.player.getMainHandItem());
     }
 
     public static boolean isPlayerHoldingBlocks() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null)
-            return false;
-        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-        return item instanceof ItemBlock;
+        return ItemUtils.isBlock(mc.player.getMainHandItem());
     }
+
     public static boolean isPlayerHoldingSword() {
-        return (mc.thePlayer.getCurrentEquippedItem() != null)
-                && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword);
+        return ItemUtils.isSword(mc.player.getMainHandItem());
     }
+
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
@@ -55,59 +48,65 @@ public class PlayerUtils extends UtilityClass {
     public static void addWaterMarkedMessageToChat(Object... object) {
         StringBuilder builder = new StringBuilder();
         for (Object o : object) {
-            builder.append(o.toString() + " | ");
+            builder.append(o.toString()).append(" | ");
         }
         addMessageToChat("§7[§cA§7]§r " + builder);
     }
 
     public static boolean playerOverAir() {
-        return mc.theWorld.isAirBlock(getBlockUnderPlayer());
+        return mc.level.isEmptyBlock(getBlockUnderPlayer());
     }
+
     public static boolean playerIsEdging(Entity entity) {
-        return mc.theWorld.getCollidingBoundingBoxes(entity, entity.getEntityBoundingBox().offset(entity.motionX / 3.0D, -1.0D, entity.motionZ / 3.0D)).isEmpty();
+        Vec3 motion = entity.getDeltaMovement();
+        return mc.level.noCollision(entity, entity.getBoundingBox().move(motion.x / 3.0D, -1.0D, motion.z / 3.0D));
     }
 
     public static BlockPos getBlockUnderPlayer() {
-        double x = mc.thePlayer.posX;
-        double y = mc.thePlayer.posY - 1.0D;
-        double z = mc.thePlayer.posZ;
-        return new BlockPos(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z));
+        return BlockPos.containing(mc.player.getX(), mc.player.getY() - 1.0D, mc.player.getZ());
     }
 
-    public static void click() {
-        mc.thePlayer.swingItem();
-        switch (mc.objectMouseOver.typeOfHit) {
-            case ENTITY:
-                mc.playerController.attackEntity(mc.thePlayer, mc.objectMouseOver.entityHit);
-                break;
-            case BLOCK:
-                BlockPos blockpos = mc.objectMouseOver.getBlockPos();
+    /**
+     * Swings the main hand and tells the server, like 1.8's swingItem. The animation packet is
+     * called a punch now and is sent separately from the swing.
+     */
+    public static void swingItem() {
+        mc.player.swing(InteractionHand.MAIN_HAND, mc.player.getMainHandItem().getAttackAnimation(), false);
+        mc.player.connection.send(net.minecraft.network.protocol.game.ServerboundPunchPacket.INSTANCE);
+    }
 
-                if (mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() != Material.air) {
-                    mc.playerController.clickBlock(blockpos, mc.objectMouseOver.sideHit);
-                    break;
-                }
-            case MISS:
-            default:
+    /** A vanilla left click on whatever the crosshair is on. */
+    public static void click() {
+        swingItem();
+        if (mc.hitResult instanceof EntityHitResult entityHit) {
+            mc.gameMode.attack(mc.player, entityHit.getEntity());
+        } else if (mc.hitResult instanceof BlockHitResult blockHit && mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+            BlockPos pos = blockHit.getBlockPos();
+            if (!mc.level.getBlockState(pos).isAir())
+                mc.gameMode.startDestroyBlock(pos, blockHit.getDirection());
         }
     }
-    public static EntityPlayer getClosestPlayerWithin(double distance) {
-        EntityPlayer target = null;
-        for (EntityPlayer entity : mc.theWorld.playerEntities) {
-            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if (entity != mc.thePlayer && tempDistance <= distance) {
+
+    public static Player getClosestPlayerWithin(double distance) {
+        Player target = null;
+        for (Player entity : mc.level.players()) {
+            float tempDistance = mc.player.distanceTo(entity);
+            if (entity != mc.player && tempDistance <= distance) {
                 target = entity;
                 distance = tempDistance;
             }
         }
         return target;
     }
-    public static boolean isPlayerWearingArmour(EntityPlayer en) {
-        for (int armorPiece = 0; armorPiece < 4; armorPiece++)
-            if (en.getCurrentArmor(armorPiece) == null)
+
+    /** Despite the name this has always returned true when a piece is MISSING; kept as-is. */
+    public static boolean isPlayerWearingArmour(Player en) {
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET})
+            if (en.getItemBySlot(slot).isEmpty())
                 return true;
         return false;
     }
+
     public static boolean withinFov(Entity entity, float fov) {
         float f = fov * 0.5f;
         float angle = RotationUtils.fovToEntity(entity);
@@ -117,11 +116,11 @@ public class PlayerUtils extends UtilityClass {
         return angleDiff > -f && angleDiff < f;
     }
 
-    public static List<EntityPlayer> getPlayersWithin(double distance) {
-        List<EntityPlayer> targets = new ArrayList<>();
-        for (EntityPlayer entity : mc.theWorld.playerEntities) {
-            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if (entity != mc.thePlayer && tempDistance <= distance) {
+    public static List<Player> getPlayersWithin(double distance) {
+        List<Player> targets = new ArrayList<>();
+        for (Player entity : mc.level.players()) {
+            float tempDistance = mc.player.distanceTo(entity);
+            if (entity != mc.player && tempDistance <= distance) {
                 targets.add(entity);
             }
         }
@@ -130,36 +129,42 @@ public class PlayerUtils extends UtilityClass {
 
     public static List<Entity> getEntitysWithin(double distance) {
         List<Entity> targets = new ArrayList<>();
-        for (Entity entity : mc.theWorld.loadedEntityList) {
-            float tempDistance = mc.thePlayer.getDistanceToEntity(entity);
-            if (entity != mc.thePlayer && tempDistance <= distance) {
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            float tempDistance = mc.player.distanceTo(entity);
+            if (entity != mc.player && tempDistance <= distance) {
                 targets.add(entity);
             }
         }
         return targets;
     }
 
-    public static boolean isPlayerNotLoaded() {
-        return !(mc.thePlayer == null && mc.theWorld == null);
+    /** True once there is a player and a level to act on. */
+    public static boolean isPlayerLoaded() {
+        return mc.player != null && mc.level != null;
     }
 
-    public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target) {
+    public static boolean isEntityTeamSameAsPlayer(LivingEntity target) {
         try {
-            Entity teamMate = target;
-            if (mc.thePlayer.isOnSameTeam(target) || mc.thePlayer.getDisplayName().getUnformattedText().startsWith(teamMate.getDisplayName().getUnformattedText().substring(0, 2))) {
+            if (mc.player.isAlliedTo(target)) {
                 return true;
             }
-        } catch (Exception e) {
+            String ours = mc.player.getDisplayName().getString();
+            String theirs = target.getDisplayName().getString();
+            if (theirs.length() >= 2 && ours.startsWith(theirs.substring(0, 2))) {
+                return true;
+            }
+        } catch (Exception ignored) {
         }
         return false;
     }
-    public static int getTool(Block block) {
+
+    public static int getTool(BlockState block) {
         float n = 1.0f;
         int n2 = -1;
-        for (int i = 0; i < InventoryPlayer.getHotbarSize(); ++i) {
-            final ItemStack getStackInSlot = mc.thePlayer.inventory.getStackInSlot(i);
-            if (getStackInSlot != null) {
-                final float a = getEfficiency(getStackInSlot, block);
+        for (int i = 0; i < Inventory.getSelectionSize(); ++i) {
+            final ItemStack stack = mc.player.getInventory().getItem(i);
+            if (!stack.isEmpty()) {
+                final float a = getEfficiency(stack, block);
                 if (a > n) {
                     n = a;
                     n2 = i;
@@ -168,14 +173,15 @@ public class PlayerUtils extends UtilityClass {
         }
         return n2;
     }
-    public static float getEfficiency(final ItemStack itemStack, final Block block) {
-        float getStrVsBlock = itemStack.getStrVsBlock(block);
-        if (getStrVsBlock > 1.0f) {
-            final int getEnchantmentLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.efficiency.effectId, itemStack);
-            if (getEnchantmentLevel > 0) {
-                getStrVsBlock += getEnchantmentLevel * getEnchantmentLevel + 1;
+
+    public static float getEfficiency(final ItemStack itemStack, final BlockState block) {
+        float speed = itemStack.getDestroySpeed(block);
+        if (speed > 1.0f) {
+            final int level = ItemUtils.enchantLevel(Enchantments.EFFICIENCY, itemStack);
+            if (level > 0) {
+                speed += level * level + 1;
             }
         }
-        return getStrVsBlock;
+        return speed;
     }
 }

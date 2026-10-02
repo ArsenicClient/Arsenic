@@ -4,6 +4,7 @@ import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
+import arsenic.event.impl.EventRender2D;
 import arsenic.gui.ErrorOverlay;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
@@ -13,19 +14,32 @@ import arsenic.notifications.NotificationManager;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
+import arsenic.utils.render.RenderContext;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
-public class Arsenic {
+/**
+ * Fabric client entrypoint. Fabric constructs this class itself (see {@code fabric.mod.json}), so
+ * the singleton is captured in the instance initialiser - before any field below runs - which lets
+ * managers that call {@link #getInstance()} while constructing see a non-null client.
+ */
+public class Arsenic implements ClientModInitializer {
+
+    private static Arsenic instance;
+
+    {
+        instance = this;
+    }
 
     private final String clientName = "Arsenic";
-    private final long clientVersion = 221020L;
+    private final long clientVersion = 260300L;
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
@@ -40,8 +54,8 @@ public class Arsenic {
     private final LaunchID launchID = new LaunchID();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
-    @Mod.EventHandler
-    public final void init(FMLInitializationEvent event) {
+    @Override
+    public void onInitializeClient() {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         getEventManager().subscribe(silentRotationManager);
@@ -58,28 +72,29 @@ public class Arsenic {
 
         logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
 
-        // Built last, and the order matters: the component tree needs the module list to exist, and
-        // some components resolve theme colours while constructing, so the theme manager must
-        // already have a current theme. This used to happen inside config loading, via the ClickGui
-        // module's postApplyConfig callback; that module is gone, so the wiring is explicit now.
-        clickGuiScreen.init();
-        logger.info("Built ClickGUI.");
-
         logger.info("Loaded {} commands...", String.valueOf(commandManager.initialize()));
 
-        fonts.initTextures();
-        logger.info("Loaded fonts.");
+        // Drawn last so client overlays sit on top of every vanilla HUD element.
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("arsenic", "hud"), (graphics, deltaTracker) -> {
+            try (RenderContext ignored = RenderContext.begin(graphics)) {
+                eventManager.post(new EventRender2D(graphics, deltaTracker.getGameTimeDeltaPartialTick(false)));
+            }
+        });
 
-        CapeHandler.getInstance().init();
-        logger.info("Loaded cape handler.");
+        // The ClickGUI resolves fonts and textures while building, which needs resources loaded.
+        // The component tree also needs the module list and a current theme, both set up above.
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+            clickGuiScreen.buildComponents();
+            logger.info("Built ClickGUI.");
+
+            CapeHandler.getInstance().init();
+            logger.info("Loaded cape handler.");
+        });
 
         logger.info("Loaded {}.", clientName);
     }
 
     public String getName() { return clientName; }
-
-    @Mod.Instance
-    private static Arsenic instance;
 
     public static Arsenic getInstance() { return instance; }
 

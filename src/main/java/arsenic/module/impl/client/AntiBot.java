@@ -8,9 +8,9 @@ import arsenic.module.property.impl.BooleanProperty;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,15 +35,15 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer || !(en instanceof EntityPlayer)
+        if (en == mc.player || !(en instanceof Player)
                 || !Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isEnabled()) {
             return false;
         }
 
-        EntityPlayer player = (EntityPlayer) en;
+        Player player = (Player) en;
 
         if (zeroHealthChecks.getValue()) {
-            if (player.getHealth() <= 0.0F || en.isDead) {
+            if (player.getHealth() <= 0.0F || en.isRemoved()) {
                 return true;
             }
         }
@@ -61,7 +61,7 @@ public class AntiBot extends Module {
         }
 
         if (invisCheck.getValue()) {
-            if (en.isInvisibleToPlayer(mc.thePlayer)) {
+            if (en.isInvisibleTo(mc.player)) {
                 return true;
             }
         }
@@ -79,8 +79,8 @@ public class AntiBot extends Module {
         }
 
         if (pingCheck.getValue()) {
-            if (mc.getNetHandler() != null && en.getName() != null) {
-                NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(en.getName());
+            if (mc.getConnection() != null && en.getName() != null) {
+                NetworkPlayerInfo playerInfo = mc.getConnection().getPlayerInfo(en.getName());
                 if (playerInfo != null && playerInfo.getResponseTime() <= 0) {
                     return true;
                 }
@@ -88,20 +88,20 @@ public class AntiBot extends Module {
         }
 
         if (ticksExistedCheck.getValue()) {
-            if (en.ticksExisted < 20) {
+            if (en.tickCount < 20) {
                 return true;
             }
         }
 
         if (entityIdCheck.getValue()) {
-            if (en.getEntityId() < 0 || en.getEntityId() >= 1000000000) {
+            if (en.getId() < 0 || en.getId() >= 1000000000) {
                 return true;
             }
         }
 
         if (alwaysClose.getValue()) {
-            if (en.ticksExisted < 5 || en.isInvisible()
-                    || mc.thePlayer.getDistanceSq(en.posX, mc.thePlayer.posY, en.posZ) > 100 * 100) {
+            if (en.tickCount < 5 || en.isInvisible()
+                    || mc.player.getDistanceSq(en.getX(), mc.player.getY(), en.getZ()) > 100 * 100) {
                 return true;
             }
         }
@@ -113,13 +113,13 @@ public class AntiBot extends Module {
     // UTILS
 
     /** Tab entries that are also loaded as entities. Anyone in tab but out of range is skipped. */
-    public static ArrayList<EntityPlayer> getPlayerList() {
-        ArrayList<EntityPlayer> list = new ArrayList<>();
-        if (mc.thePlayer == null || mc.theWorld == null || mc.thePlayer.sendQueue == null) {
+    public static ArrayList<Player> getPlayerList() {
+        ArrayList<Player> list = new ArrayList<>();
+        if (mc.player == null || mc.level == null || mc.player.sendQueue == null) {
             return list;
         }
 
-        Collection<NetworkPlayerInfo> playerInfoMap = mc.thePlayer.sendQueue.getPlayerInfoMap();
+        Collection<NetworkPlayerInfo> playerInfoMap = mc.player.sendQueue.getPlayerInfoMap();
         if (playerInfoMap == null) {
             return list;
         }
@@ -128,7 +128,7 @@ public class AntiBot extends Module {
             if (networkPlayerInfo == null || networkPlayerInfo.getGameProfile() == null) {
                 continue;
             }
-            EntityPlayer player = mc.theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName());
+            Player player = mc.level.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName());
             if (player != null) {
                 list.add(player);
             }
@@ -136,12 +136,12 @@ public class AntiBot extends Module {
         return list;
     }
 
-    public static boolean inTab(EntityLivingBase en) {
+    public static boolean inTab(LivingEntity en) {
         if (mc.isSingleplayer() || en == null) {
             return false;
         }
 
-        NetHandlerPlayClient netHandler = mc.getNetHandler();
+        NetHandlerPlayClient netHandler = mc.getConnection();
         if (netHandler == null || netHandler.getPlayerInfoMap() == null) {
             return false;
         }
@@ -159,8 +159,8 @@ public class AntiBot extends Module {
      * True when the given player's UUID appears more than once in the tab list,
      * indicating a duplicate entity (likely a bot).
      */
-    public static boolean hasDuplicateUUID(EntityPlayer target) {
-        NetHandlerPlayClient netHandler = mc.getNetHandler();
+    public static boolean hasDuplicateUUID(Player target) {
+        NetHandlerPlayClient netHandler = mc.getConnection();
         if (netHandler == null || target.getUniqueID() == null) {
             return false;
         }
@@ -187,7 +187,7 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotName(Entity en) {
-        final EntityPlayer entityPlayer = (EntityPlayer) en;
+        final Player entityPlayer = (Player) en;
         String unformattedText = entityPlayer.getDisplayName().getUnformattedText();
         if (entityPlayer.getHealth() == 20.0f) {
             if ((unformattedText.length() == 10 && unformattedText.charAt(0) != '§')

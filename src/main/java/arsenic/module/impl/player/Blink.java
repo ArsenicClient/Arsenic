@@ -13,8 +13,8 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.network.Packet;
-import net.minecraft.util.Vec3;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.world.phys.Vec3;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ public class Blink extends Module {
     @RequiresPlayer
     @Override
     protected void onEnable() {
-        startPos = mc.thePlayer.getPositionVector();
+        startPos = mc.player.position();
         LagManager.acquire(this.getClass());
     }
 

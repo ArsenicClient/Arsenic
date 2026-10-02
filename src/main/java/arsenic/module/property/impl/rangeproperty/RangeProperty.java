@@ -12,7 +12,7 @@ import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.input.Mouse;
+import arsenic.utils.io.Keys;
 
 import java.util.function.BiConsumer;
 
@@ -116,7 +116,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
                 super.mouseUpdate(mouseX, mouseY);
-                if (!Mouse.isButtonDown(0))
+                if (!Keys.isMouseDown(0))
                     dragging = false;
                 if (dragging)
                     applyFromMouse(mouseX);

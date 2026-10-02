@@ -5,15 +5,13 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.PostProcessing;
+import arsenic.utils.java.ClassScanner;
 import net.minecraft.client.Minecraft;
-import org.reflections.Reflections;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import static org.reflections.scanners.Scanners.SubTypes;
-import org.lwjgl.input.Keyboard;
 
 public class ModuleManager {
 
@@ -23,8 +21,7 @@ public class ModuleManager {
         if(modules.size() != 0)
             throw new RuntimeException("Double initialization of Module Manager.");
 
-        Reflections reflections = new Reflections("arsenic.module");
-        reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> addModule((Class<? extends Module>) module));
+        ClassScanner.findSubTypes("arsenic.module", Module.class).forEach(this::addModule);
 
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
@@ -73,12 +70,12 @@ public class ModuleManager {
      * property on a ClickGui module that existed for little else, and a client whose whole point is
      * having few settings should not spend one of them on this.
      */
-    private static final int CLICK_GUI_KEY = org.lwjgl.input.Keyboard.KEY_RSHIFT;
+    private static final int CLICK_GUI_KEY = com.mojang.blaze3d.platform.InputConstants.KEY_RSHIFT;
 
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         if (event.getKeycode() == CLICK_GUI_KEY) {
-            Minecraft.getMinecraft().displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
+            Minecraft.getInstance().gui.setScreen(Arsenic.getArsenic().getClickGuiScreen());
             return;
         }
 
@@ -95,7 +92,7 @@ public class ModuleManager {
 
     private void addModule(Class<? extends Module> moduleClass) {
         try {
-            Module module = moduleClass.newInstance();
+            Module module = moduleClass.getDeclaredConstructor().newInstance();
             module.registerProperties();
             modules.put(moduleClass, module);
         } catch (Exception e) {e.printStackTrace();}

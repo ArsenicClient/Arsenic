@@ -1,11 +1,14 @@
 package arsenic.module.impl.client;
 
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.ClientAsset;
+import net.minecraft.resources.Identifier;
 
 public class CapeHandler {
 
     private static CapeHandler instance;
-    private static final ResourceLocation CAPE = new ResourceLocation("arsenic", "cape/default.png");
+    private static final Identifier CAPE_ID = Identifier.fromNamespaceAndPath("arsenic", "cape/default");
+    private static final ClientAsset.Texture CAPE = new ClientAsset.ResourceTexture(
+            CAPE_ID, Identifier.fromNamespaceAndPath("arsenic", "cape/default.png"));
 
     public static CapeHandler getInstance() {
         if (instance == null) {
@@ -17,7 +20,7 @@ public class CapeHandler {
     public void init() {
     }
 
-    public ResourceLocation getCapeLocation() {
+    public ClientAsset.Texture getCape() {
         return CAPE;
     }
 

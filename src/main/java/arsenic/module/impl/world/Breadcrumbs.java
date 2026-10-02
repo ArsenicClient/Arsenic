@@ -8,11 +8,9 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.render.DrawUtils;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +41,7 @@ public class Breadcrumbs extends Module {
         long now = System.currentTimeMillis();
 
         if (now - lastPoint > 50) {
-            points.add(new double[]{mc.thePlayer.posX, mc.thePlayer.posY + 0.1, mc.thePlayer.posZ});
+            points.add(new double[]{mc.player.getX(), mc.player.getY() + 0.1, mc.player.getZ()});
             times.add(now);
             lastPoint = now;
         }
@@ -66,12 +64,6 @@ public class Breadcrumbs extends Module {
         float g = ((themeColor >> 8) & 0xFF) / 255.0f;
         float b = (themeColor & 0xFF) / 255.0f;
 
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(false);
-        GL11.glLineWidth((float) 2f);
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
@@ -101,9 +93,5 @@ public class Breadcrumbs extends Module {
             tessellator.draw();
         }
 
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
     };
 }

@@ -7,7 +7,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
-import net.minecraft.potion.Potion;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.potion.PotionEffect;
 import org.lwjgl.input.Keyboard;
 
@@ -19,26 +19,26 @@ public class FullBright extends Module {
 
     @Override
     protected void onEnable() {
-        originalGamma = (int) mc.gameSettings.gammaSetting;
+        originalGamma = (int) mc.options.gammaSetting;
     }
     @EventLink
     public final Listener<EventTick> onTick = event -> {
         if (fullbrightmode.getValue().equals(fEnum.Gamma)) {
-            mc.gameSettings.gammaSetting = 1000;
+            mc.options.gammaSetting = 1000;
         }
         if (fullbrightmode.getValue().equals(fEnum.Potion)) {
             Potion nightVision = Potion.getPotionFromResourceLocation("night_vision");
-            PotionEffect nightVisionEffect = mc.thePlayer.getActivePotionEffect(nightVision);
+            PotionEffect nightVisionEffect = mc.player.getEffect(nightVision);
             if (nightVisionEffect == null) {
-                mc.thePlayer.addPotionEffect(new PotionEffect(Potion.nightVision.id, 69420));
+                mc.player.addPotionEffect(new PotionEffect(Potion.nightVision.id, 69420));
             }
         }
     };
 
     @Override
     protected void onDisable() {
-        mc.gameSettings.gammaSetting = originalGamma;
-        mc.thePlayer.removePotionEffect(Potion.nightVision.id);
+        mc.options.gammaSetting = originalGamma;
+        mc.player.removePotionEffect(Potion.nightVision.id);
     }
 
     public enum fEnum {

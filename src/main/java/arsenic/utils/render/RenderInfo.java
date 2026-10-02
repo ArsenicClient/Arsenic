@@ -3,16 +3,16 @@ package arsenic.utils.render;
 import java.awt.Color;
 
 import arsenic.utils.font.FontRendererExtension;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screens.Screen;
 
 public class RenderInfo {
     private int index = 0;
     private final int mouseX, mouseY;
     private final FontRendererExtension<?> fr;
-    private final GuiScreen guiScreen;
+    private final Screen guiScreen;
     public final float[] STACK = new float[16];
 
-    public RenderInfo(int mouseX, int mouseY, FontRendererExtension<?> fr, GuiScreen guiScreen) {
+    public RenderInfo(int mouseX, int mouseY, FontRendererExtension<?> fr, Screen guiScreen) {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
         this.fr = fr;
@@ -35,7 +35,7 @@ public class RenderInfo {
         return getColorByLevel(color, index);
     }
 
-    public GuiScreen getGuiScreen() { return guiScreen; }
+    public Screen getGuiScreen() { return guiScreen; }
 
     private Color getColorByLevel(Color color, int level) {
         for (int i = 0; i < level; i++) { color = color.darker(); }

@@ -26,7 +26,7 @@ public class ChestESP extends Module {
         int mainColor = ThemeManager.getMainColor();
         int darkerColor = ThemeManager.getDarkerColor();
 
-        for (TileEntity te : mc.theWorld.loadedTileEntityList) {
+        for (TileEntity te : mc.level.loadedTileEntityList) {
             if (te instanceof TileEntityChest && chests.getValue()) {
                 RenderUtils.renderBlock(te.getPos(), mainColor, true, true);
             } else if (te instanceof TileEntityEnderChest && enderChests.getValue()) {

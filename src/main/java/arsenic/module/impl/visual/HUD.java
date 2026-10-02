@@ -30,9 +30,9 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiChat;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.Options;
 
 import java.util.function.BinaryOperator;
 
@@ -92,8 +92,8 @@ public class HUD extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (editPosition.getValue() && !(mc.currentScreen instanceof HudEditorScreen)) {
-            mc.displayGuiScreen(new HudEditorScreen());
+        if (editPosition.getValue() && !(mc.gui.screen() instanceof HudEditorScreen)) {
+            mc.gui.setScreen(new HudEditorScreen());
             editPosition.setValue(false);
         }
     };
@@ -111,7 +111,7 @@ public class HUD extends Module {
         int accent = colorMode.getValue().getColor(4, 0);
 
         renderWatermark(fr, accent);
-        if (showCoords.getValue() && mc.thePlayer != null)
+        if (showCoords.getValue() && mc.player != null)
             renderCoords(fr, accent);
         if (showKeybinds.getValue())
             renderKeybinds(fr, accent);
@@ -147,9 +147,9 @@ public class HUD extends Module {
     };
 
     private boolean shouldRender() {
-        return mc.currentScreen == null
-                || mc.currentScreen instanceof GuiChat
-                || mc.currentScreen instanceof HudEditorScreen;
+        return mc.gui.screen() == null
+                || mc.gui.screen() instanceof ChatScreen
+                || mc.gui.screen() instanceof HudEditorScreen;
     }
 
     private enum Pass { NORMAL, BLOOM, BLUR }
@@ -290,8 +290,8 @@ public class HUD extends Module {
                 suffix = Minecraft.getDebugFPS() + " fps";
                 break;
             case COORDS:
-                if (mc.thePlayer != null)
-                    suffix = String.format("%.0f, %.0f, %.0f", mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
+                if (mc.player != null)
+                    suffix = String.format("%.0f, %.0f, %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
                 break;
             case IP:
                 suffix = mc.getCurrentServerData() != null ? mc.getCurrentServerData().serverIP : "singleplayer";
@@ -318,7 +318,7 @@ public class HUD extends Module {
     }
 
     private void renderCoords(FontRendererExtension<?> fr, int color) {
-        String text = String.format("%.0f  %.0f  %.0f", mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
+        String text = String.format("%.0f  %.0f  %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
         float pad = 4f;
         float h = fr.getHeight(text) + pad * 1.5f;
         float w = fr.getWidth("XYZ  " + text) + pad * 2f;
@@ -339,7 +339,7 @@ public class HUD extends Module {
         float rowH = 11f;
         float w = 0;
         for (Module m : binds)
-            w = Math.max(w, fr.getWidth(m.getName() + "   " + GameSettings.getKeyDisplayString(m.getKeybind())));
+            w = Math.max(w, fr.getWidth(m.getName() + "   " + Options.getKeyDisplayString(m.getKeybind())));
         w += pad * 2f;
         float h = binds.size() * rowH + pad * 1.5f;
 
@@ -347,7 +347,7 @@ public class HUD extends Module {
 
         float y = keybindsY + pad * 0.75f;
         for (Module m : binds) {
-            String key = GameSettings.getKeyDisplayString(m.getKeybind());
+            String key = Options.getKeyDisplayString(m.getKeybind());
             fr.drawStringWithShadow(m.getName(), keybindsX + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted());
             fr.drawStringWithShadow(key, keybindsX + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted());
             y += rowH;

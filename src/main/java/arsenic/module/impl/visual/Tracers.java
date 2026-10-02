@@ -11,10 +11,8 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.nio.FloatBuffer;
@@ -32,41 +30,27 @@ public class Tracers extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
 
-        for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-            if (player == mc.thePlayer) continue;
+        for (Player player : Minecraft.getInstance().level.playerEntities) {
+            if (player == mc.player) continue;
             if (AntiBot.isBot(player)) continue;
 
-            double x = (player.lastTickPosX + (player.posX - player.lastTickPosX) * event.partialTicks)
+            double x = (player.xo + (player.getX() - player.xo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosX;
-            double y = (player.lastTickPosY + (player.posY - player.lastTickPosY) * event.partialTicks)
+            double y = (player.yo + (player.getY() - player.yo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosY;
-            double z = (player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * event.partialTicks)
+            double z = (player.zo + (player.getZ() - player.zo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosZ;
 
             if (false && isOnScreen(x, y + player.height / 2, z)) continue;
 
             Color c = new Color(getBedWarsColor(player), true);
 
-            GlStateManager.pushMatrix();
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glDepthMask(false);
-            GL11.glLineWidth(2.0F);
 
             GL11.glBegin(GL11.GL_LINES);
-            GL11.glColor4f(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f);
-            GL11.glVertex3d(0, mc.thePlayer.getEyeHeight(), 0);
+            GL11.glVertex3d(0, mc.player.getEyeHeight(), 0);
             GL11.glVertex3d(x, y + player.height / 2, z);
             GL11.glEnd();
 
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDisable(GL11.GL_BLEND);
-            GL11.glDepthMask(true);
-            GL11.glLineWidth(1.0F);
-            GlStateManager.popMatrix();
         }
     };
 
@@ -86,7 +70,7 @@ public class Tracers extends Module {
         return winX >= vx && winX <= vx + vw && winY >= vy && winY <= vy + vh;
     }
 
-    private int getBedWarsColor(EntityPlayer player) {
+    private int getBedWarsColor(Player player) {
         if (player.getCurrentArmor(2) != null) {
             net.minecraft.nbt.NBTTagCompound tag = player.getCurrentArmor(2).getTagCompound();
             if (tag != null) {

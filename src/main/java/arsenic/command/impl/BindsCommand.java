@@ -1,6 +1,6 @@
 package arsenic.command.impl;
 
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
 
 import arsenic.command.Command;
 import arsenic.command.CommandInfo;
@@ -15,7 +15,7 @@ public class BindsCommand extends Command {
         Arsenic.getArsenic().getModuleManager().getModules().forEach(module -> {
             if (module.getKeybind() != 0) {
                 PlayerUtils.addWaterMarkedMessageToChat(
-                        module.getName() + " is bound to " + Keyboard.getKeyName(module.getKeybind()));
+                        module.getName() + " is bound to " + Keys.getKeyName(module.getKeybind()));
             }
         });
     }

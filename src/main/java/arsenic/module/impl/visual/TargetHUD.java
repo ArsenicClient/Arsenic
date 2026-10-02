@@ -16,17 +16,15 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
-import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.gui.inventory.GuiInventory;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.util.StringUtils;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -42,7 +40,7 @@ public class TargetHUD extends Module {
 
     private AbstractClientPlayer target;
     private long lastTargetTime;
-    private final Map<EntityPlayer, Long> recentTargets = new HashMap<>();
+    private final Map<Player, Long> recentTargets = new HashMap<>();
     private float animatedHealth;
     private float animatedArmor;
     private float animatedScale;
@@ -52,8 +50,8 @@ public class TargetHUD extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventAttack> onAttack = event -> {
-        if (event.getTarget() instanceof EntityPlayer) {
-            EntityPlayer targetPlayer = (EntityPlayer) event.getTarget();
+        if (event.getTarget() instanceof Player) {
+            Player targetPlayer = (Player) event.getTarget();
             target = (AbstractClientPlayer) targetPlayer;
             lastTargetTime = System.currentTimeMillis();
             recentTargets.put(targetPlayer, lastTargetTime);
@@ -64,11 +62,11 @@ public class TargetHUD extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> onWorldRender = event -> {
         if (stick.getValue() && target != null && animatedScale > 0.01f) {
-            double renderX = (target.lastTickPosX + (target.posX - target.lastTickPosX) * event.partialTicks)
+            double renderX = (target.xo + (target.getX() - target.xo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosX;
-            double renderY = (target.lastTickPosY + (target.posY - target.lastTickPosY) * event.partialTicks)
+            double renderY = (target.yo + (target.getY() - target.yo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosY;
-            double renderZ = (target.lastTickPosZ + (target.posZ - target.lastTickPosZ) * event.partialTicks)
+            double renderZ = (target.zo + (target.getZ() - target.zo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosZ;
             renderStickHUD(target, renderX, renderY, renderZ, animatedScale);
         }
@@ -78,7 +76,7 @@ public class TargetHUD extends Module {
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
         if (editPosition.getValue()) {
-            target = mc.thePlayer;
+            target = mc.player;
             drawTargetHUD(target, 0, 10000000, 1.0f);
             return;
         }
@@ -96,9 +94,9 @@ public class TargetHUD extends Module {
             animatedScale = interpolate(animatedScale, 1.0f, 0.1f);
             renderTarget = target;
         } else if (!recentTargets.isEmpty()) {
-            EntityPlayer mostRecent = null;
+            Player mostRecent = null;
             long mostRecentTime = 0;
-            for (Map.Entry<EntityPlayer, Long> entry : recentTargets.entrySet()) {
+            for (Map.Entry<Player, Long> entry : recentTargets.entrySet()) {
                 if (entry.getValue() > mostRecentTime) {
                     mostRecentTime = entry.getValue();
                     mostRecent = entry.getKey();
@@ -145,7 +143,6 @@ public class TargetHUD extends Module {
         int hudWidth = 150;
         int hudHeight = 50;
 
-        GL11.glPushMatrix();
         GL11.glTranslated(x + hudWidth / 2.0, y + hudHeight / 2.0, 0);
         GL11.glScalef(scale, scale, 1.0f);
         GL11.glTranslated(-(x + hudWidth / 2.0), -(y + hudHeight / 2.0), 0);
@@ -167,7 +164,6 @@ public class TargetHUD extends Module {
                 : (int) (alpha * 0xFF) << 24 | getThemeColor();
         DrawUtils.drawBorderedRoundedRect(x, y, x + hudWidth, y + hudHeight, 8, 2, borderColor, 0x00000000);
 
-        GL11.glColor4f(1, 1, 1, alpha);
         mc.getTextureManager().bindTexture(target.getLocationSkin());
         Gui.drawScaledCustomSizeModalRect(x + 5, y + 5, 8.0F, 8.0F, 8, 8, 30, 30, 64.0F, 64.0F);
 
@@ -179,7 +175,7 @@ public class TargetHUD extends Module {
 
         float health = target.getHealth();
         float maxHealth = target.getMaxHealth();
-        if (animatedHealth == 0 || target == mc.thePlayer) animatedHealth = health;
+        if (animatedHealth == 0 || target == mc.player) animatedHealth = health;
         animatedHealth = interpolate(animatedHealth, health, 0.1f);
         float healthPercent = animatedHealth / maxHealth;
 
@@ -194,7 +190,7 @@ public class TargetHUD extends Module {
                 (int) (alpha * 0xFF) << 24 | healthColor);
 
         int armor = target.getTotalArmorValue();
-        if (animatedArmor == 0 || target == mc.thePlayer) animatedArmor = armor;
+        if (animatedArmor == 0 || target == mc.player) animatedArmor = armor;
         animatedArmor = interpolate(animatedArmor, armor, 0.1f);
 
         int armorBarY = healthBarY + 10;
@@ -207,7 +203,6 @@ public class TargetHUD extends Module {
         String healthText = String.format("%.1f/%.1f", animatedHealth, maxHealth);
         fr.drawString(healthText, x + 40, y + 15, (int) (alpha * 0xFF) << 24 | 0xCCCCCC);
 
-        GL11.glPopMatrix();
     }
 
     private void drawSimpleMode(AbstractClientPlayer target, float scale) {
@@ -217,7 +212,6 @@ public class TargetHUD extends Module {
         int hudWidth = 130;
         int hudHeight = 32;
 
-        GL11.glPushMatrix();
         GL11.glTranslated(x + hudWidth / 2.0, y + hudHeight / 2.0, 0);
         GL11.glScalef(scale, scale, 1.0f);
         GL11.glTranslated(-(x + hudWidth / 2.0), -(y + hudHeight / 2.0), 0);
@@ -247,7 +241,7 @@ public class TargetHUD extends Module {
 
         float health = target.getHealth();
         float maxHealth = target.getMaxHealth();
-        if (animatedHealth == 0 || target == mc.thePlayer) animatedHealth = health;
+        if (animatedHealth == 0 || target == mc.player) animatedHealth = health;
         animatedHealth = interpolate(animatedHealth, health, 0.1f);
         float healthPercent = animatedHealth / maxHealth;
 
@@ -265,7 +259,6 @@ public class TargetHUD extends Module {
         float textWidth = fr.getWidth(healthText);
         fr.drawString(healthText, (int) (x + hudWidth - 5 - textWidth), y + 5, (int) (alpha * 0xFF) << 24 | 0xCCCCCC);
 
-        GL11.glPopMatrix();
     }
 
     private int getThemeColor() {
@@ -273,12 +266,10 @@ public class TargetHUD extends Module {
     }
 
     private void renderStickHUD(AbstractClientPlayer en, double renderX, double renderY, double renderZ, float scale) {
-        GlStateManager.pushMatrix();
         GL11.glTranslated(renderX, renderY + en.height + 0.5, renderZ);
         GL11.glNormal3f(0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-        GlStateManager.disableDepth();
         float s = 0.02666667F;
         GlStateManager.scale(-s, -s, s);
         GlStateManager.translate(35, -15, 0);
@@ -299,8 +290,6 @@ public class TargetHUD extends Module {
 
         HUD.targetHUDX = origX;
         HUD.targetHUDY = origY;
-        GlStateManager.enableDepth();
-        GlStateManager.popMatrix();
     }
 
     @Override

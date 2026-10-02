@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
 
 import arsenic.command.Command;
 import arsenic.command.CommandInfo;
@@ -24,9 +24,13 @@ public class BindCommand extends Command {
             PlayerUtils.addWaterMarkedMessageToChat(args[0] + " is not a valid module");
             return;
         }
-        int bind = Keyboard.getKeyIndex(args[1].toUpperCase());
-        PlayerUtils.addWaterMarkedMessageToChat("Bound " + module.getName() + " to " + Keyboard.getKeyName(bind));
-        module.setKeybind(Keyboard.getKeyIndex(args[1].toUpperCase()));
+        int bind = Keys.getKeyIndex(args[1]);
+        if (bind == Keys.NONE && !args[1].equalsIgnoreCase("none")) {
+            PlayerUtils.addWaterMarkedMessageToChat(args[1] + " is not a valid key");
+            return;
+        }
+        PlayerUtils.addWaterMarkedMessageToChat("Bound " + module.getName() + " to " + Keys.getKeyName(bind));
+        module.setKeybind(bind);
 
         Arsenic.getArsenic().getConfigManager().saveConfig();
     }
@@ -41,12 +45,6 @@ public class BindCommand extends Command {
     }
 
     private static List<String> keyNames() {
-        List<String> names = new ArrayList<>();
-        for (int i = 0; i < Keyboard.KEYBOARD_SIZE; i++) {
-            String name = Keyboard.getKeyName(i);
-            if (name != null)
-                names.add(name);
-        }
-        return names;
+        return Keys.keyNames();
     }
 }

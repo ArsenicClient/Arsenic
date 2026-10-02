@@ -10,11 +10,10 @@ import arsenic.module.ModuleInfo;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.entity.projectile.EntityFireball;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.Vec3;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 import java.awt.*;
 import java.util.List;
@@ -47,12 +46,12 @@ public class AntiFireball extends Module {
         if (target == null)
             return;
 
-        Vec3 targetVec = new Vec3(target.posX, target.posY + target.height / 2, target.posZ);
-        Vec3 eyePos = mc.thePlayer.getPositionEyes(1f);
-        double dx = targetVec.xCoord - eyePos.xCoord;
-        double dy = targetVec.yCoord - eyePos.yCoord;
-        double dz = targetVec.zCoord - eyePos.zCoord;
-        double dist = MathHelper.sqrt_double(dx * dx + dz * dz);
+        Vec3 targetVec = new Vec3(target.getX(), target.getY() + target.height / 2, target.getZ());
+        Vec3 eyePos = mc.player.getEyePosition(1f);
+        double dx = targetVec.x - eyePos.x;
+        double dy = targetVec.y - eyePos.y;
+        double dz = targetVec.z - eyePos.z;
+        double dist = (float) Math.sqrt(dx * dx + dz * dz);
         float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90);
         float pitch = (float) (-Math.toDegrees(Math.atan2(dy, dist)));
 
@@ -75,18 +74,18 @@ public class AntiFireball extends Module {
 
         // Always a real swing: a bare animation packet without the client-side arm movement is
         // both easier to spot and pointless here, since the swing is visible anyway.
-        mc.thePlayer.swingItem();
-        mc.playerController.attackEntity(mc.thePlayer, target);
+        mc.player.swingItem();
+        mc.gameMode.attackEntity(mc.player, target);
         attackTimer.reset();
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRender2D> eventRender2D = event -> {
-        for (Entity e : mc.theWorld.loadedEntityList) {
+        for (Entity e : mc.level.loadedEntityList) {
             if (!(e instanceof EntityFireball))
                 continue;
-            if (mc.thePlayer.getDistanceToEntity(e) > 64)
+            if (mc.player.distanceTo(e) > 64)
                 continue;
 
             drawFireballIndicator(e, event.getSr());
@@ -94,10 +93,10 @@ public class AntiFireball extends Module {
     };
 
     private void drawFireballIndicator(Entity fireball, ScaledResolution sr) {
-        double dx = fireball.posX - mc.thePlayer.posX;
-        double dz = fireball.posZ - mc.thePlayer.posZ;
+        double dx = fireball.getX() - mc.player.getX();
+        double dz = fireball.getZ() - mc.player.getZ();
         float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
-        float angle = MathHelper.wrapAngleTo180_float(yaw - mc.thePlayer.rotationYaw);
+        float angle = Mth.wrapDegrees(yaw - mc.player.getYRot());
 
         double radians = Math.toRadians(angle + 90);
         int radius = 50;
@@ -107,15 +106,9 @@ public class AntiFireball extends Module {
         int indicatorX = centerX + (int) (radius * Math.cos(radians));
         int indicatorY = centerY - (int) (radius * Math.sin(radians));
 
-        int dist = (int) mc.thePlayer.getDistanceToEntity(fireball);
+        int dist = (int) mc.player.distanceTo(fireball);
 
-        GL11.glPushMatrix();
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glLineWidth(2.0f);
 
-        GL11.glColor4f(1.0f, 0.3f, 0.3f, 0.9f);
         float size = 6.0f;
         GL11.glBegin(GL11.GL_TRIANGLES);
         GL11.glVertex2d(indicatorX, indicatorY - size);
@@ -123,26 +116,22 @@ public class AntiFireball extends Module {
         GL11.glVertex2d(indicatorX + size, indicatorY + size);
         GL11.glEnd();
 
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        mc.fontRendererObj.drawStringWithShadow(dist + "m", indicatorX - 8, indicatorY + 8, new Color(255, 80, 80).getRGB());
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glPopMatrix();
+        mc.font.drawStringWithShadow(dist + "m", indicatorX - 8, indicatorY + 8, new Color(255, 80, 80).getRGB());
     }
 
     private Entity findBestFireball() {
-        List<Entity> fireballs = mc.theWorld.loadedEntityList.stream()
+        List<Entity> fireballs = mc.level.loadedEntityList.stream()
                 .filter(e -> e instanceof EntityFireball)
                 .filter(e -> {
-                    if (e.ticksExisted <= MIN_FIREBALL_AGE_TICKS)
+                    if (e.tickCount <= MIN_FIREBALL_AGE_TICKS)
                         return false;
-                    if (mc.thePlayer.getDistanceToEntity(e) > RANGE)
+                    if (mc.player.distanceTo(e) > RANGE)
                         return false;
                     return true;
                 })
                 .sorted((a, b) -> {
-                    double distA = mc.thePlayer.getDistanceToEntity(a);
-                    double distB = mc.thePlayer.getDistanceToEntity(b);
+                    double distA = mc.player.distanceTo(a);
+                    double distB = mc.player.distanceTo(b);
                     return Double.compare(distA, distB);
                 })
                 .collect(Collectors.toList());
@@ -151,8 +140,8 @@ public class AntiFireball extends Module {
             return null;
 
         for (Entity fb : fireballs) {
-            double dx = fb.posX - mc.thePlayer.posX;
-            double dz = fb.posZ - mc.thePlayer.posZ;
+            double dx = fb.getX() - mc.player.getX();
+            double dz = fb.getZ() - mc.player.getZ();
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist < 0.1)
                 return fb;

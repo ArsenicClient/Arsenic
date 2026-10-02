@@ -8,8 +8,7 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
+import arsenic.utils.io.Keys;
 
 /**
  * Base of every ClickGUI element.
@@ -53,15 +52,12 @@ public abstract class Component implements IContainable {
         // A press is only ever released by the physical button coming up. Tracking it here rather
         // than in each subclass means a component can never be left stuck "pressed" because the
         // mouse-up landed on a different element.
-        if (pressed && !Mouse.isButtonDown(0))
+        if (pressed && !Keys.isMouseDown(0))
             pressed = false;
 
         mouseUpdate(ri.getMouseX(), ri.getMouseY());
 
-        GL11.glPushMatrix();
-        RenderUtils.resetColorText();
         float r = drawComponent(ri);
-        GL11.glPopMatrix();
 
         return r;
     }

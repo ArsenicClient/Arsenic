@@ -1,11 +1,14 @@
 package arsenic.utils.minecraft;
 
 import arsenic.utils.java.UtilityClass;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.potion.Potion;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.phys.Vec3;
 
 public class MoveUtil extends UtilityClass {
+
     public static final double WALK_SPEED = .221;
     public static final double WEB_SPEED = .105 / WALK_SPEED;
     public static final double SWIM_SPEED = .115f / WALK_SPEED;
@@ -15,27 +18,26 @@ public class MoveUtil extends UtilityClass {
             1.f, .1645f / SWIM_SPEED / WALK_SPEED, .1995f / SWIM_SPEED / WALK_SPEED, 1.f / SWIM_SPEED
     };
 
+    /** 1.8's moveForward / moveStrafing are LivingEntity#zza / #xxa. */
     public static boolean isMoving() {
-        return mc.thePlayer.moveForward != 0 || mc.thePlayer.moveStrafing != 0;
+        return mc.player.zza != 0 || mc.player.xxa != 0;
     }
 
     public static boolean isInLiquid() {
-        return mc.thePlayer.isInWater() || mc.thePlayer.isInLava();
+        return mc.player.isInWater() || mc.player.isInLava();
     }
 
     public static boolean enoughMovementForSprinting() {
-        return Math.abs(mc.thePlayer.moveForward) >= .8f || Math.abs(mc.thePlayer.moveStrafing) >= .8f;
+        return Math.abs(mc.player.zza) >= .8f || Math.abs(mc.player.xxa) >= .8f;
     }
 
     public static void strafe(double speed) {
         float direction = (float) Math.toRadians(getDirection());
-
+        Vec3 motion = mc.player.getDeltaMovement();
         if (isMoving()) {
-            mc.thePlayer.motionX = -Math.sin(direction) * speed;
-            mc.thePlayer.motionZ = Math.cos(direction) * speed;
+            mc.player.setDeltaMovement(-Math.sin(direction) * speed, motion.y, Math.cos(direction) * speed);
         } else {
-            mc.thePlayer.motionX = 0;
-            mc.thePlayer.motionZ = 0;
+            mc.player.setDeltaMovement(0, motion.y, 0);
         }
     }
 
@@ -43,42 +45,40 @@ public class MoveUtil extends UtilityClass {
         float direction = (float) Math.toRadians(MoveUtil.getDirection());
         double deltaX = -amount * Math.sin(direction);
         double deltaZ = amount * Math.cos(direction);
-
-        mc.thePlayer.setPosition(mc.thePlayer.posX + deltaX, mc.thePlayer.posY, mc.thePlayer.posZ + deltaZ);
+        mc.player.setPos(mc.player.getX() + deltaX, mc.player.getY(), mc.player.getZ() + deltaZ);
     }
 
     public static float getDirection() {
-        float direction = mc.thePlayer.rotationYaw;
-
-        if (mc.thePlayer.moveForward > 0) {
-            if (mc.thePlayer.moveStrafing > 0) {
+        float direction = mc.player.getYRot();
+        float forward = mc.player.zza, strafe = mc.player.xxa;
+        if (forward > 0) {
+            if (strafe > 0) {
                 direction -= 45;
-            } else if (mc.thePlayer.moveStrafing < 0) {
+            } else if (strafe < 0) {
                 direction += 45;
             }
-        } else if (mc.thePlayer.moveForward < 0) {
-            if (mc.thePlayer.moveStrafing > 0) {
+        } else if (forward < 0) {
+            if (strafe > 0) {
                 direction -= 135;
-            } else if (mc.thePlayer.moveStrafing < 0) {
+            } else if (strafe < 0) {
                 direction += 135;
             } else {
                 direction -= 180;
             }
         } else {
-            if (mc.thePlayer.moveStrafing > 0) {
+            if (strafe > 0) {
                 direction -= 90;
-            } else if (mc.thePlayer.moveStrafing < 0) {
+            } else if (strafe < 0) {
                 direction += 90;
             }
         }
-
         return direction;
     }
 
     public static float getMovementYaw() {
         float n = 0.0f;
-        final double n2 = mc.thePlayer.movementInput.moveForward;
-        final double n3 = mc.thePlayer.movementInput.moveStrafe;
+        final double n2 = mc.player.input.getMoveVector().y;
+        final double n3 = mc.player.input.getMoveVector().x;
         if (n2 == 0.0) {
             if (n3 == 0.0) {
                 n = 180.0f;
@@ -104,76 +104,54 @@ public class MoveUtil extends UtilityClass {
                 n = -45.0f;
             }
         }
-        return mc.thePlayer.rotationYaw + n;
+        return mc.player.getYRot() + n;
     }
 
     public static double getBaseSpeed() {
         double speed;
         boolean useModifiers = false;
-
         if (MoveUtil.isInLiquid()) {
             speed = SWIM_SPEED * WALK_SPEED;
-
-            final int level = EnchantmentHelper.getDepthStriderModifier(mc.thePlayer);
-
+            final int level = Math.min(3, ItemUtils.enchantLevel(Enchantments.DEPTH_STRIDER, mc.player.getItemBySlot(EquipmentSlot.FEET)));
             if (level > 0) {
                 speed *= DEPTH_STRIDER[level];
                 useModifiers = true;
             }
-        } else if (mc.thePlayer.isSneaking()) {
+        } else if (mc.player.isShiftKeyDown()) {
             speed = SNEAK_SPEED * WALK_SPEED;
         } else {
             speed = WALK_SPEED;
             useModifiers = true;
         }
-
         if (useModifiers) {
             if (enoughMovementForSprinting())
                 speed *= SPRINTING_SPEED;
-
-            if (mc.thePlayer.isPotionActive(Potion.moveSpeed))
-                speed *= 1 + (.2 * (mc.thePlayer.getActivePotionEffect(Potion.moveSpeed).getAmplifier() + 1));
-
-            if (mc.thePlayer.isPotionActive(Potion.moveSlowdown))
+            MobEffectInstance speedEffect = mc.player.getEffect(MobEffects.SPEED);
+            if (speedEffect != null)
+                speed *= 1 + (.2 * (speedEffect.getAmplifier() + 1));
+            if (mc.player.hasEffect(MobEffects.SLOWNESS))
                 speed = .29;
         }
-
         return speed;
     }
 
     public static float getPerfectValue(float noSpeed, float speed1, float speed2) {
-        float speed = 0;
-
-        for (PotionEffect effect : mc.thePlayer.getActivePotionEffects()) {
-            if (effect.getPotionID() == 1) {
-                int amplifier = effect.getAmplifier();
-                switch (amplifier) {
-                    case 1:
-                        speed = speed2;
-                        break;
-                    case 0:
-                        speed = speed1;
-                        break;
-                    default:
-                        speed = 0;
-                        break;
-                }
-            }
-        }
-
-        if (!mc.thePlayer.isPotionActive(Potion.moveSpeed)) {
-            speed = noSpeed;
-        }
-
-        return speed;
+        MobEffectInstance effect = mc.player.getEffect(MobEffects.SPEED);
+        if (effect == null)
+            return noSpeed;
+        return switch (effect.getAmplifier()) {
+            case 0 -> speed1;
+            case 1 -> speed2;
+            default -> 0;
+        };
     }
 
     public static float getSpeed() {
-        return (float) Math.hypot(mc.thePlayer.motionX, mc.thePlayer.motionZ);
+        Vec3 motion = mc.player.getDeltaMovement();
+        return (float) Math.hypot(motion.x, motion.z);
     }
 
     public static void stop() {
-        mc.thePlayer.motionX = 0;
-        mc.thePlayer.motionZ = 0;
+        mc.player.setDeltaMovement(0, mc.player.getDeltaMovement().y, 0);
     }
 }

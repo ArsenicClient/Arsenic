@@ -10,12 +10,12 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.ItemAppleGold;
 import net.minecraft.item.ItemMonsterPlacer;
 import net.minecraft.item.ItemSoup;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +36,8 @@ public class AutoSoup extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        boolean shouldEat = (mc.currentScreen == null)
-                && mc.thePlayer.getHealth() < health.getValue().getInput()
+        boolean shouldEat = (mc.gui.screen() == null)
+                && mc.player.getHealth() < health.getValue().getInput()
                 && actionTimer.hasTimeElapsed(1);
 
         if (shouldEat) {
@@ -48,30 +48,30 @@ public class AutoSoup extends Module {
                 case NONE:
                     int slot = getEdibleSlot();
                     if (slot == -1) return;
-                    originalSlot = mc.thePlayer.inventory.currentItem;
-                    mc.thePlayer.inventory.currentItem = slot;
+                    originalSlot = mc.player.inventory.currentItem;
+                    mc.player.inventory.currentItem = slot;
                     actionTimer.reset();
                     break;
                 case SWITCHED:
-                    KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
+                    KeyMapping.onTick(mc.options.keyBindUseItem.getKeyCode());
                     actionTimer.reset();
                     break;
                 case CLICKED:
-                    mc.thePlayer.inventory.currentItem = originalSlot;
+                    mc.player.inventory.currentItem = originalSlot;
                     actionTimer.reset();
                     break;
             }
             state = state.next();
         }
 
-        if (mc.currentScreen != null && mc.thePlayer.openContainer instanceof ContainerPlayer) {
+        if (mc.gui.screen() != null && mc.player.openContainer instanceof ContainerPlayer) {
             if (!inInv) {
                 refillTimer.reset();
-                generatePath((ContainerPlayer) mc.thePlayer.openContainer);
+                generatePath((ContainerPlayer) mc.player.openContainer);
                 inInv = true;
             }
             if (!sortedSlots.isEmpty() && refillTimer.hasTimeElapsed((long) 75)) {
-                mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, sortedSlots.get(0), 0, 1, mc.thePlayer);
+                mc.gameMode.windowClick(mc.player.openContainer.windowId, sortedSlots.get(0), 0, 1, mc.player);
                 refillTimer.reset();
                 sortedSlots.remove(0);
             }
@@ -84,7 +84,7 @@ public class AutoSoup extends Module {
         List<Integer> slots = new ArrayList<>();
         int slotsNeeded = 0;
         for (int i = 0; i <= 8; i++) {
-            if (mc.thePlayer.inventory.getStackInSlot(i) == null) slotsNeeded++;
+            if (mc.player.inventory.getStackInSlot(i) == null) slotsNeeded++;
         }
         for (int i = 0; i < inv.getInventory().size(); i++) {
             if (!slots.isEmpty() && slots.size() >= slotsNeeded) break;
@@ -98,7 +98,7 @@ public class AutoSoup extends Module {
 
     private int getEdibleSlot() {
         for (int slot = 0; slot <= 8; slot++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slot);
+            ItemStack stack = mc.player.inventory.getStackInSlot(slot);
             if (stack != null && isEdible(stack)) return slot;
         }
         return -1;

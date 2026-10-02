@@ -2,10 +2,11 @@ package arsenic.notifications;
 
 import arsenic.main.Arsenic;
 import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderContext;
 import net.minecraft.client.Minecraft;
 
 public class Notification {
-    protected static final Minecraft mc = Minecraft.getMinecraft();
+    protected static final Minecraft mc = Minecraft.getInstance();
     private final NotificationType type;
     private final String title;
     private final String message;
@@ -49,8 +50,8 @@ public class Notification {
         int textColor = ((int) (0xFF * alpha) << 24) | 0xFFFFFF;
         int subColor = ((int) (0xCC * alpha) << 24) | 0xCCCCCC;
 
-        mc.fontRendererObj.drawString(title, x + 8, (int) y + 5, textColor);
-        mc.fontRendererObj.drawString(message, x + 8, (int) y + 17, subColor);
+        RenderContext.graphics().text(mc.font, title, x + 8, (int) y + 5, textColor, false);
+        RenderContext.graphics().text(mc.font, message, x + 8, (int) y + 17, subColor, false);
     }
 
     private int getBorderColor(float alpha) {
@@ -70,8 +71,8 @@ public class Notification {
     }
 
     public int getWidth() {
-        int titleW = mc.fontRendererObj.getStringWidth(title);
-        int msgW = mc.fontRendererObj.getStringWidth(message);
+        int titleW = mc.font.width(title);
+        int msgW = mc.font.width(message);
         return Math.max(Math.max(titleW, msgW) + 24, 120);
     }
 

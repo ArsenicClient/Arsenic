@@ -18,7 +18,7 @@ public class NameHider extends Module {
      * regex/colour-code characters in either name don't break or crash it.
      */
     public static String format(String text) {
-        if (text == null || text.isEmpty() || mc.thePlayer == null) {
+        if (text == null || text.isEmpty() || mc.player == null) {
             return text;
         }
 
@@ -27,7 +27,7 @@ public class NameHider extends Module {
             return text;
         }
 
-        String realName = mc.thePlayer.getName();
+        String realName = mc.player.getName().getString();
         String replacement = customName.getValue();
         if (realName == null || realName.isEmpty() || replacement == null || !text.contains(realName)) {
             return text;

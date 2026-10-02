@@ -9,7 +9,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.KeyMapping;
 import org.lwjgl.input.Keyboard;
 
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
@@ -42,14 +42,14 @@ public class BridgeAssist extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventLiving> tickEvent = tickEvent -> {
-        if (mc.currentScreen != null || !mc.thePlayer.onGround) {
+        if (mc.gui.screen() != null || !mc.player.onGround()) {
             setSneak(false);
             return;
         }
 
         // Backwards, and looking down far enough to be placing blocks.
-        boolean bridging = mc.gameSettings.keyBindBack.isKeyDown()
-                && mc.thePlayer.rotationPitch >= BRIDGE_PITCH;
+        boolean bridging = mc.options.keyBindBack.isKeyDown()
+                && mc.player.getXRot() >= BRIDGE_PITCH;
 
         setSneak(bridging && willFallNextTick(safety.getValue().getInput()));
     };
@@ -63,8 +63,8 @@ public class BridgeAssist extends Module {
      * result means the module can only ever <em>add</em> sneaking.
      */
     private void setSneak(boolean wanted) {
-        int key = mc.gameSettings.keyBindSneak.getKeyCode();
-        KeyBinding.setKeyBindState(key, wanted || Keyboard.isKeyDown(key));
+        int key = mc.options.keyBindSneak.getKeyCode();
+        KeyMapping.setKeyBindState(key, wanted || Keyboard.isKeyDown(key));
     }
 
     @Override

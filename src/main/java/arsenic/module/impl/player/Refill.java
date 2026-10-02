@@ -10,9 +10,9 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.gui.inventory.GuiInventory;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.item.ItemPotion;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.play.client.C16PacketClientStatus;
 
 @ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER)
@@ -33,7 +33,7 @@ public class Refill extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        boolean inInv = mc.currentScreen instanceof GuiInventory;
+        boolean inInv = mc.gui.screen() instanceof InventoryScreen;
 
         if (!inInv && !openInv) {
             int potsInHotbar = countPotsInHotbar();
@@ -47,7 +47,7 @@ public class Refill extends Module {
         }
 
         if (openInv && !inInv) {
-            mc.thePlayer.sendQueue.addToSendQueue(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+            mc.player.sendQueue.addToSendQueue(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
             openInv = false;
         }
 
@@ -58,11 +58,11 @@ public class Refill extends Module {
 
     private boolean doRefill() {
         for (int hotbarSlot = 36; hotbarSlot <= 44; hotbarSlot++) {
-            ItemStack stack = mc.thePlayer.openContainer.getSlot(hotbarSlot).getStack();
+            ItemStack stack = mc.player.openContainer.getSlot(hotbarSlot).getStack();
             if (stack == null || !(stack.getItem() instanceof ItemPotion)) {
                 int potSlot = findPotionInInventory();
                 if (potSlot != -1) {
-                    mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, potSlot, 0, 1, mc.thePlayer);
+                    mc.gameMode.windowClick(mc.player.openContainer.windowId, potSlot, 0, 1, mc.player);
                     return true;
                 }
                 return false;
@@ -73,7 +73,7 @@ public class Refill extends Module {
 
     private int findPotionInInventory() {
         for (int i = 9; i < 36; i++) {
-            ItemStack stack = mc.thePlayer.openContainer.getSlot(i).getStack();
+            ItemStack stack = mc.player.openContainer.getSlot(i).getStack();
             if (stack != null && stack.getItem() instanceof ItemPotion) return i;
         }
         return -1;
@@ -82,7 +82,7 @@ public class Refill extends Module {
     private int countPotsInHotbar() {
         int count = 0;
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack != null && stack.getItem() instanceof ItemPotion) count++;
         }
         return count;
@@ -91,7 +91,7 @@ public class Refill extends Module {
     private int countPotsInInventory() {
         int count = 0;
         for (int i = 9; i < 36; i++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack != null && stack.getItem() instanceof ItemPotion) count++;
         }
         return count;
@@ -100,7 +100,7 @@ public class Refill extends Module {
     private int countEmptyOrNonPotHotbarSlots() {
         int count = 0;
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack == null || !(stack.getItem() instanceof ItemPotion)) count++;
         }
         return count;

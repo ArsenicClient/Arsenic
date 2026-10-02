@@ -3,14 +3,12 @@ package arsenic.command;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
-import org.reflections.Reflections;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
-import static org.reflections.scanners.Scanners.SubTypes;
 
 public class CommandManager {
 
@@ -26,8 +24,7 @@ public class CommandManager {
         if (!commands.isEmpty())
             throw new RuntimeException("Double initialization of Command Manager.");
 
-        Reflections reflections = new Reflections("arsenic.command");
-        reflections.get(SubTypes.of(Command.class).asClass()).forEach(command -> addCommand((Class<? extends Command>) command));
+        arsenic.utils.java.ClassScanner.findSubTypes("arsenic.command", Command.class).forEach(this::addCommand);
 
         return commands.size();
     }
@@ -36,7 +33,7 @@ public class CommandManager {
         if (Modifier.isAbstract(commandClass.getModifiers()))
             return;
         try {
-            commands.add(commandClass.newInstance());
+            commands.add(commandClass.getDeclaredConstructor().newInstance());
         } catch (Exception e) {
             e.printStackTrace();
         }

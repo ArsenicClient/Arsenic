@@ -51,7 +51,6 @@ public abstract class PropertyComponent<T extends Property> extends Component im
         ri.getFr().drawString(name, x1, midPointY,
                 UITheme.mix(UITheme.textSecondary(), UITheme.textPrimary(), hover),
                 ri.getFr().CENTREY);
-        RenderUtils.resetColorText();
 
         return draw(ri);
     }

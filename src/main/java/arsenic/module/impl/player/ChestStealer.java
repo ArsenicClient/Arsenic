@@ -14,9 +14,8 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.Timer;
-import net.minecraft.client.gui.inventory.GuiChest;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.inventory.ContainerChest;
 
 import java.awt.*;
@@ -41,7 +40,7 @@ public class ChestStealer extends Module {
 
     private Runnable nextAction;
     private final Runnable closeAction = () -> {
-        mc.thePlayer.closeScreen();
+        mc.player.closeScreen();
         inChest = false;
     };
 
@@ -52,8 +51,8 @@ public class ChestStealer extends Module {
             return;
         }
         percentStolen = (totalSlots - path.size()) / (float) (totalSlots);
-        mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
-        mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
+        mc.level.playSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), "note.hat", 3f, percentStolen * 2f, false);
+        mc.gameMode.windowClick(mc.player.openContainer.windowId, path.remove(0).s, 0, 1, mc.player);
         timer.setCooldown((int) delay.getValue().getInput());
     };
 
@@ -66,10 +65,10 @@ public class ChestStealer extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
-        inChest = (event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest);
+        inChest = (event.getGuiScreen() instanceof ContainerScreen && mc.player.openContainer instanceof ContainerChest);
         if (!inChest)
             return;
-        chest = (ContainerChest) mc.thePlayer.openContainer;
+        chest = (ContainerChest) mc.player.openContainer;
         percentStolen = 0;
         path.clear();
         timer.setCooldown((int) delay.getValue().getInput());
@@ -149,7 +148,7 @@ public class ChestStealer extends Module {
         }
     }
 
-    public void draw(GuiContainer container) {
+    public void draw(AbstractContainerScreen container) {
         if (!inChest)
             return;
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
@@ -157,7 +156,6 @@ public class ChestStealer extends Module {
         float textY = 2 * (container.height / 3f);
         int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
         GlStateManager.color(1f, 1f, 1f, 1f);
-        RenderUtils.resetColorText();
         String text = "Stealing (press escape to leave)";
         fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
         float fontWidth = fr.getWidth(text);

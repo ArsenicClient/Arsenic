@@ -9,9 +9,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayer;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.entity.player.Player;
 
 @ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true)
 public class Arrows extends Module {
@@ -19,13 +17,13 @@ public class Arrows extends Module {
 
     @EventLink
     public final Listener<EventRender2D> renderListener = event -> {
-        if (mc.thePlayer == null || mc.theWorld == null) return;
+        if (mc.player == null || mc.level == null) return;
 
         float partial = event.getPartialTicks();
 
         // Camera basis: forward, right (horizontal), up. Built from the interpolated view rotation.
-        double yaw = Math.toRadians(interp(mc.thePlayer.prevRotationYaw, mc.thePlayer.rotationYaw, partial));
-        double pitch = Math.toRadians(interp(mc.thePlayer.prevRotationPitch, mc.thePlayer.rotationPitch, partial));
+        double yaw = Math.toRadians(interp(mc.player.yRotO, mc.player.getYRot(), partial));
+        double pitch = Math.toRadians(interp(mc.player.xRotO, mc.player.getXRot(), partial));
 
         double fx = -Math.sin(yaw) * Math.cos(pitch);
         double fy = -Math.sin(pitch);
@@ -40,11 +38,11 @@ public class Arrows extends Module {
         double uy = rz * fx - rx * fz;
         double uz = rx * fy;
 
-        double eyeX = interp(mc.thePlayer.prevPosX, mc.thePlayer.posX, partial);
-        double eyeY = interp(mc.thePlayer.prevPosY, mc.thePlayer.posY, partial) + mc.thePlayer.getEyeHeight();
-        double eyeZ = interp(mc.thePlayer.prevPosZ, mc.thePlayer.posZ, partial);
+        double eyeX = interp(mc.player.xo, mc.player.getX(), partial);
+        double eyeY = interp(mc.player.yo, mc.player.getY(), partial) + mc.player.getEyeHeight();
+        double eyeZ = interp(mc.player.zo, mc.player.getZ(), partial);
 
-        double vfov = Math.toRadians(mc.gameSettings.fovSetting);
+        double vfov = Math.toRadians(mc.options.fovSetting);
         double tanV = Math.tan(vfov / 2.0);
         double aspect = mc.displayHeight == 0 ? 1.0 : (double) mc.displayWidth / mc.displayHeight;
         double tanH = tanV * aspect;
@@ -53,24 +51,19 @@ public class Arrows extends Module {
         float cx = sr.getScaledWidth() / 2f;
         float cy = sr.getScaledHeight() / 2f;
 
-        GlStateManager.pushMatrix();
-        GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.disableTexture2D();
         // the HUD ortho flips Y, making our triangles clockwise in window space;
         // with the GUI's GL_CULL_FACE enabled they'd be back-face culled away
-        GlStateManager.disableCull();
 
-        for (EntityPlayer player : mc.theWorld.playerEntities) {
-            if (player == mc.thePlayer) continue;
-            if (player.isDead || player.isInvisible()) continue;
+        for (Player player : mc.level.playerEntities) {
+            if (player == mc.player) continue;
+            if (player.isRemoved() || player.isInvisible()) continue;
             if (AntiBot.isBot(player)) continue;
-            float dist = mc.thePlayer.getDistanceToEntity(player);
+            float dist = mc.player.distanceTo(player);
             if (dist > 64) continue;
 
-            double tx = interp(player.prevPosX, player.posX, partial) - eyeX;
-            double ty = interp(player.prevPosY, player.posY, partial) + player.height * 0.5 - eyeY;
-            double tz = interp(player.prevPosZ, player.posZ, partial) - eyeZ;
+            double tx = interp(player.xo, player.getX(), partial) - eyeX;
+            double ty = interp(player.yo, player.getY(), partial) + player.height * 0.5 - eyeY;
+            double tz = interp(player.zo, player.getZ(), partial) - eyeZ;
             double len = Math.sqrt(tx * tx + ty * ty + tz * tz);
             if (len < 1e-6) continue;
             tx /= len; ty /= len; tz /= len;
@@ -100,11 +93,6 @@ public class Arrows extends Module {
             drawArrow(cx, cy, (float) 34, (float) 11, angle, color);
         }
 
-        GlStateManager.enableCull();
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
-        GL11.glColor4f(1, 1, 1, 1);
-        GlStateManager.popMatrix();
     };
 
     private void drawArrow(float cx, float cy, float radius, float len, double angle, int color) {
@@ -126,7 +114,6 @@ public class Arrows extends Module {
         float r = ((color >> 16) & 0xFF) / 255f;
         float g = ((color >> 8) & 0xFF) / 255f;
         float b = (color & 0xFF) / 255f;
-        GL11.glColor4f(r, g, b, a);
 
         GL11.glBegin(GL11.GL_TRIANGLES);
         GL11.glVertex2f(tipX, tipY);

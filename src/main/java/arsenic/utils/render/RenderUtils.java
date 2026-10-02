@@ -1,108 +1,38 @@
 package arsenic.utils.render;
 
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
-
-import arsenic.injection.accessor.IMixinMinecraft;
-import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.utils.java.UtilityClass;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.*;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
-import javax.imageio.ImageIO;
+import java.awt.Color;
 
-import static net.minecraft.client.renderer.GlStateManager.color;
-import static org.lwjgl.opengl.GL11.*;
-
-import arsenic.main.Arsenic;
-
-import static net.minecraft.client.renderer.GlStateManager.color;
-import static org.lwjgl.opengl.GL11.glColor4f;
-
+/**
+ * Colour helpers plus world-space drawing.
+ * <p>
+ * World drawing goes through vanilla's gizmo system (the same thing debug renderers use), so it
+ * only works while a gizmo collector is open - that is, inside an {@code EventRenderWorldLast}
+ * listener. Gizmo coordinates are absolute world positions; there is no camera offset to subtract
+ * like there was with 1.8's {@code viewerPosX}.
+ */
 public class RenderUtils extends UtilityClass {
 
-    public static void setColor(final int color) {
-        final float a = ((color >> 24) & 0xFF) / 255.0f;
-        final float r = ((color >> 16) & 0xFF) / 255.0f;
-        final float g = ((color >> 8) & 0xFF) / 255.0f;
-        final float b = (color & 0xFF) / 255.0f;
-        glColor4f(r, g, b, a);
-    }
+    // ---------------------------------------------------------------
+    //  Colour
+    // ---------------------------------------------------------------
 
-    public static void resetColorText() {
-        color(1f, 1f, 1f, 1f);
-    }
-
-    public static void resetColor() {
-        glColor4f(1f, 1f, 1f, 1f);
-    }
-    public static void bindTexture(int texture) {
-        glBindTexture(GL_TEXTURE_2D, texture);
-    }
     public static int alpha(Color color, int newAlpha) {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), newAlpha).getRGB();
     }
-    public static void setAlphaLimit(float alphaLimit) {
-        GlStateManager.enableAlpha();
-        GlStateManager.alphaFunc(GL_GREATER,  alphaLimit * 0.01f);
-    }
-    /**
-     * True while the ClickGUI is being captured into the burn-transition FBO.
-     * With plain (SRC_ALPHA, 1-SRC_ALPHA) blending the src factor also applies
-     * to the alpha channel, so an empty FBO accumulates srcA^2 instead of srcA
-     * - the capture reads too transparent and the burn composite lets the world
-     * bleed through, then "snaps" opaque when the burn ends. While this flag is
-     * set, GUI draws use separate alpha factors (ONE, 1-SRC_ALPHA) so FBO alpha
-     * is true coverage and the composite reproduces on-screen opacity exactly.
-     */
-    public static boolean captureCoverage = false;
 
-    /** Standard GUI transparency blend; coverage-correct during burn capture. */
-    public static void applyGuiBlend() {
-        if (captureCoverage) {
-            // sync GlStateManager's cache, then force the real GL state with a
-            // raw call - the cache is often stale here because of the raw
-            // glBlendFunc calls sprinkled through the render helpers
-            GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-            OpenGlHelper.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        } else {
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        }
-    }
-
-    public static void startBlend() {
-        GlStateManager.enableBlend();
-        if (captureCoverage) {
-            applyGuiBlend();
-        } else {
-            GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        }
-    }
-    public static void endBlend() {
-        GlStateManager.disableBlend();
-    }
-    public static ResourceLocation getResourcePath(String s) {
-        InputStream inputStream = Arsenic.class.getResourceAsStream(s);
-        BufferedImage bf;
-        try {
-            assert inputStream != null;
-            bf = ImageIO.read(inputStream);
-            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
-        } catch (IOException | IllegalArgumentException | NullPointerException e) {
-            e.printStackTrace();
-            return new ResourceLocation("null");
-        }
+    public static int withAlpha(int color, int alpha) {
+        return (Mth.clamp(alpha, 0, 255) << 24) | (color & 0x00FFFFFF);
     }
 
     public static Color interpolateColoursColor(Color a, Color b, float f) {
@@ -119,426 +49,130 @@ public class RenderUtils extends UtilityClass {
     }
 
     public static int interpolateColoursInt(int a, int b, float f) {
-        return interpolateColoursColor(new Color(a), new Color(b), f).getRGB();
+        f = Mth.clamp(f, 0f, 1f);
+        float rf = 1 - f;
+        int alpha = (int) (((a >>> 24) & 0xFF) * rf + ((b >>> 24) & 0xFF) * f);
+        int red = (int) (((a >> 16) & 0xFF) * rf + ((b >> 16) & 0xFF) * f);
+        int green = (int) (((a >> 8) & 0xFF) * rf + ((b >> 8) & 0xFF) * f);
+        int blue = (int) ((a & 0xFF) * rf + (b & 0xFF) * f);
+        return (alpha << 24) | (red << 16) | (green << 8) | blue;
+    }
+
+    /** Textures ship in the jar's assets, so they are addressed by id rather than loaded by hand. */
+    public static Identifier getResourcePath(String path) {
+        String trimmed = path.startsWith("/") ? path.substring(1) : path;
+        if (trimmed.startsWith("assets/arsenic/"))
+            trimmed = trimmed.substring("assets/arsenic/".length());
+        return Identifier.fromNamespaceAndPath("arsenic", trimmed);
+    }
+
+    // ---------------------------------------------------------------
+    //  World space (gizmos)
+    // ---------------------------------------------------------------
+
+    public static float partialTicks() {
+        return mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+    }
+
+    public static Vec3 interpolatedPosition(Entity entity) {
+        return entity.getPosition(partialTicks());
+    }
+
+    public static AABB interpolatedBox(Entity entity) {
+        Vec3 offset = interpolatedPosition(entity).subtract(entity.position());
+        return entity.getBoundingBox().move(offset);
     }
 
     public static void renderBlock(BlockPos blockPos, int color, boolean outline, boolean shade) {
-        renderBox(blockPos.getX(), blockPos.getY(), blockPos.getZ(), color, outline, shade);
+        renderBox(new AABB(blockPos), color, outline, shade);
     }
 
-    public static void renderBox(int x, int y, int z, int color, boolean outline, boolean shade) {
-        double xPos = x - mc.getRenderManager().viewerPosX;
-        double yPos = y - mc.getRenderManager().viewerPosY;
-        double zPos = z - mc.getRenderManager().viewerPosZ;
-        GL11.glPushMatrix();
-        GL11.glBlendFunc(770, 771);
-        GL11.glEnable(3042);
-        GL11.glLineWidth(2.0f);
-        GL11.glDisable(3553);
-        GL11.glDisable(2929);
-        GL11.glDepthMask(false);
-
-        float n8 = (color >> 24 & 0xFF) / 255.0f;
-        float n9 = (color >> 16 & 0xFF) / 255.0f;
-        float n10 = (color >> 8 & 0xFF) / 255.0f;
-        float n11 = (color & 0xFF) / 255.0f;
-
-        GL11.glColor4f(n9, n10, n11, n8);
-
-        AxisAlignedBB axisAlignedBB = new AxisAlignedBB(xPos, yPos, zPos, xPos + 1.0, yPos + 1.0, zPos + 1.0);
-
-        if (outline) {
-            RenderGlobal.drawSelectionBoundingBox(axisAlignedBB);
-        }
-
-        if (shade) {
-            drawBoundingBox(axisAlignedBB, n9, n10, n11);
-        }
-
-        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        GL11.glEnable(3553);
-        GL11.glEnable(2929);
-        GL11.glDepthMask(true);
-        GL11.glDisable(3042);
-        GL11.glPopMatrix();
+    public static void renderBox(AABB box, int color, boolean outline, boolean shade) {
+        GizmoStyle style;
+        int fill = withAlpha(color, Math.max(1, ((color >>> 24) & 0xFF) / 3));
+        if (outline && shade)
+            style = GizmoStyle.strokeAndFill(opaque(color), 2f, fill);
+        else if (shade)
+            style = GizmoStyle.fill(fill);
+        else
+            style = GizmoStyle.stroke(opaque(color), 2f);
+        Gizmos.cuboid(box, style).setAlwaysOnTop();
     }
 
-    public static void renderBlockFace(BlockPos blockPos, EnumFacing facing, int color, boolean outline, boolean shade) {
-        double xPos = blockPos.getX() - mc.getRenderManager().viewerPosX;
-        double yPos = blockPos.getY() - mc.getRenderManager().viewerPosY;
-        double zPos = blockPos.getZ() - mc.getRenderManager().viewerPosZ;
-
-        GL11.glPushMatrix();
-        GL11.glBlendFunc(770, 771);
-        GL11.glEnable(3042);
-        GL11.glLineWidth(2.0f);
-        GL11.glDisable(3553);
-        GL11.glDisable(2929);
-        GL11.glDepthMask(false);
-
-        float a = 1;
-        float r = (color >> 16 & 0xFF) / 255.0f;
-        float g = (color >> 8  & 0xFF) / 255.0f;
-        float b = (color       & 0xFF) / 255.0f;
-
-        GL11.glColor4f(r, g, b, a);
-
-        // Build a razor-thin BB on the correct face
-        AxisAlignedBB faceBB;
-        switch (facing) {
-            case UP:
-                faceBB = new AxisAlignedBB(xPos,       yPos + 1.0, zPos,       xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
-            case DOWN:
-                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos + 1.0, yPos,       zPos + 1.0); break;
-            case NORTH:
-                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos + 1.0, yPos + 1.0, zPos      ); break;
-            case SOUTH:
-                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos + 1.0, xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
-            case WEST:
-                faceBB = new AxisAlignedBB(xPos,       yPos,       zPos,       xPos,       yPos + 1.0, zPos + 1.0); break;
-            case EAST:
-                faceBB = new AxisAlignedBB(xPos + 1.0, yPos,       zPos,       xPos + 1.0, yPos + 1.0, zPos + 1.0); break;
-            default: return;
-        }
-
-        if (outline) {
-            RenderGlobal.drawSelectionBoundingBox(faceBB);
-        }
-
-        if (shade) {
-            drawFaceQuad(faceBB, facing, r, g, b, a);
-        }
-
-        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        GL11.glEnable(3553);
-        GL11.glEnable(2929);
-        GL11.glDepthMask(true);
-        GL11.glDisable(3042);
-        GL11.glPopMatrix();
+    public static void renderBlockFace(BlockPos blockPos, Direction facing, int color, boolean outline, boolean shade) {
+        AABB block = new AABB(blockPos);
+        Vec3 min = new Vec3(block.minX, block.minY, block.minZ);
+        Vec3 max = new Vec3(block.maxX, block.maxY, block.maxZ);
+        GizmoStyle style = outline && !shade ? GizmoStyle.stroke(opaque(color), 2f) : GizmoStyle.fill(color);
+        Gizmos.rect(min, max, facing, style).setAlwaysOnTop();
     }
 
-    private static void drawFaceQuad(AxisAlignedBB bb, EnumFacing facing, float r, float g, float b, float a) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-
-        GL11.glColor4f(r, g, b, a);
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-
-        switch (facing) {
-            case UP:
-                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
-                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
-                break;
-            case DOWN:
-                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
-                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
-                break;
-            case NORTH:
-                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
-                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
-                break;
-            case SOUTH:
-                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
-                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
-                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
-                break;
-            case WEST:
-                wr.pos(bb.minX, bb.minY, bb.minZ).endVertex();
-                wr.pos(bb.minX, bb.minY, bb.maxZ).endVertex();
-                wr.pos(bb.minX, bb.maxY, bb.maxZ).endVertex();
-                wr.pos(bb.minX, bb.maxY, bb.minZ).endVertex();
-                break;
-            case EAST:
-                wr.pos(bb.maxX, bb.minY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.minZ).endVertex();
-                wr.pos(bb.maxX, bb.maxY, bb.maxZ).endVertex();
-                wr.pos(bb.maxX, bb.minY, bb.maxZ).endVertex();
-                break;
-        }
-
-        tess.draw();
+    public static void drawBoundingBox(AABB box, int color) {
+        Gizmos.cuboid(box, GizmoStyle.stroke(opaque(color), 1.5f)).setAlwaysOnTop();
     }
 
-    public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b) {
-        drawBoundingBox(abb, r, g, b, 0.25f);
+    public static void drawShadedBoundingBox(AABB box, int r, int g, int b, int a) {
+        Gizmos.cuboid(box, GizmoStyle.fill((a << 24) | (r << 16) | (g << 8) | b)).setAlwaysOnTop();
     }
 
-    public static void drawBoundingBox(Vec3 pos, Color color) {
-        IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
-        double x = pos.xCoord - renderManager.getRenderPosX();
-        double y = pos.yCoord - renderManager.getRenderPosY();
-        double z = pos.zCoord - renderManager.getRenderPosZ();
-
-        AxisAlignedBB playerBB = mc.thePlayer.getEntityBoundingBox();
-        double width = playerBB.maxX - playerBB.minX;
-        double height = playerBB.maxY - playerBB.minY;
-
-        AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(
-                x - width / 2, y, z - width / 2,
-                x + width / 2, y + height, z + width / 2
-        );
-
-        GlStateManager.pushMatrix();
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glDepthMask(false);
-        GL11.glLineWidth(2.0F);
-        RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glDepthMask(true);
-        GL11.glLineWidth(1.0F);
-        GlStateManager.popMatrix();
+    public static void drawLine(Vec3 from, Vec3 to, int color, float width) {
+        Gizmos.line(from, to, color, width).setAlwaysOnTop();
     }
 
-    public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b, float a) {
-        Tessellator ts = Tessellator.getInstance();
-        WorldRenderer vb = ts.getWorldRenderer();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-    }
-    public static void drawShadedBoundingBox(AxisAlignedBB abb, int r, int g, int b, int a) {
-        Tessellator ts = Tessellator.getInstance();
-        WorldRenderer vb = ts.getWorldRenderer();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        ts.draw();
-        vb.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        vb.pos(abb.minX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.minX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.minZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.maxY, abb.maxZ).color(r, g, b, a).endVertex();
-        vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
-        ts.draw();
-    }
-
-    public static void drawLineToEntity(Entity e, int r, int g, int b, int a, double lw) {
-        if (e != null) {
-            double x = e.lastTickPosX + (e.posX - e.lastTickPosX) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosX;
-            double y = (double) e.getEyeHeight() + e.lastTickPosY + (e.posY - e.lastTickPosY) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosY;
-            double z = e.lastTickPosZ + (e.posZ - e.lastTickPosZ) * ((IMixinMinecraft) mc).getTimer().renderPartialTicks - mc.getRenderManager().viewerPosZ;
-            GL11.glPushMatrix();
-            GL11.glEnable(3042);
-            GL11.glEnable(GL_LINE_SMOOTH);
-            GL11.glDisable(2929);
-            GL11.glDisable(GL_TEXTURE_2D);
-            GL11.glBlendFunc(770, 771);
-            GL11.glEnable(3042);
-            GL11.glLineWidth((float) lw);
-            GL11.glColor4f(r, g, b, a);
-            GL11.glBegin(2);
-            GL11.glVertex3d(0.0D, (double) mc.thePlayer.getEyeHeight(), 0.0D);
-            GL11.glVertex3d(x, y, z);
-            GL11.glEnd();
-            GL11.glDisable(GL_BLEND);
-            GL11.glEnable(GL_TEXTURE_2D);
-            GL11.glEnable(2929);
-            GL11.glDisable(GL_LINE_SMOOTH);
-            GL11.glDisable(GL_BLEND);
-            GL11.glPopMatrix();
-        }
-    }
-
-    public static void color2(int color, float alpha) {
-        float r = (float) (color >> 16 & 255) / 255.0F;
-        float g = (float) (color >> 8 & 255) / 255.0F;
-        float b = (float) (color & 255) / 255.0F;
-        GlStateManager.color(r, g, b, alpha);
-    }
-
-    /** {@link #color2} without going through GlStateManager - for use inside a glPushAttrib block. */
-    private static void rawColor(int color, float alpha) {
-        glColor4f((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, alpha);
+    public static void drawLineToEntity(Entity e, int color, float width) {
+        if (e == null || mc.player == null)
+            return;
+        Vec3 target = interpolatedPosition(e).add(0, e.getEyeHeight(), 0);
+        Vec3 eyes = mc.gameRenderer.mainCamera().position();
+        // start just in front of the camera so the line reads as coming from the crosshair
+        Vec3 look = Vec3.directionFromRotation(mc.player.getXRot(), mc.player.getYRot());
+        drawLine(eyes.add(look.scale(0.2)), target, color, width);
     }
 
     public static double ticks = 0;
     public static long lastFrame = 0;
 
-    public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
-        ticks += .004 * (System.currentTimeMillis() - lastFrame);
+    /** The bobbing ring drawn around a target - a solid band fading to transparent, plus a rim. */
+    public static void drawCircle(Entity entity, double rad, int colored, float alpha) {
+        long now = System.currentTimeMillis();
+        if (lastFrame != 0)
+            ticks += .004 * (now - lastFrame);
+        lastFrame = now;
 
-        lastFrame = System.currentTimeMillis();
+        Vec3 pos = interpolatedPosition(entity);
+        double y = pos.y + Math.sin(ticks) + 1;
+        double tail = y - Math.sin(ticks + 1) / 2.7f;
+        int band = withAlpha(colored, (int) (.52f * alpha * 255));
+        int rim = withAlpha(colored, (int) (.5f * alpha * 255));
 
-        // Everything this touches is saved here and restored by glPopAttrib, and nothing below goes
-        // through GlStateManager. Mixing the two is what leaked: raw calls changed the real GL state
-        // behind GlStateManager's cache (blend left on, blend func and colour changed), so later
-        // vanilla rendering skipped state changes it thought were already in place.
-        glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_LINE_BIT
-                | GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_HINT_BIT);
-        glPushMatrix();
-        glDisable(GL_TEXTURE_2D);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_ALPHA_TEST);
-        glDisable(GL_CULL_FACE);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(false);
-        glShadeModel(GL_SMOOTH);
-        final double x = interpolate(entity.lastTickPosX, entity.posX, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosX;
-        final double y = interpolate(entity.lastTickPosY, entity.posY, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosY + Math.sin(ticks) + 1;
-        final double z = interpolate(entity.lastTickPosZ, entity.posZ, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosZ;
-
-        glBegin(GL_TRIANGLE_STRIP);
-
-        // <= so the last pair lands back on the first and the band closes without a gap
-        for (int seg = 0; seg <= 64; seg++) {
-            final double i = seg * (Math.PI * 2) / 64.0;
-            final double vecX = x + rad * Math.cos(i);
-            final double vecZ = z + rad * Math.sin(i);
-
-            rawColor(colored, 0);
-
-            glVertex3d(vecX, y - Math.sin(ticks + 1) / 2.7f, vecZ);
-
-            rawColor(colored, .52f * alpha);
-
-
-            glVertex3d(vecX, y, vecZ);
+        int segments = 48;
+        Vec3 prevTop = null, prevBottom = null;
+        for (int seg = 0; seg <= segments; seg++) {
+            double angle = seg * (Math.PI * 2) / segments;
+            double x = pos.x + rad * Math.cos(angle);
+            double z = pos.z + rad * Math.sin(angle);
+            Vec3 top = new Vec3(x, y, z);
+            Vec3 bottom = new Vec3(x, tail, z);
+            if (prevTop != null) {
+                Gizmos.rect(prevTop, top, bottom, prevBottom, GizmoStyle.fill(withAlpha(band, ((band >>> 24) & 0xFF) / 2)));
+                Gizmos.line(prevTop, top, rim, 1.5f);
+            }
+            prevTop = top;
+            prevBottom = bottom;
         }
-
-        glEnd();
-
-
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glLineWidth(1.5f);
-        glBegin(GL_LINE_STRIP);
-        rawColor(colored, .5f * alpha);
-        for (int i = 0; i <= 180; i++) {
-            glVertex3d(x - Math.sin(i * PI2 / 90) * rad, y, z + Math.cos(i * PI2 / 90) * rad);
-        }
-        glEnd();
-
-        glPopMatrix();
-        glPopAttrib();
     }
 
+    private static int opaque(int color) {
+        return ((color >>> 24) & 0xFF) == 0 ? color | 0xFF000000 : color;
+    }
 
     public static final float PI2 = roundToFloat((Math.PI * 2D));
 
     public static float roundToFloat(double d) {
         return (float) ((double) Math.round(d * 1.0E8D) / 1.0E8D);
     }
-    public static Double interpolate(double oldValue, double newValue, double interpolationValue){
+
+    public static Double interpolate(double oldValue, double newValue, double interpolationValue) {
         return (oldValue + (newValue - oldValue) * interpolationValue);
     }
 }

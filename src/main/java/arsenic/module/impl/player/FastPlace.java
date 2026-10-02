@@ -15,7 +15,7 @@ public class FastPlace extends Module {
     public int getTickDelay() {
         if(!true)
             return (int) ticks.getValue().getRandomInRange();
-        if(mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemBlock)
+        if(mc.player.getMainHandItem() != null && mc.player.getMainHandItem().getItem() instanceof ItemBlock)
             return (int) ticks.getValue().getRandomInRange();
         return 4;
     }

@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.render.DrawUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -13,7 +14,6 @@ import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.font.FontRendererExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -21,11 +21,10 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.model.IBakedModel;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.StringUtils;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -43,16 +42,16 @@ public class Nametags extends Module {
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
         if (fr == null) return;
 
-        for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-            if (player == mc.thePlayer) continue;
+        for (Player player : Minecraft.getInstance().level.playerEntities) {
+            if (player == mc.player) continue;
             if (AntiBot.isBot(player)) continue;
-            if (player.isDead) continue;
+            if (player.isRemoved()) continue;
 
-            double x = (player.lastTickPosX + (player.posX - player.lastTickPosX) * event.partialTicks)
+            double x = (player.xo + (player.getX() - player.xo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosX;
-            double y = (player.lastTickPosY + (player.posY - player.lastTickPosY) * event.partialTicks)
+            double y = (player.yo + (player.getY() - player.yo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosY;
-            double z = (player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * event.partialTicks)
+            double z = (player.zo + (player.getZ() - player.zo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosZ;
 
             String name = StringUtils.stripControlCodes(player.getName());
@@ -60,7 +59,7 @@ public class Nametags extends Module {
                     ? String.format(" §7%.1f", player.getHealth())
                     : "";
             String distText = false
-                    ? String.format(" §7[%.0f]", mc.thePlayer.getDistanceToEntity(player))
+                    ? String.format(" §7[%.0f]", mc.player.distanceTo(player))
                     : "";
             String text = name + healthText + distText;
 
@@ -76,37 +75,30 @@ public class Nametags extends Module {
                     : healthPercent > 0.25f ? 0xFFFFFF00
                     : 0xFFFF0000;
 
-            GlStateManager.pushMatrix();
             GL11.glTranslated(x, y + player.height + 0.6, z);
             GL11.glNormal3f(0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
             GlStateManager.scale(-scale, -scale, scale);
-            GlStateManager.disableDepth();
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
             drawGear(fr, collectGear(player));
 
-            Gui.drawRect((int) (-halfWidth - 2), -2, (int) (halfWidth + 2), textHeight + 2,
+            DrawUtils.drawRect((int) (-halfWidth - 2), -2, (int) (halfWidth + 2), textHeight + 2,
                     new Color(0, 0, 0, 100).getRGB());
 
             fr.drawString(text, (int) (-halfWidth), 0, 0xFFFFFFFF);
 
-            Gui.drawRect((int) (-halfWidth - 2), textHeight + 2,
+            DrawUtils.drawRect((int) (-halfWidth - 2), textHeight + 2,
                     (int) (-halfWidth - 2 + (textWidth + 4) * healthPercent), textHeight + 3,
                     healthColor);
 
-            GL11.glDisable(GL11.GL_BLEND);
-            GlStateManager.enableDepth();
-            GlStateManager.popMatrix();
         }
     };
 
     /** Held item + the four armour pieces, in a stable left-to-right order, nulls skipped. */
-    private List<ItemStack> collectGear(EntityPlayer player) {
+    private List<ItemStack> collectGear(Player player) {
         List<ItemStack> gear = new ArrayList<>();
-        ItemStack held = player.getHeldItem();
+        ItemStack held = player.getMainHandItem();
         if (held != null) gear.add(held);
         for (int i = 3; i >= 0; i--) { // helmet -> boots
             ItemStack armor = player.getCurrentArmor(i);
@@ -138,11 +130,7 @@ public class Nametags extends Module {
         float iconTop = iconBottom - ICON_SIZE;
 
         // Icons.
-        GlStateManager.pushMatrix();
         mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
-        GlStateManager.enableTexture2D();
-        GlStateManager.enableAlpha();
-        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.01f);
         GlStateManager.color(1, 1, 1, 1);
 
         for (int i = 0; i < count; i++) {
@@ -151,9 +139,7 @@ public class Nametags extends Module {
             float left = startX + i * ICON_SPACING + (ICON_SPACING - ICON_SIZE) / 2f;
             drawSprite(sprite, left, iconTop, ICON_SIZE);
         }
-        GlStateManager.disableAlpha();
         GlStateManager.color(1, 1, 1, 1);
-        GlStateManager.popMatrix();
 
         // Enchant abbreviations, centred under each icon column.
         if (maxEnchLines > 0) {
@@ -162,12 +148,10 @@ public class Nametags extends Module {
                 float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;
                 for (int l = 0; l < lines.size(); l++) {
                     String line = lines.get(l);
-                    GlStateManager.pushMatrix();
                     float ty = iconBottom + l * enchLineH;
                     GlStateManager.translate(colCenter, ty, 0);
                     GlStateManager.scale(enchScale, enchScale, 1f);
                     fr.drawString(line, (int) (-fr.getWidth(line) / 2f), 0, 0xFFFFFFFF);
-                    GlStateManager.popMatrix();
                 }
             }
         }

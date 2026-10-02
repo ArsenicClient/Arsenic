@@ -12,12 +12,12 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.item.ItemSword;
-import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.world.phys.HitResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class BlockHit extends Module {
     public String getHudInfo() {
         return blockType.getValue().name().toLowerCase();
     }
-    public EntityLivingBase target;
+    public LivingEntity target;
     public boolean down;
     // TwoSword timing: mirrors SprintReset's hurtTime gate so we swap only when it's time to attack.
     public int swapHurtTime = 1;
@@ -48,8 +48,8 @@ public class BlockHit extends Module {
 
     @EventLink
     public final Listener<EventAttack> eventAttackListener = event -> {
-        if (event.getTarget() != null && event.getTarget() instanceof EntityLivingBase) {
-            target = (EntityLivingBase) event.getTarget();
+        if (event.getTarget() != null && event.getTarget() instanceof LivingEntity) {
+            target = (LivingEntity) event.getTarget();
             hasSwapped = false;
             swapHurtTime = Math.max(1, getPing() / 20) + 1;
         }
@@ -86,8 +86,8 @@ public class BlockHit extends Module {
         MovingObjectPosition mop = event.getRayTraceEntity();
         boolean aimingAtPlayer = mop != null
                 && mop.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY
-                && mop.entityHit instanceof EntityPlayer
-                && mop.entityHit != mc.thePlayer;
+                && mop.entityHit instanceof Player
+                && mop.entityHit != mc.player;
 
         List<Integer> swords = swordSlots();
         if (!aimingAtPlayer || swords.isEmpty()) {
@@ -101,9 +101,9 @@ public class BlockHit extends Module {
         // Swap between the two swords ONLY when the hurtTime gate says it's time to attack again —
         // the same timing SprintReset uses — so we swap once per hit cycle, not every tick.
         if (swords.size() >= 2 && target != null && !hasSwapped && target.hurtTime == swapHurtTime) {
-            int current = mc.thePlayer.inventory.currentItem;
+            int current = mc.player.inventory.currentItem;
             int next = current == swords.get(0) ? swords.get(1) : swords.get(0);
-            mc.thePlayer.inventory.currentItem = next;
+            mc.player.inventory.currentItem = next;
             hasSwapped = true;
         }
     };
@@ -112,7 +112,7 @@ public class BlockHit extends Module {
     private List<Integer> swordSlots() {
         List<Integer> slots = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.thePlayer.inventory.mainInventory[i];
+            ItemStack stack = mc.player.inventory.mainInventory[i];
             if (stack != null && stack.getItem() instanceof ItemSword)
                 slots.add(i);
         }
@@ -126,22 +126,22 @@ public class BlockHit extends Module {
     }
 
     public boolean isPlayerHoldingSword() {
-        return (mc.thePlayer.getCurrentEquippedItem() != null)
-                && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword);
+        return (mc.player.getMainHandItem() != null)
+                && (mc.player.getMainHandItem().getItem() instanceof ItemSword);
     }
 
     private void release() {
-        int key = mc.gameSettings.keyBindUseItem.getKeyCode();
-        KeyBinding.setKeyBindState(key, false);
+        int key = mc.options.keyBindUseItem.getKeyCode();
+        KeyMapping.setKeyBindState(key, false);
         down = false;
         target = null;
     }
 
     private void press() {
         down = true;
-        int key = mc.gameSettings.keyBindUseItem.getKeyCode();
-        KeyBinding.setKeyBindState(key, true);
-        //KeyBinding.onTick(key);
+        int key = mc.options.keyBindUseItem.getKeyCode();
+        KeyMapping.setKeyBindState(key, true);
+        //KeyMapping.onTick(key);
     }
 
 

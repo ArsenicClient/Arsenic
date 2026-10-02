@@ -10,11 +10,11 @@ import java.io.InputStreamReader;
 public class FileUtils extends UtilityClass {
 
     public static String getArsenicFolderDirAsString() {
-        return Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic";
+        return Minecraft.getInstance().gameDirectory + File.separator + "Arsenic";
     }
 
     public static File getArsenicFolderDirAsFile() {
-        return new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic");
+        return new File(Minecraft.getInstance().gameDirectory + File.separator + "Arsenic");
     }
 
     public static String readInputStream(InputStream inputStream) {

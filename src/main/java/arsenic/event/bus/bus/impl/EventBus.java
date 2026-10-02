@@ -16,7 +16,7 @@ import arsenic.event.bus.EventErrors;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.bus.bus.Bus;
-import static arsenic.utils.minecraft.PlayerUtils.isPlayerNotLoaded;
+import static arsenic.utils.minecraft.PlayerUtils.isPlayerLoaded;
 
 public final class EventBus<Event> implements Bus<Event> {
 
@@ -55,7 +55,7 @@ public final class EventBus<Event> implements Bus<Event> {
 
                     Listener<Event> originalListener = listener;
                     listener = event -> {
-                        if (rp != null && !isPlayerNotLoaded()) return;
+                        if (rp != null && !isPlayerLoaded()) return;
                         try {
                             originalListener.call(event);
                         } catch (Throwable t) {

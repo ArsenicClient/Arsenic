@@ -3,7 +3,7 @@ package arsenic.gui.themes;
 import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.render.RenderUtils;
 import com.google.gson.JsonObject;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.awt.*;
 
@@ -11,8 +11,8 @@ public class Theme implements ISerializable {
 
     private final String name;
     private String logoName = "arsenic";
-    private ResourceLocation logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/classic.png");
-    private ResourceLocation altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/modern.png");
+    private Identifier logoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/classic.png");
+    private Identifier altLogoPath = RenderUtils.getResourcePath("/assets/arsenic/logos/modern.png");
     private int mainColor, darkerColor, white, black, gradientColor;
     private int clickGuiBackground = 0xDD0C0C0C;
     private int clickGuiSeparator = new Color(0, 0, 0, 68).getRGB();
@@ -173,11 +173,11 @@ public class Theme implements ISerializable {
     public int getStatus() { return status; }
     public void setStatus(int status) { this.status = status; }
 
-    public ResourceLocation getLogoPath() {
+    public Identifier getLogoPath() {
         return logoPath;
     }
 
-    public ResourceLocation getAltLogoPath() {
+    public Identifier getAltLogoPath() {
         return altLogoPath;
     }
 

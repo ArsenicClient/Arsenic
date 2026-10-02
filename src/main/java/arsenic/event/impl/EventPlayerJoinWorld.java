@@ -1,25 +1,24 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.Event;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 
 public class EventPlayerJoinWorld implements Event {
 
-    private final EntityPlayer entity;
-    private final World world;
+    private final Player entity;
+    private final Level world;
 
-    public EventPlayerJoinWorld(EntityPlayer entity, World world) {
+    public EventPlayerJoinWorld(Player entity, Level world) {
         this.entity = entity;
         this.world = world;
     }
 
-    public EntityPlayer getEntity() {
+    public Player getEntity() {
         return entity;
     }
 
-    public World getWorld() {
+    public Level getWorld() {
         return world;
     }
-
 }

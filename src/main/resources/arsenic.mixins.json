@@ -1,0 +1,35 @@
+{
+    "required": true,
+    "package": "arsenic.injection",
+    "compatibilityLevel": "JAVA_25",
+    "client": [
+        "accessor.IMixinLocalPlayer",
+        "accessor.IMixinMinecraft",
+        "accessor.IMixinMoveEntityPacket",
+        "accessor.IMixinMovePlayerPacket",
+        "mixin.MixinAbstractClientPlayer",
+        "mixin.MixinCakeBlock",
+        "mixin.MixinChatScreen",
+        "mixin.MixinClientLevel",
+        "mixin.MixinConnection",
+        "mixin.MixinEntity",
+        "mixin.MixinGameRenderer",
+        "mixin.MixinGui",
+        "mixin.MixinKeyboardHandler",
+        "mixin.MixinKeyboardInput",
+        "mixin.MixinLevelExtractor",
+        "mixin.MixinLivingEntity",
+        "mixin.MixinLivingEntityRenderer",
+        "mixin.MixinLocalPlayer",
+        "mixin.MixinMinecraft",
+        "mixin.MixinMultiPlayerGameMode",
+        "mixin.MixinPlayer",
+        "mixin.MixinStringDecomposer"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "overwrites": {
+        "requireAnnotations": true
+    }
+}

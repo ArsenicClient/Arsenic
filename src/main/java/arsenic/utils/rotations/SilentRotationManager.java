@@ -5,14 +5,14 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
 import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.Mth;
 
-import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
+
 
 public class SilentRotationManager {
 
 
-    private final Minecraft mc = Minecraft.getMinecraft();
+    private final Minecraft mc = Minecraft.getInstance();
     public float yaw;
     private float prevYaw;
     public float pitch ;
@@ -30,7 +30,7 @@ public class SilentRotationManager {
 
     @EventLink
     public final Listener<EventLiving> eventTickListener = event -> {
-        EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
+        EventSilentRotation rotation = new EventSilentRotation(mc.player.getYRot(), mc.player.getXRot(), speed);
         Arsenic.getArsenic().getEventManager().post(rotation);
         prevYaw = yaw;
         prevPitch = pitch;
@@ -43,9 +43,9 @@ public class SilentRotationManager {
 
 
         if (!rotation.hasBeenModified() && !modified) {
-            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
-            mc.thePlayer.rotationYaw = yaw;
-            pitch = mc.thePlayer.rotationPitch;
+            yaw = snapYawToMultipleOf360(yaw, mc.player.getYRot());
+            mc.player.setYRot(yaw);
+            pitch = mc.player.getXRot();
             modified = false;
             yawMomentum = 0;
             pitchMomentum = 0;
@@ -80,11 +80,11 @@ public class SilentRotationManager {
             }
         }
 
-        modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
+        modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.player.getYRot(), yaw)) > speed);
         if(!modified && !rotation.hasBeenModified()) {
-            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
-            mc.thePlayer.rotationYaw = yaw;
-            pitch = mc.thePlayer.rotationPitch;
+            yaw = snapYawToMultipleOf360(yaw, mc.player.getYRot());
+            mc.player.setYRot(yaw);
+            pitch = mc.player.getXRot();
         }
         postSettled();
     };
@@ -94,7 +94,7 @@ public class SilentRotationManager {
      *         Set per tick via {@link EventSilentRotation#setBlockUserInput(boolean)}; off by default.
      */
     public boolean isBlockingUserInput() {
-        return blockUserInput && mc.thePlayer != null;
+        return blockUserInput && mc.player != null;
     }
 
     private void postSettled() {
@@ -145,14 +145,11 @@ public class SilentRotationManager {
         // under the silent yaw. STRICT leaves the keys alone (player moves relative to the yaw).
         if(!modified || movementFix != MovementFix.SILENT || (event.getSpeed() == 0 && event.getStrafe() == 0))
             return;
-        float moveAngle = wrapAngleToPi(normaliseYaw(mc.thePlayer.rotationYaw) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
+        float moveAngle = wrapAngleToPi(normaliseYaw(mc.player.getYRot()) + (float) Math.atan2(-event.getStrafe(), event.getSpeed()));
         float moveKeyAngle = wrapAngleToPi(moveAngle - (float) Math.toRadians(yaw));
         float speedValue = (moveKeyAngle >= -Math.PI * 3/8 && moveKeyAngle <= Math.PI * 3/8) ? 1 : (moveKeyAngle <= -Math.PI * 5/8 || moveKeyAngle >= Math.PI * 5/8) ? -1 : 0;
         float strafeValue = (moveKeyAngle >= Math.PI/8 && moveKeyAngle <= Math.PI * 7/8) ? -1 : (moveKeyAngle <= -Math.PI/8 && moveKeyAngle >= -Math.PI * 7/8) ? 1 : 0;
-        if(mc.thePlayer.isSneaking()) {
-            speedValue *= 0.3F;
-            strafeValue *= 0.3F;
-        }
+        // No sneak scaling here: 1.8 had already applied it to the keys, modern applies it later.
         event.setSpeed(speedValue);
         event.setStrafe(strafeValue);
     };
@@ -165,7 +162,7 @@ public class SilentRotationManager {
     };
 
     public float normaliseYaw(float yaw) {
-        return (float) Math.toRadians(MathHelper.wrapAngleTo180_float(yaw));
+        return (float) Math.toRadians(Mth.wrapDegrees(yaw));
     }
 
     public static float wrapAngleToPi(float value) {
@@ -179,7 +176,7 @@ public class SilentRotationManager {
 
 
     private float getYawDelta(float targetYaw) {
-        float delta = wrapAngleTo180_float(wrapAngleTo180_float(targetYaw) - wrapAngleTo180_float(prevYaw));
+        float delta = Mth.wrapDegrees(Mth.wrapDegrees(targetYaw) - Mth.wrapDegrees(prevYaw));
         float absDelta = Math.abs(delta);
 
         if (!smoothing) {

@@ -16,11 +16,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.ChatAllowedCharacters;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.util.StringUtil;
+import net.minecraft.resources.Identifier;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -41,13 +39,13 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("dd.MM HH:mm");
 
-    private static final ResourceLocation LOCAL_ICON = new ResourceLocation("arsenic", "icons/local.png");
-    private static final ResourceLocation ONLINE_ICON = new ResourceLocation("arsenic", "icons/online.png");
-    private static final ResourceLocation FETCH_ICON = new ResourceLocation("arsenic", "icons/fetch.png");
-    private static final ResourceLocation UPLOAD_ICON = new ResourceLocation("arsenic", "icons/upload.png");
-    private static final ResourceLocation DOWNLOAD_ICON = new ResourceLocation("arsenic", "icons/download.png");
-    private static final ResourceLocation COPY_ICON = new ResourceLocation("arsenic", "icons/copy.png");
-    private static final ResourceLocation PASTE_ICON = new ResourceLocation("arsenic", "icons/paste.png");
+    private static final Identifier LOCAL_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/local.png");
+    private static final Identifier ONLINE_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/online.png");
+    private static final Identifier FETCH_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/fetch.png");
+    private static final Identifier UPLOAD_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/upload.png");
+    private static final Identifier DOWNLOAD_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/download.png");
+    private static final Identifier COPY_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/copy.png");
+    private static final Identifier PASTE_ICON = Identifier.fromNamespaceAndPath("arsenic", "icons/paste.png");
 
     private final ConfigManager configManager;
     private final StringBuilder newConfigName = new StringBuilder();
@@ -121,19 +119,12 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         expandX = anim * (width / 14f);
         int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
         int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
-        RenderUtils.resetColor();
-        RenderUtils.resetColorText();
         DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
-
-        GlStateManager.color(1f, 1f, 1f, 1f);
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
         float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
-        Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
-        Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
+        DrawUtils.drawTexture(icon, iconX, iconY, iconSize, iconSize, 0xFFFFFFFF);
 
         ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, getWhite(), ri.getFr().CENTREY);
         return height;
@@ -188,7 +179,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 DrawUtils.drawRoundedOutline(tx, y + tabH - 1, tx + tabW + 1, y + tabH + 1, 1, 1, ThemeManager.getConfigsCard());
             }
 
-            ResourceLocation tabIcon = i == 0 ? LOCAL_ICON : ONLINE_ICON;
+            Identifier tabIcon = i == 0 ? LOCAL_ICON : ONLINE_ICON;
             String label = i == 0 ? "Local" : "Online";
             int textColor = active ? ThemeManager.getTextPrimary() : ThemeManager.getTextMuted();
 
@@ -208,7 +199,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void refreshLocalConfigs() {
         localConfigs.clear();
         File configDir = new File(
-                Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
+                Minecraft.getInstance().gameDirectory + File.separator + "Arsenic" + File.separator + "Configs"
         );
         for (String name : configManager.getConfigList().stream().sorted().collect(Collectors.toList())) {
             File f = new File(configDir, name + ".json");
@@ -243,8 +234,8 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             float textX = dotX + dotSize + 10;
             ri.getFr().drawString(entry.name, textX, rowY + 10, ThemeManager.getTextPrimary());
 
-            String playerName = Minecraft.getMinecraft().thePlayer != null
-                    ? Minecraft.getMinecraft().thePlayer.getName()
+            String playerName = Minecraft.getInstance().player != null
+                    ? Minecraft.getInstance().player.getName().getString()
                     : "you";
             String dateStr = entry.lastModified > 0 ? DATE_FMT.format(new Date(entry.lastModified)) : "unknown";
             String meta = "Modified: " + dateStr + "  \u00b7  " + playerName;
@@ -505,13 +496,11 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         ri.getFr().drawString(label.toUpperCase(), x, y, ThemeManager.getTextMuted());
     }
 
-    private void drawIcon(ResourceLocation res, float x, float y, float size, RenderInfo ri) {
-        Minecraft.getMinecraft().getTextureManager().bindTexture(res);
-        GlStateManager.color(1f, 1f, 1f, 1f);
-        Gui.drawModalRectWithCustomSizedTexture((int) x, (int) y, 0, 0, (int) size, (int) size, (int) size, (int) size);
+    private void drawIcon(Identifier res, float x, float y, float size, RenderInfo ri) {
+        DrawUtils.drawTexture(res, x, y, size, size, 0xFFFFFFFF);
     }
 
-    private void drawIconWithText(ResourceLocation icon, String text, float areaX, float areaY, float areaW, float areaH, int textColor, RenderInfo ri) {
+    private void drawIconWithText(Identifier icon, String text, float areaX, float areaY, float areaW, float areaH, int textColor, RenderInfo ri) {
         float iconSize = 16;
         float textW = ri.getFr().getWidth(text);
         float totalW = iconSize + 4 + textW;
@@ -562,7 +551,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     @Override
     public boolean recieveInput(int key) {
         if (isUploadNaming) {
-            if (key == Keyboard.KEY_RETURN) {
+            if (key == InputConstants.KEY_RETURN) {
                 String name = uploadName.toString().trim();
                 if (!name.isEmpty()) {
                     uploadCurrentConfig(name);
@@ -571,18 +560,13 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
                 return true;
             }
-            if (key == Keyboard.KEY_ESCAPE) {
+            if (key == InputConstants.KEY_ESCAPE) {
                 isUploadNaming = false;
                 Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
                 return true;
             }
-            if (key == Keyboard.KEY_BACK && uploadName.length() > 0) {
+            if (key == InputConstants.KEY_BACKSPACE && uploadName.length() > 0) {
                 uploadName.deleteCharAt(uploadName.length() - 1);
-                return true;
-            }
-            char c = Keyboard.getEventCharacter();
-            if (ChatAllowedCharacters.isAllowedCharacter(c)) {
-                uploadName.append(c);
                 return true;
             }
             return true;
@@ -590,7 +574,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
         if (!isNaming) return false;
 
-        if (key == Keyboard.KEY_RETURN) {
+        if (key == InputConstants.KEY_RETURN) {
             String name = newConfigName.toString().trim();
             if (!name.isEmpty()) {
                 configManager.createConfig(name);
@@ -602,21 +586,31 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
             return true;
         }
-        if (key == Keyboard.KEY_ESCAPE) {
+        if (key == InputConstants.KEY_ESCAPE) {
             isNaming = false;
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
             return true;
         }
-        if (key == Keyboard.KEY_BACK && newConfigName.length() > 0) {
+        if (key == InputConstants.KEY_BACKSPACE && newConfigName.length() > 0) {
             newConfigName.deleteCharAt(newConfigName.length() - 1);
             return true;
         }
-        char c = Keyboard.getEventCharacter();
-        if (ChatAllowedCharacters.isAllowedCharacter(c)) {
+        return true;
+    }
+
+    @Override
+    public boolean recieveChar(char c) {
+        if (!StringUtil.isAllowedChatCharacter(c))
+            return isNaming || isUploadNaming;
+        if (isUploadNaming) {
+            uploadName.append(c);
+            return true;
+        }
+        if (isNaming) {
             newConfigName.append(c);
             return true;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -662,7 +656,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void exportConfig(String name) {
         try {
             File configDir = new File(
-                    Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
+                    Minecraft.getInstance().gameDirectory + File.separator + "Arsenic" + File.separator + "Configs"
             );
             File configFile = new File(configDir, name + ".json");
             String content = new String(Files.readAllBytes(configFile.toPath()));
@@ -746,8 +740,8 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
                 File configFile = configManager.getCurrentConfig().getDirectory();
                 String configData = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
-                String playerName = Minecraft.getMinecraft().thePlayer != null
-                        ? Minecraft.getMinecraft().thePlayer.getName()
+                String playerName = Minecraft.getInstance().player != null
+                        ? Minecraft.getInstance().player.getName().getString()
                         : "Unknown";
 
                 JsonObject body = new JsonObject();
@@ -783,7 +777,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
                 setOnlineStatus("Downloading " + cfg.name + "...", ThemeManager.getStatus());
 
                 File configDir = new File(
-                        Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
+                        Minecraft.getInstance().gameDirectory + File.separator + "Arsenic" + File.separator + "Configs"
                 );
                 File configFile = new File(configDir, cfg.name + ".json");
                 Files.write(configFile.toPath(), cfg.configJson.getBytes(StandardCharsets.UTF_8));

@@ -14,7 +14,6 @@ import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import net.minecraft.client.renderer.entity.Render;
 
 public class UICategoryComponent extends Component implements IContainer<ModuleCategoryComponent> {
     private final UICategory self;
@@ -39,7 +38,6 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
                 : getWhite();
 
         ri.getFr().drawString(getName(), x1, midPointY, color, ri.getFr().CENTREY);
-        RenderUtils.resetColorText();
 
         PosInfo pi = new PosInfo(x1, y2);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) * 1.1f));

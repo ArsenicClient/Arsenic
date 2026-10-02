@@ -1,7 +1,6 @@
 package arsenic.gui.click;
 
 import arsenic.gui.click.impl.ModuleCategoryComponent;
-import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.gui.themes.ThemeManager;
@@ -10,17 +9,12 @@ import arsenic.module.ModuleCategory;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
-import arsenic.utils.interfaces.IFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.*;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.input.Mouse;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.resources.Identifier;
 
-import java.awt.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,11 +47,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private long openTime;
     private static final int OPEN_ANIMATION_DURATION = 400;
 
-    // burn-away open/close transition
+    // open/close transition
     private boolean closing = false;
     private long closeStartTime;
     private static final int BURN_DURATION = 700;
-    private net.minecraft.client.shader.Framebuffer burnFbo;
 
     private int burnDurationMs() {
         try {
@@ -68,9 +61,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     // ---------------------------------------------------------------
-    //  Transition state, exposed so PostProcessing can fade its blur/bloom
-    //  masks in step with the open/close transition (they render outside the
-    //  burn capture and would otherwise linger at full strength).
+    //  Transition state, exposed so PostProcessing can fade its effects
+    //  in step with the open/close transition.
     // ---------------------------------------------------------------
 
     /** 1 = fully present, 0 = fully transitioned out. */
@@ -89,23 +81,22 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return GuiStyle.transitionEnabled() && currentBurnProgress() < 1f;
     }
 
-    /** {@link GuiStyle.Transition} ordinal, passed to the shaders as the style uniform. */
+    /** {@link GuiStyle.Transition} ordinal. */
     public int getTransitionStyleId() {
         return GuiStyle.transition().ordinal();
     }
 
-    /** Main box rect + corner radius in top-down real pixels: {x1, y1, x2, y2, radius}. */
+    /** Main box rect + corner radius in design units: {x1, y1, x2, y2, radius}. */
     public float[] getBurnBoxPx() {
-        float s = this.scale;
         int bx = width / 8, by = height / 6;
-        return new float[]{bx * s, by * s, (width - bx) * s, (height - by) * s, 30f * s};
+        return new float[]{bx, by, width - bx, height - by, 30f};
     }
 
     /**
-     * Builds the component tree. Called once, from client startup - it used to hang off the
-     * ClickGui module's config callback, which no longer exists.
+     * Builds the component tree. Called once, after the client has started - it needs the module
+     * list, a current theme and loaded fonts.
      */
-    public void init() {
+    public void buildComponents() {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
@@ -119,14 +110,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.doInit();
         openTime = System.currentTimeMillis();
         closing = false;
-        RenderUtils.captureCoverage = false; // safety: never leak into normal rendering
     }
 
+    /** The glow PostProcessing draws behind the panel. */
     public void drawBloom() {
-        if (getFontRenderer() == null)
+        if (getFontRenderer() == null || components == null)
             return;
-        rescale(this.scale);
-        DrawUtils.overrideScaleFactor = this.scale;
         int x = width / 8;
         int y = height / 6;
         x1 = width - x;
@@ -137,63 +126,66 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float glowFactor = Math.max(0, Math.min(1, (openProgress - 0.5f) / 0.5f));
         int glowAlpha = (int) (glowFactor * 255);
 
-        RenderUtils.resetColor();
         int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
         int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
         ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
-        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
-        DrawUtils.overrideScaleFactor = -1f;
-        rescaleMC();
+        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC, mainC, gradientC, gradientC);
     }
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
-        // render corner rounding as if always on GUI scale Normal
-        DrawUtils.overrideScaleFactor = this.scale;
+        if (components == null)
+            return;
 
-        // burn transition: 1 = fully present, <1 = mid transition (to transparent)
+        // transition: 1 = fully present, <1 = fading in or out
         boolean burn = GuiStyle.transitionEnabled();
         float burnProgress = burn ? currentBurnProgress() : 1f;
         if (burn && closing && burnProgress <= 0f) { // fully gone -> actually close
-            DrawUtils.overrideScaleFactor = -1f;
-            mc.displayGuiScreen(null);
+            RenderContext.setAlpha(1f);
+            minecraft.gui.setScreen(null);
             return;
         }
 
-        // While mid-burn, render the whole GUI into an offscreen buffer so the
-        // dissolve can reveal true transparency (the world), not the GUI beneath.
-        boolean captured = false;
-        if (burn && burnProgress < 1f) {
-            try {
-                burnFbo = arsenic.utils.render.shader.ShaderUtil.createFrameBuffer(burnFbo);
-                burnFbo.framebufferColor = new float[]{0f, 0f, 0f, 0f};
-                burnFbo.framebufferClear();
-                burnFbo.bindFramebuffer(false);
-                captured = true;
-                // GUI alpha must accumulate as true coverage while captured so
-                // the burn composite reproduces on-screen opacity exactly
-                RenderUtils.captureCoverage = true;
-            } catch (Exception e) {
-                captured = false;
-                RenderUtils.captureCoverage = false;
-            }
-        }
-
-        drawShaderBackdrop();
-        RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
-        getFontRenderer().setScale(height/450f);
         int x = width / 8;
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        ResourceLocation logoPath = GuiStyle.logoMode() == GuiStyle.LogoMode.MODERN
+
+        // 1.8 dissolved the panel through a shader on a captured framebuffer; here the whole GUI
+        // fades and grows into place instead, which needs nothing but the pose and an opacity.
+        float eased = 1f - (1f - burnProgress) * (1f - burnProgress);
+        RenderContext.setAlpha(eased);
+        var pose = RenderContext.graphics().pose();
+        pose.pushMatrix();
+        if (eased < 1f) {
+            float s = 0.94f + 0.06f * eased;
+            float cx = width / 2f, cy = height / 2f;
+            pose.translate(cx, cy);
+            pose.scale(s, s);
+            pose.translate(-cx, -cy);
+        }
+
+        try {
+            drawBackdrop();
+            drawPanel(mouseX, mouseY, x, y);
+            drawHudEditorButton(mouseX, mouseY);
+            drawScanlines();
+        } finally {
+            pose.popMatrix();
+            ScissorUtils.resetScissor();
+            getFontRenderer().resetScale();
+            RenderContext.setAlpha(1f);
+        }
+    }
+
+    private void drawPanel(int mouseX, int mouseY, int x, int y) {
+        RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
+        getFontRenderer().setScale(height/450f);
+        Identifier logoPath = GuiStyle.logoMode() == GuiStyle.LogoMode.MODERN
                 ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
                 : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
 
-        GlStateManager.pushMatrix();
-
-        // main container - base layer, lifted off the shader backdrop
-        RenderUtils.resetColor();
+        // main container - base layer, lifted off the backdrop
         DrawUtils.drawShadow(x, y, x1, y1, 30f, GuiStyle.shadowSpread(10f), GuiStyle.shadowAlpha(190), 7);
         DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
         DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(28));
@@ -224,13 +216,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         // horizontal line
         DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
 
-        //logo
-        mc.getTextureManager().bindTexture(logoPath);
+        //logo, tinted with the theme colour
         int tempExpand = (int) (x * 0.1f);
-        int logoCol = ThemeManager.getMainColor();
-        GlStateManager.color(((logoCol >> 16) & 0xFF) / 255f, ((logoCol >> 8) & 0xFF) / 255f, (logoCol & 0xFF) / 255f, 1f);
-        Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
-        GlStateManager.color(1f, 1f, 1f, 1f);
+        DrawUtils.drawTexture(logoPath, x + tempExpand, y + tempExpand,
+                vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), 0xFF000000 | ThemeManager.getMainColor());
 
         // draws each module category component, aligned inside the sidebar panel
         PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
@@ -240,7 +229,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         searchComponent.updateComponent(new PosInfo((vLineX + 5), (float) ((y + hLineY) / 2.05)), ri);
 
         // makes the currently selected category component draw its modules
-        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
+        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1);
 
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
         cmcc.drawLeft(piL, ri);
@@ -253,35 +242,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         ScissorUtils.endSubScissor();
         cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
-        ScissorUtils.resetScissor();
-
-        GlStateManager.popMatrix();
-
-        drawHudEditorButton(mouseX, mouseY);
-
-        getFontRenderer().resetScale();
-
-        drawShaderOverlay();
-
-        RenderUtils.captureCoverage = false; // capture done - back to normal blending
-
-        // Composite the captured GUI back to the screen through the burn shader:
-        // burnt areas become transparent (world shows), the edge glows in the
-        // theme colour, and everything outside the box fades. Guarded with a
-        // plain blit fallback so a shader hiccup can never hide the GUI.
-        if (captured) {
-            mc.getFramebuffer().bindFramebuffer(true); // restore the main render target
-            try {
-                float s = this.scale;
-                arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
-                        burnFbo.framebufferTexture, burnProgress, ThemeManager.getMainColor(),
-                        getTransitionStyleId(), x * s, y * s, x1 * s, y1 * s, 30f * s);
-            } catch (Exception e) {
-                try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
-            }
-        }
-
-        DrawUtils.overrideScaleFactor = -1f; // restore for HUD rendering
     }
 
     /**
@@ -316,50 +276,48 @@ public class ClickGuiScreen extends CustomGuiScreen {
         getFontRenderer().drawString(label, (hudBtnX1 + hudBtnX2) / 2f, (hudBtnY1 + hudBtnY2) / 2f,
                 RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(), hover),
                 getFontRenderer().CENTREX, getFontRenderer().CENTREY);
-        RenderUtils.resetColorText();
     }
 
-    // Fullscreen animated shader rendered behind the whole ClickGUI. Overdone on purpose.
-    private void drawShaderBackdrop() {
+    /**
+     * Backdrop behind the panel. The 1.8 client ran an animated fullscreen shader here; modern
+     * Minecraft gives screens a proper blur of the world for free, so the backdrop is that blur
+     * under a theme-tinted wash at the configured opacity.
+     */
+    private void drawBackdrop() {
         if (!GuiStyle.backgroundEnabled())
             return;
-
-        String fsh = GuiStyle.backgroundShader();
         float alpha = GuiStyle.backgroundOpacity();
-        float speed = GuiStyle.backgroundSpeed();
         if (alpha <= 0.001f)
             return;
-
-        RenderUtils.resetColor();
-        // tint the backdrop toward the GUI's theme colour (managed via ThemeManager)
-        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(
-                fsh, alpha, speed,
-                arsenic.utils.render.shader.ShaderUtil.BlendMode.NORMAL,
-                ThemeManager.getMainColor(), 0.45f);
-        RenderUtils.resetColor();
+        RenderContext.graphics().blurBeforeThisStratum();
+        int tint = ThemeManager.getMainColor();
+        int top = ColorUtils.setColor(tint, 0, (int) (alpha * 70));
+        int bottom = ColorUtils.setColor(0x000000, 0, (int) (alpha * 140));
+        DrawUtils.drawGradientRect(0, 0, width, height, top, bottom);
     }
 
-    // Subtle VHS/scanline pass layered over everything for extra flair.
-    private void drawShaderOverlay() {
+    /** Faint scanlines layered over everything, standing in for the old VHS shader. */
+    private void drawScanlines() {
         if (!GuiStyle.scanlinesEnabled())
             return;
-        RenderUtils.resetColor();
-        // hand the theme colour to the scanline shader so it matches the GUI
-        arsenic.utils.render.shader.ShaderUtil.renderFullscreen(
-                "vhsGlitch", 0.10f, 1.0f,
-                arsenic.utils.render.shader.ShaderUtil.BlendMode.NORMAL,
-                ThemeManager.getMainColor(), 0f);
-        RenderUtils.resetColor();
+        int line = ColorUtils.setColor(0x000000, 0, 26);
+        QuadBatch batch = new QuadBatch();
+        float offset = (System.currentTimeMillis() % 4000L) / 4000f * 4f;
+        for (float ly = offset; ly < height; ly += 4f)
+            batch.rect(0, ly, width, ly + 1f, line);
+        batch.submit();
     }
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
+        if (components == null)
+            return;
         // Checked before everything else: the button sits outside every component tree, and an
         // open dropdown claiming all clicks must not be able to eat it.
         if (mouseButton == 0 && mouseX >= hudBtnX1 && mouseX <= hudBtnX2
                 && mouseY >= hudBtnY1 && mouseY <= hudBtnY2) {
             arsenic.utils.java.SoundUtils.chordOpen();
-            mc.displayGuiScreen(new arsenic.gui.hud.HudEditorScreen());
+            minecraft.gui.setScreen(new arsenic.gui.hud.HudEditorScreen());
             return;
         }
         if(alwaysClickedComponent != null) {
@@ -401,7 +359,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         try {
             return GuiStyle.fontEnabled() ?
                     Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
-                    ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+                    Arsenic.getInstance().getFonts().Minecraft.getFontRendererExtension();
         } catch (NullPointerException e) {
             return null;
         }
@@ -412,15 +370,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     @Override
-    public void handleMouseInput() throws IOException {
-        super.handleMouseInput();
-        int i = Mouse.getEventDWheel();
-        i = Integer.compare(i, 0);
-        cmcc.scroll(i * 30);
+    public void mouseScroll(int mouseX, int mouseY, double amount) {
+        if (cmcc != null)
+            cmcc.scroll((int) Math.signum(amount) * 30);
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+    public boolean keyTyped(int key, KeyEvent event) {
         arsenic.utils.java.SoundUtils.tick();
         if(alwaysKeyboardInput != null) {
             // Whichever component is claiming all keyboard input is the ONLY thing that gets to
@@ -430,43 +386,46 @@ public class ClickGuiScreen extends CustomGuiScreen {
             // anymore" and let that same keystroke fall through into the search bar and vanilla key
             // handling too, so e.g. binding "H" would also type "H" into the search box and refilter
             // the module list out from under you.
-            alwaysKeyboardInput.recieveInput(keyCode);
-            return;
+            alwaysKeyboardInput.recieveInput(key);
+            return true;
         }
-        // ESC plays the burn-away close; a second ESC while burning closes instantly
-        if (keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE
-                && GuiStyle.transitionEnabled()) {
+        // ESC plays the close transition; a second ESC while it runs closes instantly
+        if (key == InputConstants.KEY_ESCAPE && GuiStyle.transitionEnabled()) {
             if (!closing) {
                 closing = true;
                 closeStartTime = System.currentTimeMillis();
             } else {
-                mc.displayGuiScreen(null);
+                minecraft.gui.setScreen(null);
             }
-            return;
+            return true;
         }
-        ((SearchComponent) searchComponent).recieveInput(keyCode);
-        super.keyTyped(typedChar, keyCode);
+        if (searchComponent != null)
+            ((SearchComponent) searchComponent).recieveInput(key);
+        return false;
+    }
+
+    @Override
+    public boolean charTyped(char c) {
+        if (alwaysKeyboardInput != null)
+            return alwaysKeyboardInput.recieveChar(c);
+        return searchComponent != null && ((SearchComponent) searchComponent).recieveChar(c);
     }
 
     @Override
     public void mouseRelease(int mouseX, int mouseY, int state) {
+        if (components == null)
+            return;
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
         // The module list (current category) and search results are handled outside `components`,
         // so their release must be dispatched explicitly — otherwise draggable property components
         // like the colour picker never see the mouse-up and stay stuck in the "clicked" state.
         if (cmcc != null) cmcc.handleRelease(mouseX, mouseY, state);
         if (searchComponent != null) searchComponent.handleRelease(mouseX, mouseY, state);
-        super.mouseRelease(mouseX, mouseY, state);
     }
 
     @Override
-    public void onResize(Minecraft mcIn, int p_175273_2_, int p_175273_3_) {
-        super.onResize(mcIn, p_175273_2_, p_175273_3_);
+    public void removed() {
+        RenderContext.setAlpha(1f);
+        super.removed();
     }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        return false;
-    }
-
 }

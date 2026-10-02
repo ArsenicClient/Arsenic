@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class DiscordRPCManager {
 
-    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final Minecraft mc = Minecraft.getInstance();
 
     private final long appId;
     private IPCClient ipcClient;
@@ -81,16 +81,16 @@ public class DiscordRPCManager {
         try {
             StringBuilder state = new StringBuilder();
 
-            if (showServer && mc.getCurrentServerData() != null) {
-                state.append("Server: ").append(mc.getCurrentServerData().serverIP).append("\n");
+            if (showServer && mc.getCurrentServer() != null) {
+                state.append("Server: ").append(mc.getCurrentServer().ip).append("\n");
             }
 
-            if (showName && mc.thePlayer != null) {
-                state.append("IGN: ").append(mc.thePlayer.getName()).append("\n");
+            if (showName && mc.player != null) {
+                state.append("IGN: ").append(mc.player.getName().getString()).append("\n");
             }
 
-            if (showHealth && mc.thePlayer != null) {
-                state.append("HP: ").append(String.format("%.1f", mc.thePlayer.getHealth())).append("\n");
+            if (showHealth && mc.player != null) {
+                state.append("HP: ").append(String.format("%.1f", mc.player.getHealth())).append("\n");
             }
 
             if (showModuleCount) {

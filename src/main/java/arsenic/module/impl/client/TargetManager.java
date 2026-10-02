@@ -5,7 +5,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.entity.player.Player;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.module.Module;
@@ -17,7 +17,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.potion.Potion;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.potion.PotionEffect;
 
 import net.minecraft.client.multiplayer.WorldClient;
@@ -67,7 +67,7 @@ public class TargetManager extends Module {
         // become null between the guard and the last line. Every other hop here is nullable too:
         // the packet itself, the action enum on a server-constructed packet, and the entity lookup,
         // which returns null whenever the target has already been despawned client side.
-        WorldClient world = mc.theWorld;
+        WorldClient world = mc.level;
         if (world == null)
             return;
 
@@ -76,34 +76,34 @@ public class TargetManager extends Module {
                 .map(C02PacketUseEntity.class::cast)
                 .filter(use -> use.getAction() == C02PacketUseEntity.Action.ATTACK)
                 .map(use -> use.getEntityFromWorld(world))
-                .filter(EntityPlayer.class::isInstance)
-                .map(EntityPlayer.class::cast)
+                .filter(Player.class::isInstance)
+                .map(Player.class::cast)
                 .filter(player -> getServerHurtTimeOnPacketArrival(player) <= 0)
-                .ifPresent(player -> attackSentTime.put(player.getEntityId(), world.getTotalWorldTime()));
+                .ifPresent(player -> attackSentTime.put(player.getId(), world.getTotalWorldTime()));
     };
 
-    public static float getTimeSinceLastClientSidedHit(EntityPlayer player) {
+    public static float getTimeSinceLastClientSidedHit(Player player) {
         // attackSentTime stores world-tick timestamps, so this must be measured in world ticks too
         // (the old version subtracted world ticks from System.currentTimeMillis(), which was garbage).
-        WorldClient world = mc.theWorld;
+        WorldClient world = mc.level;
         if (world == null || player == null)
             return Float.MAX_VALUE;
 
-        Long sentTick = attackSentTime.get(player.getEntityId());
+        Long sentTick = attackSentTime.get(player.getId());
         if (sentTick == null)
             return Float.MAX_VALUE;
 
         return world.getTotalWorldTime() - sentTick;
     }
 
-    public static float getServerHurtTimeOnPacketArrival(EntityPlayer player) {
+    public static float getServerHurtTimeOnPacketArrival(Player player) {
         // read once: this runs off the netty thread via the outgoing packet listener, so the world
         // can go null between the guard below and any later use of it
-        WorldClient world = mc.theWorld;
+        WorldClient world = mc.level;
         if (world == null || player == null)
             return Float.MAX_VALUE;
 
-        int entityId = player.getEntityId();
+        int entityId = player.getId();
         Long sentTime = attackSentTime.get(entityId);
         long now = world.getTotalWorldTime();
         long pingTicks = LagManager.getPingAsTicks();
@@ -141,22 +141,22 @@ public class TargetManager extends Module {
         return Math.max(0f, player.hurtTime - pingTicks);
     }
 
-    public static EntityPlayer getTarget() {
-        List<EntityPlayer> en = getTargets();
+    public static Player getTarget() {
+        List<Player> en = getTargets();
         return en.isEmpty() ? null : en.get(0);
     }
 
     /** Every valid target within {@link #distance}, best first by the current {@link #sortMode}. */
-    public static List<EntityPlayer> getTargets() {
-        List<EntityPlayer> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput() + 1);
+    public static List<Player> getTargets() {
+        List<Player> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput() + 1);
         en.removeIf(player -> !isValidTarget(player));
         en.removeIf(player -> !(RotationUtils.getDistanceToEntityBox(player) < distance.getValue().getInput()));
         en.sort(Comparator.comparingDouble(target -> sortMode.getValue().sv.value(target)));
         return en;
     }
 
-    private static boolean isValidTarget(EntityPlayer ep) {
-        return (ep != mc.thePlayer)
+    private static boolean isValidTarget(Player ep) {
+        return (ep != mc.player)
                 && (bots.getValue()       || !AntiBot.isBot(ep))
                 && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
                 && (invis.getValue()      || !ep.isInvisible())
@@ -185,7 +185,7 @@ public class TargetManager extends Module {
      * target carrying either needs more actual hits to drop, which is what should determine sort
      * priority instead of the number on their bar.
      */
-    private static float getEffectiveHealth(EntityPlayer player) {
+    private static float getEffectiveHealth(Player player) {
         // Vanilla's armour formula converts armour points to a damage reduction that caps at 80%
         // (20 points, the max obtainable) - 4% per point is that curve without needing the
         // toughness/enchant terms, which only matter for reduction beyond what plain armour gives.
@@ -194,7 +194,7 @@ public class TargetManager extends Module {
         // Each level of Resistance cuts damage by another 20%, capped short of full immunity so a
         // maxed-out target still sorts as killable rather than being excluded outright.
         float resistanceReduction = 0f;
-        PotionEffect resistance = player.getActivePotionEffect(Potion.resistance);
+        PotionEffect resistance = player.getEffect(Potion.resistance);
         if (resistance != null)
             resistanceReduction = Math.min(0.8f, (resistance.getAmplifier() + 1) * 0.2f);
 
@@ -204,6 +204,6 @@ public class TargetManager extends Module {
 
     @FunctionalInterface
     private interface SortValue {
-        Float value(EntityPlayer player);
+        Float value(Player player);
     }
 }

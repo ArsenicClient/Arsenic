@@ -10,12 +10,12 @@ public class SayCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
             PlayerUtils.addWaterMarkedMessageToChat("you need to be in a world to send a message");
             return;
         }
         // sendChatMessage on the player sends straight to the server, bypassing the command hook
-        mc.thePlayer.sendChatMessage(String.join(" ", args));
+        mc.player.connection.sendChat(String.join(" ", args));
     }
 }

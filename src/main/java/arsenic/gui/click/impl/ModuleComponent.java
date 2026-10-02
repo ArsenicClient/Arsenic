@@ -19,7 +19,8 @@ import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
+import com.mojang.blaze3d.platform.InputConstants;
 
 /**
  * A module's card in the ClickGUI.
@@ -116,10 +117,9 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         // Take the boundary from the switch itself rather than guessing: the button sizes
         // relative to this card, so a change to either stays in step automatically.
         toggleZoneX1 = Math.min(x2, buttonComponent.getTrackX1()) - pad * 0.5f;
-        RenderUtils.resetColorText();
 
         // ---- keybind chip ----
-        String bindName = binding ? "..." : Keyboard.getKeyName(self.getKeybind());
+        String bindName = binding ? "..." : Keys.getKeyName(self.getKeybind());
         boolean hasBind = self.getKeybind() != 0 || binding;
         float chipHeight = height * 0.46f;
         float chipRight = toggleZoneX1 - pad * 0.6f;
@@ -161,7 +161,6 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float textX = chevronZoneX2 + pad * 0.35f;
         int titleColor = UITheme.mix(UITheme.textSecondary(), UITheme.textPrimary(), enabledPct);
         ri.getFr().drawString(name, textX, midPointY, titleColor, ri.getFr().CENTREY);
-        RenderUtils.resetColorText();
 
         // ---- expanded properties ----
         PosInfo pi = new PosInfo(x1 + pad * 1.1f, y2);
@@ -243,8 +242,8 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
         SoundUtils.chordKeybind();
         binding = false;
-        if (key == Keyboard.KEY_ESCAPE) {
-            self.setKeybind(0);
+        if (key == InputConstants.KEY_ESCAPE) {
+            self.setKeybind(Keys.NONE);
             Arsenic.getArsenic().getConfigManager().saveConfig();
             return true;
         }

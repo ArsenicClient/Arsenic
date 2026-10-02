@@ -3,7 +3,6 @@ package arsenic.notifications;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
-import net.minecraft.client.gui.ScaledResolution;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +21,10 @@ public class NotificationManager {
 
     @EventLink
     public final Listener<EventRender2D> renderListener = event -> {
-        ScaledResolution sr = event.getSr();
-        render(sr);
+        render(event.getWidth(), event.getHeight());
     };
 
-    private void render(ScaledResolution sr) {
+    private void render(int screenWidth, int screenHeight) {
         activeNotifications.removeIf(n -> !n.isShown());
 
         while (activeNotifications.size() < MAX_VISIBLE && !pendingNotifications.isEmpty()) {
@@ -35,7 +33,7 @@ public class NotificationManager {
         }
 
         int height = 30;
-        int baseY = sr.getScaledHeight() - 15 - height;
+        int baseY = screenHeight - 15 - height;
 
         for (int i = 0; i < activeNotifications.size(); i++) {
             Notification n = activeNotifications.get(i);
@@ -59,7 +57,7 @@ public class NotificationManager {
                 slideOffset = (int) (n.getWidth() * progress * progress);
             }
 
-            int x = sr.getScaledWidth() - n.getWidth() - 5 + slideOffset;
+            int x = screenWidth - n.getWidth() - 5 + slideOffset;
             n.render(x, n.currentY, alpha);
         }
     }

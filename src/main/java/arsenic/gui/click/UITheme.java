@@ -4,7 +4,6 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
-import org.lwjgl.opengl.GL11;
 
 /**
  * The single place the ClickGUI's look is defined.
@@ -165,7 +164,6 @@ public final class UITheme {
         intensity = Math.max(0f, Math.min(1f, intensity));
         float h = y2 - y1;
 
-        GL11.glEnable(GL11.GL_BLEND);
 
         if (elevation != Elevation.FLAT && intensity > 0.01f) {
             DrawUtils.drawShadow(x1, y1, x2, y2, radius,
@@ -248,17 +246,9 @@ public final class UITheme {
         float nx = -dy / len * (thickness / 2f);
         float ny = dx / len * (thickness / 2f);
 
-        final float ax = (x1 + nx) * 2, ay = (y1 + ny) * 2;
-        final float bx = (x2 + nx) * 2, by = (y2 + ny) * 2;
-        final float cx = (x2 - nx) * 2, cy = (y2 - ny) * 2;
-        final float dx2 = (x1 - nx) * 2, dy2 = (y1 - ny) * 2;
-
-        DrawUtils.drawCustom(color, () -> {
-            GL11.glVertex2d(ax, ay);
-            GL11.glVertex2d(bx, by);
-            GL11.glVertex2d(cx, cy);
-            GL11.glVertex2d(dx2, dy2);
-        });
+        new arsenic.utils.render.QuadBatch()
+                .quad(x1 + nx, y1 + ny, x1 - nx, y1 - ny, x2 - nx, y2 - ny, x2 + nx, y2 + ny, color)
+                .submit();
     }
 
     /** Tick mark, used to flag the selected item in a dropdown. */

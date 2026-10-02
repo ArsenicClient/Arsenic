@@ -6,10 +6,10 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.network.Packet;
-import net.minecraft.network.ThreadQuickExitException;
-import net.minecraft.network.play.INetHandlerPlayClient;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.server.RunningOnDifferentThreadException;
+import net.minecraft.network.protocol.Packet;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,19 +27,19 @@ public final class LagManager {
     private static final PacketDelayChannel incomingDelay = new PacketDelayChannel();
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
-    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final Minecraft mc = Minecraft.getInstance();
     private static int currentPing = 0;
     private static long lastPingUpdate;
 
     public static void updatePing() {
-        if (mc.thePlayer == null || mc.theWorld == null) {
+        if (mc.player == null || mc.level == null) {
             return;
         }
 
         try {
-            NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
+            PlayerInfo playerInfo = mc.getConnection().getPlayerInfo(mc.player.getUUID());
             if (playerInfo != null) {
-                int newPing = playerInfo.getResponseTime();
+                int newPing = playerInfo.getLatency();
                 long currentTime = System.currentTimeMillis();
                 if (newPing < 5) {
                     //assume that the players ping cannot be < 10
@@ -246,8 +246,8 @@ public final class LagManager {
     }
 
     public static void sendPacket(Packet<?> packet) {
-        if (mc.getNetHandler() != null)
-            mc.getNetHandler().addToSendQueue(packet);
+        if (mc.getConnection() != null)
+            mc.getConnection().send(packet);
     }
 
     @SuppressWarnings("unchecked")
@@ -255,9 +255,10 @@ public final class LagManager {
         if (packet == null)
             return;
         try {
-            ((Packet<INetHandlerPlayClient>) packet).processPacket(mc.getNetHandler());
-        } catch (ThreadQuickExitException ignored) {
-            ignored.printStackTrace();
+            if (mc.getConnection() != null)
+                ((Packet<ClientGamePacketListener>) packet).handle(mc.getConnection());
+        } catch (RunningOnDifferentThreadException ignored) {
+            // the handler re-queued itself onto the main thread
         }
     }
 

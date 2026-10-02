@@ -9,8 +9,8 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.HitResult;
 import org.lwjgl.input.Mouse;
 
 @ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true)
@@ -42,16 +42,16 @@ public class AutoTool extends Module {
         if (currentItem == -1) {
             return;
         }
-        mc.thePlayer.inventory.currentItem = currentItem;
+        mc.player.inventory.currentItem = currentItem;
     }
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (!mc.inGameHasFocus || mc.currentScreen != null || (DISABLE_WHILE_RIGHT_CLICK && Mouse.isButtonDown(1)) || !mc.thePlayer.capabilities.allowEdit) {
+        if (!mc.inGameHasFocus || mc.gui.screen() != null || (DISABLE_WHILE_RIGHT_CLICK && Mouse.isButtonDown(1)) || !mc.player.capabilities.allowEdit) {
             resetVariables();
             return;
         }
-        if (shiftOnly.getValue() && !Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode())) {
+        if (shiftOnly.getValue() && !Keyboard.isKeyDown(mc.options.keyBindSneak.getKeyCode())) {
             resetVariables();
             return;
         }
@@ -59,7 +59,7 @@ public class AutoTool extends Module {
             resetSlot();
             return;
         }
-        MovingObjectPosition over = mc.objectMouseOver;
+        MovingObjectPosition over = mc.hitResult;
         if (over == null || over.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
             resetSlot();
             resetVariables();
@@ -67,12 +67,12 @@ public class AutoTool extends Module {
         }
         currentBlock = over.getBlockPos();
         {
-            int slot = PlayerUtils.getTool(mc.theWorld.getBlockState(currentBlock).getBlock());
+            int slot = PlayerUtils.getTool(mc.level.getBlockState(currentBlock).getBlock());
             if (slot == -1) {
                 return;
             }
             if (previousSlot == -1) {
-                previousSlot = mc.thePlayer.inventory.currentItem;
+                previousSlot = mc.player.inventory.currentItem;
             }
             setSlot(slot);
         }

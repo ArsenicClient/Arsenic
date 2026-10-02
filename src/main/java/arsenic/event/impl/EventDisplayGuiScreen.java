@@ -1,22 +1,21 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.CancellableEvent;
-import arsenic.event.types.Event;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screens.Screen;
 
 public class EventDisplayGuiScreen extends CancellableEvent {
 
-    private GuiScreen guiScreen;
+    private Screen guiScreen;
 
-    public EventDisplayGuiScreen(GuiScreen guiScreen) {
+    public EventDisplayGuiScreen(Screen guiScreen) {
         this.guiScreen = guiScreen;
     }
 
-    public GuiScreen getGuiScreen() {
+    public Screen getGuiScreen() {
         return guiScreen;
     }
 
-    public void setGuiScreen(GuiScreen guiScreen) {
+    public void setGuiScreen(Screen guiScreen) {
         this.guiScreen = guiScreen;
     }
 }

@@ -10,9 +10,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayer;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.world.entity.player.Player;
 
 import java.awt.*;
 import java.util.List;
@@ -27,8 +25,8 @@ public class Radar extends Module {
 
     @EventLink
     public final Listener<EventRender2D> renderListener = event -> {
-        if (mc.currentScreen != null) return;
-        if (mc.thePlayer == null || mc.theWorld == null) return;
+        if (mc.gui.screen() != null) return;
+        if (mc.player == null || mc.level == null) return;
 
         int s = (int) 80;
         int cx = radarX + s / 2;
@@ -46,16 +44,16 @@ public class Radar extends Module {
         DrawUtils.drawRect(cx, radarY + 2, cx + 1, radarY + s - 2, lineColor);
         DrawUtils.drawRect(radarX + 2, cy, radarX + s - 2, cy + 1, lineColor);
 
-        float yaw = mc.thePlayer.rotationYaw;
+        float yaw = mc.player.getYRot();
         double yawRad = Math.toRadians(yaw);
 
-        List<EntityPlayer> players = new CopyOnWriteArrayList<>(mc.theWorld.playerEntities);
-        for (EntityPlayer player : players) {
+        List<Player> players = new CopyOnWriteArrayList<>(mc.level.playerEntities);
+        for (Player player : players) {
             if (player.isInvisible() && !false) continue;
-            if (player == mc.thePlayer && !true) continue;
+            if (player == mc.player && !true) continue;
 
-            double dx = player.posX - mc.thePlayer.posX;
-            double dz = player.posZ - mc.thePlayer.posZ;
+            double dx = player.getX() - mc.player.getX();
+            double dz = player.getZ() - mc.player.getZ();
 
             double right = 0, forward = 0;
 
@@ -65,7 +63,7 @@ public class Radar extends Module {
             if (px < radarX + 2 || px > radarX + s - 2 || py < radarY + 2 || py > radarY + s - 2)
                 continue;
 
-            if (player == mc.thePlayer) {
+            if (player == mc.player) {
             } else {
                 DrawUtils.drawCircle(px, py, 2, new Color(theme).getRGB());
             }
@@ -74,10 +72,10 @@ public class Radar extends Module {
 
     @EventLink
     public final Listener<EventShader.Blur> blurListener = event -> {
-        if (mc.currentScreen != null) return;
-        if (mc.theWorld == null) return;
+        if (mc.gui.screen() != null) return;
+        if (mc.level == null) return;
 
         int s = (int) 80;
-        Gui.drawRect(radarX, radarY, radarX + s, radarY + s, -1);
+        DrawUtils.drawRect(radarX, radarY, radarX + s, radarY + s, -1);
     };
 }

@@ -7,7 +7,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.KeyMapping;
 
 /**
  * Holds the sprint key for you.
@@ -24,11 +24,11 @@ public class Sprint extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event ->
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true);
+            KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), true);
 
     @Override
     protected void onDisable() {
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
-        mc.thePlayer.setSprinting(false);
+        KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), false);
+        mc.player.setSprinting(false);
     }
 }

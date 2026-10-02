@@ -11,15 +11,15 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.world.entity.player.Player;
 
 import static arsenic.utils.lag.LagManager.getPing;
 
 @ModuleInfo(name = "SprintReset",category = ModuleCategory.COMBAT, hidden = true)
 public class SprintReset extends Module {
     public int hurtTime = 1;
-    public EntityPlayer target;
+    public Player target;
     public final EnumProperty<wMode> mode = new EnumProperty<>("Mode", wMode.COMBO);
     public boolean hasTapped = false;
 
@@ -39,8 +39,8 @@ public class SprintReset extends Module {
 
     @EventLink
     public final Listener<EventAttack> eventAttackListener = event -> {
-        if (event.getTarget() != null && event.getTarget() instanceof EntityPlayer) {
-            target = (EntityPlayer) event.getTarget();
+        if (event.getTarget() != null && event.getTarget() instanceof Player) {
+            target = (Player) event.getTarget();
             hasTapped = false;
             sawHurt = false;
             attackTimer.reset();
@@ -51,13 +51,13 @@ public class SprintReset extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventMovementInput> movementInputListener = event -> {
-        if(target == null || target.isDead || target.getHealth() <= 0)
+        if(target == null || target.isRemoved() || target.getHealth() <= 0)
             return;
 
         switch (mode.getValue()) {
             case COMBO:
                 double distToTarget = RotationUtils.getDistanceToEntityBox(target);
-                double targetDistToPlayer = RotationUtils.getDistanceToEntityBox(mc.thePlayer, target);
+                double targetDistToPlayer = RotationUtils.getDistanceToEntityBox(mc.player, target);
 
                 // hurtTime is set client side only when the server's damage packet arrives, a full
                 // round trip after we swing. On the ticks in between it is still 0, so testing
@@ -83,23 +83,23 @@ public class SprintReset extends Module {
                 }
                 if(!hasTapped || (targetDistToPlayer < 3.05 && distToTarget < 2.95)) {
                     event.setSpeed(0);
-                    mc.thePlayer.setSprinting(false);
+                    mc.player.setSprinting(false);
                     hasTapped = true;
                     return;
                 }
 
                 break;
             case NORMAL:
-                if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
+                if (mc.player.isSprinting() && target.hurtTime == hurtTime) {
                     event.setSpeed(0);
-                    mc.thePlayer.setSprinting(false);
+                    mc.player.setSprinting(false);
                     target = null;
                 }
                 break;
             case UNSPRINT:
-                if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
-                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
-                    mc.thePlayer.setSprinting(false);
+                if (mc.player.isSprinting() && target.hurtTime == hurtTime) {
+                    KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), false);
+                    mc.player.setSprinting(false);
                     target = null;
                 }
                 break;

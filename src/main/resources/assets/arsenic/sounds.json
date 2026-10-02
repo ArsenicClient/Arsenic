@@ -1,12 +1,12 @@
 {
-  "cmaj0": { "category": "master", "sounds": ["arsenic:cmaj0"] },
-  "cmaj1": { "category": "master", "sounds": ["arsenic:cmaj1"] },
-  "cmaj2": { "category": "master", "sounds": ["arsenic:cmaj2"] },
-  "cmaj3": { "category": "master", "sounds": ["arsenic:cmaj3"] },
-  "cmaj4": { "category": "master", "sounds": ["arsenic:cmaj4"] },
-  "cmaj5": { "category": "master", "sounds": ["arsenic:cmaj5"] },
-  "cmaj6": { "category": "master", "sounds": ["arsenic:cmaj6"] },
-  "cmaj7": { "category": "master", "sounds": ["arsenic:cmaj7"] },
-  "tick":  { "category": "master", "sounds": ["arsenic:tick"] },
-  "click": { "category": "master", "sounds": ["arsenic:click"] }
+  "cmaj0": { "sounds": ["arsenic:cmaj0"] },
+  "cmaj1": { "sounds": ["arsenic:cmaj1"] },
+  "cmaj2": { "sounds": ["arsenic:cmaj2"] },
+  "cmaj3": { "sounds": ["arsenic:cmaj3"] },
+  "cmaj4": { "sounds": ["arsenic:cmaj4"] },
+  "cmaj5": { "sounds": ["arsenic:cmaj5"] },
+  "cmaj6": { "sounds": ["arsenic:cmaj6"] },
+  "cmaj7": { "sounds": ["arsenic:cmaj7"] },
+  "tick":  { "sounds": ["arsenic:tick"] },
+  "click": { "sounds": ["arsenic:click"] }
 }

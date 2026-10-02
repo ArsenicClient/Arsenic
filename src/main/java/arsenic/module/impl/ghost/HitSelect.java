@@ -9,8 +9,8 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Decides <b>when</b> your hits are allowed to land, rather than which target to hit.
@@ -51,7 +51,7 @@ public class HitSelect extends Module {
     /** A fight is considered over once no attack has been attempted for this long. */
     private static final long COMBAT_RESET_MS = 2500L;
 
-    private EntityLivingBase target;
+    private LivingEntity target;
     private boolean beenHit;      // have we taken a hit this fight? (WaitForFirstHit)
     private boolean inTradePrev;  // were we mid-trade last tick? (HitLaterInTrades)
 
@@ -82,7 +82,7 @@ public class HitSelect extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Pre> onUpdate = event -> {
-        if (mc.thePlayer.hurtTime > 0)
+        if (mc.player.hurtTime > 0)
             beenHit = true;
 
         // Fight ended (target dead / ran off): forget everything for the next engagement.
@@ -90,7 +90,7 @@ public class HitSelect extends Module {
             resetFight();
 
         // Detect the start of a trade so the delay is measured from the right moment.
-        boolean inTrade = target != null && mc.thePlayer.hurtTime > 0 && target.hurtTime > 0;
+        boolean inTrade = target != null && mc.player.hurtTime > 0 && target.hurtTime > 0;
         if (inTrade && !inTradePrev)
             tradeTimer.reset();
         inTradePrev = inTrade;
@@ -105,14 +105,14 @@ public class HitSelect extends Module {
             return false;
 
         // Only gate hits against living entities; interactions on anything else pass through.
-        if (!(entity instanceof EntityLivingBase))
+        if (!(entity instanceof LivingEntity))
             return false;
 
         // A gap since the last attack means this is a fresh fight.
         if (combatTimer.hasTimeElapsed(COMBAT_RESET_MS))
             resetFight();
 
-        target = (EntityLivingBase) entity;
+        target = (LivingEntity) entity;
         boolean block = !shouldAllow();
         combatTimer.reset();
         return block;
@@ -124,12 +124,12 @@ public class HitSelect extends Module {
                 return beenHit || fightTimer.hasTimeElapsed((long) 800);
 
             case HitLaterInTrades:
-                boolean inTrade = mc.thePlayer.hurtTime > 0 && target.hurtTime > 0;
+                boolean inTrade = mc.player.hurtTime > 0 && target.hurtTime > 0;
                 return !inTrade || tradeTimer.hasTimeElapsed((long) 150);
 
             case HurtTime:
                 // Hold the opening hit, then only allow once our hurtTime has decayed to the target.
-                return beenHit && mc.thePlayer.hurtTime <= (int) 9;
+                return beenHit && mc.player.hurtTime <= (int) 9;
         }
         return true;
     }

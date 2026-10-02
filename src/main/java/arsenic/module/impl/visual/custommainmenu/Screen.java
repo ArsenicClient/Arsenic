@@ -17,7 +17,7 @@
     import java.util.List;
 
 
-    public class Screen extends GuiScreen {
+    public class Screen extends Screen {
 
         private ShaderUtil backgroundShader;
         private int currentShaderIndex = 0;
@@ -60,7 +60,7 @@
         public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 
             // DO NOT DELETE - SCREEN WILL GO WHITE IF DELETED
-            Gui.drawRect(0, 0, 0, 0, new Color(255, 255, 255, 40).getRGB());
+            DrawUtils.drawRect(0, 0, 0, 0, new Color(255, 255, 255, 40).getRGB());
 
             tickBackgroundCycle();
 
@@ -71,7 +71,7 @@
             ShaderUtil.drawQuads();
             backgroundShader.unload();
 
-            FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+            FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.font).getFontRendererExtension();
             String title = "Arsenic";
             float scale = 7f;
             fontRenderer.setScale(scale);
@@ -85,13 +85,13 @@
             String settingCountStr = "Settings: " + settingCount;
             String commandCount = "Commands: " + Arsenic.getArsenic().getCommandManager().getCommandCount();
 
-            mc.fontRendererObj.drawStringWithShadow(moduleCount, this.width - mc.fontRendererObj.getStringWidth(moduleCount) - 2, 2, -1);
-            mc.fontRendererObj.drawStringWithShadow(settingCountStr, this.width - mc.fontRendererObj.getStringWidth(settingCountStr) - 2, 2 + mc.fontRendererObj.FONT_HEIGHT, -1);
-            mc.fontRendererObj.drawStringWithShadow(commandCount, this.width - mc.fontRendererObj.getStringWidth(commandCount) - 2, 2 + mc.fontRendererObj.FONT_HEIGHT * 2, -1);
+            mc.font.drawStringWithShadow(moduleCount, this.width - mc.font.getStringWidth(moduleCount) - 2, 2, -1);
+            mc.font.drawStringWithShadow(settingCountStr, this.width - mc.font.getStringWidth(settingCountStr) - 2, 2 + mc.font.FONT_HEIGHT, -1);
+            mc.font.drawStringWithShadow(commandCount, this.width - mc.font.getStringWidth(commandCount) - 2, 2 + mc.font.FONT_HEIGHT * 2, -1);
 
 
             String modCount = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
-            mc.fontRendererObj.drawStringWithShadow(modCount, 2, this.height - mc.fontRendererObj.FONT_HEIGHT - 2, -1);
+            mc.font.drawStringWithShadow(modCount, 2, this.height - mc.font.FONT_HEIGHT - 2, -1);
 
             super.drawScreen(mouseX, mouseY, partialTicks);
         }
@@ -100,16 +100,16 @@
         protected void actionPerformed(GuiButton button) throws IOException {
             switch (button.id) {
                 case 0:
-                    this.mc.displayGuiScreen(new GuiOptions(this, this.mc.gameSettings));
+                    this.mc.gui.setScreen(new GuiOptions(this, this.mc.options));
                     break;
                 case 1:
-                    this.mc.displayGuiScreen(new GuiSelectWorld(this));
+                    this.mc.gui.setScreen(new GuiSelectWorld(this));
                     break;
                 case 2:
-                    this.mc.displayGuiScreen(new GuiMultiplayer(this));
+                    this.mc.gui.setScreen(new GuiMultiplayer(this));
                     break;
                 case 3:
-                    this.mc.displayGuiScreen(new net.minecraftforge.fml.client.GuiModList(this));
+                    this.mc.gui.setScreen(new net.minecraftforge.fml.client.GuiModList(this));
                     break;
                 case 4:
                     this.mc.shutdown();
@@ -133,7 +133,7 @@
                 DrawUtils.drawRoundedRect(xPosition, yPosition, xPosition + width, yPosition + height, height/4.0f, new Color(255, 255, 255, 40).getRGB());
                 this.mouseDragged(mc, mouseX, mouseY);
                 int j = this.hovered ? 14737632 : 14737632;
-                FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+                FontRendererExtension<?> fontRenderer = ((IFontRenderer) mc.font).getFontRendererExtension();
                 fontRenderer.drawStringWithShadow(displayString, xPosition + width / 2f, yPosition + height / 2f, j, fontRenderer.CENTREX, fontRenderer.CENTREY);
             }
         }

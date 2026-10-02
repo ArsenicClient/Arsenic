@@ -1,7 +1,7 @@
 package arsenic.utils.lag;
 
 import arsenic.utils.timer.Timer;
-import net.minecraft.network.Packet;
+import net.minecraft.network.protocol.Packet;
 
 public class TimedPacket {
 

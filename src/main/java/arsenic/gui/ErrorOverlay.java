@@ -1,5 +1,6 @@
 package arsenic.gui;
 
+import arsenic.utils.render.DrawUtils;
 import arsenic.event.bus.EventErrors;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -10,7 +11,6 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.render.RenderUtils;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.Gui;
 
 import java.awt.Color;
 import java.util.List;
@@ -79,7 +79,7 @@ public class ErrorOverlay implements ISerializable {
                     Math.max(fr.getWidth(stripColour(detail)), fr.getWidth(stripColour(site))));
 
             int backdrop = (int) (0x99 * fade) << 24;
-            Gui.drawRect(X - PADDING, (int) y - PADDING, X + width + PADDING,
+            DrawUtils.drawRect(X - PADDING, (int) y - PADDING, X + width + PADDING,
                     (int) y + LINE_HEIGHT * 3 - 1, backdrop);
 
             int colour = RenderUtils.alpha(Color.WHITE, (int) (255 * fade));

@@ -1,37 +1,14 @@
 package arsenic.utils.font;
 
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Objects;
+import net.minecraft.network.chat.FontDescription;
 
-import org.jetbrains.annotations.Nullable;
-
+/**
+ * The client's fonts. The TTF files and their definitions live in {@code assets/arsenic/font/},
+ * where Minecraft's resource loader picks them up, so there is nothing to generate at startup.
+ */
 public class Fonts {
-
-
-    public final TTFontRenderer Comfortaa = new TTFontRenderer(getFontFromLocation("comfortaa.ttf", 17), true, true);
-    public final TTFontRenderer Icon = new TTFontRenderer(getFontFromLocation("icon.ttf", 20), true, true);
-
-    public void initTextures() {
-        try {
-            for (Field declaredField : getClass().getDeclaredFields())
-                ((TTFontRenderer) declaredField.get(this)).generateTextures();
-        }
-        catch(Exception e){e.printStackTrace();}
-    }
-
-    private @Nullable Font getFontFromLocation(String fileName, int size) {
-        try {
-            return Font
-                    .createFont(Font.TRUETYPE_FONT,
-                            Objects.requireNonNull(Fonts.class.getResourceAsStream("/assets/arsenic/" + fileName)))
-                    .deriveFont(Font.PLAIN, size);
-        } catch (FontFormatException | IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
+    public final TTFontRenderer Comfortaa = new TTFontRenderer("comfortaa");
+    public final TTFontRenderer Icon = new TTFontRenderer("icon");
+    /** Minecraft's own font, for the places that deliberately match vanilla text. */
+    public final TTFontRenderer Minecraft = new TTFontRenderer(FontDescription.DEFAULT);
 }

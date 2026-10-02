@@ -1,0 +1,24 @@
+{
+    "schemaVersion": 1,
+    "id": "arsenic",
+    "version": "${version}",
+    "name": "Arsenic Client",
+    "description": "Arsenic Client",
+    "authors": ["Kv", "sigmaclientwastaken", "KassuK", "Stephen", "Cosmic", "TejasLambda"],
+    "contact": {
+        "homepage": "https://arsenicclient.github.io/",
+        "sources": "https://github.com/ArsenicClient/Arsenic"
+    },
+    "license": "MIT",
+    "environment": "client",
+    "entrypoints": {
+        "client": ["arsenic.main.Arsenic"]
+    },
+    "mixins": ["arsenic.mixins.json"],
+    "depends": {
+        "fabricloader": ">=0.19.5",
+        "minecraft": "~26.3",
+        "java": ">=25",
+        "fabric-api": "*"
+    }
+}

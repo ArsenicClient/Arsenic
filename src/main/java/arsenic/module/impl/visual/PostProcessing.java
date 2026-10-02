@@ -25,10 +25,8 @@ public class PostProcessing extends Module {
     private Framebuffer stencilFramebuffer = new Framebuffer(1, 1, false);
 
     public void blurElements() {
-        if (mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen()) {
-            RenderUtils.resetColor();
+        if (mc.gui.screen() == Arsenic.getArsenic().getClickGuiScreen()) {
             Arsenic.getInstance().getClickGuiScreen().drawBloom();
-            RenderUtils.resetColor();
         }
     }
 
@@ -37,10 +35,8 @@ public class PostProcessing extends Module {
             stencilFramebuffer = ShaderUtil.createFrameBuffer(stencilFramebuffer);
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
-            RenderUtils.resetColor();
             EventShader.Bloom bloomEvent = new EventShader.Bloom(BLOOM_ITERATIONS, BLOOM_OFFSET);
             Arsenic.getInstance().getEventManager().getBus().post(bloomEvent);
-            RenderUtils.resetColor();
             applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
             KawaseBloom.renderBlur(stencilFramebuffer.framebufferTexture, bloomEvent.getIterations(), bloomEvent.getOffset());
@@ -49,12 +45,9 @@ public class PostProcessing extends Module {
             stencilFramebuffer = ShaderUtil.createFrameBuffer(stencilFramebuffer);
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
-            RenderUtils.resetColor();
             blurElements();
-            RenderUtils.resetColor();
             EventShader.Blur blurEvent = new EventShader.Blur(BLUR_ITERATIONS, BLUR_OFFSET);
             Arsenic.getInstance().getEventManager().getBus().post(blurEvent);
-            RenderUtils.resetColor();
             applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
             KawaseBlur.renderBlur(stencilFramebuffer.framebufferTexture, BLUR_ITERATIONS, BLUR_OFFSET);
@@ -72,7 +65,7 @@ public class PostProcessing extends Module {
      */
     private void applyBurnMaskFade() {
         arsenic.gui.click.ClickGuiScreen screen = Arsenic.getArsenic().getClickGuiScreen();
-        if (screen == null || mc.currentScreen != screen || !screen.isBurnActive())
+        if (screen == null || mc.gui.screen() != screen || !screen.isBurnActive())
             return;
         float[] box = screen.getBurnBoxPx();
         ShaderUtil.renderBurnMaskFade(screen.currentBurnProgress(), screen.getTransitionStyleId(),
@@ -81,7 +74,7 @@ public class PostProcessing extends Module {
 
     @EventLink
     public final Listener<EventShader.Bloom> shaderEventListener = event -> {
-        if (mc.currentScreen == Arsenic.getInstance().getClickGuiScreen()) {
+        if (mc.gui.screen() == Arsenic.getInstance().getClickGuiScreen()) {
             event.setIterations(3);
             event.setOffset(2);
             blurElements();

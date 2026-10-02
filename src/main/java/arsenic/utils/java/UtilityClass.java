@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 
 public abstract class UtilityClass {
 
-    protected static final Minecraft mc = Minecraft.getMinecraft();
+    protected static final Minecraft mc = Minecraft.getInstance();
 
     protected UtilityClass() {
         throw new RuntimeException("Instantiation of Utility class " + this.getClass().getSimpleName());

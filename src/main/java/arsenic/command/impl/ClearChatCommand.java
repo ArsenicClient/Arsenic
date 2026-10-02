@@ -9,6 +9,6 @@ public class ClearChatCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-        Minecraft.getMinecraft().ingameGUI.getChatGUI().clearChatMessages();
+        Minecraft.getInstance().gui.hud.getChat().clearMessages(true);
     }
 }

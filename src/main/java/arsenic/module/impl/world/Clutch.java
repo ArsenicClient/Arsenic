@@ -18,16 +18,16 @@ import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.BlockPos;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.util.Vec3;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 @ModuleInfo(name = "Clutch", category = ModuleCategory.PLAYER)
 public class Clutch extends Module {
@@ -95,7 +95,7 @@ public class Clutch extends Module {
             // Keep the player's rotations: lock yaw to where they're actually looking rather than
             // deriving it from movement direction like Scaffold does. Only pitch is solved to hit
             // the block face.
-            float lockedYaw = mc.thePlayer.rotationYaw;
+            float lockedYaw = mc.player.getYRot();
             BlockData found = findCatchPlacement(lockedYaw);
             if (found != null) {
                 blockData = found;
@@ -139,21 +139,21 @@ public class Clutch extends Module {
             return;
         // Never cap a block from below; allow towering (UP) only when the player has clearance above
         // it, otherwise keep the catch at the player's current level (KeepY).
-        if (mop.sideHit == EnumFacing.DOWN)
+        if (mop.sideHit == Direction.DOWN)
             return;
-        if (mop.sideHit == EnumFacing.UP && !canPlaceUpOn(mop.getBlockPos()))
+        if (mop.sideHit == Direction.UP && !canPlaceUpOn(mop.getBlockPos()))
             return;
-        if (mc.theWorld.getBlockState(mop.getBlockPos()).getBlock().getMaterial() == Material.air)
+        if (mc.level.getBlockState(mop.getBlockPos()).getBlock().getMaterial() == Material.air)
             return;
-        if (!itemBlock.canPlaceBlockOnSide(mc.theWorld, mop.getBlockPos(), mop.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem()))
+        if (!itemBlock.canPlaceBlockOnSide(mc.level, mop.getBlockPos(), mop.sideHit, mc.player, mc.player.getMainHandItem()))
             return;
 
         blockData = new BlockData(mop.getBlockPos(), mop.sideHit);
-        mc.playerController.onPlayerRightClick(
-                mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(),
+        mc.gameMode.onPlayerRightClick(
+                mc.player, mc.level, mc.player.inventory.getCurrentItem(),
                 blockData.getPosition(), blockData.getFacing(), ScaffoldUtil.getNewVector(blockData)
         );
-        mc.thePlayer.swingItem();
+        mc.player.swingItem();
         lastPlaceTime = System.currentTimeMillis();
         lastClutchTime = lastPlaceTime;
     };
@@ -181,10 +181,10 @@ public class Clutch extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> knockbackListener = event -> {
-        if (mc.thePlayer == null || !(event.getPacket() instanceof S12PacketEntityVelocity))
+        if (mc.player == null || !(event.getPacket() instanceof S12PacketEntityVelocity))
             return;
         S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
-        if (p.getEntityID() != mc.thePlayer.getEntityId())
+        if (p.getEntityID() != mc.player.getId())
             return;
         if (p.getMotionX() != 0 || p.getMotionY() != 0 || p.getMotionZ() != 0)
             lastKnockbackTime = System.currentTimeMillis();
@@ -217,18 +217,18 @@ public class Clutch extends Module {
      * Distance below them — i.e. a drop long enough to be worth catching.
      */
     private boolean bigFallNow() {
-        EntityPlayerSP player = mc.thePlayer;
-        if (player.onGround)
+        LocalPlayer player = mc.player;
+        if (player.onGround())
             return false;
         // Must actually be about to leave/stay off support this tick.
         if (!ScaffoldUtil.willFallNextTick())
             return false;
         // Scan the column below the player, down by Fall Distance blocks (clamped at world bottom),
         // for anything collidable. Empty -> the drop is at least that far.
-        AxisAlignedBB box = player.getEntityBoundingBox();
+        AABB box = player.getBoundingBox();
         double bottom = Math.max(0, box.minY - 20);
-        AxisAlignedBB column = new AxisAlignedBB(box.minX, bottom, box.minZ, box.maxX, box.minY, box.maxZ);
-        return mc.theWorld.getCollidingBoundingBoxes(player, column).isEmpty();
+        AABB column = new AABB(box.minX, bottom, box.minZ, box.maxX, box.minY, box.maxZ);
+        return mc.level.getCollidingBoundingBoxes(player, column).isEmpty();
     }
 
     private boolean isScaffoldActive() {
@@ -243,14 +243,14 @@ public class Clutch extends Module {
 
     /** Ensure a stack of blocks is held; returns the held item (or null if none usable). */
     private Item keyBlock() {
-        if (mc.thePlayer.inventory.getCurrentItem() == null
-                || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock)
-                || mc.thePlayer.inventory.getCurrentItem().stackSize <= 1) {
-            mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
+        if (mc.player.inventory.getCurrentItem() == null
+                || !(mc.player.inventory.getCurrentItem().getItem() instanceof ItemBlock)
+                || mc.player.inventory.getCurrentItem().stackSize <= 1) {
+            mc.player.inventory.currentItem = ScaffoldUtil.getBlockSlot();
         }
-        if (mc.thePlayer.inventory.getCurrentItem() == null)
+        if (mc.player.inventory.getCurrentItem() == null)
             return null;
-        return mc.thePlayer.inventory.getCurrentItem().getItem();
+        return mc.player.inventory.getCurrentItem().getItem();
     }
 
     /**
@@ -262,10 +262,10 @@ public class Clutch extends Module {
      * actually reach without turning.
      */
     private BlockData findCatchPlacement(float lockedYaw) {
-        EntityPlayerSP player = mc.thePlayer;
+        LocalPlayer player = mc.player;
         BlockPos topLayer = new BlockPos(player).down();
 
-        AxisAlignedBB predicted = ScaffoldUtil.getPredictedBoundingBox(1.0);
+        AABB predicted = ScaffoldUtil.getPredictedBoundingBox(1.0);
         double targetX = (predicted.minX + predicted.maxX) * 0.5;
         double targetZ = (predicted.minZ + predicted.maxZ) * 0.5;
         double targetY = topLayer.getY() + 0.5;
@@ -276,7 +276,7 @@ public class Clutch extends Module {
         // place beats it, a placement is pointless — they're already going to be caught as well.
         double existingScore = Double.MAX_VALUE;
 
-        Vec3 eyeVec = player.getPositionEyes(1.0f);
+        Vec3 eyeVec = player.getEyePosition(1.0f);
 
         int depth = (int) 5;
         for (int down = 0; down <= depth; down++) {
@@ -285,29 +285,29 @@ public class Clutch extends Module {
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
                     BlockPos pos = layer.add(x, 0, z);
-                    IBlockState state = mc.theWorld.getBlockState(pos);
+                    IBlockState state = mc.level.getBlockState(pos);
                     if (state.getBlock() == Blocks.air) continue;
                     if (!state.getBlock().isFullCube()) continue;
 
                     // Existing catch: a solid block under the landing footprint with air above is
                     // something the player will simply land on. Record how good that catch is.
                     if (overlapsFootprint(pos, predicted)
-                            && mc.theWorld.getBlockState(pos.up()).getBlock() == Blocks.air) {
+                            && mc.level.getBlockState(pos.up()).getBlock() == Blocks.air) {
                         double ex = cellScore(pos, targetX, targetY, targetZ);
                         if (ex < existingScore) existingScore = ex;
                     }
 
-                    for (EnumFacing facing : EnumFacing.values()) {
+                    for (Direction facing : Direction.values()) {
                         // Never place downward; only tower (UP) when there's real clearance above the
                         // block for the player to land on the tower.
-                        if (facing == EnumFacing.DOWN) continue;
-                        if (facing == EnumFacing.UP && !canPlaceUpOn(pos)) continue;
+                        if (facing == Direction.DOWN) continue;
+                        if (facing == Direction.UP && !canPlaceUpOn(pos)) continue;
 
-                        if (!placeholderBlock.canPlaceBlockOnSide(mc.theWorld, pos, facing, player, player.getHeldItem()))
+                        if (!placeholderBlock.canPlaceBlockOnSide(mc.level, pos, facing, player, player.getMainHandItem()))
                             continue;
 
-                        BlockPos neighbor = pos.offset(facing);
-                        if (mc.theWorld.getBlockState(neighbor).getBlock() != Blocks.air)
+                        BlockPos neighbor = pos.relative(facing);
+                        if (mc.level.getBlockState(neighbor).getBlock() != Blocks.air)
                             continue;
 
                         // Relevance: the placed block has to sit under the player's landing footprint,
@@ -320,7 +320,7 @@ public class Clutch extends Module {
                         double fcx = pos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
                         double fcy = pos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
                         double fcz = pos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
-                        double edx = fcx - eyeVec.xCoord, edy = fcy - eyeVec.yCoord, edz = fcz - eyeVec.zCoord;
+                        double edx = fcx - eyeVec.x, edy = fcy - eyeVec.y, edz = fcz - eyeVec.z;
                         if (edx * edx + edy * edy + edz * edz > REACH * REACH)
                             continue;
 
@@ -333,8 +333,8 @@ public class Clutch extends Module {
                             rots = Scaffold.getFreeRotationsForFace(pos, facing);
 
                         Vec3 lookDir = ((IMixinEntity) player).invokeGetVectorForRotation(rots[1], rots[0]);
-                        Vec3 traceEnd = eyeVec.addVector(lookDir.xCoord * REACH, lookDir.yCoord * REACH, lookDir.zCoord * REACH);
-                        MovingObjectPosition hit = player.worldObj.rayTraceBlocks(eyeVec, traceEnd, false, false, true);
+                        Vec3 traceEnd = eyeVec.add(lookDir.x * REACH, lookDir.y * REACH, lookDir.z * REACH);
+                        MovingObjectPosition hit = player.level().rayTraceBlocks(eyeVec, traceEnd, false, false, true);
 
                         if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
                         if (!hit.getBlockPos().equals(pos)) continue;
@@ -357,7 +357,7 @@ public class Clutch extends Module {
 
     /** The player's feet are more than 0.5m above this block's top, so towering onto it is valid. */
     private boolean canPlaceUpOn(BlockPos pos) {
-        return mc.thePlayer.getEntityBoundingBox().minY - (pos.getY() + 1) > 0.5;
+        return mc.player.getBoundingBox().minY - (pos.getY() + 1) > 0.5;
     }
 
     /** How well the block/cell at {@code pos} catches the player: closer & higher scores lower. */
@@ -369,7 +369,7 @@ public class Clutch extends Module {
     }
 
     /** Whether the block column horizontally overlaps the player's predicted landing footprint. */
-    private boolean overlapsFootprint(BlockPos block, AxisAlignedBB footprint) {
+    private boolean overlapsFootprint(BlockPos block, AABB footprint) {
         return block.getX() < footprint.maxX && block.getX() + 1 > footprint.minX
                 && block.getZ() < footprint.maxZ && block.getZ() + 1 > footprint.minZ;
     }

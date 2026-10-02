@@ -18,11 +18,11 @@ import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.MathHelper;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.util.Mth;
 import arsenic.module.property.impl.BooleanProperty;
 
 import java.util.ArrayList;
@@ -47,14 +47,24 @@ public class Hitflick extends Module {
     @PropertyInfo(reliesOn = "Direction", value = "Custom")
     public final DoubleProperty customAngle = new DoubleProperty("Angle", new DoubleValue(1, 180, 90, 1));
 
+    /** Furthest the void search will turn away from your aim. Smaller flicks are less obvious. Void direction only. */
+    @PropertyInfo(reliesOn = "Direction", value = "Void")
+    public final DoubleProperty maxVoidAngle = new DoubleProperty("Max angle", new DoubleValue(15, 180, 180, 15));
+
     private long sinceLastFlick = 0;
     private long lastFlickTime = 0;
 
-    /** Base horizontal knockback impulse, approximating a bare-hand hit with no Knockback enchant. */
-    private static final float KNOCKBACK_STRENGTH = 0.4f;
+    /** Vanilla's base knockback, applied away from the attacker's position - the flick can't steer it. */
+    private static final double BASE_KNOCKBACK = 0.4;
+    /** Extra knockback per level (sprint counts as one), applied along the attacker's yaw - the part a flick steers. */
+    private static final double EXTRA_KNOCKBACK = 0.5;
+    /** Upward kick the extra knockback adds on top of the clamped base one. */
+    private static final double EXTRA_KNOCKBACK_Y = 0.1;
+    /** Air acceleration a sprinting player gets from movement input - what they fight the knockback with. */
+    private static final double AIR_STRAFE = 0.026;
     /** How many ticks to simulate the target's flight before giving up on an angle. */
-    private static final int MAX_SIM_TICKS = 30;
-    /** How far the target has to drop with no ground found underneath before we call it void. */
+    private static final int MAX_SIM_TICKS = 40;
+    /** How far the target has to drop with no ground found before we check the column below for void. */
     private static final double VOID_DROP = 14.0;
     /** Degrees between each candidate angle tried while searching for a void push. */
     private static final int ANGLE_STEP = 3;
@@ -84,7 +94,7 @@ public class Hitflick extends Module {
 
     /** Whether the flick's own attack went out this tick - callers shouldn't stack a second one. */
     public boolean attackedThisTick() {
-        return mc.thePlayer != null && attackTick == mc.thePlayer.ticksExisted;
+        return mc.player != null && attackTick == mc.player.tickCount;
     }
 
     /**
@@ -95,7 +105,7 @@ public class Hitflick extends Module {
      */
     public boolean ownsRotation() {
         return isEnabled() && (state == FlickState.FLICKING_AWAY
-                || (mc.thePlayer != null && flickAppliedTick == mc.thePlayer.ticksExisted));
+                || (mc.player != null && flickAppliedTick == mc.player.tickCount));
     }
 
     /**
@@ -105,7 +115,7 @@ public class Hitflick extends Module {
      * through normally when this returns false instead of forcing a flick that goes nowhere.
      */
     public boolean armFlick(Entity target) {
-        return armFlick(target, mc.thePlayer.rotationYaw);
+        return armFlick(target, mc.player.getYRot());
     }
 
     /**
@@ -116,9 +126,14 @@ public class Hitflick extends Module {
         originalYaw = baseYaw;
 
         if (direction.getValue() == FlickDirection.Void) {
-            if (!(target instanceof EntityLivingBase))
+            if (!(target instanceof LivingEntity))
                 return false;
-            Float voidYaw = findVoidYaw((EntityLivingBase) target);
+            LivingEntity living = (LivingEntity) target;
+            // Still in hurt frames: the server ignores the hit's knockback entirely, so there's
+            // nothing to steer. Let it go through normally and save the flick for the next one.
+            if (living.hurtTime > 0)
+                return false;
+            Float voidYaw = findVoidYaw(living);
             if (voidYaw == null)
                 return false;
             flickYaw = voidYaw;
@@ -142,7 +157,7 @@ public class Hitflick extends Module {
     public final Listener<EventSilentRotation> onSilentRotation = event -> {
         switch (state) {
             case FLICKING_AWAY:
-                flickAppliedTick = mc.thePlayer.ticksExisted;
+                flickAppliedTick = mc.player.tickCount;
                 event.setYaw(flickYaw);
                 event.setSpeed(360f);
                 event.setMovementFix(SilentRotationManager.MovementFix.STRICT);
@@ -151,9 +166,9 @@ public class Hitflick extends Module {
 
             case RESTORING:
                 if (pendingTarget != null) {
-                    attackTick = mc.thePlayer.ticksExisted;
-                    mc.thePlayer.swingItem();
-                    mc.playerController.attackEntity(mc.thePlayer, pendingTarget);
+                    attackTick = mc.player.tickCount;
+                    mc.player.swingItem();
+                    mc.gameMode.attackEntity(mc.player, pendingTarget);
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
                     pendingTarget = null;
@@ -191,12 +206,6 @@ public class Hitflick extends Module {
         if (voidArrows.isEmpty())
             return;
 
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_CULL_FACE);
-        GL11.glDepthMask(false);
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
@@ -221,11 +230,6 @@ public class Hitflick extends Module {
             tessellator.draw();
         }
 
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glEnable(GL11.GL_CULL_FACE);
-        GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
     };
 
     /**
@@ -278,52 +282,102 @@ public class Hitflick extends Module {
     }
 
     private void spawnVoidArrow(Entity target, float yaw) {
-        float rad = yaw * (float) Math.PI / 180f;
-        double dirX = -MathHelper.sin(rad);
-        double dirZ = MathHelper.cos(rad);
-        voidArrows.add(new VoidArrow(target.posX, target.posY, target.posZ, dirX, dirZ, System.currentTimeMillis()));
+        // Point along where they actually go - base push plus the steered part - not just the yaw.
+        double[] push = knockbackVelocity(target, yaw, knockbackLevel());
+        double len = Math.sqrt(push[0] * push[0] + push[2] * push[2]);
+        if (len < 1.0E-4)
+            return;
+        voidArrows.add(new VoidArrow(target.getX(), target.getY(), target.getZ(),
+                push[0] / len, push[2] / len, System.currentTimeMillis()));
+    }
+
+    /** Knockback level the server will use for our next hit: the Knockback enchant, plus one for sprinting. */
+    private int knockbackLevel() {
+        int level = EnchantmentHelper.getKnockbackModifier(mc.player);
+        if (mc.player.isSprinting())
+            level++;
+        return level;
     }
 
     /**
-     * Searches outward from the current yaw for an angle whose knockback push would drop the
-     * target into the void, within {@link #MAX_SIM_TICKS}. Returns null when nothing in the full
-     * sweep lands in the void, so the caller knows not to flick at all.
+     * Searches outward from the current yaw, up to {@link #maxVoidAngle}, for an angle whose
+     * knockback would drop the target into the void. Returns null when nothing does - or when
+     * there's no steerable knockback at all (not sprinting, no Knockback enchant), since then
+     * the push goes straight away from us whatever way we face and a flick changes nothing.
      */
-    private Float findVoidYaw(EntityLivingBase target) {
-        for (int delta = 0; delta <= 180; delta += ANGLE_STEP) {
-            if (wouldKnockIntoVoid(target, originalYaw + delta))
+    private Float findVoidYaw(LivingEntity target) {
+        int level = knockbackLevel();
+        if (level <= 0)
+            return null;
+        int maxDelta = (int) maxVoidAngle.getValue().getInput();
+        for (int delta = 0; delta <= maxDelta; delta += ANGLE_STEP) {
+            if (wouldKnockIntoVoid(target, originalYaw + delta, level))
                 return originalYaw + delta;
-            if (delta != 0 && wouldKnockIntoVoid(target, originalYaw - delta))
+            if (delta != 0 && delta != 180 && wouldKnockIntoVoid(target, originalYaw - delta, level))
                 return originalYaw - delta;
         }
         return null;
     }
 
     /**
-     * Simulates the target's flight after a hit thrown at {@code yaw}, mirroring vanilla's
-     * {@code EntityLivingBase#knockBack}: existing motion is halved, then the push is added in the
-     * direction the attacker is facing - the exact lever a flick pulls. From there it's just
-     * gravity, drag, and a ground probe every tick until it either lands or has fallen further
-     * than {@link #VOID_DROP} with nothing underneath it.
+     * The velocity the server hands the target for a hit thrown at {@code yaw}, per vanilla 1.8:
+     * {@code LivingEntity#knockBack} pushes 0.4 away from the attacker's <i>position</i>
+     * (clamping Y to 0.4), then {@code attackTargetEntityWithCurrentItem} adds 0.5 per knockback
+     * level along the attacker's <i>yaw</i> - only that second part is what a flick steers. The
+     * target's prior motion is dropped: the server barely tracks player motion, and the velocity
+     * packet overwrites whatever the client had.
      */
-    private boolean wouldKnockIntoVoid(EntityLivingBase target, float yaw) {
-        float rad = yaw * (float) Math.PI / 180f;
-        double dirX = -MathHelper.sin(rad);
-        double dirZ = MathHelper.cos(rad);
+    private double[] knockbackVelocity(Entity target, float yaw, int level) {
+        double motionX = 0, motionZ = 0;
+        double offX = mc.player.getX() - target.getX();
+        double offZ = mc.player.getZ() - target.getZ();
+        double offLen = Math.sqrt(offX * offX + offZ * offZ);
+        if (offLen > 1.0E-4) {
+            motionX -= offX / offLen * BASE_KNOCKBACK;
+            motionZ -= offZ / offLen * BASE_KNOCKBACK;
+        }
+        double motionY = BASE_KNOCKBACK;
 
-        double motionX = target.motionX / 2.0 + dirX * KNOCKBACK_STRENGTH;
-        double motionY = Math.min(target.motionY / 2.0 + KNOCKBACK_STRENGTH, 0.4);
-        double motionZ = target.motionZ / 2.0 + dirZ * KNOCKBACK_STRENGTH;
+        if (level > 0) {
+            float rad = yaw * (float) Math.PI / 180f;
+            motionX += -Mth.sin(rad) * level * EXTRA_KNOCKBACK;
+            motionZ += Mth.cos(rad) * level * EXTRA_KNOCKBACK;
+            motionY += EXTRA_KNOCKBACK_Y;
+        }
+        return new double[]{motionX, motionY, motionZ};
+    }
 
-        double posX = target.posX, posY = target.posY, posZ = target.posZ;
+    /**
+     * Simulates the target's flight after a hit thrown at {@code yaw}: gravity, air drag, and the
+     * target holding straight back against the push every tick at sprint strength - the worst
+     * case, so a flick is never wasted on someone who just air-strafes back onto the edge. It
+     * fails the moment their body touches anything; once they've dropped {@link #VOID_DROP} it
+     * checks the whole column below down to the bottom of the world, so a lower island or floor
+     * doesn't count as void.
+     */
+    private boolean wouldKnockIntoVoid(LivingEntity target, float yaw, int level) {
+        double[] push = knockbackVelocity(target, yaw, level);
+        double motionX = push[0], motionY = push[1], motionZ = push[2];
+
+        double[] input = {0, 0};
+        double pushLen = Math.sqrt(motionX * motionX + motionZ * motionZ);
+        if (pushLen > 1.0E-4) {
+            input[0] = -motionX / pushLen * AIR_STRAFE;
+            input[1] = -motionZ / pushLen * AIR_STRAFE;
+        }
+
+        double posX = target.getX(), posY = target.getY(), posZ = target.getZ();
         double startY = posY;
 
         for (int tick = 0; tick < MAX_SIM_TICKS; tick++) {
+            motionX += input[0];
+            motionZ += input[1];
+
             double nextX = posX + motionX;
             double nextY = posY + motionY;
             double nextZ = posZ + motionZ;
 
-            if (landsOnGround(target, nextX, posY, nextY, nextZ))
+            if (collides(target, nextX, posY, nextY, nextZ, target.height))
                 return false;
 
             posX = nextX;
@@ -335,17 +389,24 @@ public class Hitflick extends Module {
             motionX *= 0.91;
             motionZ *= 0.91;
 
-            if (startY - posY > VOID_DROP)
+            if (posY < 0)
                 return true;
+            if (startY - posY > VOID_DROP)
+                return !collides(target, posX, 0, posY, posZ, 0);
         }
         return false;
     }
 
-    private boolean landsOnGround(EntityLivingBase target, double x, double fromY, double toY, double z) {
+    /**
+     * Whether a player-sized body at {@code (x, z)} touches anything while sweeping from
+     * {@code fromY} to {@code toY}. Covers the full body height, so walls stop the sim too -
+     * someone shoved into a wall slides down it rather than sailing past.
+     */
+    private boolean collides(LivingEntity target, double x, double fromY, double toY, double z, double height) {
         double minY = Math.min(fromY, toY) - 0.1;
-        double maxY = Math.max(fromY, toY) + 0.1;
-        AxisAlignedBB probe = new AxisAlignedBB(x - 0.3, minY, z - 0.3, x + 0.3, maxY, z + 0.3);
-        return !mc.theWorld.getCollidingBoundingBoxes(target, probe).isEmpty();
+        double maxY = Math.max(fromY, toY) + height + 0.1;
+        AABB probe = new AABB(x - 0.3, minY, z - 0.3, x + 0.3, maxY, z + 0.3);
+        return !mc.level.getCollidingBoundingBoxes(target, probe).isEmpty();
     }
 
     private float getFlickAngle() {
@@ -380,7 +441,6 @@ public class Hitflick extends Module {
     public enum FlickDirection {
         Left, Right, Back, Custom, Void;
     }
-
     private static final class VoidArrow {
         final double x, y, z;
         final double dirX, dirZ;

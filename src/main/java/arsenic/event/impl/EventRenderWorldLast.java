@@ -1,15 +1,16 @@
 package arsenic.event.impl;
 
 import arsenic.event.types.Event;
-import net.minecraft.client.renderer.RenderGlobal;
 
+/**
+ * Fired once per frame while the level is being extracted for rendering, with a gizmo collector
+ * open. Listeners draw world-space shapes through {@link arsenic.utils.render.RenderUtils}.
+ */
 public class EventRenderWorldLast implements Event {
 
-    public final RenderGlobal context;
     public final float partialTicks;
-    public EventRenderWorldLast(RenderGlobal context, float partialTicks)
-    {
-        this.context = context;
+
+    public EventRenderWorldLast(float partialTicks) {
         this.partialTicks = partialTicks;
     }
 }
