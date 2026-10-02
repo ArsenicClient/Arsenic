@@ -1,5 +1,8 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,10 +12,6 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
@@ -50,17 +49,20 @@ import static arsenic.utils.rotations.RotationUtils.patchGCD;
 public class Scaffold extends Module {
 
 
-    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
 
-    public BooleanProperty keepY = new BooleanProperty("KeepY", false);
 
     // Rotation speed cap (degrees/tick), randomised per tick for a more human feel.
+    /**
+     * Keep sprinting while scaffolding. Places faster and covers ground, and is the clearest
+     * possible signal - a person cannot sprint backwards while placing under themselves.
+     */
+    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
+
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1));
     // Eagle == built-in SafeWalk: sneak whenever a step would carry the player off a ledge.
-    public final BooleanProperty eagle = new BooleanProperty("Eagle", false);
+    public BooleanProperty eagle = new BooleanProperty("Eagle", true);
     // Look-ahead safety for Eagle, mirroring SafeWalk's "Safety" property.
-    @PropertyInfo(reliesOn = "Eagle", value = "true")
-    public final DoubleProperty eagleSafety = new DoubleProperty("Safety", new DoubleValue(1, 3, 1, 0.1));
+    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 5, 2, 0.1));
 
 
     private BlockData blockData;
@@ -139,9 +141,9 @@ public class Scaffold extends Module {
     // movementInput, whose forward/strafe get rewritten by the silent-rotation movement fix,
     // which would feed the yaw back into itself. Idle -> face backward (rotationYaw + 180).
     private float getBaseYaw() {
-        if (sprint.getValue()) {
+        // Sprinting means facing where you are going, so there is no backward yaw to compute.
+        if (sprint.getValue())
             return mc.thePlayer.rotationYaw;
-        }
 
         int forward = 0, strafe = 0;
         if (mc.gameSettings.keyBindForward.isKeyDown()) forward++;
@@ -168,9 +170,10 @@ public class Scaffold extends Module {
 
         // Eagle (built-in SafeWalk): sneak whenever a step would carry the player off a ledge,
         // using the same look-ahead safety SafeWalk exposes.
-        if (eagle.getValue() && ScaffoldUtil.willFallNextTick(eagleSafety.getValue().getInput())) {
+        if (eagle.getValue() && ScaffoldUtil.willFallNextTick(safety.getValue().getInput())) {
             shift = true;
         }
+
         setShift(shift);
     }
 
@@ -195,7 +198,7 @@ public class Scaffold extends Module {
             if (movingObjectPosition != null
                     && movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
                     && (movingObjectPosition.sideHit != EnumFacing.DOWN)
-                    && (!keepY.getValue() || movingObjectPosition.sideHit != EnumFacing.UP)
+                    && (!false || movingObjectPosition.sideHit != EnumFacing.UP)
                     && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
                 blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
                 placePost(event);
@@ -572,7 +575,7 @@ public class Scaffold extends Module {
         // When KeepY is off and the player is airborne (jumping / falling), also scan the layer
         // below so the block directly under the player can be towered: its UP face creates a block
         // at the player's feet. On ground we only need the regular support layer.
-        boolean tower = !player.onGround && !keepY.getValue();
+        boolean tower = !player.onGround && !false;
         int lowestLayer = tower ? -1 : 0;
 
         for (int layer = 0; layer >= lowestLayer; layer--) {

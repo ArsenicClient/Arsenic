@@ -38,6 +38,14 @@ public class Theme implements ISerializable {
     private int status = 0xFFFFFFAA;
     private boolean gradient;
 
+    /**
+     * The ClickGUI backdrop this theme asks for. Colour and backdrop are the same decision - an
+     * orange client over a green caustics shader looks like two unrelated things layered on top of
+     * each other - so the shader travels with the theme rather than being a separate setting.
+     * Defaults to Aurora, which is neutral enough to sit under any hue.
+     */
+    private arsenic.gui.click.GuiStyle.BgShader bgShader = arsenic.gui.click.GuiStyle.BgShader.AURORA;
+
     public Theme(String name, int mainColor, int darkerColor, int white, int black) {
         this.name = name;
         this.mainColor = mainColor;
@@ -50,6 +58,13 @@ public class Theme implements ISerializable {
         this(name, mainColor, darkerColor, white, black);
         this.gradient = gradient;
         this.gradientColor = gradientColor;
+    }
+
+    public arsenic.gui.click.GuiStyle.BgShader getBgShader() { return bgShader; }
+
+    public void setBgShader(arsenic.gui.click.GuiStyle.BgShader bgShader) {
+        if (bgShader != null)
+            this.bgShader = bgShader;
     }
 
     public String getName(){

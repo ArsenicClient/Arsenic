@@ -26,7 +26,7 @@ public class ShaderUtil {
     private static final int GL_CONSTANT_ALPHA_ = 0x8003;
     private static final int GL_ONE_MINUS_CONSTANT_ALPHA_ = 0x8004;
 
-    /** Selectable background shaders (see {@code ClickGui.BgShader}). */
+    /** Selectable background shaders (see {@code GuiStyle.BgShader}). */
     public static final String[] BACKGROUNDS = {
             "aurora", "starfield", "synthwave", "liquidChrome",
             "fireStorm", "oceanCaustics", "nebula", "zippyZaps"
@@ -145,7 +145,7 @@ public class ShaderUtil {
      *
      * @param progress    0 = fully gone, 1 = fully present
      * @param tintColor   ARGB theme colour used for the ember/burn edge
-     * @param style       transition style (ClickGui.Transition ordinal):
+     * @param style       transition style (GuiStyle.Transition ordinal):
      *                    0 = paper burn, 1 = dissolve, 2 = glitch, 3 = fade
      * @param bx1,by1,bx2,by2 main box rect in top-down pixels
      * @param bradius     box corner radius in pixels

@@ -58,6 +58,13 @@ public class Arsenic {
 
         logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
 
+        // Built last, and the order matters: the component tree needs the module list to exist, and
+        // some components resolve theme colours while constructing, so the theme manager must
+        // already have a current theme. This used to happen inside config loading, via the ClickGui
+        // module's postApplyConfig callback; that module is gone, so the wiring is explicit now.
+        clickGuiScreen.init();
+        logger.info("Built ClickGUI.");
+
         logger.info("Loaded {} commands...", String.valueOf(commandManager.initialize()));
 
         fonts.initTextures();

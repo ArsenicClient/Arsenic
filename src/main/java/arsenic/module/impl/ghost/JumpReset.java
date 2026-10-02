@@ -1,5 +1,7 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMovementInput;
@@ -8,15 +10,15 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 
-@ModuleInfo(name = "JumpReset", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT)
 public class JumpReset extends Module {
-
+    /** Chance to reset on a hit. 1 is every time, which is a pattern. */
     public final DoubleProperty chance = new DoubleProperty("Chance", new DoubleValue(0.0, 1, 1, 0.01));
+
+
     public boolean shouldJump;
 
     @EventLink

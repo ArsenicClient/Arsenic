@@ -5,6 +5,7 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.PostProcessing;
+import net.minecraft.client.Minecraft;
 import org.reflections.Reflections;
 
 import java.util.*;
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.reflections.scanners.Scanners.SubTypes;
+import org.lwjgl.input.Keyboard;
 
 public class ModuleManager {
 
@@ -66,8 +68,20 @@ public class ModuleManager {
         return null;
     }
 
+    /**
+     * Fixed bind that opens the ClickGUI. It is not rebindable on purpose: it used to be a keybind
+     * property on a ClickGui module that existed for little else, and a client whose whole point is
+     * having few settings should not spend one of them on this.
+     */
+    private static final int CLICK_GUI_KEY = org.lwjgl.input.Keyboard.KEY_RSHIFT;
+
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
+        if (event.getKeycode() == CLICK_GUI_KEY) {
+            Minecraft.getMinecraft().displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
+            return;
+        }
+
         AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
 
         getModules().stream().filter(m -> m.getKeybind() == event.getKeycode())

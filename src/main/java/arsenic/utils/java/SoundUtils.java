@@ -1,7 +1,7 @@
 package arsenic.utils.java;
 
 import arsenic.main.Arsenic;
-import arsenic.module.impl.visual.ClickGui;
+import arsenic.gui.click.GuiStyle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.util.ResourceLocation;
@@ -76,8 +76,7 @@ public class SoundUtils {
 
     private static boolean guiSoundsEnabled() {
         try {
-            ClickGui cg = Arsenic.getArsenic().getModuleManager().getModuleByClass(ClickGui.class);
-            return cg == null || cg.sounds.getValue();
+            return GuiStyle.soundsEnabled();
         } catch (Exception e) {
             return true;
         }
@@ -119,6 +118,32 @@ public class SoundUtils {
     public static void chordKeybind()  { chord(CHORD_KEYBIND); }
     /** Generic click that doesn't have a more specific meaning. */
     public static void chordClick()    { chord(CHORD_CLICK); }
+
+    // ---------------------------------------------------------------
+    //  Gameplay feedback
+    // ---------------------------------------------------------------
+
+    /** Independent of the GUI debounce so a confirmation is never eaten by a menu click. */
+    private static volatile long lastHitConfirm = 0L;
+    /** Rapid confirmations collapse rather than machine-gunning. */
+    private static final long HIT_CONFIRM_DEBOUNCE_MS = 120L;
+
+    /**
+     * A landed hit, played as a bright open G + high C.
+     * <p>
+     * Deliberately not routed through {@link #chord}: that is gated by the ClickGUI's "CMaj Sounds"
+     * toggle and shares the menu debounce, and this is combat feedback, not a menu click - silencing
+     * the interface should not silence it, and a click elsewhere should not swallow it. It sits high
+     * and resolved so it cuts through the hit sounds already playing.
+     */
+    public static void hitConfirm() {
+        long now = System.currentTimeMillis();
+        if (now - lastHitConfirm < HIT_CONFIRM_DEBOUNCE_MS)
+            return;
+        lastHitConfirm = now;
+        playEvent(CMAJ[4], 1.0f);   // G
+        playEvent(CMAJ[7], 1.0f);   // C an octave up
+    }
 
     /** Plays a single scale degree (0..7) as a chord of one note. */
     public static void note(int degree) {

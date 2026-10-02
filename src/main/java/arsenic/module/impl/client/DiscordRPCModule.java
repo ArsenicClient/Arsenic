@@ -4,29 +4,24 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.discord.DiscordRPCManager;
 
-@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.CLIENT, hidden = true)
 public class DiscordRPCModule extends Module {
 
     private static final long APP_ID = 1508792693688369252L;
     private static DiscordRPCManager rpcManager;
 
-    public final BooleanProperty showServer = new BooleanProperty("Show Server", true);
-    public final BooleanProperty showName = new BooleanProperty("Show Name", true);
-    public final BooleanProperty showHealth = new BooleanProperty("Show Health", false);
-    public final BooleanProperty showModuleCount = new BooleanProperty("Show Module Count", false);
 
     @Override
     protected void onEnable() {
         if (rpcManager == null) {
             rpcManager = new DiscordRPCManager(APP_ID);
         }
-        rpcManager.setShowServer(showServer.getValue());
-        rpcManager.setShowName(showName.getValue());
-        rpcManager.setShowHealth(showHealth.getValue());
-        rpcManager.setShowModuleCount(showModuleCount.getValue());
+        rpcManager.setShowServer(true);
+        rpcManager.setShowName(true);
+        rpcManager.setShowHealth(false);
+        rpcManager.setShowModuleCount(false);
         rpcManager.start();
     }
 

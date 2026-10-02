@@ -9,11 +9,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.ColourProperty;
-import arsenic.module.property.impl.FolderProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -37,33 +33,32 @@ import java.util.List;
 import java.util.Map;
 
 
-@ModuleInfo(name = "Esp", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true)
 public class ESP extends Module {
 
-    public ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
-    public BooleanProperty bedWars = new BooleanProperty("BedWars", false);
-    public BooleanProperty shaderEsp = new BooleanProperty("Shader ESP", true);
-    public BooleanProperty boxEsp = new BooleanProperty("Box ESP", true);
-    public BooleanProperty healthEsp = new BooleanProperty("Health ESP", false);
+    /**
+     * How players are drawn. These were four independent toggles plus two folders of tuning - a
+     * combinatorial mess where most combinations were either invisible or drew the same player
+     * three times. They are one choice now, because they always were one choice.
+     */
+    public enum Mode {
+        /** Shaded box plus outline. The default: readable at any distance, costs nothing. */
+        Box,
+        /** Soft coloured halo through walls. */
+        Glow,
+        /** Flat coloured player models. Unaffected by shaderpacks. */
+        Chams
+    }
 
-    // glow: a soft coloured halo around the player model that shows through walls
-    private final BooleanProperty glow = new BooleanProperty("Glow", false);
-    private final DoubleProperty glowRadius = new DoubleProperty("Glow Radius", new DoubleValue(1, 30, 8, 1));
-    private final DoubleProperty glowStrength = new DoubleProperty("Glow Strength", new DoubleValue(0.5, 8, 3, 0.5));
-    private final BooleanProperty glowOutlineOnly = new BooleanProperty("Glow Outline Only", true);
-    private final DoubleProperty glowFill = new DoubleProperty("Glow Fill", new DoubleValue(0, 100, 15, 5));
-    private final BooleanProperty glowTheme = new BooleanProperty("Glow Theme Colour", true);
-    public final FolderProperty glowFolder =
-            new FolderProperty("Glow ESP", glow, glowRadius, glowStrength, glowOutlineOnly, glowFill, glowTheme);
+    public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
 
-    // chams: flat coloured models. No framebuffers or shaders involved, so it is unaffected by
-    // whatever a shaderpack is doing with render targets.
-    private final BooleanProperty chams = new BooleanProperty("Chams", false);
-    private final DoubleProperty chamsAlpha = new DoubleProperty("Chams Opacity", new DoubleValue(5, 100, 60, 5));
-    private final BooleanProperty chamsFlat = new BooleanProperty("Chams Flat Colour", true);
-    private final BooleanProperty chamsTheme = new BooleanProperty("Chams Theme Colour", true);
-    public final FolderProperty chamsFolder =
-            new FolderProperty("Chams", chams, chamsFlat, chamsAlpha, chamsTheme);
+    // Tuning, fixed at the values that were already the defaults.
+    private static final int GLOW_RADIUS = 8;
+    private static final float GLOW_STRENGTH = 3f;
+    private static final boolean GLOW_OUTLINE_ONLY = true;
+    private static final float GLOW_FILL = 0.15f;
+    private static final float CHAMS_ALPHA = 0.6f;
+    private static final boolean CHAMS_FLAT = true;
 
     private final GlowRenderer glowRenderer = new GlowRenderer();
     private final List<EntityPlayer> glowTargets = new ArrayList<>();
@@ -91,9 +86,9 @@ public class ESP extends Module {
             AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(axisalignedbb.minX - entity.posX + x, axisalignedbb.minY - entity.posY + y, axisalignedbb.minZ - entity.posZ + z, axisalignedbb.maxX - entity.posX + x, axisalignedbb.maxY - entity.posY + y, axisalignedbb.maxZ - entity.posZ + z);
             if (!camera.isBoundingBoxInFrustum(axisalignedbb1))
                 continue;
-            if (glow.getValue())
+            if (mode.getValue() == Mode.Glow)
                 glowTargets.add(entity);
-            Color color = new Color(bedWars.getValue() ? getBedWarsColor(entity) : this.color.getValue());
+            Color color = new Color(getBedWarsColor(entity));
             GlStateManager.pushMatrix();
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -101,17 +96,15 @@ public class ESP extends Module {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glDepthMask(false);
             GL11.glLineWidth(2.0F);
-            if (shaderEsp.getValue()) {
+            if (mode.getValue() == Mode.Box) {
                 RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
-            }
-            if (boxEsp.getValue()) {
                 RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
             }
-            if (healthEsp.getValue()) {
-                GL11.glPushMatrix();
-                drawHealthEsp(entity, x, y, z);
-                GL11.glPopMatrix();
-            }
+            // Health always shows. It was off by default, which meant the module shipped without
+            // the one piece of information that actually changes how you play a fight.
+            GL11.glPushMatrix();
+            drawHealthEsp(entity, x, y, z);
+            GL11.glPopMatrix();
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_BLEND);
@@ -123,51 +116,44 @@ public class ESP extends Module {
         // The glow composites the whole screen, so it runs once per distinct colour rather than once
         // per player - normally that is a single pass, but in BedWars each team's colour needs its
         // own mask or every player would glow whichever colour happened to be first in the list.
-        if (glow.getValue() && !glowTargets.isEmpty()) {
+        if (mode.getValue() == Mode.Glow && !glowTargets.isEmpty()) {
             Map<Integer, List<EntityPlayer>> byColour = new LinkedHashMap<>();
             for (EntityPlayer target : glowTargets)
                 byColour.computeIfAbsent(getGlowColour(target), c -> new ArrayList<>()).add(target);
 
             for (Map.Entry<Integer, List<EntityPlayer>> group : byColour.entrySet())
                 glowRenderer.render(group.getValue(), event.partialTicks, group.getKey(),
-                        (int) glowRadius.getValue().getInput(),
-                        (float) glowStrength.getValue().getInput(),
-                        glowOutlineOnly.getValue(),
-                        (float) glowFill.getValue().getInput() / 100f);
+                        GLOW_RADIUS, GLOW_STRENGTH, GLOW_OUTLINE_ONLY, GLOW_FILL);
         }
         glowTargets.clear();
     };
 
-    /**
-     * BedWars team colour wins when it is on, otherwise the client theme unless the user has opted
-     * out, in which case the module's own colour is used.
-     */
-    private int resolveColour(EntityPlayer entity, boolean useTheme) {
-        if (bedWars.getValue() && entity != null)
+    /** BedWars team colour, falling back to the client theme when the entity isn't a player. */
+    private int resolveColour(EntityPlayer entity) {
+        if (entity != null)
             return getBedWarsColor(entity);
-        return useTheme ? ThemeManager.getMainColor() : color.getValue();
+        return ThemeManager.getMainColor();
     }
 
     private int getGlowColour(EntityPlayer entity) {
-        return resolveColour(entity, glowTheme.getValue());
+        return resolveColour(entity);
     }
 
     // read by ChamsRenderer from inside RendererLivingEntity#renderModel
     public boolean isChamsEnabled() {
-        return chams.getValue();
+        return mode.getValue() == Mode.Chams;
     }
 
     public int getChamsColour(net.minecraft.entity.EntityLivingBase entity) {
-        return resolveColour(entity instanceof EntityPlayer ? (EntityPlayer) entity : null,
-                chamsTheme.getValue());
+        return resolveColour(entity instanceof EntityPlayer ? (EntityPlayer) entity : null);
     }
 
     public boolean isChamsFlat() {
-        return chamsFlat.getValue();
+        return CHAMS_FLAT;
     }
 
     public float getChamsAlpha() {
-        return (float) chamsAlpha.getValue().getInput() / 100f;
+        return CHAMS_ALPHA;
     }
 
     private void drawHealthEsp(EntityPlayer entity, double x, double y, double z) {
@@ -193,7 +179,7 @@ public class ESP extends Module {
     public int getBedWarsColor(EntityPlayer entityPlayer) {
         ItemStack stack = entityPlayer.getCurrentArmor(2);
         if (stack == null)
-            return color.getValue(); // not wearing a chest plate
+            return ThemeManager.getMainColor(); // not wearing a chest plate
         NBTTagCompound nbttagcompound = stack.getTagCompound();
         if (nbttagcompound != null) {
             NBTTagCompound nbttagcompound1 = nbttagcompound.getCompoundTag("display");
@@ -202,7 +188,7 @@ public class ESP extends Module {
             }
         }
 
-        return color.getValue();
+        return ThemeManager.getMainColor();
     }
 
 

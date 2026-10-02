@@ -5,7 +5,6 @@ import arsenic.event.impl.EventMove;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.ghost.AimAssist;
-import arsenic.module.impl.world.SafeWalk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Vec3;

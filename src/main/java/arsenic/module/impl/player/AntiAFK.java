@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -7,10 +9,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
@@ -18,10 +17,11 @@ import org.lwjgl.input.Mouse;
 
 @ModuleInfo(name = "AntiAFK", category = ModuleCategory.PLAYER)
 public class AntiAFK extends Module {
-
+    /** Seconds between actions. */
     public final DoubleProperty delay = new DoubleProperty("Delay (s)", new DoubleValue(5, 300, 30, 1));
+
+
     public final EnumProperty<Action> mode = new EnumProperty<>("Action", Action.Jump);
-    public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
 
     private final MSTimer actionTimer = new MSTimer();
     private final MSTimer releaseTimer = new MSTimer();
@@ -67,9 +67,7 @@ public class AntiAFK extends Module {
                 break;
         }
 
-        if (rotate.getValue()) {
-            mc.thePlayer.rotationYaw += mc.thePlayer.ticksExisted % 2 == 0 ? 15 : -15;
-        }
+        mc.thePlayer.rotationYaw += mc.thePlayer.ticksExisted % 2 == 0 ? 15 : -15;
 
         releaseTimer.reset();
     };

@@ -1,0 +1,264 @@
+package arsenic.gui.click.impl;
+
+import arsenic.gui.click.GuiStyle;
+import arsenic.gui.click.UITheme;
+import arsenic.gui.themes.Theme;
+import arsenic.gui.themes.ThemeManager;
+import arsenic.main.Arsenic;
+import arsenic.module.ModuleCategory;
+import arsenic.utils.java.SoundUtils;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.PosInfo;
+import arsenic.utils.render.RenderInfo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * The GUI pane: pick a look, pick a colour, and that is the whole of the client's visual
+ * configuration.
+ * <p>
+ * It replaces the old ClickGui module, which carried nineteen properties for what is really a
+ * single decision. Each card here sets every one of those values at once via
+ * {@link GuiStyle.Preset}, so the GUI can never end up in a combination nobody chose.
+ * <p>
+ * Structurally this is a sibling of {@link ConfigsComponent}: a category component that draws a full
+ * pane in the content area rather than a module list, which is why it sits in the sidebar next to
+ * Configs and behaves identically when you click it.
+ */
+public class GuiComponent extends ModuleCategoryComponent {
+
+    /** A rectangle plus the thing to do when it is clicked. Rebuilt every frame during the draw. */
+    private static final class Hit {
+        float x1, y1, x2, y2;
+        final Runnable action;
+
+        Hit(float x1, float y1, float x2, float y2, Runnable action) {
+            this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
+            this.action = action;
+        }
+
+        boolean contains(float mx, float my) {
+            return mx >= x1 && mx <= x2 && my >= y1 && my <= y2;
+        }
+    }
+
+    private final List<Hit> hits = new ArrayList<>();
+
+    public GuiComponent() {
+        super(ModuleCategory.GUI);
+    }
+
+    @Override
+    public void drawLeft(PosInfo pi, RenderInfo ri) {
+        hits.clear();
+
+        // This pane draws its own layout instead of the two-column module list, which means it also
+        // has to do the scrolling the list normally does for it: ease the visible offset toward the
+        // wheel's target, shift the content by it, and report the content height at the end so the
+        // screen can size the scrollbar and clamp the wheel.
+        scroll += (targetScroll - scroll) * GuiStyle.scrollEase();
+        if (Math.abs(targetScroll - scroll) < 0.5f)
+            scroll = targetScroll;
+
+        float x = pi.getX();
+        float contentTop = pi.getY() + scroll + 12;
+        float y = contentTop;
+        float maxX = ri.getGuiScreen().width * 7 / 8f - 10;
+        float rowW = maxX - x - 10;
+        float mx = ri.getMouseX(), my = ri.getMouseY();
+
+        drawSectionLabel("Appearance", x + 5, y, ri);
+        y += 16;
+
+        // ---- preset cards ----
+        for (GuiStyle.Preset preset : GuiStyle.Preset.values()) {
+            float cardX = x + 5;
+            float cardH = 42;
+            boolean active = GuiStyle.get().getPreset() == preset;
+            boolean hovered = mx >= cardX && mx <= cardX + rowW && my >= y && my <= y + cardH;
+
+            int fill = active
+                    ? UITheme.mix(ThemeManager.getConfigsCard(), UITheme.accent(), 0.10f)
+                    : ThemeManager.getConfigsCard();
+            UITheme.surface(cardX, y, cardX + rowW, y + cardH, 10f, fill,
+                    active || hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT,
+                    active ? 1f : 0.6f);
+            DrawUtils.drawRoundedOutline(cardX, y, cardX + rowW, y + cardH, 10f, active ? 1.4f : 1f,
+                    active ? UITheme.alpha(UITheme.accent(), 190)
+                           : (hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder()));
+
+            // Same left accent spine an enabled module card gets, so "this one is live" looks
+            // identical everywhere in the GUI.
+            if (active)
+                UITheme.accentBar(cardX, y, cardX + 3, y + cardH, 10f, 1f);
+
+            ri.getFr().drawString(preset.label, cardX + 14, y + 12,
+                    active ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary());
+            ri.getFr().drawString(preset.description, cardX + 14, y + 26,
+                    UITheme.alpha(ThemeManager.getTextMuted(), 210),
+                    ri.getFr().getScaleModifier(0.85f));
+
+            drawPreview(cardX + rowW - 74, y + 9, 60, cardH - 18, preset);
+
+            hits.add(new Hit(cardX, y, cardX + rowW, y + cardH, () -> {
+                GuiStyle.get().setPreset(preset);
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+            }));
+
+            y += cardH + 6;
+        }
+
+        y += 10;
+        DrawUtils.drawRect(x + 5, y, maxX, y + 1, ThemeManager.getSeparator());
+        y += 14;
+
+        // ---- theme swatches ----
+        drawSectionLabel("Colour", x + 5, y, ri);
+        y += 16;
+
+        float swatch = 22, gap = 6, sx = x + 5;
+        for (Theme theme : Arsenic.getArsenic().getThemeManager().getContents()) {
+            if (sx + swatch > maxX - 5) {          // wrap to the next row
+                sx = x + 5;
+                y += swatch + gap;
+            }
+            boolean active = Arsenic.getArsenic().getThemeManager().getCurrentTheme() == theme;
+            boolean hovered = mx >= sx && mx <= sx + swatch && my >= y && my <= y + swatch;
+
+            DrawUtils.drawGradientRoundedRect(sx, y, sx + swatch, y + swatch, 6f,
+                    theme.getMainColor(), theme.getMainColor(),
+                    theme.getGradientColor(), theme.getGradientColor());
+            DrawUtils.drawRoundedOutline(sx, y, sx + swatch, y + swatch, 6f, active ? 1.8f : 1f,
+                    active ? ThemeManager.getWhite()
+                           : UITheme.alpha(ThemeManager.getWhite(), hovered ? 150 : 50));
+
+            final Theme picked = theme;
+            hits.add(new Hit(sx, y, sx + swatch, y + swatch, () -> {
+                Arsenic.getArsenic().getThemeManager().setCurrentTheme(picked);
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+            }));
+            sx += swatch + gap;
+        }
+        y += swatch + 8;
+
+        ri.getFr().drawString(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getName(),
+                x + 5, y, UITheme.alpha(ThemeManager.getTextMuted(), 210),
+                ri.getFr().getScaleModifier(0.85f));
+        y += 18;
+
+        DrawUtils.drawRect(x + 5, y, maxX, y + 1, ThemeManager.getSeparator());
+        y += 14;
+
+        // ---- the two remaining switches ----
+        drawSectionLabel("Interface", x + 5, y, ri);
+        y += 16;
+
+        y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Custom Font",
+                GuiStyle.get().isCustomFont(), () -> {
+                    GuiStyle.get().setCustomFont(!GuiStyle.get().isCustomFont());
+                    Arsenic.getArsenic().getConfigManager().saveConfig();
+                });
+        y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Interface Sounds",
+                GuiStyle.get().isSounds(), () -> {
+                    GuiStyle.get().setSounds(!GuiStyle.get().isSounds());
+                    Arsenic.getArsenic().getConfigManager().saveConfig();
+                });
+
+        // PostProcessing drives the blur and bloom behind this GUI, so it belongs here rather than
+        // in the module list. It is still a real module - this row just toggles it in place.
+        arsenic.module.Module postProcessing = Arsenic.getArsenic().getModuleManager()
+                .getModuleByClass(arsenic.module.impl.visual.PostProcessing.class);
+        if (postProcessing != null) {
+            final arsenic.module.Module pp = postProcessing;
+            y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Blur & Bloom", pp.isEnabled(), () -> {
+                pp.setEnabled(!pp.isEnabled());
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+            });
+        }
+
+        // Total height of everything drawn. ClickGuiScreen subtracts the visible height from this,
+        // leaving the actual overflow to scroll through.
+        maxHeight = y - contentTop;
+    }
+
+    /**
+     * A miniature of what the preset looks like - a backdrop band, a panel and an accent bar. Words
+     * like "frosted" mean little until you see them; three rectangles do the job.
+     */
+    private void drawPreview(float x, float y, float w, float h, GuiStyle.Preset preset) {
+        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 4f, ThemeManager.getConfigsBackground());
+        if (preset.background)
+            DrawUtils.drawGradientRoundedRect(x, y, x + w, y + h, 4f,
+                    UITheme.alpha(UITheme.accent(), preset.backgroundOpacity * 2),
+                    UITheme.alpha(UITheme.accent(), preset.backgroundOpacity * 2),
+                    UITheme.alpha(UITheme.accentAlt(), preset.backgroundOpacity * 2),
+                    UITheme.alpha(UITheme.accentAlt(), preset.backgroundOpacity * 2));
+
+        float px1 = x + 7, py1 = y + 5, px2 = x + w - 7, py2 = y + h - 5;
+        if (preset.depth)
+            DrawUtils.drawShadow(px1, py1, px2, py2, 3f,
+                    preset.elevation / 40f, Math.min(160, preset.shadowStrength), 4);
+        DrawUtils.drawRoundedRect(px1, py1, px2, py2, 3f,
+                preset.glass ? UITheme.alpha(ThemeManager.getModuleBackground(), (int) (preset.glassFrost * 2.2f))
+                             : ThemeManager.getModuleBackground());
+        DrawUtils.drawRoundedRect(px1, py1, px1 + 2, py2, 1f, UITheme.accent());
+    }
+
+    /** Label on the left, toggle pill on the right - the same shape as a boolean property row. */
+    private float drawSwitch(RenderInfo ri, float x, float y, float rowW, float mx, float my,
+                             String label, boolean on, Runnable toggle) {
+        float h = 26;
+        boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+
+        UITheme.surface(x, y, x + rowW, y + h, 8f, ThemeManager.getConfigsCard(),
+                hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, 0.6f);
+        DrawUtils.drawRoundedOutline(x, y, x + rowW, y + h, 8f, 1f,
+                hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder());
+
+        ri.getFr().drawString(label, x + 12, y + h / 2f,
+                on ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary(), ri.getFr().CENTREY);
+
+        float tw = 26, th = 12;
+        float tx = x + rowW - 12 - tw, ty = y + (h - th) / 2f;
+        DrawUtils.drawRoundedRect(tx, ty, tx + tw, ty + th, th / 2f,
+                on ? UITheme.alpha(UITheme.accent(), 235) : ThemeManager.getButtonBackground());
+        float knob = th * 0.36f;
+        float knobX = on ? tx + tw - th / 2f : tx + th / 2f;
+        DrawUtils.drawCircle(knobX, ty + th / 2f, knob, ThemeManager.getWhite());
+
+        hits.add(new Hit(x, y, x + rowW, y + h, toggle));
+        return y + h + 6;
+    }
+
+    /** Small letter-spaced caps, matching the sidebar's group headings. */
+    private void drawSectionLabel(String label, float x, float y, RenderInfo ri) {
+        StringBuilder sb = new StringBuilder();
+        String upper = label.toUpperCase();
+        for (int i = 0; i < upper.length(); i++) {
+            sb.append(upper.charAt(i));
+            if (i < upper.length() - 1)
+                sb.append(' ');
+        }
+        ri.getFr().drawString(sb.toString(), x, y, UITheme.alpha(ThemeManager.getTextMuted(), 190),
+                ri.getFr().getScaleModifier(0.78f));
+    }
+
+    /** Single column: this pane draws its own layout rather than a two-column module list. */
+    @Override
+    public void drawRight(PosInfo pi, RenderInfo ri) {
+    }
+
+    @Override
+    public void clickChildren(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton != 0)
+            return;
+        for (Hit hit : hits) {
+            if (hit.contains(mouseX, mouseY)) {
+                hit.action.run();
+                SoundUtils.chordEnum();
+                return;
+            }
+        }
+    }
+}

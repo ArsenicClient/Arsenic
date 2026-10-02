@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -8,7 +9,6 @@ import arsenic.injection.accessor.IMixinS14PacketEntity;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.ColourProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
-@ModuleInfo(name = "Backtrack", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT)
 public class BackTrack extends Module {
 
     private static final Predicate<Packet<?>> ALL_TRACKED =
@@ -42,7 +42,11 @@ public class BackTrack extends Module {
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
     public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
-    public final ColourProperty espColor = new ColourProperty("Color", 0xFFFFFFFF);
+
+    @Override
+    public String getHudInfo() {
+        return backtrackMode.getValue().name().toLowerCase();
+    }
 
     private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();
 
@@ -193,7 +197,8 @@ public class BackTrack extends Module {
         EspMode mode = espMode.getValue();
         if (mode == EspMode.NONE) return;
 
-        Color color = new Color(espColor.getValue());
+        // Colour follows the client theme rather than a per-module picker.
+        Color color = new Color(ThemeManager.getMainColor(), true);
 
         GlStateManager.pushMatrix();
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);

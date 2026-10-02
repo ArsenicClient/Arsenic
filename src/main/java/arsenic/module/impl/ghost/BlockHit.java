@@ -1,5 +1,7 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,10 +11,7 @@ import arsenic.event.impl.EventSilentRotation;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -30,11 +29,17 @@ import static arsenic.utils.lag.LagManager.getPing;
  * @since 1/4/26 (Aus)
  */
 
-@ModuleInfo(name = "BlockHit", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "BlockHit", category = ModuleCategory.COMBAT)
 public class BlockHit extends Module {
-    public final EnumProperty<mode> blockType = new EnumProperty<>("Mode", mode.Legit);
-    public final BooleanProperty rmb = new BooleanProperty("RightClick Only",false);
+    /** Target hurt time at which to unblock. Higher blocks more of the trade. */
     public final DoubleProperty hurtime = new DoubleProperty("Hurtime", new DoubleValue(0.0, 10.0, 2.0, 1.0));
+
+    public final EnumProperty<mode> blockType = new EnumProperty<>("Mode", mode.Legit);
+
+    @Override
+    public String getHudInfo() {
+        return blockType.getValue().name().toLowerCase();
+    }
     public EntityLivingBase target;
     public boolean down;
     // TwoSword timing: mirrors SprintReset's hurtTime gate so we swap only when it's time to attack.

@@ -25,7 +25,10 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
     public UICategoryComponent(UICategory self) {
         this.self = self;
         self.getContents().forEach(category -> contents.add(new ModuleCategoryComponent(category)));
-        if(getName().equals("Misc")) contents.add(new ConfigsComponent());
+        if (getName().equals("Misc")) {
+            contents.add(new GuiComponent());
+            contents.add(new ConfigsComponent());
+        }
     }
 
     @Override

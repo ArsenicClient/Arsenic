@@ -1,4 +1,6 @@
 package arsenic.module.impl.player;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.main.Arsenic;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -9,10 +11,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
@@ -29,10 +28,10 @@ import net.minecraft.util.*;
 import java.util.*;
 @ModuleInfo(name = "AutoBlockIn", category = ModuleCategory.PLAYER)
 public class AutoBlockIn extends Module {
-    public final EnumProperty<AutoBlockInMode> mode = new EnumProperty<>("Mode", AutoBlockInMode.SILENT);
+    /** Blocks placed per second while walling up. */
     public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 20, 15, 1));
-    public final DoubleProperty turnSpeed = new DoubleProperty("Turn Speed", new DoubleValue(5, 180, 140, 1));
-    public final BooleanProperty showPreview = new BooleanProperty("Show Preview", true);
+
+    public final EnumProperty<AutoBlockInMode> mode = new EnumProperty<>("Mode", AutoBlockInMode.SILENT);
     private static final int[][] CARDINAL_DIRS = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
     
     private static final int MAX_SUPPORT_DEPTH = 5;
@@ -991,7 +990,7 @@ public class AutoBlockIn extends Module {
         float curYaw = mc.thePlayer.rotationYaw;
         float curPitch = mc.thePlayer.rotationPitch;
         double angDeg = Math.toDegrees(angularDist(curYaw, curPitch, aim.yaw, aim.pitch));
-        double turn = Math.max(turnSpeed.getValue().getInput(), 1.0);
+        double turn = Math.max(140, 1.0);
         double placePerSec = Math.max(speed.getValue().getInput(), 0.25);
         long rotateMs = (long) Math.ceil((angDeg / turn) * 50.0);
         long placeMs = (long) Math.ceil(1000.0 / placePerSec);
@@ -1067,7 +1066,7 @@ public class AutoBlockIn extends Module {
         return isAirOrReplaceable(pos);
     }
     private long getPlaceDelay() {
-        return (long) (1000L / speed.getValue().getInput());
+        return (long) (1000L / Math.max(1, speed.getValue().getInput()));
     }
     private boolean preTick() {
         if (shouldAutoDisable()) {
@@ -1265,7 +1264,7 @@ public class AutoBlockIn extends Module {
         }
         event.setYaw(reqYaw);
         event.setPitch(reqPitch);
-        event.setSpeed((float) turnSpeed.getValue().getInput());
+        event.setSpeed((float) 140);
         event.setPreventDuplicateLook(true);
     };
     @RequiresPlayer
@@ -1332,7 +1331,7 @@ public class AutoBlockIn extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
-        if (!showPreview.getValue() || plan == null || planIndex >= plan.size()) return;
+        if (!true || plan == null || planIndex >= plan.size()) return;
         int main = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         int darker = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getDarkerColor();
         int support = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getWhite();
@@ -1356,13 +1355,13 @@ public class AutoBlockIn extends Module {
     // NORMAL mode (disabled)
     // private float getYawDelta(float targetYaw) {
     //     float delta = MathHelper.wrapAngleTo180_float(targetYaw - mc.thePlayer.rotationYaw);
-    //     float speedVal = (float) turnSpeed.getValue().getInput();
+    //     float speedVal = (float) 140;
     //     float speedCurve = (float) (speedVal * (Math.sin(Math.toRadians(Math.abs(delta))) / 2 + 0.5));
     //     return Math.min(speedCurve, Math.abs(delta)) * Math.signum(delta);
     // }
     // private float getPitchDelta(float targetPitch) {
     //     float delta = targetPitch - mc.thePlayer.rotationPitch;
-    //     float speedVal = (float) turnSpeed.getValue().getInput();
+    //     float speedVal = (float) 140;
     //     float speedCurve = (float) (speedVal * (Math.sin(Math.toRadians(Math.abs(delta))) / 2 + 0.5));
     //     return Math.min(speedCurve, Math.abs(delta)) * Math.signum(delta);
     // }

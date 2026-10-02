@@ -5,7 +5,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 
 
-@ModuleInfo(name = "CustomMainMenu", category = ModuleCategory.SETTINGS, hidden = true, enabled = true)
+@ModuleInfo(name = "CustomMainMenu", category = ModuleCategory.RENDER, hidden = true, enabled = true)
 public class CustomMenu extends Module {
 
     public void display() {

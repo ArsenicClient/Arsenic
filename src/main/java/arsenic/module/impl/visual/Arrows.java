@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -7,22 +8,14 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import arsenic.module.property.impl.ColourProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
 
-@ModuleInfo(name = "Pointers", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true)
 public class Arrows extends Module {
 
-    public final DoubleProperty radius = new DoubleProperty("Radius", new DoubleValue(0, 120, 34, 1));
-    public final DoubleProperty length = new DoubleProperty("Size", new DoubleValue(4, 30, 11, 1));
-    public final DoubleProperty maxDistance = new DoubleProperty("Max Distance", new DoubleValue(8, 256, 64, 1));
-    public final ColourProperty nearColor = new ColourProperty("Near", 0xFFFF4040);
-    public final ColourProperty farColor = new ColourProperty("Far", 0xFF40FF80);
 
     @EventLink
     public final Listener<EventRender2D> renderListener = event -> {
@@ -73,7 +66,7 @@ public class Arrows extends Module {
             if (player.isDead || player.isInvisible()) continue;
             if (AntiBot.isBot(player)) continue;
             float dist = mc.thePlayer.getDistanceToEntity(player);
-            if (dist > maxDistance.getValue().getInput()) continue;
+            if (dist > 64) continue;
 
             double tx = interp(player.prevPosX, player.posX, partial) - eyeX;
             double ty = interp(player.prevPosY, player.posY, partial) + player.height * 0.5 - eyeY;
@@ -100,10 +93,11 @@ public class Arrows extends Module {
             double angle = (fwd < 0.0 && Math.abs(right) < 1e-4 && Math.abs(up) < 1e-4)
                     ? Math.PI / 2.0
                     : Math.atan2(-up, right);
-            float t = Math.min(1f, dist / (float) maxDistance.getValue().getInput());
-            int color = lerpColor(nearColor.getValue(), farColor.getValue(), t);
+            float t = Math.min(1f, dist / (float) 64);
+            // Near/far now read as the theme's own two-tone gradient.
+            int color = lerpColor(ThemeManager.getMainColor(), ThemeManager.getGradientColor(), t);
 
-            drawArrow(cx, cy, (float) radius.getValue().getInput(), (float) length.getValue().getInput(), angle, color);
+            drawArrow(cx, cy, (float) 34, (float) 11, angle, color);
         }
 
         GlStateManager.enableCull();

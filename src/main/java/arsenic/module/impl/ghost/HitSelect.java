@@ -7,10 +7,7 @@ import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -35,7 +32,7 @@ import net.minecraft.entity.EntityLivingBase;
  *     attacks until your own {@code hurtTime} has decayed to the configured value, then hit.</li>
  * </ul>
  */
-@ModuleInfo(name = "HitSelect", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "HitSelect", category = ModuleCategory.COMBAT)
 public class HitSelect extends Module {
 
     public enum Mode {
@@ -46,16 +43,10 @@ public class HitSelect extends Module {
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.WaitForFirstHit);
 
-    @PropertyInfo(reliesOn = "Mode", value = "WaitForFirstHit")
-    public final DoubleProperty maxWait = new DoubleProperty("Max Wait (ms)", new DoubleValue(0, 2000, 800, 50));
 
-    @PropertyInfo(reliesOn = "Mode", value = "HitLaterInTrades")
-    public final DoubleProperty tradeDelay = new DoubleProperty("Trade Delay (ms)", new DoubleValue(0, 1000, 150, 10));
 
     // hurtTime counts down from 10 (the tick you were hit) to 0. A lower value means you hold your
     // retaliation longer; a higher value hits sooner after taking a hit.
-    @PropertyInfo(reliesOn = "Mode", value = "HurtTime")
-    public final DoubleProperty hurtTime = new DoubleProperty("Hurt Time", new DoubleValue(0, 10, 9, 1));
 
     /** A fight is considered over once no attack has been attempted for this long. */
     private static final long COMBAT_RESET_MS = 2500L;
@@ -67,6 +58,11 @@ public class HitSelect extends Module {
     private final MSTimer fightTimer = new MSTimer();   // time since the current fight started
     private final MSTimer tradeTimer = new MSTimer();   // time since the current trade started
     private final MSTimer combatTimer = new MSTimer();  // time since the last attack attempt
+
+    @Override
+    public String getHudInfo() {
+        return mode.getValue().name().toLowerCase();
+    }
 
     @Override
     protected void onEnable() {
@@ -125,15 +121,15 @@ public class HitSelect extends Module {
     private boolean shouldAllow() {
         switch (mode.getValue()) {
             case WaitForFirstHit:
-                return beenHit || fightTimer.hasTimeElapsed((long) maxWait.getValue().getInput());
+                return beenHit || fightTimer.hasTimeElapsed((long) 800);
 
             case HitLaterInTrades:
                 boolean inTrade = mc.thePlayer.hurtTime > 0 && target.hurtTime > 0;
-                return !inTrade || tradeTimer.hasTimeElapsed((long) tradeDelay.getValue().getInput());
+                return !inTrade || tradeTimer.hasTimeElapsed((long) 150);
 
             case HurtTime:
                 // Hold the opening hit, then only allow once our hurtTime has decayed to the target.
-                return beenHit && mc.thePlayer.hurtTime <= (int) hurtTime.getValue().getInput();
+                return beenHit && mc.thePlayer.hurtTime <= (int) 9;
         }
         return true;
     }

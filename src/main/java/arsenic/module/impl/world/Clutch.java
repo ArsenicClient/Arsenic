@@ -1,5 +1,7 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -12,8 +14,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.world.Scaffold.BlockData;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.block.material.Material;
@@ -29,19 +29,18 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "Clutch", category = ModuleCategory.WORLD)
+@ModuleInfo(name = "Clutch", category = ModuleCategory.PLAYER)
 public class Clutch extends Module {
+    /** Degrees per tick the view may turn while clutching. */
+    public final DoubleProperty rotationSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(10, 360, 200, 1));
+
 
     // Rotation catch-up speed (degrees/tick). High by default so the block lands in time.
-    public final DoubleProperty rotationSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(10, 360, 200, 1));
     // Minimum clear drop below the player (blocks) before Clutch arms.
-    public final DoubleProperty fallDistance = new DoubleProperty("Fall Distance", new DoubleValue(1, 256, 20, 1));
     // How recently (ms) a knockback packet — or an in-progress clutch — must have happened for
     // Clutch to stay armed.
-    public final DoubleProperty knockbackWindow = new DoubleProperty("Knockback Window", new DoubleValue(0, 2000, 500, 50));
     // How many block layers below the feet to also scan for a catch (0 = feet layer only). Higher
     // catches are still preferred; lower layers are a fallback when nothing is reachable up top.
-    public final DoubleProperty searchDepth = new DoubleProperty("Search Depth", new DoubleValue(0, 16, 5, 1));
 
     private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
     private static final double REACH = 4.5;
@@ -192,7 +191,7 @@ public class Clutch extends Module {
     };
 
     private boolean withinWindow(long stamp) {
-        return stamp != -1 && System.currentTimeMillis() - stamp <= (long) knockbackWindow.getValue().getInput();
+        return stamp != -1 && System.currentTimeMillis() - stamp <= (long) 500;
     }
 
     private boolean armedByTrigger() {
@@ -227,7 +226,7 @@ public class Clutch extends Module {
         // Scan the column below the player, down by Fall Distance blocks (clamped at world bottom),
         // for anything collidable. Empty -> the drop is at least that far.
         AxisAlignedBB box = player.getEntityBoundingBox();
-        double bottom = Math.max(0, box.minY - fallDistance.getValue().getInput());
+        double bottom = Math.max(0, box.minY - 20);
         AxisAlignedBB column = new AxisAlignedBB(box.minX, bottom, box.minZ, box.maxX, box.minY, box.maxZ);
         return mc.theWorld.getCollidingBoundingBoxes(player, column).isEmpty();
     }
@@ -238,8 +237,8 @@ public class Clutch extends Module {
     }
 
     private boolean isSafeWalkActive() {
-        SafeWalk safeWalk = Arsenic.getArsenic().getModuleManager().getModuleByClass(SafeWalk.class);
-        return safeWalk != null && safeWalk.isEnabled();
+        BridgeAssist bridgeAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(BridgeAssist.class);
+        return bridgeAssist != null && bridgeAssist.isEnabled();
     }
 
     /** Ensure a stack of blocks is held; returns the held item (or null if none usable). */
@@ -279,7 +278,7 @@ public class Clutch extends Module {
 
         Vec3 eyeVec = player.getPositionEyes(1.0f);
 
-        int depth = (int) searchDepth.getValue().getInput();
+        int depth = (int) 5;
         for (int down = 0; down <= depth; down++) {
             BlockPos layer = topLayer.down(down);
             if (layer.getY() < 0) break;

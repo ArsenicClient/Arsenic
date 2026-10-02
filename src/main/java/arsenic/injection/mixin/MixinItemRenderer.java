@@ -1,10 +1,5 @@
 package arsenic.injection.mixin;
 
-import arsenic.main.Arsenic;
-import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.movement.AutoBlock;
-import arsenic.module.impl.movement.AutoBlock;
-import arsenic.module.impl.player.PacketConsume;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -60,7 +55,6 @@ public abstract class MixinItemRenderer {
 
     @Inject(method = "renderItemInFirstPerson", at = @At("HEAD"), cancellable = true)
     public void renderItemInFirstPerson(float partialTicks, CallbackInfo ci) {
-        AutoBlock autoBlock = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoBlock.class);
         try {
             float f = 1.0F - (this.prevEquippedProgress + (this.equippedProgress - this.prevEquippedProgress) * partialTicks);
             EntityPlayerSP player = this.mc.thePlayer;
@@ -84,11 +78,6 @@ public abstract class MixinItemRenderer {
                             break;
                         case EAT:
                         case DRINK:
-                            PacketConsume pc = Arsenic.getInstance().getModuleManager().getModuleByClass(PacketConsume.class);
-                            if (pc != null && pc.isEnabled()) {
-                                this.transformFirstPersonItem(f, 0.0F);
-                                break;
-                            }
                             this.func_178104_a(player, partialTicks);
                             this.transformFirstPersonItem(f, swingProgress);
                             break;

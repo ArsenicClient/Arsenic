@@ -140,9 +140,10 @@ public abstract class MixinMinecraft {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
         Entity target = mc.objectMouseOver.entityHit;
-        if (hitflick.shouldFlick()) {
+        if (hitflick.shouldFlick() && hitflick.armFlick(target)) {
+            // Only swallow the real hit once the flick actually armed - Void mode can decline
+            // (no angle empties into the void), and the attack must go through normally then.
             mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
-            hitflick.armFlick(target); // pass it through
         }
     }
 

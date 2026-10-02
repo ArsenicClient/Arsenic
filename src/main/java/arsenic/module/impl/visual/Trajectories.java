@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
@@ -7,8 +8,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.ColourProperty;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -22,11 +21,8 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.Color;
 
-@ModuleInfo(name = "Trajectories", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true)
 public class Trajectories extends Module {
-    public final BooleanProperty ghostBow = new BooleanProperty("Ghost Bow Charge", true);
-    public final ColourProperty trajectoryColor = new ColourProperty("Color:", new Color(255, 255, 255).hashCode());
-    public final ColourProperty targetColor = new ColourProperty("Target Color:", new Color(255, 0, 0).hashCode());
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
@@ -38,7 +34,7 @@ public class Trajectories extends Module {
         if (!(heldItem.getItem() instanceof ItemBow) && !(heldItem.getItem() instanceof ItemSnowball) && !(heldItem.getItem() instanceof ItemEgg) && !(heldItem.getItem() instanceof ItemEnderPearl)) {
             return;
         }
-        if (heldItem.getItem() instanceof ItemBow && !mc.thePlayer.isUsingItem() && ghostBow.getValue()) {
+        if (heldItem.getItem() instanceof ItemBow && !mc.thePlayer.isUsingItem()) {
             return;
         }
         boolean bow = false;
@@ -68,7 +64,7 @@ public class Trajectories extends Module {
         if (f10 > 1.0f) {
             f10 = 1.0f;
         }
-        RenderUtils.setColor(trajectoryColor.getValue());
+        RenderUtils.setColor(ThemeManager.getMainColor());
         GL11.glPushMatrix();
         boolean bl3 = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
         boolean bl4 = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
@@ -130,7 +126,7 @@ public class Trajectories extends Module {
                 }
             }
             if (highlight) {
-                RenderUtils.setColor(targetColor.getValue());
+                RenderUtils.setColor(ThemeManager.getError());
             }
 
             float f14 = 0.99f;

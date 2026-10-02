@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
@@ -8,10 +10,6 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
-import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.ContainerUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.Timer;
@@ -25,11 +23,10 @@ import java.util.List;
 
 @ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYER)
 public class InvManager extends Module {
+    /** Gap between inventory clicks. */
+    public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
 
-    public final RangeProperty startDelay = new RangeProperty("StartDelay", new RangeValue(0, 500, 75, 150, 1));
-    public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
-    public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);
-    public final BooleanProperty drop = new BooleanProperty("Drop", true);
+
 
     private Timer timer = new Timer();
     private boolean shouldSteal;
@@ -38,7 +35,7 @@ public class InvManager extends Module {
     private Runnable nextAction;
 
     private final Runnable closeAction = () -> {
-        if(closeOnFinish.getValue()) {
+        if(true) {
             mc.thePlayer.closeScreen();
             mc.currentScreen = null;
         }
@@ -49,7 +46,7 @@ public class InvManager extends Module {
             Action action = path.remove(0);
 
             //skips the switch statement and moves onto the next action
-            if(!drop.getValue() && action.type == ActionType.DROP) {
+            if(!true && action.type == ActionType.DROP) {
                 getExecuteAction().run();
                 return;
             }
@@ -66,10 +63,10 @@ public class InvManager extends Module {
                     break;
             }
 
-            timer.setCooldown((int) delay.getValue().getRandomInRange());
+            timer.setCooldown((int) delay.getValue().getInput());
             nextAction = getExecuteAction();
         } else {
-            timer.setCooldown((int) delay.getValue().getRandomInRange());
+            timer.setCooldown((int) delay.getValue().getInput());
             nextAction = closeAction;
         }
     };
@@ -90,7 +87,7 @@ public class InvManager extends Module {
         path = generatePath(container);
         shouldSteal = true;
         timer.start();
-        timer.setCooldown((int) startDelay.getValue().getRandomInRange());
+        timer.setCooldown((int) delay.getValue().getInput());
         nextAction = executeAction;
     };
 

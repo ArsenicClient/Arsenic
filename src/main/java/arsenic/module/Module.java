@@ -107,6 +107,21 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
+    /**
+     * Short live-state string shown next to this module's name in the HUD arraylist and in its
+     * ClickGUI card - "240ms", "witholding", "combo", the current target-switch mode.
+     * <p>
+     * Return {@code null} (the default) for modules that have nothing worth saying; most do not.
+     * Prefer the module's <em>current state</em> over its configured setting where the two differ,
+     * because the point of the suffix is to answer "what is this doing right now" at a glance.
+     * <p>
+     * This is called every frame from the render loop, so keep it allocation-light and never let it
+     * do work that can block. Callers guard against exceptions, but not against a slow one.
+     */
+    public String getHudInfo() {
+        return null;
+    }
+
     //triggers when the module is enabled
     protected void onEnable() {
     }
@@ -217,6 +232,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
             keybind = obj.get("bind").getAsInt();
             setEnabledSilently(obj.get("enabled").getAsBoolean());
+            if (obj.has("hidden"))
+                hidden = obj.get("hidden").getAsBoolean();
 
             serializableProperties
                     .forEach(property -> property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())));
@@ -235,6 +252,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);
+        obj.addProperty("hidden", hidden);
 
         serializableProperties.forEach(property -> property.addToJson(obj));
         return obj;

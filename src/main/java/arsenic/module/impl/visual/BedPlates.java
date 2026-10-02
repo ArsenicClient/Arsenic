@@ -8,9 +8,6 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBed;
 import net.minecraft.client.gui.FontRenderer;
@@ -32,12 +29,9 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
-@ModuleInfo(name = "BedPlates", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true)
 public class BedPlates extends Module {
 
-    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(5, 128, 64, 1));
-    public final DoubleProperty layers = new DoubleProperty("Layers", new DoubleValue(1, 6, 2, 1));
-    public final BooleanProperty showDistance = new BooleanProperty("Show Distance", true);
 
     private static final int FALLBACK_INTERVAL = 240;
     private static final int CHUNKS_PER_TICK = 2;
@@ -99,7 +93,7 @@ public class BedPlates extends Module {
     public final Listener<EventRenderWorldLast> onRender = event -> {
         if (bedCache.isEmpty()) return;
 
-        double maxDistSq = range.getValue().getInput() * range.getValue().getInput();
+        double maxDistSq = 64 * 64;
         List<BedRender> list = new ArrayList<>();
 
         for (CachedBed cb : bedCache.values()) {
@@ -223,7 +217,7 @@ public class BedPlates extends Module {
     private List<ItemStack> collectBlocks(BlockPos first, BlockPos second) {
         Set<String> seen = new LinkedHashSet<>();
         List<ItemStack> stacks = new ArrayList<>();
-        int r = (int) layers.getValue().getInput();
+        int r = (int) 2;
 
         for (int dx = -r; dx <= r; dx++) {
             for (int dy = 0; dy <= r; dy++) {
@@ -256,7 +250,7 @@ public class BedPlates extends Module {
     }
 
     private int getChunkRadius() {
-        return Math.max(1, ((int) range.getValue().getInput() + 15) >> 4);
+        return Math.max(1, ((int) 64 + 15) >> 4);
     }
 
     // ── Rendering ───────────────────────────────────────────────────────
@@ -326,7 +320,7 @@ public class BedPlates extends Module {
 
         drawBackground(startX - 2, -iconSize - 2, startX + totalW + 2, 2);
 
-        if (showDistance.getValue() && count > 0) {
+        if (count > 0) {
             GlStateManager.enableTexture2D();
         }
 
