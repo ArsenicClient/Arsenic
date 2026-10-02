@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
@@ -8,10 +10,6 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
-import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
@@ -30,13 +28,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @ModuleInfo(name = "ChestStealer", category = ModuleCategory.PLAYER)
 public class ChestStealer extends Module {
+    /** Gap between inventory clicks. Lower empties a chest faster and less plausibly. */
+    public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
 
-    public final RangeProperty startDelay = new RangeProperty("StartDelay", new RangeValue(0, 500, 75, 150, 1));
-    public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 500, 75, 150, 1));
-    public final BooleanProperty hideGui = new BooleanProperty("HideGui", false);
-    public final BooleanProperty closeOnFinish = new BooleanProperty("Close on finish", true);
-    @PropertyInfo(reliesOn = "Close on finish", value = "true")
-    public final RangeProperty closeDelay = new RangeProperty("Close Delay", new RangeValue(0, 500, 75, 150, 1));
+
     private boolean inChest;
     private ArrayList<Slot> path = new ArrayList<>();
     private int totalSlots;
@@ -52,18 +47,14 @@ public class ChestStealer extends Module {
 
     private final Runnable stealAction = () -> {
         if (path.isEmpty()) {
-            if (closeOnFinish.getValue()) {
-                timer.setCooldown((int) closeDelay.getValue().getRandomInRange());
-                nextAction = closeAction;
-            } else {
-                inChest = false;
-            }
+            timer.setCooldown((int) delay.getValue().getInput());
+            nextAction = closeAction;
             return;
         }
         percentStolen = (totalSlots - path.size()) / (float) (totalSlots);
         mc.theWorld.playSound(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, "note.hat", 3f, percentStolen * 2f, false);
         mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, path.remove(0).s, 0, 1, mc.thePlayer);
-        timer.setCooldown((int) delay.getValue().getRandomInRange());
+        timer.setCooldown((int) delay.getValue().getInput());
     };
 
     private final Runnable startAction = () -> {
@@ -81,7 +72,7 @@ public class ChestStealer extends Module {
         chest = (ContainerChest) mc.thePlayer.openContainer;
         percentStolen = 0;
         path.clear();
-        timer.setCooldown((int) startDelay.getValue().getRandomInRange());
+        timer.setCooldown((int) delay.getValue().getInput());
         timer.start();
         nextAction = startAction;
     };

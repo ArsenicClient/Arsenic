@@ -68,20 +68,31 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         // lift the active/hovered pill toward the viewer
         if (anim > 0.01f)
             DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
-                    arsenic.module.impl.visual.ClickGui.shadowSpread(height * 0.18f),
-                    arsenic.module.impl.visual.ClickGui.shadowAlpha((int) (130 * anim)), 4);
+                    arsenic.gui.click.GuiStyle.shadowSpread(height * 0.18f),
+                    arsenic.gui.click.GuiStyle.shadowAlpha((int) (130 * anim)), 4);
 
         DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
+
+        // What the label and icon sit on changes as the pill fades in: the sidebar panel when
+        // idle, the accent gradient when selected. Both need a contrasting colour, and on a light
+        // theme those two are opposite - so pick each by luminance and interpolate between them.
+        int onPanel = arsenic.gui.click.UITheme.readableOn(ThemeManager.getModuleBackground());
+        int onAccent = arsenic.gui.click.UITheme.readableOn(getEnabledColor());
+        int foreground = arsenic.gui.click.UITheme.mix(onPanel, onAccent, anim);
 
         float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
         float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
         Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
+        // The icons are white glyphs, so they are invisible on a light surface until tinted. Colour
+        // modulation multiplies the texture, which is exactly the tint we want.
+        GlStateManager.color(((foreground >> 16) & 0xFF) / 255f, ((foreground >> 8) & 0xFF) / 255f,
+                (foreground & 0xFF) / 255f, 1f);
         Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
 
         GlStateManager.color(1f, 1f, 1f, 1f); // reset after texture, not before gradient
 
-        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, getWhite(), ri.getFr().CENTREY);
+        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, foreground, ri.getFr().CENTREY);
         return height;
     }
 
@@ -93,7 +104,7 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     public void drawLeft(PosInfo pi, RenderInfo ri) {
         maxHeight = 0;
         // ease the actual scroll toward the target each frame for smooth wheel scrolling
-        scroll += (targetScroll - scroll) * arsenic.module.impl.visual.ClickGui.scrollEase();
+        scroll += (targetScroll - scroll) * arsenic.gui.click.GuiStyle.scrollEase();
         if (Math.abs(targetScroll - scroll) < 0.5f)
             scroll = targetScroll;
         drawSection(contentsL, pi, ri);

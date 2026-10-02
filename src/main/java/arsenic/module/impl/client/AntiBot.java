@@ -17,9 +17,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-//TODO: recode le unique code
-
-@ModuleInfo(name = "AntiBot", category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "AntiBot", category = ModuleCategory.CLIENT, hidden = true)
 public class AntiBot extends Module {
     public static BooleanProperty nameChecks = new BooleanProperty("Name Checks", true),
             invisCheck = new BooleanProperty("Invis Checks", false),
@@ -28,6 +26,8 @@ public class AntiBot extends Module {
             pingCheck = new BooleanProperty("Ping Checks", false),
             twiceChecks = new BooleanProperty("Twice UUID Checks", false),
             zeroHealthChecks = new BooleanProperty("Dead Checks", false),
+            ticksExistedCheck = new BooleanProperty("Ticks Existed Checks", false),
+            entityIdCheck = new BooleanProperty("Entity ID Checks", false),
             alwaysClose = new BooleanProperty("Always Close Checks", false);
 
     public static boolean isBot(Entity entityPlayer) {
@@ -35,12 +35,27 @@ public class AntiBot extends Module {
     }
 
     public static boolean isBotCustom(Entity en) {
-        if (en == mc.thePlayer || !checkHurtTime((EntityPlayer) en) || !Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isEnabled()) {
+        if (en == mc.thePlayer || !(en instanceof EntityPlayer)
+                || !Arsenic.getArsenic().getModuleManager().getModuleByClass(AntiBot.class).isEnabled()) {
             return false;
         }
 
+        EntityPlayer player = (EntityPlayer) en;
+
+        if (zeroHealthChecks.getValue()) {
+            if (player.getHealth() <= 0.0F || en.isDead) {
+                return true;
+            }
+        }
+
+        if (tabChecks.getValue()) {
+            if (!inTab(player)) {
+                return true;
+            }
+        }
+
         if (twiceChecks.getValue()) {
-            if (!isPlayerTwiceInGame()) {
+            if (hasDuplicateUUID(player)) {
                 return true;
             }
         }
@@ -64,37 +79,39 @@ public class AntiBot extends Module {
         }
 
         if (pingCheck.getValue()) {
-            if (mc.getNetHandler() != null && en != null && en.getName() != null) {
+            if (mc.getNetHandler() != null && en.getName() != null) {
                 NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(en.getName());
-                if (playerInfo != null && playerInfo.getResponseTime() < 3) {
+                if (playerInfo != null && playerInfo.getResponseTime() <= 0) {
                     return true;
                 }
             }
         }
 
-
-        if (zeroHealthChecks.getValue()) {
-            if (((EntityLivingBase) en).getHealth() < 0.0F || en.isDead) {
+        if (ticksExistedCheck.getValue()) {
+            if (en.ticksExisted < 20) {
                 return true;
             }
         }
 
-        if (tabChecks.getValue()) {
-            if (!inTab((EntityLivingBase) en)) {
+        if (entityIdCheck.getValue()) {
+            if (en.getEntityId() < 0 || en.getEntityId() >= 1000000000) {
                 return true;
             }
         }
 
         if (alwaysClose.getValue()) {
-            if (en.ticksExisted < 5 || en.isInvisible() || mc.thePlayer.getDistanceSq(en.posX, mc.thePlayer.posY, en.posZ) > 100 * 100) {
+            if (en.ticksExisted < 5 || en.isInvisible()
+                    || mc.thePlayer.getDistanceSq(en.posX, mc.thePlayer.posY, en.posZ) > 100 * 100) {
                 return true;
             }
         }
+
         return false;
     }
 
 
     // UTILS
+
     /** Tab entries that are also loaded as entities. Anyone in tab but out of range is skipped. */
     public static ArrayList<EntityPlayer> getPlayerList() {
         ArrayList<EntityPlayer> list = new ArrayList<>();
@@ -111,7 +128,6 @@ public class AntiBot extends Module {
             if (networkPlayerInfo == null || networkPlayerInfo.getGameProfile() == null) {
                 continue;
             }
-            // null whenever that player is in tab but not loaded in the world
             EntityPlayer player = mc.theWorld.getPlayerEntityByName(networkPlayerInfo.getGameProfile().getName());
             if (player != null) {
                 list.add(player);
@@ -132,7 +148,7 @@ public class AntiBot extends Module {
 
         for (NetworkPlayerInfo info : netHandler.getPlayerInfoMap()) {
             if (info != null && info.getGameProfile() != null && info.getGameProfile().getName() != null
-                    && info.getGameProfile().getName().contains(en.getName())) {
+                    && info.getGameProfile().getName().equals(en.getName())) {
                 return true;
             }
         }
@@ -140,17 +156,12 @@ public class AntiBot extends Module {
     }
 
     /**
-     * True when the same UUID appears more than once in the tab list.
-     *
-     * <p>This used to seed itself from {@code getPlayerList().get(0)}, which threw a
-     * NullPointerException on nearly every call: that list is built by mapping tab entries through
-     * {@code World#getPlayerEntityByName}, which returns null for anyone who is in tab but not
-     * loaded as an entity - so entry 0 was usually null. Counting UUIDs directly needs no entities
-     * at all, and matches what the name says.
+     * True when the given player's UUID appears more than once in the tab list,
+     * indicating a duplicate entity (likely a bot).
      */
-    public static boolean isPlayerTwiceInGame() {
+    public static boolean hasDuplicateUUID(EntityPlayer target) {
         NetHandlerPlayClient netHandler = mc.getNetHandler();
-        if (netHandler == null) {
+        if (netHandler == null || target.getUniqueID() == null) {
             return false;
         }
 
@@ -159,33 +170,37 @@ public class AntiBot extends Module {
             return false;
         }
 
-        Set<String> seen = new HashSet<>();
+        String targetUUID = target.getUniqueID().toString();
+        int count = 0;
         for (NetworkPlayerInfo info : playerInfoList) {
             if (info == null || info.getGameProfile() == null || info.getGameProfile().getId() == null) {
                 continue;
             }
-            if (!seen.add(info.getGameProfile().getId().toString())) {
-                return true;
+            if (info.getGameProfile().getId().toString().equals(targetUUID)) {
+                count++;
+                if (count > 1) {
+                    return true;
+                }
             }
         }
         return false;
     }
-    public static boolean checkHurtTime(EntityPlayer entityPlayer) {
-        return entityPlayer.maxHurtTime == 0;
-    }
 
     public static boolean isBotName(Entity en) {
         final EntityPlayer entityPlayer = (EntityPlayer) en;
-            String unformattedText = entityPlayer.getDisplayName().getUnformattedText();
-            if (entityPlayer.getHealth() == 20.0f) {
-                if ((unformattedText.length() == 10 && unformattedText.charAt(0) != '§') || (unformattedText.length() == 12 && entityPlayer.isPlayerSleeping() && unformattedText.charAt(0) == '§') || (unformattedText.length() >= 7 && unformattedText.charAt(2) == '[' && unformattedText.charAt(3) == 'N' && unformattedText.charAt(6) == ']') || (entityPlayer.getName().contains(" "))) {
-                    return true;
-                }
-            } else if (entityPlayer.isInvisible()) {
-                if (unformattedText.length() >= 3 && unformattedText.charAt(0) == '§' && unformattedText.charAt(1) == 'c') {
-                    return true;
-                }
+        String unformattedText = entityPlayer.getDisplayName().getUnformattedText();
+        if (entityPlayer.getHealth() == 20.0f) {
+            if ((unformattedText.length() == 10 && unformattedText.charAt(0) != '§')
+                    || (unformattedText.length() == 12 && entityPlayer.isPlayerSleeping() && unformattedText.charAt(0) == '§')
+                    || (unformattedText.length() >= 7 && unformattedText.charAt(2) == '[' && unformattedText.charAt(3) == 'N' && unformattedText.charAt(6) == ']')
+                    || (entityPlayer.getName().contains(" "))) {
+                return true;
             }
+        } else if (entityPlayer.isInvisible()) {
+            if (unformattedText.length() >= 3 && unformattedText.charAt(0) == '§' && unformattedText.charAt(1) == 'c') {
+                return true;
+            }
+        }
         return false;
     }
 }

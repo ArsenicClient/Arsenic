@@ -7,30 +7,24 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import arsenic.module.property.impl.rangeproperty.RangeProperty;
-import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.inventory.ContainerPlayer;
+import net.minecraft.item.ItemAppleGold;
+import net.minecraft.item.ItemMonsterPlacer;
 import net.minecraft.item.ItemSoup;
 import net.minecraft.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER)
 public class AutoSoup extends Module {
 
-    public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 200, 50, 100, 1));
-    public final RangeProperty cooldown = new RangeProperty("Cooldown (ms)", new RangeValue(0, 5000, 1000, 1200, 1));
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(0, 20, 7, 0.1));
-    public final BooleanProperty invConsume = new BooleanProperty("Consume in inv", false);
-    public final BooleanProperty autoRefill = new BooleanProperty("Auto refill", true);
-    public final RangeProperty invDelay = new RangeProperty("Inv Delay (ms)", new RangeValue(0, 200, 50, 100, 1));
-    public final RangeProperty refillDelay = new RangeProperty("Refill Delay (ms)", new RangeValue(0, 200, 50, 100, 1));
 
     private final MSTimer actionTimer = new MSTimer();
     private final MSTimer refillTimer = new MSTimer();
@@ -42,7 +36,7 @@ public class AutoSoup extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        boolean shouldEat = (invConsume.getValue() || mc.currentScreen == null)
+        boolean shouldEat = (mc.currentScreen == null)
                 && mc.thePlayer.getHealth() < health.getValue().getInput()
                 && actionTimer.hasTimeElapsed(1);
 
@@ -52,7 +46,7 @@ public class AutoSoup extends Module {
                     actionTimer.reset();
                     break;
                 case NONE:
-                    int slot = getSoupSlot();
+                    int slot = getEdibleSlot();
                     if (slot == -1) return;
                     originalSlot = mc.thePlayer.inventory.currentItem;
                     mc.thePlayer.inventory.currentItem = slot;
@@ -70,13 +64,13 @@ public class AutoSoup extends Module {
             state = state.next();
         }
 
-        if (autoRefill.getValue() && mc.currentScreen != null && mc.thePlayer.openContainer instanceof ContainerPlayer) {
+        if (mc.currentScreen != null && mc.thePlayer.openContainer instanceof ContainerPlayer) {
             if (!inInv) {
                 refillTimer.reset();
                 generatePath((ContainerPlayer) mc.thePlayer.openContainer);
                 inInv = true;
             }
-            if (!sortedSlots.isEmpty() && refillTimer.hasTimeElapsed((long) refillDelay.getValue().getMin())) {
+            if (!sortedSlots.isEmpty() && refillTimer.hasTimeElapsed((long) 75)) {
                 mc.playerController.windowClick(mc.thePlayer.openContainer.windowId, sortedSlots.get(0), 0, 1, mc.thePlayer);
                 refillTimer.reset();
                 sortedSlots.remove(0);
@@ -95,19 +89,31 @@ public class AutoSoup extends Module {
         for (int i = 0; i < inv.getInventory().size(); i++) {
             if (!slots.isEmpty() && slots.size() >= slotsNeeded) break;
             ItemStack stack = inv.getInventory().get(i);
-            if (stack != null && stack.getItem() instanceof ItemSoup && !(i >= 36 && i <= 44)) {
+            if (stack != null && isEdible(stack) && !(i >= 36 && i <= 44)) {
                 slots.add(i);
             }
         }
         this.sortedSlots = slots;
     }
 
-    private int getSoupSlot() {
+    private int getEdibleSlot() {
         for (int slot = 0; slot <= 8; slot++) {
             ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slot);
-            if (stack != null && stack.getItem() instanceof ItemSoup) return slot;
+            if (stack != null && isEdible(stack)) return slot;
         }
         return -1;
+    }
+
+    /**
+     * Soup, a golden apple reskinned/renamed as a "Golden Head", or a chicken spawn egg -
+     * BedWars' regen items, both right-clicked to use like any other item.
+     */
+    private static boolean isEdible(ItemStack stack) {
+        if (stack.getItem() instanceof ItemSoup) return true;
+        String name = stack.getDisplayName().toLowerCase(Locale.ROOT);
+        if (stack.getItem() instanceof ItemAppleGold) return name.contains("head");
+        if (stack.getItem() instanceof ItemMonsterPlacer) return name.contains("chicken");
+        return false;
     }
 
     private enum State {

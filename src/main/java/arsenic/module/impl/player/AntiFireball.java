@@ -7,16 +7,11 @@ import arsenic.event.impl.*;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.EntityFireball;
-import net.minecraft.network.play.client.C0APacketAnimation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
@@ -28,11 +23,14 @@ import java.util.stream.Collectors;
 @ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER)
 public class AntiFireball extends Module {
 
-    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(3.0, 8.0, 4.5, 0.1));
-    public final EnumProperty<SwingMode> swing = new EnumProperty<>("Swing", SwingMode.NORMAL);
-    public final BooleanProperty tickCheck = new BooleanProperty("TickCheck", true);
-    public final DoubleProperty minFireballTick = new DoubleProperty("MinTick", new DoubleValue(1, 20, 10, 1));
-    public final BooleanProperty indicators = new BooleanProperty("Indicators", true);
+    /** Reach used both to pick a fireball and to decide it is close enough to hit. */
+    private static final double RANGE = 4.5;
+
+    /**
+     * Fireballs younger than this are ignored. A fireball is at its spawn point for the first few
+     * ticks, so swinging immediately hits nothing and just looks like a random swing at the air.
+     */
+    private static final int MIN_FIREBALL_AGE_TICKS = 10;
 
     private Entity target;
     private final MSTimer attackTimer = new MSTimer();
@@ -69,20 +67,15 @@ public class AntiFireball extends Module {
         if (target == null || !target.isEntityAlive())
             return;
 
-        if (RotationUtils.getDistanceToEntityBox(target) > range.getValue().getInput())
+        if (RotationUtils.getDistanceToEntityBox(target) > RANGE)
             return;
 
         if (!attackTimer.hasTimeElapsed(150))
             return;
 
-        switch (swing.getValue()) {
-            case NORMAL:
-                mc.thePlayer.swingItem();
-                break;
-            case PACKET:
-                mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
-                break;
-        }
+        // Always a real swing: a bare animation packet without the client-side arm movement is
+        // both easier to spot and pointless here, since the swing is visible anyway.
+        mc.thePlayer.swingItem();
         mc.playerController.attackEntity(mc.thePlayer, target);
         attackTimer.reset();
     };
@@ -90,9 +83,6 @@ public class AntiFireball extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRender2D> eventRender2D = event -> {
-        if (!indicators.getValue())
-            return;
-
         for (Entity e : mc.theWorld.loadedEntityList) {
             if (!(e instanceof EntityFireball))
                 continue;
@@ -144,9 +134,9 @@ public class AntiFireball extends Module {
         List<Entity> fireballs = mc.theWorld.loadedEntityList.stream()
                 .filter(e -> e instanceof EntityFireball)
                 .filter(e -> {
-                    if (tickCheck.getValue() && e.ticksExisted <= minFireballTick.getValue().getInput())
+                    if (e.ticksExisted <= MIN_FIREBALL_AGE_TICKS)
                         return false;
-                    if (mc.thePlayer.getDistanceToEntity(e) > range.getValue().getInput())
+                    if (mc.thePlayer.getDistanceToEntity(e) > RANGE)
                         return false;
                     return true;
                 })
@@ -179,7 +169,4 @@ public class AntiFireball extends Module {
         return fireballs.get(0);
     }
 
-    public enum SwingMode {
-        NORMAL, PACKET, NONE
-    }
 }

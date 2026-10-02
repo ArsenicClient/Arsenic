@@ -20,14 +20,12 @@ import net.minecraft.util.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "LagRange", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "LagRange", category = ModuleCategory.COMBAT)
 public class FakeLag extends Module {
 
-    public final DoubleProperty enableRange = new DoubleProperty("Enable Range", new DoubleValue(4, 64, 20, 1));
-    public final DoubleProperty safeRange = new DoubleProperty("Disable Range", new DoubleValue(1, 20, 5, 0.5));
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 2000, 100, 200, 10));
-    public final DoubleProperty buildupDuration = new DoubleProperty("Buildup Duration", new DoubleValue(0, 3000, 600, 50));
-    public final DoubleProperty buildupDelay = new DoubleProperty("Cooldown", new DoubleValue(0, 5000, 500, 50));
+    /** Minimum gap after releasing a lag burst before another may start. */
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10));
     private static final int MAX_POSITION_HISTORY = 400;
 
     private final List<Vec3> positionHistory = new ArrayList<>();
@@ -51,13 +49,13 @@ public class FakeLag extends Module {
         recordPosition();
         findClosestPlayer();
 
-        if (closestDistance <= safeRange.getValue().getInput()) {
+        if (closestDistance <= 5) {
             if (lagging)
                 stopLag(true);
             return;
         }
 
-        if (closestDistance > enableRange.getValue().getInput()) {
+        if (closestDistance > 20) {
             if (lagging)
                 stopLag(false);
             return;
@@ -71,7 +69,7 @@ public class FakeLag extends Module {
             return;
         }
 
-        if (System.currentTimeMillis() - lastReleaseTime < buildupDelay.getValue().getInput())
+        if (System.currentTimeMillis() - lastReleaseTime < cooldown.getValue().getInput())
             return;
 
         startLag();
@@ -82,6 +80,17 @@ public class FakeLag extends Module {
         if(event.getTarget() instanceof EntityPlayer)
             stopLag(false);
     };
+
+    /**
+     * Reports the delay actually being applied right now, not the configured target - the whole
+     * point of the buildup is that the two differ for most of a lag cycle.
+     */
+    @Override
+    public String getHudInfo() {
+        if (!lagging)
+            return closestPlayer == null ? null : "armed";
+        return Math.round(currentDelay) + "ms";
+    }
 
     private void recordPosition() {
         positionHistory.add(0, new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
@@ -94,7 +103,7 @@ public class FakeLag extends Module {
         closestDistance = Double.MAX_VALUE;
 
         // cast to int in case getPlayersWithin only accepts an int radius
-        for (EntityPlayer player : PlayerUtils.getPlayersWithin((int) Math.ceil(enableRange.getValue().getInput()))) {
+        for (EntityPlayer player : PlayerUtils.getPlayersWithin((int) Math.ceil(20))) {
             double distance = mc.thePlayer.getDistanceToEntity(player);
             if (distance < closestDistance) {
                 closestDistance = distance;
@@ -119,7 +128,7 @@ public class FakeLag extends Module {
     }
 
     private void startLag() {
-        if (closestDistance <= safeRange.getValue().getInput())
+        if (closestDistance <= 5)
             return;
 
         lagging = true;
@@ -132,9 +141,9 @@ public class FakeLag extends Module {
         if (currentDelay >= targetDelay)
             return;
 
-        double increment = buildupDuration.getValue().getInput() <= 0
+        double increment = 600 <= 0
                 ? targetDelay
-                : (targetDelay * 50.0) / buildupDuration.getValue().getInput(); // 50ms ~ 1 tick at 20 TPS
+                : (targetDelay * 50.0) / 600; // 50ms ~ 1 tick at 20 TPS
 
         currentDelay = Math.min(targetDelay, currentDelay + increment);
     }

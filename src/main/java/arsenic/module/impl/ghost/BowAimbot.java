@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -8,20 +9,17 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemBow;
 import net.minecraft.util.MathHelper;
 
-@ModuleInfo(name = "BowAimbot", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "BowAimbot", category = ModuleCategory.COMBAT)
 public class BowAimbot extends Module {
-
-    public final DoubleProperty fov = new DoubleProperty("FOV", new DoubleValue(10, 360, 90, 1));
-    public final DoubleProperty distance = new DoubleProperty("Distance", new DoubleValue(5, 100, 40, 1));
+    /** Lead the target by its velocity. More hits, and a rotation the player never made. */
     public final BooleanProperty predict = new BooleanProperty("Predict", true);
+
+
 
     @RequiresPlayer
     @EventLink
@@ -31,10 +29,10 @@ public class BowAimbot extends Module {
 
         EntityLivingBase target = TargetManager.getTarget();
         if (target == null) {
-            target = PlayerUtils.getClosestPlayerWithin(distance.getValue().getInput());
+            target = PlayerUtils.getClosestPlayerWithin(40);
         }
         if (target == null) return;
-        if (!PlayerUtils.withinFov(target, (float) fov.getValue().getInput())) return;
+        if (!PlayerUtils.withinFov(target, (float) 90)) return;
 
         float[] rots = getBowRotations(target);
         if (rots != null) {

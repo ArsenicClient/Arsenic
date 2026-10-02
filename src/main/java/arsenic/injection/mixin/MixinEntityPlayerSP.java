@@ -123,20 +123,20 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
 
     /*@Inject(method = "isSneaking", at = @At("RETURN"), cancellable = true)
     private void isSneaking(CallbackInfoReturnable<Boolean> cir) {
-        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
-        if(!safeWalk.isEnabled()) {
+        BridgeAssist bridgeAssist = Arsenic.getInstance().getModuleManager().getModuleByClass(BridgeAssist.class);
+        if(!bridgeAssist.isEnabled()) {
             return;
         }
-        cir.setReturnValue(safeWalk.isSneaking() || cir.getReturnValue());
+        cir.setReturnValue(bridgeAssist.isSneaking() || cir.getReturnValue());
     }
 
     @ModifyVariable(method = "onLivingUpdate", at = @At("STORE"), ordinal = 0)
     private boolean flag1(boolean flag1) {
-        SafeWalk safeWalk = Arsenic.getInstance().getModuleManager().getModuleByClass(SafeWalk.class);
-        if(!safeWalk.isEnabled()) {
+        BridgeAssist bridgeAssist = Arsenic.getInstance().getModuleManager().getModuleByClass(BridgeAssist.class);
+        if(!bridgeAssist.isEnabled()) {
             return flag1;
         }
-        return safeWalk.isSneaking() || flag1;
+        return bridgeAssist.isSneaking() || flag1;
     } */
 
 }

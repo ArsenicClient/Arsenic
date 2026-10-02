@@ -1,29 +1,36 @@
 package arsenic.module.impl.player;
 
+import org.lwjgl.input.Keyboard;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
-@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true)
 public class AutoTool extends Module {
-    public final DoubleProperty hoverDelay = new DoubleProperty("Hover Delay", new DoubleValue(0, 20, 0, 1));
-    public final BooleanProperty diableRight = new BooleanProperty("Disable while right click", true);
-    public final BooleanProperty requireClicking = new BooleanProperty("Require Mouse down", true);
-    public final BooleanProperty swapBack = new BooleanProperty("Swap to previous slot", true);
-    public final BooleanProperty shiftOnly = new BooleanProperty("Shift only", false);
+    /**
+     * Only swap while sneaking. Off, the module is always working; on, it only acts when you ask
+     * it to, which makes it invisible to anyone watching your hotbar the rest of the time.
+     */
+    public final BooleanProperty shiftOnly = new BooleanProperty("Shift Only", false);
+
+    // The rest were already fixed on the only values that behave correctly: swap on mouse-down,
+    // not on hover; never fight a right-click; always swap back.
+
+    /** Don't swap while the right button is held - that is eating, blocking or placing. */
+    private static final boolean DISABLE_WHILE_RIGHT_CLICK = true;
+    /** Swap when actually mining, not merely from looking at a block. */
+    private static final boolean REQUIRE_MOUSE_DOWN = true;
+    /** Return to the slot the player chose once the swap is no longer needed. */
+    private static final boolean SWAP_BACK = true;
     private int previousSlot = -1;
-    private int ticksHovered;
     private BlockPos currentBlock;
 
     @Override
@@ -40,7 +47,7 @@ public class AutoTool extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (!mc.inGameHasFocus || mc.currentScreen != null || (diableRight.getValue() && Mouse.isButtonDown(1)) || !mc.thePlayer.capabilities.allowEdit) {
+        if (!mc.inGameHasFocus || mc.currentScreen != null || (DISABLE_WHILE_RIGHT_CLICK && Mouse.isButtonDown(1)) || !mc.thePlayer.capabilities.allowEdit) {
             resetVariables();
             return;
         }
@@ -48,7 +55,7 @@ public class AutoTool extends Module {
             resetVariables();
             return;
         }
-        if (!Mouse.isButtonDown(0) && requireClicking.getValue()) {
+        if (!Mouse.isButtonDown(0) && REQUIRE_MOUSE_DOWN) {
             resetSlot();
             return;
         }
@@ -58,14 +65,8 @@ public class AutoTool extends Module {
             resetVariables();
             return;
         }
-        if (over.getBlockPos().equals(currentBlock)) {
-            ticksHovered++;
-        }
-        else {
-            ticksHovered = 0;
-        }
         currentBlock = over.getBlockPos();
-        if (hoverDelay.getValue().getInput() == 0 || ticksHovered > hoverDelay.getValue().getInput()) {
+        {
             int slot = PlayerUtils.getTool(mc.theWorld.getBlockState(currentBlock).getBlock());
             if (slot == -1) {
                 return;
@@ -78,13 +79,12 @@ public class AutoTool extends Module {
     };
 
     private void resetVariables() {
-        ticksHovered = 0;
         resetSlot();
         previousSlot = -1;
     }
 
     private void resetSlot() {
-        if (previousSlot == -1 || !swapBack.getValue()) {
+        if (previousSlot == -1 || !SWAP_BACK) {
             return;
         }
         setSlot(previousSlot);

@@ -22,7 +22,11 @@ public class SilentRotationManager {
     private boolean doJumpFix;
     private boolean blockUserInput;
     private float lastPlaceYawDelta = -1f;
+    private boolean smoothing = true;
     private float speed;
+    private float yawMomentum = 0;
+    private float pitchMomentum = 0;
+    private static final float MOMENTUM_BLEND = 0.45f;
 
     @EventLink
     public final Listener<EventLiving> eventTickListener = event -> {
@@ -34,6 +38,7 @@ public class SilentRotationManager {
         movementFix = rotation.getMovementFix();
         doJumpFix = rotation.doJumpFix();
         speed = rotation.getSpeed();
+        smoothing = rotation.isSmoothing();
         blockUserInput = rotation.isBlockUserInput();
 
 
@@ -42,6 +47,8 @@ public class SilentRotationManager {
             mc.thePlayer.rotationYaw = yaw;
             pitch = mc.thePlayer.rotationPitch;
             modified = false;
+            yawMomentum = 0;
+            pitchMomentum = 0;
             postSettled();
             return;
         }
@@ -173,14 +180,46 @@ public class SilentRotationManager {
 
     private float getYawDelta(float targetYaw) {
         float delta = wrapAngleTo180_float(wrapAngleTo180_float(targetYaw) - wrapAngleTo180_float(prevYaw));
-        float speedValue = (float) (speed * ((Math.sin(Math.toRadians(Math.abs(delta)))/2.0f) + 0.5f));
-        return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
+        float absDelta = Math.abs(delta);
+
+        if (!smoothing) {
+            // Caller shapes its own motion: apply it as-is, and keep momentum in step so a later
+            // smoothed tick carries on from the real speed instead of a stale one.
+            yawMomentum = Math.min(speed, absDelta);
+            return yawMomentum * Math.signum(delta);
+        }
+
+        // Ease-out quadratic: fast when far from target, decelerates as approaching
+        float t = Math.min(1.0f, absDelta / 120.0f);
+        float eased = t * (2.0f - t);
+        float targetSpeed = speed * Math.max(0.12f, eased);
+
+        // Momentum blending prevents jerky speed changes between ticks
+        yawMomentum += (targetSpeed - yawMomentum) * MOMENTUM_BLEND;
+        yawMomentum = Math.max(0, yawMomentum);
+
+        float result = Math.min(yawMomentum, absDelta) * Math.signum(delta);
+        return result;
     }
 
     private float getPitchDelta(float targetPitch) {
         float delta = targetPitch - prevPitch;
-        float speedValue = (float) (speed * ((Math.sin(Math.toRadians(Math.abs(delta)))/2.0f) + 0.5f));
-        return Math.min(speedValue, Math.abs(delta)) * Math.signum(delta);
+        float absDelta = Math.abs(delta);
+
+        if (!smoothing) {
+            pitchMomentum = Math.min(speed, absDelta);
+            return pitchMomentum * Math.signum(delta);
+        }
+
+        float t = Math.min(1.0f, absDelta / 60.0f);
+        float eased = t * (2.0f - t);
+        float targetSpeed = (speed * 0.65f) * Math.max(0.15f, eased);
+
+        pitchMomentum += (targetSpeed - pitchMomentum) * MOMENTUM_BLEND;
+        pitchMomentum = Math.max(0, pitchMomentum);
+
+        float result = Math.min(pitchMomentum, absDelta) * Math.signum(delta);
+        return result;
     }
 
     private float snapYawToMultipleOf360(float currentYaw, float targetYaw) {

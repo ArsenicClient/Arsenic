@@ -8,11 +8,16 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 
-@ModuleInfo(name = "Reach", category = ModuleCategory.GHOST)
+@ModuleInfo(name = "Reach", category = ModuleCategory.COMBAT)
 public class Reach extends Module {
 
     public final RangeProperty reach = new RangeProperty("Reach", new RangeValue(3, 6, 3, 3.1, 0.05));
 
+
+    @Override
+    public String getHudInfo() {
+        return reach.getValueString();
+    }
 
     public double getReach() {
         return isEnabled() ? reach.getValue().getRandomInRange() : 3.0;

@@ -7,8 +7,6 @@ import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
-import arsenic.module.impl.visual.ClickGui;
-import arsenic.module.impl.visual.ClickGui.LogoMode;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
@@ -31,7 +29,6 @@ import java.util.stream.Collectors;
 // allow escape to bind to none
 
 public class ClickGuiScreen extends CustomGuiScreen {
-    private ClickGui module;
     private List<UICategoryComponent> components;
 
     private ModuleCategoryComponent searchComponent;
@@ -40,6 +37,18 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
     private int vLineX, hLineY, x1, y1;
+
+    // ---------------------------------------------------------------
+    //  HUD Editor shortcut. It lives in the screen's bottom-left corner,
+    //  deliberately outside the GUI container: it opens a different screen
+    //  rather than changing anything inside this one, so it should not read as
+    //  part of the panel's own controls.
+    // ---------------------------------------------------------------
+    private float hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2;
+    private boolean hudBtnHovered;
+    private final arsenic.utils.timer.AnimationTimer hudBtnTimer =
+            new arsenic.utils.timer.AnimationTimer(160, () -> hudBtnHovered,
+                    arsenic.utils.timer.TickMode.SINE);
 
     private long openTime;
     private static final int OPEN_ANIMATION_DURATION = 400;
@@ -52,7 +61,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     private int burnDurationMs() {
         try {
-            return (int) (module.burnTime.getValue().getInput() * 1000);
+            return GuiStyle.transitionTimeMs();
         } catch (Exception e) {
             return BURN_DURATION;
         }
@@ -66,7 +75,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     /** 1 = fully present, 0 = fully transitioned out. */
     public float currentBurnProgress() {
-        if (module == null || !module.burnTransition.getValue())
+        if (!GuiStyle.transitionEnabled())
             return 1f;
         int dur = burnDurationMs();
         long nowMs = System.currentTimeMillis();
@@ -77,12 +86,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     /** True while the open/close transition is mid-flight. */
     public boolean isBurnActive() {
-        return module != null && module.burnTransition.getValue() && currentBurnProgress() < 1f;
+        return GuiStyle.transitionEnabled() && currentBurnProgress() < 1f;
     }
 
-    /** ClickGui.Transition ordinal, passed to the shaders as the style uniform. */
+    /** {@link GuiStyle.Transition} ordinal, passed to the shaders as the style uniform. */
     public int getTransitionStyleId() {
-        return module == null ? 0 : module.transition.getValue().ordinal();
+        return GuiStyle.transition().ordinal();
     }
 
     /** Main box rect + corner radius in top-down real pixels: {x1, y1, x2, y2, radius}. */
@@ -92,13 +101,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return new float[]{bx * s, by * s, (width - bx) * s, (height - by) * s, 30f * s};
     }
 
-    //called once
-    public void init(ClickGui clickGui) {
+    /**
+     * Builds the component tree. Called once, from client startup - it used to hang off the
+     * ClickGui module's config callback, which no longer exists.
+     */
+    public void init() {
         components = Arrays.stream(UICategory.values()).map(UICategoryComponent::new).distinct()
                 .collect(Collectors.toList());
         cmcc = (ModuleCategoryComponent) components.get(0).getContents().toArray()[0];
         cmcc.setCurrentCategory(true);
-        this.module = clickGui;
         searchComponent = new SearchComponent(ModuleCategory.SEARCH);
     }
 
@@ -141,7 +152,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         DrawUtils.overrideScaleFactor = this.scale;
 
         // burn transition: 1 = fully present, <1 = mid transition (to transparent)
-        boolean burn = module != null && module.burnTransition.getValue();
+        boolean burn = GuiStyle.transitionEnabled();
         float burnProgress = burn ? currentBurnProgress() : 1f;
         if (burn && closing && burnProgress <= 0f) { // fully gone -> actually close
             DrawUtils.overrideScaleFactor = -1f;
@@ -175,8 +186,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int y = height / 6;
         x1 = width - x;
         y1 = height - y;
-        ClickGui clickGui = Arsenic.getArsenic().getModuleManager().getModuleByClass(ClickGui.class);
-        ResourceLocation logoPath = clickGui.logoMode.getValue() == ClickGui.LogoMode.MODERN
+        ResourceLocation logoPath = GuiStyle.logoMode() == GuiStyle.LogoMode.MODERN
                 ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
                 : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
 
@@ -184,12 +194,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // main container - base layer, lifted off the shader backdrop
         RenderUtils.resetColor();
-        DrawUtils.drawShadow(x, y, x1, y1, 30f, ClickGui.shadowSpread(10f), ClickGui.shadowAlpha(190), 7);
-        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ClickGui.glassify(ThemeManager.getClickGuiBackground()));
-        DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(28));
-        if (ClickGui.glassEnabled())
+        DrawUtils.drawShadow(x, y, x1, y1, 30f, GuiStyle.shadowSpread(10f), GuiStyle.shadowAlpha(190), 7);
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(28));
+        if (GuiStyle.glassEnabled())
             DrawUtils.drawGlassRect(x, y, x1, y1, 30f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 18), ThemeManager.getWhite(), ClickGui.glassStrength());
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 18), ThemeManager.getWhite(), GuiStyle.glassStrength());
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
@@ -202,12 +212,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float expandMax = catWidth / 40f;        // matches the pill's slide (below)
         float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
         float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
-        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, ClickGui.shadowSpread(6f), ClickGui.shadowAlpha(150), 6);
-        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, ClickGui.glassify(ThemeManager.getModuleBackground()));
-        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), ClickGui.edgeAlpha(22));
-        if (ClickGui.glassEnabled())
+        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
+        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
+        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
+        if (GuiStyle.glassEnabled())
             DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), ClickGui.glassStrength());
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
 
         // vertical line
         DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
@@ -247,6 +257,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         GlStateManager.popMatrix();
 
+        drawHudEditorButton(mouseX, mouseY);
+
         getFontRenderer().resetScale();
 
         drawShaderOverlay();
@@ -272,14 +284,49 @@ public class ClickGuiScreen extends CustomGuiScreen {
         DrawUtils.overrideScaleFactor = -1f; // restore for HUD rendering
     }
 
+    /**
+     * Small pill in the bottom-left corner of the screen that opens the HUD editor. Sized from the
+     * label rather than a fixed width so it stays proportional at any resolution.
+     */
+    private void drawHudEditorButton(int mouseX, int mouseY) {
+        String label = "HUD Editor";
+        float pad = height / 100f * 1.6f;
+        float h = height / 100f * 4.2f;
+        float w = getFontRenderer().getWidth(label) + pad * 3f;
+        float margin = height / 100f * 2.5f;
+
+        hudBtnX1 = margin;
+        hudBtnY1 = height - margin - h;
+        hudBtnX2 = margin + w;
+        hudBtnY2 = height - margin;
+
+        // Sample hover before the timer so the animation does not trail the cursor by a frame.
+        hudBtnHovered = mouseX >= hudBtnX1 && mouseX <= hudBtnX2
+                && mouseY >= hudBtnY1 && mouseY <= hudBtnY2;
+        float hover = hudBtnTimer.getPercent();
+        float radius = h / 2f;
+
+        DrawUtils.drawShadow(hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2, radius,
+                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
+        DrawUtils.drawRoundedRect(hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2, radius,
+                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        DrawUtils.drawRoundedOutline(hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2, radius, 1f,
+                ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+
+        getFontRenderer().drawString(label, (hudBtnX1 + hudBtnX2) / 2f, (hudBtnY1 + hudBtnY2) / 2f,
+                RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(), hover),
+                getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+        RenderUtils.resetColorText();
+    }
+
     // Fullscreen animated shader rendered behind the whole ClickGUI. Overdone on purpose.
     private void drawShaderBackdrop() {
-        if (module == null || !module.shaderBackground.getValue())
+        if (!GuiStyle.backgroundEnabled())
             return;
 
-        String fsh = module.backgroundShader.getValue().fsh;
-        float alpha = (float) (module.backgroundOpacity.getValue().getInput() / 100.0);
-        float speed = (float) module.backgroundSpeed.getValue().getInput();
+        String fsh = GuiStyle.backgroundShader();
+        float alpha = GuiStyle.backgroundOpacity();
+        float speed = GuiStyle.backgroundSpeed();
         if (alpha <= 0.001f)
             return;
 
@@ -294,7 +341,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     // Subtle VHS/scanline pass layered over everything for extra flair.
     private void drawShaderOverlay() {
-        if (module == null || !module.scanlineOverlay.getValue())
+        if (!GuiStyle.scanlinesEnabled())
             return;
         RenderUtils.resetColor();
         // hand the theme colour to the scanline shader so it matches the GUI
@@ -307,6 +354,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
+        // Checked before everything else: the button sits outside every component tree, and an
+        // open dropdown claiming all clicks must not be able to eat it.
+        if (mouseButton == 0 && mouseX >= hudBtnX1 && mouseX <= hudBtnX2
+                && mouseY >= hudBtnY1 && mouseY <= hudBtnY2) {
+            arsenic.utils.java.SoundUtils.chordOpen();
+            mc.displayGuiScreen(new arsenic.gui.hud.HudEditorScreen());
+            return;
+        }
         if(alwaysClickedComponent != null) {
             if(alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton)) return;
         }
@@ -344,7 +399,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     public final FontRendererExtension<?> getFontRenderer() {
         try {
-            return module.customFont.getValue() ?
+            return GuiStyle.fontEnabled() ?
                     Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
                     ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
         } catch (NullPointerException e) {
@@ -368,12 +423,19 @@ public class ClickGuiScreen extends CustomGuiScreen {
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         arsenic.utils.java.SoundUtils.tick();
         if(alwaysKeyboardInput != null) {
-            if(alwaysKeyboardInput.recieveInput(keyCode)) return;
-            if (alwaysKeyboardInput != null) return;
+            // Whichever component is claiming all keyboard input is the ONLY thing that gets to
+            // see this key, full stop - regardless of what it returns. A component that finishes
+            // and clears its own registration while handling the key (e.g. a module keybind that
+            // just got successfully set) used to make the check below read as "nobody's listening
+            // anymore" and let that same keystroke fall through into the search bar and vanilla key
+            // handling too, so e.g. binding "H" would also type "H" into the search box and refilter
+            // the module list out from under you.
+            alwaysKeyboardInput.recieveInput(keyCode);
+            return;
         }
         // ESC plays the burn-away close; a second ESC while burning closes instantly
         if (keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE
-                && module != null && module.burnTransition.getValue()) {
+                && GuiStyle.transitionEnabled()) {
             if (!closing) {
                 closing = true;
                 closeStartTime = System.currentTimeMillis();

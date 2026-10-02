@@ -1,22 +1,18 @@
 package arsenic.module.property.impl.doubleproperty;
 
+import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.themes.ThemeManager;
-import arsenic.main.Arsenic;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Mouse;
-
-import java.awt.*;
 
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
@@ -38,7 +34,17 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         value.setInput(obj.get("value").getAsDouble());
     }
 
-    public final @NotNull String getValueString() { return value.getInput() + getDisplayMode().getSuffix(); }
+    /**
+     * Human-facing value. Doubles print as {@code 3.0} by default, which is noise for a setting
+     * that only ever moves in whole steps, so an integral value drops its decimal tail.
+     */
+    public final @NotNull String getValueString() {
+        double v = value.getInput();
+        String num = (v == Math.rint(v) && !Double.isInfinite(v))
+                ? String.valueOf((long) v)
+                : String.valueOf(Math.round(v * 100.0) / 100.0);
+        return num + getDisplayMode().getSuffix();
+    }
 
     public DisplayMode getDisplayMode() { return displayMode; }
 
@@ -46,81 +52,75 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
     public PropertyComponent<DoubleProperty> createComponent() {
         return new PropertyComponent<DoubleProperty>(this) {
 
-            private boolean hovered;
-            private float lineWidth, lineX1, radius, lineXChangePoint;
-            private boolean clicked;
-            private final AnimationTimer animationTimer = new AnimationTimer(120, () -> hovered || clicked, TickMode.ROOT);
+            private boolean dragging;
+            private float trackX1, trackX2, trackWidth;
+            private float dragX1, dragWidth;
+
+            private final AnimationTimer grabTimer =
+                    new AnimationTimer(UITheme.DUR_HOVER, () -> dragging, TickMode.CUBIC);
 
             @Override
             protected float draw(RenderInfo ri) {
+                double min = getValue().getMinBound(), max = getValue().getMaxBound();
+                float percent = (float) ((getValue().getInput() - min) / (max - min));
+                percent = Math.max(0f, Math.min(1f, percent));
 
-                float percent = (float) ((getValue().getInput() - getValue().getMinBound())/(getValue().getMaxBound() - getValue().getMinBound()));
+                float grab = grabTimer.getPercent();
 
-                //draws lines
-                lineX1 = x2 - width/2f;
-                float lineX2 = x2 - width / 5f;
-                lineWidth = lineX2 - lineX1;
-                lineXChangePoint = (lineX1 + (percent * lineWidth));
+                float chipHeight = height * 0.5f;
+                float chipWidth = UITheme.chip(ri.getFr(), self.getValueString(), x2, midPointY, chipHeight,
+                        UITheme.mix(UITheme.textSecondary(), UITheme.accent(), Math.max(percent * 0.35f, grab)),
+                        UITheme.alpha(ThemeManager.getBlack(), 70));
 
-                //draws value
-                ri.getFr().drawString(
-                        self.getValueString(),
-                        x2 - ((x2 -lineX2)/2f),
-                        midPointY,
-                        0xFFFFFFFE, ri.getFr().CENTREX, ri.getFr().CENTREY);
+                trackX1 = controlX1();
+                trackX2 = x2 - chipWidth - pad() * 0.7f;
+                trackWidth = Math.max(1f, trackX2 - trackX1);
+                float fillX = trackX1 + percent * trackWidth;
 
-                //draws first bit (colored) of line
-                DrawUtils.drawRect(lineX1, midPointY - 0.5f, lineXChangePoint, midPointY + 0.5f, getEnabledColor());
+                float trackH = Math.max(3f, height * 0.3f) + grab * height * 0.04f;
+                float trackY1 = midPointY - trackH / 2f, trackY2 = midPointY + trackH / 2f;
+                float trackRadius = trackH / 2f;
 
-                //draws second bit (uncolored) of the line
-                DrawUtils.drawRect(lineXChangePoint, midPointY - 0.5f, lineX2, midPointY + 0.5f, getDisabledColor());
+                DrawUtils.drawRoundedRect(trackX1, trackY1, trackX2, trackY2, trackRadius,
+                        UITheme.alpha(ThemeManager.getButtonBackground(), 200));
+                float fillEnd = Math.max(fillX, trackX1 + trackH);
+                DrawUtils.drawGradientRoundedRect(trackX1, trackY1, fillEnd, trackY2, trackRadius,
+                        UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
 
-                //draws the circle
-                radius = height/5f;
-                Color color = new Color(RenderUtils.interpolateColoursInt(getDisabledColor(), getEnabledColor(), percent));
-                DrawUtils.drawCircle(lineXChangePoint, midPointY, radius, color.getRGB());
-                //un comment this if needed it doesnt seem to fit in.
-                /*if(animationTimer.getPercent() > 0) {
-                    DrawUtils.drawCircleOutline(lineXChangePoint, midPointY, radius * animationTimer.getPercent(), radius/3f, 0xFFFFFFFE);
-                }*/
                 return height;
             }
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                clicked = true;
+                if (mouseX < trackX1 || mouseX > trackX2)
+                    return;
+                dragging = true;
+                dragX1 = trackX1;
+                dragWidth = trackWidth;
+                applyFromMouse(mouseX);
             }
 
             @Override
             public void mouseReleased(int mouseX, int mouseY, int state) {
-                clicked = false;
+                dragging = false;
             }
 
             @Override
             public void mouseUpdate(int mouseX, int mouseY) {
-                handleMovement(mouseX, mouseY);
-                handleHover(mouseX, mouseY);
+                super.mouseUpdate(mouseX, mouseY);
+                if (!Mouse.isButtonDown(0))
+                    dragging = false;
+                if (dragging)
+                    applyFromMouse(mouseX);
             }
 
-            private void handleHover(int mouseX, int mouseY) {
-                double xDiff = Math.pow((lineXChangePoint - mouseX), 2);
-                double yDiff = Math.pow((midPointY - mouseY), 2);
-                double tDiff = Math.sqrt(xDiff + yDiff);
-                hovered = tDiff < radius;
-            }
-
-            private void handleMovement(int mouseX, int mouseY) {
-                if (!Mouse.isButtonDown(0)) clicked = false;
-                if(Mouse.isButtonDown(0) && clicked) {
-                    float mousePercent = (mouseX - lineX1) / lineWidth;
-                    getValue().setInput(getValue().getMinBound() + (mousePercent * (getValue().getMaxBound() - getValue().getMinBound())));
-                    onValueUpdate();
-                    // constant ringing tone whose pitch tracks the slider:
-                    // C at the min bound up to C an octave higher at the max
-                    float frac = (float) ((getValue().getInput() - getValue().getMinBound())
-                            / (getValue().getMaxBound() - getValue().getMinBound()));
-                    arsenic.utils.java.SoundUtils.slide(frac);
-                }
+            private void applyFromMouse(int mouseX) {
+                float pct = Math.max(0f, Math.min(1f, (mouseX - dragX1) / dragWidth));
+                double min = getValue().getMinBound(), max = getValue().getMaxBound();
+                getValue().setInput(min + (pct * (max - min)));
+                onValueUpdate();
+                arsenic.utils.java.SoundUtils.slide(
+                        (float) ((getValue().getInput() - min) / (max - min)));
             }
         };
     }

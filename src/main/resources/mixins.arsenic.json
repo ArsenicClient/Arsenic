@@ -37,6 +37,7 @@
     "accessor.IMixinS12PacketEntityVelocity",
     "accessor.IMixinS14PacketEntity",
     "accessor.S03PacketTimeUpdateAccessor",
+    "mixin.MixinBlockCake",
     "mixin.MixinEntityPlayer",
     "mixin.MixinItemTool",
     "mixin.MixinWorld"

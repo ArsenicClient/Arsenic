@@ -32,7 +32,7 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
-@ModuleInfo(name = "TargetHUD", category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "TargetHUD", category = ModuleCategory.RENDER, hidden = true)
 public class TargetHUD extends Module {
 
     public final EnumProperty<TargetHUDMode> mode = new EnumProperty<>("Mode", TargetHUDMode.Face);

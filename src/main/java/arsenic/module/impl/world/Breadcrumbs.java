@@ -7,9 +7,6 @@ import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
@@ -20,13 +17,9 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Breadcrumbs", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "Breadcrumbs", category = ModuleCategory.RENDER, hidden = true)
 public class Breadcrumbs extends Module {
 
-    public final DoubleProperty maxPoints = new DoubleProperty("Max points", new DoubleValue(50, 2000, 500, 50));
-    public final DoubleProperty lineWidth = new DoubleProperty("Line Width", new DoubleValue(0.5, 6, 2, 0.5));
-    public final DoubleProperty fadeTime = new DoubleProperty("Fade time (s)", new DoubleValue(1, 30, 5, 1));
-    public final BooleanProperty fade = new BooleanProperty("Fade", true);
 
     private final List<double[]> points = new ArrayList<>();
     private final List<Long> times = new ArrayList<>();
@@ -55,12 +48,12 @@ public class Breadcrumbs extends Module {
             lastPoint = now;
         }
 
-        while (points.size() > maxPoints.getValue().getInput()) {
+        while (points.size() > 500) {
             points.remove(0);
             times.remove(0);
         }
 
-        long fadeMs = (long) (fadeTime.getValue().getInput() * 1000);
+        long fadeMs = (long) (5 * 1000);
         while (!times.isEmpty() && now - times.get(0) > fadeMs) {
             points.remove(0);
             times.remove(0);
@@ -78,12 +71,12 @@ public class Breadcrumbs extends Module {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(false);
-        GL11.glLineWidth((float) lineWidth.getValue().getInput());
+        GL11.glLineWidth((float) 2f);
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
 
-        if (fade.getValue()) {
+        if (true) {
             int total = points.size();
             for (int i = 0; i < total - 1; i++) {
                 double[] p1 = points.get(i);

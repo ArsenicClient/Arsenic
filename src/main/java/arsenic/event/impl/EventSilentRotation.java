@@ -21,6 +21,7 @@ public class EventSilentRotation implements Event {
     private boolean doJumpFix = true;
     private boolean preventDuplicateLook = false;
     private boolean blockUserInput = false;
+    private boolean smoothing = true;
     private static Minecraft mc = Minecraft.getMinecraft();
 
     public EventSilentRotation(float yaw, float pitch,float speed) {
@@ -73,6 +74,19 @@ public class EventSilentRotation implements Event {
 
     public void setPreventDuplicateLook(boolean preventDuplicateLook) {
         this.preventDuplicateLook = preventDuplicateLook;
+    }
+
+    public boolean isSmoothing() {
+        return smoothing;
+    }
+
+    /**
+     * When {@code false}, the manager skips its ease-out/momentum curve and moves straight toward
+     * the requested rotation, capped only by {@link #getSpeed()}. For modules that shape their own
+     * per-tick motion and need it applied as-is. Defaults to {@code true} and resets every tick.
+     */
+    public void setSmoothing(boolean smoothing) {
+        this.smoothing = smoothing;
     }
 
     public boolean isBlockUserInput() {

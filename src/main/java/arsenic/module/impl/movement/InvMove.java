@@ -7,7 +7,6 @@ import arsenic.event.impl.EventGameLoop;
 import arsenic.event.impl.EventLiving;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventUpdate;
-import arsenic.gui.click.ClickGuiScreen;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -41,7 +40,11 @@ public class InvMove extends Module {
     ));
 
     private boolean shouldBuffer() {
-        return mc.currentScreen != null
+        // Only the player inventory with its 2x2 crafting grid. openContainer alone can't say that:
+        // it stays the player's ContainerPlayer behind every screen that isn't a container - chat,
+        // pause, the click GUI - so it's the screen itself that's checked. Creative uses its own
+        // GuiContainerCreative, so it's excluded here too.
+        return mc.currentScreen instanceof GuiInventory
                 && mc.thePlayer != null
                 && mc.thePlayer.openContainer instanceof ContainerPlayer;
     }
@@ -51,12 +54,12 @@ public class InvMove extends Module {
     public final Listener<EventLiving> eventGameLoopListener = event -> {
         if (mc.currentScreen == null) return;
 
-        if (mc.currentScreen instanceof ClickGuiScreen || mc.currentScreen instanceof GuiInventory) {
+        if (shouldBuffer()) {
             for (int keyCode : keys) {
                 KeyBinding.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
             }
 
-            if (shouldBuffer() && !isHolding(getClass())) {
+            if (!isHolding(getClass())) {
                 LagManager.acquire(getClass(), p ->
                         p instanceof C0EPacketClickWindow
                                 || p instanceof C0DPacketCloseWindow
@@ -90,6 +93,8 @@ public class InvMove extends Module {
         for (int keyCode : keys) {
             KeyBinding.setKeyBindState(keyCode, false);
         }
+        // Send the held clicks and close now that the keys are up for this movement tick.
+        LagManager.release(getClass());
     };
 
     @RequiresPlayer
@@ -97,7 +102,9 @@ public class InvMove extends Module {
     public final Listener<EventUpdate.Post> onUpdatePost = event -> {
         if (!justFlushed)
             return;
-        pendingFlush = false;
+        // One-shot: left set, this re-read the raw keyboard every tick from then on, so typing
+        // W in chat walked you forward.
+        justFlushed = false;
         for (int keyCode : keys) {
             KeyBinding.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
         }

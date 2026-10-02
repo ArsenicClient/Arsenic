@@ -5,11 +5,9 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventTick;
-import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.ItemPotion;
@@ -22,16 +20,24 @@ import java.util.List;
 @ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER)
 public class AutoPot extends Module {
 
+    /** Health percentage below which to pot. */
     public final DoubleProperty healthThreshold = new DoubleProperty("Health %", new DoubleValue(1, 100, 40, 1));
+
+    /** Gap between throws. Lower heals through more damage and looks less like a person. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(100, 3000, 500, 50));
-    public final BooleanProperty healOnly = new BooleanProperty("Heal only", true);
-    public final BooleanProperty silentRotation = new BooleanProperty("Silent rotation", false);
+
+    /**
+     * Only healing potions are ever thrown, and the throw always moves the real view.
+     * <p>
+     * The silent-rotation path pitched the view server side only, which is the single most obvious
+     * thing this module could do - the player is suddenly facing straight down for one tick without
+     * their screen moving. It was off by default for that reason, so it is simply gone.
+     */
+    private static final boolean HEAL_ONLY = true;
 
     private long lastThrow;
     private boolean shouldLookDown;
     private long lookDownUntil;
-    private boolean shouldThrow;
-    private int throwSlot = -1;
 
     @RequiresPlayer
     @EventLink
@@ -45,53 +51,25 @@ public class AutoPot extends Module {
         int potSlot = findBestPot();
         if (potSlot == -1) return;
 
-        if (silentRotation.getValue()) {
-            throwSlot = potSlot;
-            shouldThrow = true;
-            shouldLookDown = true;
-            lookDownUntil = now + 200;
-        } else {
-            int oldSlot = mc.thePlayer.inventory.currentItem;
-            mc.thePlayer.inventory.currentItem = potSlot;
-            mc.thePlayer.rotationPitch = 90;
-            shouldLookDown = true;
-            lookDownUntil = now + 200;
-            if (healOnly.getValue()) mc.playerController.updateController();
-            mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem());
-            mc.thePlayer.inventory.currentItem = oldSlot;
-            lastThrow = now;
-        }
+        int oldSlot = mc.thePlayer.inventory.currentItem;
+        mc.thePlayer.inventory.currentItem = potSlot;
+        mc.thePlayer.rotationPitch = 90;
+        shouldLookDown = true;
+        lookDownUntil = now + 200;
+        mc.playerController.updateController();
+        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem());
+        mc.thePlayer.inventory.currentItem = oldSlot;
+        lastThrow = now;
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onUpdate = event -> {
         event.setSpeed(180);
-        if (silentRotation.getValue()) {
-            if (shouldLookDown && System.currentTimeMillis() < lookDownUntil) {
-                event.setPitch(90);
-            } else {
-                shouldLookDown = false;
-            }
-        } else if (shouldLookDown && System.currentTimeMillis() < lookDownUntil) {
+        if (shouldLookDown && System.currentTimeMillis() < lookDownUntil) {
             event.setPitch(90);
         } else {
             shouldLookDown = false;
-        }
-    };
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventUpdate.Post> onPostUpdate = event -> {
-        if (silentRotation.getValue() && shouldThrow) {
-            int oldSlot = mc.thePlayer.inventory.currentItem;
-            mc.thePlayer.inventory.currentItem = throwSlot;
-            if (healOnly.getValue()) mc.playerController.updateController();
-            mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem());
-            mc.thePlayer.inventory.currentItem = oldSlot;
-            lastThrow = System.currentTimeMillis();
-            shouldThrow = false;
-            throwSlot = -1;
         }
     };
 
@@ -100,7 +78,7 @@ public class AutoPot extends Module {
             ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
             if (stack == null || !(stack.getItem() instanceof ItemPotion)) continue;
             ItemPotion pot = (ItemPotion) stack.getItem();
-            if (healOnly.getValue()) {
+            if (HEAL_ONLY) {
                 List<PotionEffect> effects = pot.getEffects(stack);
                 if (effects != null) {
                     for (PotionEffect effect : effects) {

@@ -11,24 +11,17 @@ import net.minecraft.client.shader.Framebuffer;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.FolderProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.render.*;
 
-@ModuleInfo(name = "PostProcessing",category = ModuleCategory.SETTINGS, hidden = true)
+@ModuleInfo(name = "PostProcessing",category = ModuleCategory.GUI, hidden = true)
 public class PostProcessing extends Module {
-    //blur
-    private final BooleanProperty blur = new BooleanProperty("Blur", true);
-    private final DoubleProperty blurIterations = new DoubleProperty("Blur Iterations", new DoubleValue(1, 8, 2, 1));
-    private final DoubleProperty blurOffset = new DoubleProperty("Blur Offset", new DoubleValue(1, 10, 1, 1));
-    public final FolderProperty blurFolder = new FolderProperty("Blur Settings", blur, blurIterations, blurOffset);
-    //bloom
-    private final BooleanProperty bloom = new BooleanProperty("Bloom", true);
-    private final DoubleProperty shadowRadius = new DoubleProperty("Bloom Iterations", new DoubleValue(1, 8, 2, 1));
-    private final DoubleProperty shadowOffset = new DoubleProperty("Bloom Offset", new DoubleValue(1, 10, 1, 1));
-    public final FolderProperty glowFolder = new FolderProperty("Bloom Settings", bloom, shadowRadius, shadowOffset);
+    // Kawase iteration counts and sample offsets are not a matter of taste - below these the
+    // effect bands visibly, above them it costs frames for no visual difference. The module is
+    // reached from the GUI pane as a single "Blur & Bloom" switch, so both passes run together.
+    private static final int BLUR_ITERATIONS = 2;
+    private static final int BLUR_OFFSET = 1;
+    private static final int BLOOM_ITERATIONS = 2;
+    private static final int BLOOM_OFFSET = 1;
     private Framebuffer stencilFramebuffer = new Framebuffer(1, 1, false);
 
     public void blurElements() {
@@ -40,31 +33,31 @@ public class PostProcessing extends Module {
     }
 
     public void blurScreen() {
-        if (bloom.getValue()) {
+        {
             stencilFramebuffer = ShaderUtil.createFrameBuffer(stencilFramebuffer);
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
             RenderUtils.resetColor();
-            EventShader.Bloom bloomEvent = new EventShader.Bloom((int) shadowRadius.getValue().getInput(), (int) shadowOffset.getValue().getInput());
+            EventShader.Bloom bloomEvent = new EventShader.Bloom(BLOOM_ITERATIONS, BLOOM_OFFSET);
             Arsenic.getInstance().getEventManager().getBus().post(bloomEvent);
             RenderUtils.resetColor();
             applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
             KawaseBloom.renderBlur(stencilFramebuffer.framebufferTexture, bloomEvent.getIterations(), bloomEvent.getOffset());
         }
-        if (blur.getValue()) {
+        {
             stencilFramebuffer = ShaderUtil.createFrameBuffer(stencilFramebuffer);
             stencilFramebuffer.framebufferClear();
             stencilFramebuffer.bindFramebuffer(false);
             RenderUtils.resetColor();
             blurElements();
             RenderUtils.resetColor();
-            EventShader.Blur blurEvent = new EventShader.Blur((int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput());
+            EventShader.Blur blurEvent = new EventShader.Blur(BLUR_ITERATIONS, BLUR_OFFSET);
             Arsenic.getInstance().getEventManager().getBus().post(blurEvent);
             RenderUtils.resetColor();
             applyBurnMaskFade();
             stencilFramebuffer.unbindFramebuffer();
-            KawaseBlur.renderBlur(stencilFramebuffer.framebufferTexture, (int) blurIterations.getValue().getInput(), (int) blurOffset.getValue().getInput());
+            KawaseBlur.renderBlur(stencilFramebuffer.framebufferTexture, BLUR_ITERATIONS, BLUR_OFFSET);
         }
     }
 

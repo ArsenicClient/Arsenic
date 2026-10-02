@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,8 +10,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.ColourProperty;
 import arsenic.utils.font.FontRendererExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -32,16 +31,8 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Nametags", category = ModuleCategory.WORLD, hidden = true)
+@ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
 public class Nametags extends Module {
-
-    public final ColourProperty color = new ColourProperty("Color:", 0xFF2ECC71);
-    public final BooleanProperty showHealth = new BooleanProperty("Show Health", true);
-    public final BooleanProperty showDistance = new BooleanProperty("Show Distance", false);
-    public final BooleanProperty showGear = new BooleanProperty("Show Gear", true);
-    public final BooleanProperty showEnchants = new BooleanProperty("Show Enchants", true);
-    // On: constant on-screen size at any range. Off: original behaviour (shrinks with distance).
-    public final BooleanProperty constantSize = new BooleanProperty("Constant Size", true);
 
     private static final float ICON_SIZE = 12f;
     private static final float ICON_SPACING = 14f;
@@ -65,25 +56,17 @@ public class Nametags extends Module {
                     - mc.getRenderManager().viewerPosZ;
 
             String name = StringUtils.stripControlCodes(player.getName());
-            String healthText = showHealth.getValue()
+            String healthText = true
                     ? String.format(" §7%.1f", player.getHealth())
                     : "";
-            String distText = showDistance.getValue()
+            String distText = false
                     ? String.format(" §7[%.0f]", mc.thePlayer.getDistanceToEntity(player))
                     : "";
             String text = name + healthText + distText;
 
-            // Constant Size on: scale the world-space size linearly with camera distance so the tag
-            // keeps a constant on-screen size at any range (perspective shrink of 1/dist cancels the
-            // *dist here). REFERENCE_DIST sets that size — it looks like a tag this many blocks away.
-            // Off: the plain fixed world scale, which naturally shrinks with distance.
+            // Fixed world-space scale: the tag naturally shrinks with distance, same as the vanilla
+            // nametag.
             float scale = 0.02666667F;
-            if (constantSize.getValue()) {
-                double ax = x, ay = y + player.height + 0.6, az = z;
-                double dist = Math.max(1.0, Math.sqrt(ax * ax + ay * ay + az * az));
-                final float REFERENCE_DIST = 3.0f;
-                scale *= (float) (dist / REFERENCE_DIST);
-            }
             int textWidth = (int) fr.getWidth(text);
             int textHeight = (int) fr.getHeight(text);
             float halfWidth = textWidth / 2f;
@@ -103,20 +86,16 @@ public class Nametags extends Module {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            if (showGear.getValue()) {
-                drawGear(fr, collectGear(player));
-            }
+            drawGear(fr, collectGear(player));
 
             Gui.drawRect((int) (-halfWidth - 2), -2, (int) (halfWidth + 2), textHeight + 2,
                     new Color(0, 0, 0, 100).getRGB());
 
             fr.drawString(text, (int) (-halfWidth), 0, 0xFFFFFFFF);
 
-            if (showHealth.getValue()) {
-                Gui.drawRect((int) (-halfWidth - 2), textHeight + 2,
-                        (int) (-halfWidth - 2 + (textWidth + 4) * healthPercent), textHeight + 3,
-                        healthColor);
-            }
+            Gui.drawRect((int) (-halfWidth - 2), textHeight + 2,
+                    (int) (-halfWidth - 2 + (textWidth + 4) * healthPercent), textHeight + 3,
+                    healthColor);
 
             GL11.glDisable(GL11.GL_BLEND);
             GlStateManager.enableDepth();
@@ -149,7 +128,7 @@ public class Nametags extends Module {
         int maxEnchLines = 0;
         List<List<String>> enchLists = new ArrayList<>();
         for (ItemStack stack : gear) {
-            List<String> lines = showEnchants.getValue() ? enchantLines(stack) : new ArrayList<>();
+            List<String> lines = true ? enchantLines(stack) : new ArrayList<>();
             enchLists.add(lines);
             maxEnchLines = Math.max(maxEnchLines, lines.size());
         }
@@ -177,7 +156,7 @@ public class Nametags extends Module {
         GlStateManager.popMatrix();
 
         // Enchant abbreviations, centred under each icon column.
-        if (showEnchants.getValue() && maxEnchLines > 0) {
+        if (maxEnchLines > 0) {
             for (int i = 0; i < count; i++) {
                 List<String> lines = enchLists.get(i);
                 float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;

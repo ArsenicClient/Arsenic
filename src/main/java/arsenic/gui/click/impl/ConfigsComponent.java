@@ -60,7 +60,10 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private float inputBoxX, inputBoxY, inputBoxX2, inputBoxY2;
     private String currentConfigName = "";
     private String onlineStatus = "";
-    private int onlineStatusColor = ThemeManager.getTextPrimary();
+    // Resolved on use, not here. A field initialiser that reads a theme colour ties this class's
+    // construction to the theme manager already being initialised, and when that ordering broke the
+    // resulting NPE surfaced as an unrelated NoClassDefFoundError from log4j. 0 means "unset".
+    private int onlineStatusColor;
     private String searchQuery = "";
     private final List<OnlineConfig> onlineConfigs = new ArrayList<>();
     private final List<ConfigButton> buttons = new ArrayList<>();
@@ -433,7 +436,8 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         y += btnH + 6;
 
         if (!onlineStatus.isEmpty()) {
-            ri.getFr().drawString(onlineStatus, x + 5, y, onlineStatusColor);
+            ri.getFr().drawString(onlineStatus, x + 5, y,
+                    onlineStatusColor == 0 ? ThemeManager.getTextPrimary() : onlineStatusColor);
             y += 12;
         }
 

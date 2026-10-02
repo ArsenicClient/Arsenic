@@ -22,6 +22,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
         loadConfig();
         if(getContentByJsonKey("Classic") == null) {
             Theme classic = new Theme("Classic", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
+            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.AURORA); // red/pink - aurora keeps the base theme neutral
             themeList.add(classic);
         }
         // Void — deep purple with electric violet accent
@@ -34,6 +35,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             voidTheme.setModuleBackground(new Color(22, 10, 33, 160).getRGB());
             voidTheme.setEnumBackground(new Color(11, 5, 16, 255).getRGB());
             voidTheme.setFolderBackground(new Color(11, 5, 16, 180).getRGB());
+            voidTheme.setBgShader(arsenic.gui.click.GuiStyle.BgShader.NEBULA); // violet - nebula is the same purple family
             themeList.add(voidTheme);
         }
 
@@ -47,6 +49,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             specter.setModuleBackground(new Color(12, 20, 33, 160).getRGB());
             specter.setEnumBackground(new Color(6, 10, 16, 255).getRGB());
             specter.setFolderBackground(new Color(6, 10, 16, 180).getRGB());
+            specter.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS); // electric blue - arcing blue lightning
             themeList.add(specter);
         }
 
@@ -60,6 +63,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             ember.setModuleBackground(new Color(29, 17, 12, 160).getRGB());
             ember.setEnumBackground(new Color(14, 8, 6, 255).getRGB());
             ember.setFolderBackground(new Color(14, 8, 6, 180).getRGB());
+            ember.setBgShader(arsenic.gui.click.GuiStyle.BgShader.FIRESTORM); // orange - fire, the obvious pairing
             themeList.add(ember);
         }
 
@@ -73,6 +77,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             jade.setModuleBackground(new Color(12, 33, 24, 160).getRGB());
             jade.setEnumBackground(new Color(6, 16, 12, 255).getRGB());
             jade.setFolderBackground(new Color(6, 16, 12, 180).getRGB());
+            jade.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CAUSTICS); // green - underwater light, same green cast
             themeList.add(jade);
         }
 
@@ -86,6 +91,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             obsidian.setModuleBackground(new Color(13, 13, 13, 160).getRGB());
             obsidian.setEnumBackground(new Color(0, 0, 0, 255).getRGB());
             obsidian.setFolderBackground(new Color(0, 0, 0, 180).getRGB());
+            obsidian.setBgShader(arsenic.gui.click.GuiStyle.BgShader.STARFIELD); // monochrome white on black - stars on void
             themeList.add(obsidian);
         }
 
@@ -99,6 +105,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             sakura.setModuleBackground(new Color(45, 22, 35, 160).getRGB());
             sakura.setEnumBackground(new Color(22, 11, 17, 255).getRGB());
             sakura.setFolderBackground(new Color(22, 11, 17, 180).getRGB());
+            sakura.setBgShader(arsenic.gui.click.GuiStyle.BgShader.SYNTHWAVE); // pink - synthwave is a pink/magenta grid
             themeList.add(sakura);
         }
 
@@ -112,6 +119,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             toxin.setModuleBackground(new Color(21, 33, 12, 160).getRGB());
             toxin.setEnumBackground(new Color(10, 16, 6, 255).getRGB());
             toxin.setFolderBackground(new Color(10, 16, 6, 180).getRGB());
+            toxin.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS); // lime - zippy green arcs
             themeList.add(toxin);
         }
 
@@ -133,6 +141,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             cloud.setScrollbarTrack(new Color(0, 0, 0, 15).getRGB());
             cloud.setScrollbarThumb(new Color(0, 0, 0, 40).getRGB());
             cloud.setButtonBackground(new Color(209, 213, 219, 234).getRGB());
+            cloud.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CHROME); // light theme - liquid chrome stays bright
             themeList.add(cloud);
         }
 
@@ -155,6 +164,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             mono.setScrollbarTrack(new Color(0, 0, 0, 20).getRGB());
             mono.setScrollbarThumb(0xFF333333);
             mono.setButtonBackground(new Color(220, 220, 220, 234).getRGB());
+            mono.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CHROME); // greyscale - chrome is the only colourless one
             themeList.add(mono);
         }
 
@@ -162,7 +172,15 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
         return themeList.size();
     }
 
+    /**
+     * Never null once themes are loaded. Every colour in the client funnels through here, so a null
+     * return does not fail locally - it throws somewhere deep in a render call, and during startup
+     * log4j can mangle that into a completely unrelated NoClassDefFoundError. Falling back to the
+     * first registered theme keeps a bad init order looking wrong rather than being fatal.
+     */
     public Theme getCurrentTheme() {
+        if (currentTheme == null && !getContents().isEmpty())
+            currentTheme = getContents().iterator().next();
         return currentTheme;
     }
 

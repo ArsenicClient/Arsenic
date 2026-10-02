@@ -4,7 +4,7 @@ import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
-import arsenic.module.impl.visual.ClickGui;
+import arsenic.gui.click.GuiStyle;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.java.ColorUtils;
@@ -55,12 +55,12 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         String imlosingmymind = inp.length() == 0 ? gui.getCmcc() == this ? "Search" : "Press \"/\" to toggle search" : inp.toString();
         int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
 
-        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, ClickGui.glassify(ThemeManager.getClickGuiBackground()));
-        if (ClickGui.glassEnabled())
+        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        if (GuiStyle.glassEnabled())
             DrawUtils.drawGlassRect(x, y - 10, x1, y + 10, 8,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), ClickGui.glassStrength());
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
 
-        if (Arsenic.getInstance().getModuleManager().getModuleByClass(ClickGui.class).customFont.getValue()) {
+        if (GuiStyle.fontEnabled()) {
             Arsenic.getInstance().getFonts().Icon.drawString("B", x + 3, y - 3, ThemeManager.getWhite());
         }
         ScissorUtils.subScissor(x, y - 10, (int) x1, y + 10);

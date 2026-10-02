@@ -123,6 +123,13 @@ public final class LagManager {
         flushUnheld();
     }
 
+    /** How many outgoing packets are currently parked in the holder buffer, across all holders. */
+    public static int countBuffered() {
+        synchronized (buffer) {
+            return buffer.size();
+        }
+    }
+
     public static boolean isLagging() {
         return !holders.isEmpty();
     }

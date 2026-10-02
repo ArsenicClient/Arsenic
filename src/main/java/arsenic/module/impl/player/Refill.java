@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -7,9 +9,6 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.item.ItemPotion;
@@ -18,11 +17,10 @@ import net.minecraft.network.play.client.C16PacketClientStatus;
 
 @ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER)
 public class Refill extends Module {
-
-    public final BooleanProperty autoRefill = new BooleanProperty("Auto Refill", true);
-    public final BooleanProperty invOpen = new BooleanProperty("Inv Open", false);
-    public final DoubleProperty threshold = new DoubleProperty("Threshold", new DoubleValue(0, 8, 0, 1));
+    /** Gap between inventory clicks. Lower refills faster and looks less like a human. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 80, 10));
+
+
 
     private boolean openInv;
     private final MSTimer timer = new MSTimer();
@@ -37,9 +35,9 @@ public class Refill extends Module {
     public final Listener<EventTick> onTick = event -> {
         boolean inInv = mc.currentScreen instanceof GuiInventory;
 
-        if (autoRefill.getValue() && !inInv && !openInv) {
+        if (!inInv && !openInv) {
             int potsInHotbar = countPotsInHotbar();
-            if (potsInHotbar <= (int) threshold.getValue().getInput()) {
+            if (potsInHotbar <= (int) 0) {
                 int slotsToFill = countEmptyOrNonPotHotbarSlots();
                 int potsInInv = countPotsInInventory();
                 if (slotsToFill > 0 && potsInInv > 0) {
@@ -53,7 +51,7 @@ public class Refill extends Module {
             openInv = false;
         }
 
-        if (inInv && (autoRefill.getValue() || invOpen.getValue()) && timer.hasTimeElapsed((long) delay.getValue().getInput())) {
+        if (inInv && timer.hasTimeElapsed((long) delay.getValue().getInput())) {
             if (doRefill()) timer.reset();
         }
     };
