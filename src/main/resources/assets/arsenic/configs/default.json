@@ -129,11 +129,9 @@
   "AimAssist": {
     "bind": 0,
     "enabled": false,
-    "Speed": {
-      "value": 10.0
-    },
-    "Mode:": {
-      "mode": "Normal"
+    "Turn Speed": {
+      "min": 8.0,
+      "max": 12.0
     }
   },
   "Clicker": {
