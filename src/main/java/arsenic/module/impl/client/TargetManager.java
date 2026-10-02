@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import net.minecraft.world.effect.MobEffectInstance;
 import arsenic.event.impl.EventPacket;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
@@ -16,11 +17,10 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.network.play.client.C02PacketUseEntity;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.potion.PotionEffect;
 
-import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.multiplayer.ClientLevel;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,25 +67,24 @@ public class TargetManager extends Module {
         // become null between the guard and the last line. Every other hop here is nullable too:
         // the packet itself, the action enum on a server-constructed packet, and the entity lookup,
         // which returns null whenever the target has already been despawned client side.
-        WorldClient world = mc.level;
+        ClientLevel world = mc.level;
         if (world == null)
             return;
 
         Optional.ofNullable(e.getPacket())
-                .filter(C02PacketUseEntity.class::isInstance)
-                .map(C02PacketUseEntity.class::cast)
-                .filter(use -> use.getAction() == C02PacketUseEntity.Action.ATTACK)
-                .map(use -> use.getEntityFromWorld(world))
+                .filter(ServerboundAttackPacket.class::isInstance)
+                .map(ServerboundAttackPacket.class::cast)
+                .map(attack -> world.getEntity(attack.entityId()))
                 .filter(Player.class::isInstance)
                 .map(Player.class::cast)
                 .filter(player -> getServerHurtTimeOnPacketArrival(player) <= 0)
-                .ifPresent(player -> attackSentTime.put(player.getId(), world.getTotalWorldTime()));
+                .ifPresent(player -> attackSentTime.put(player.getId(), world.getGameTime()));
     };
 
     public static float getTimeSinceLastClientSidedHit(Player player) {
         // attackSentTime stores world-tick timestamps, so this must be measured in world ticks too
         // (the old version subtracted world ticks from System.currentTimeMillis(), which was garbage).
-        WorldClient world = mc.level;
+        ClientLevel world = mc.level;
         if (world == null || player == null)
             return Float.MAX_VALUE;
 
@@ -93,19 +92,19 @@ public class TargetManager extends Module {
         if (sentTick == null)
             return Float.MAX_VALUE;
 
-        return world.getTotalWorldTime() - sentTick;
+        return world.getGameTime() - sentTick;
     }
 
     public static float getServerHurtTimeOnPacketArrival(Player player) {
         // read once: this runs off the netty thread via the outgoing packet listener, so the world
         // can go null between the guard below and any later use of it
-        WorldClient world = mc.level;
+        ClientLevel world = mc.level;
         if (world == null || player == null)
             return Float.MAX_VALUE;
 
         int entityId = player.getId();
         Long sentTime = attackSentTime.get(entityId);
-        long now = world.getTotalWorldTime();
+        long now = world.getGameTime();
         long pingTicks = LagManager.getPingAsTicks();
 
         Float previousHurt = serverHurtTime.get(entityId);
@@ -189,12 +188,12 @@ public class TargetManager extends Module {
         // Vanilla's armour formula converts armour points to a damage reduction that caps at 80%
         // (20 points, the max obtainable) - 4% per point is that curve without needing the
         // toughness/enchant terms, which only matter for reduction beyond what plain armour gives.
-        float armourReduction = Math.min(0.8f, player.getTotalArmorValue() * 0.04f);
+        float armourReduction = Math.min(0.8f, player.getArmorValue() * 0.04f);
 
         // Each level of Resistance cuts damage by another 20%, capped short of full immunity so a
         // maxed-out target still sorts as killable rather than being excluded outright.
         float resistanceReduction = 0f;
-        PotionEffect resistance = player.getEffect(Potion.resistance);
+        MobEffectInstance resistance = player.getEffect(MobEffects.RESISTANCE);
         if (resistance != null)
             resistanceReduction = Math.min(0.8f, (resistance.getAmplifier() + 1) * 0.2f);
 

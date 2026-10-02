@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -12,7 +13,7 @@ import arsenic.utils.render.RenderUtils;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.*;
+import net.minecraft.world.item.*;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.HitResult;
@@ -25,19 +26,19 @@ public class Trajectories extends Module {
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof ItemBow)) {
+        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof BowItem)) {
             return;
         }
 
         ItemStack heldItem = mc.player.getMainHandItem();
-        if (!(heldItem.getItem() instanceof ItemBow) && !(heldItem.getItem() instanceof ItemSnowball) && !(heldItem.getItem() instanceof ItemEgg) && !(heldItem.getItem() instanceof ItemEnderPearl)) {
+        if (!(heldItem.getItem() instanceof BowItem) && !(heldItem.getItem() instanceof SnowballItem) && !(heldItem.getItem() instanceof EggItem) && !(heldItem.getItem() instanceof EnderpearlItem)) {
             return;
         }
-        if (heldItem.getItem() instanceof ItemBow && !mc.player.isUsingItem()) {
+        if (heldItem.getItem() instanceof BowItem && !mc.player.isUsingItem()) {
             return;
         }
         boolean bow = false;
-        if (heldItem.getItem() instanceof ItemBow) {
+        if (heldItem.getItem() instanceof BowItem) {
             bow = true;
         }
 
@@ -52,8 +53,8 @@ public class Trajectories extends Module {
         double motionY = (double) (-Mth.sin(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
         double motionZ = (double) (Mth.cos(playerYaw / 180.0f * (float) Math.PI) * Mth.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
         int itemInUse = 40;
-        if (mc.player.getItemInUseCount() > 0 && bow) {
-            itemInUse = mc.player.getItemInUseCount();
+        if (mc.player.getUseItemRemainingTicks() > 0 && bow) {
+            itemInUse = mc.player.getUseItemRemainingTicks();
         }
         int n10 = 72000 - itemInUse;
         float f10 = (float) n10 / 20.0f;
@@ -82,13 +83,13 @@ public class Trajectories extends Module {
         motionZ *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
         GL11.glBegin(3);
         boolean ground = false;
-        MovingObjectPosition target = null;
+        HitResult target = null;
         boolean highlight = false;
         double[] transform = new double[]{posX, posY, posZ, motionX, motionY, motionZ};
         for (int k = 0; k <= 100 && !ground; ++k) {
             Vec3 start = new Vec3(transform[0], transform[1], transform[2]);
             Vec3 predicted = new Vec3(transform[0] + transform[3], transform[1] + transform[4], transform[2] + transform[5]);
-            MovingObjectPosition rayTraced = mc.level.rayTraceBlocks(start, predicted, false, true, false);
+            HitResult rayTraced = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(start, predicted);
             if (rayTraced == null) {
                 rayTraced = getEntityHit(start, predicted);
                 if (rayTraced != null) {
@@ -106,12 +107,12 @@ public class Trajectories extends Module {
         for (int k = 0; k <= 100 && !ground; ++k) {
             Vec3 start = new Vec3(posX, posY, posZ);
             Vec3 predicted = new Vec3(posX + motionX, posY + motionY, posZ + motionZ);
-            MovingObjectPosition rayTraced = mc.level.rayTraceBlocks(start, predicted, false, true, false);
+            HitResult rayTraced = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(start, predicted);
             if (rayTraced != null) {
                 ground = true;
                 target = rayTraced;
             } else {
-                MovingObjectPosition entityHit = getEntityHit(start, predicted);
+                HitResult entityHit = getEntityHit(start, predicted);
                 if (entityHit != null) {
                     target = entityHit;
                     ground = true;
@@ -128,7 +129,7 @@ public class Trajectories extends Module {
         GL11.glEnd();
         GL11.glTranslated(posX - mc.getRenderManager().viewerPosX, posY - mc.getRenderManager().viewerPosY, posZ - mc.getRenderManager().viewerPosZ);
         if (target != null && target.sideHit != null) {
-            switch (target.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK ? target.sideHit.getIndex() : target.sideHit.getIndex()) {
+            switch (target.getType() == HitResult.Type.BLOCK ? target.sideHit.getIndex() : target.sideHit.getIndex()) {
                 case 2:
                 case 3: {
                     GL11.glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
@@ -152,8 +153,8 @@ public class Trajectories extends Module {
         }
     };
 
-    public MovingObjectPosition getEntityHit(Vec3 origin, Vec3 destination) {
-        for (Entity e : mc.level.loadedEntityList) {
+    public HitResult getEntityHit(Vec3 origin, Vec3 destination) {
+        for (Entity e : mc.level.entitiesForRendering()) {
             if (!(e instanceof LivingEntity)) {
                 continue;
             }
@@ -162,8 +163,8 @@ public class Trajectories extends Module {
             }
             if (e != mc.player) {
                 float expand = 0.3f;
-                AABB boundingBox = e.getBoundingBox().expand(expand, expand, expand);
-                MovingObjectPosition possibleHit = boundingBox.calculateIntercept(origin, destination);
+                AABB boundingBox = e.getBoundingBox().inflate(expand, expand, expand);
+                HitResult possibleHit = boundingBox.calculateIntercept(origin, destination);
                 if (possibleHit != null) {
                     return possibleHit;
                 }

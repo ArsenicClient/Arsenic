@@ -47,7 +47,7 @@ public class Radar extends Module {
         float yaw = mc.player.getYRot();
         double yawRad = Math.toRadians(yaw);
 
-        List<Player> players = new CopyOnWriteArrayList<>(mc.level.playerEntities);
+        List<Player> players = new CopyOnWriteArrayList<>(mc.level.players());
         for (Player player : players) {
             if (player.isInvisible() && !false) continue;
             if (player == mc.player && !true) continue;

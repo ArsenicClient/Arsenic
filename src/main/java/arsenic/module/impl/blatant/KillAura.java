@@ -13,7 +13,6 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.module.impl.ghost.Hitflick;
-import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -29,7 +28,8 @@ import arsenic.utils.lag.LagManager;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.play.server.S08PacketPlayerPosLook;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -131,18 +131,18 @@ public class KillAura extends Module {
         Hitflick hitflick = hitflick();
         boolean flickInProgress = hitflick.ownsRotation();
         if (!silentRotations.getValue() && target != null && !flickInProgress) {
-            mc.player.rotationYaw = event.getYaw();
-            mc.player.rotationPitch = event.getPitch();
+            mc.player.setYRot(event.getYaw());
+            mc.player.setXRot(event.getPitch());
         }
         boolean usingItem = mc.player.isUsingItem();
-        MovingObjectPosition raytrace = event.getRayTraceEntity();
-        Entity hit = raytrace != null ? raytrace.entityHit : null;
+        HitResult raytrace = event.getRayTraceEntity();
+        Entity hit = raytrace instanceof EntityHitResult entityHit ? entityHit.getEntity() : null;
         // Reach is measured where the look ray actually enters the hitbox - that's what the server
         // checks - not at the box's nearest point. Aiming anywhere but the nearest point (drift,
         // prediction, mid-turn) puts the entry point further away, so a nearest-point check can
         // pass at 2.9 while the real hit lands past 3. Past reach, vanilla wouldn't have the entity
         // under the crosshair at all, so treat it as nothing there.
-        if (hit != null && mc.player.getEyePosition(1f).distanceTo(raytrace.hitVec) > ATTACK_RANGE)
+        if (hit != null && mc.player.getEyePosition(1f).distanceTo(raytrace.getLocation()) > ATTACK_RANGE)
             hit = null;
         if (target != null && hit == target) {
             onTargetTimer.reset();
@@ -165,8 +165,8 @@ public class KillAura extends Module {
                 if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
                 } else {
-                    mc.player.swingItem();
-                    mc.gameMode.attackEntity(mc.player, hit);
+                    PlayerUtils.swingItem();
+                    mc.gameMode.attack(mc.player, hit);
                     resetAttackCycle();
                 }
             } else if (hit == null
@@ -175,7 +175,7 @@ public class KillAura extends Module {
                 // Crosshair just slipped off, or is about to land: keep clicking like a player
                 // would. Nothing is under the crosshair, so this is a plain miss-swing - attacking
                 // an entity the ray doesn't touch is exactly what hitbox/raytrace checks catch.
-                mc.player.swingItem();
+                PlayerUtils.swingItem();
                 resetAttackCycle();
             }
             // A different entity under the crosshair (teammate, bot, armour stand) gets neither a
@@ -188,7 +188,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> onServerMove = event -> {
-        if (event.getPacket() instanceof S08PacketPlayerPosLook)
+        if (event.getPacket() instanceof ClientboundPlayerPositionPacket)
             setEnabled(false);
     };
 
@@ -198,7 +198,7 @@ public class KillAura extends Module {
         if(target == null)
             return;
         int col = Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
-        RenderUtils.drawCircle(target, event.partialTicks, 0.7, col, 255);
+        RenderUtils.drawCircle(target, 0.7, col, 1f);
     };
 
     /**
@@ -256,12 +256,12 @@ public class KillAura extends Module {
 
         int lookahead = Math.max(1, (int) Math.round(graceMs / 50.0));
         Vec3 eyes = mc.player.getEyePosition(1f);
-        Vec3 look = ((IMixinEntity) mc.player).invokeGetVectorForRotation(event.getPitch(), event.getYaw());
+        Vec3 look = Entity.calculateViewVector(event.getPitch(), event.getYaw());
         Vec3 end = eyes.add(look.x * ATTACK_RANGE, look.y * ATTACK_RANGE, look.z * ATTACK_RANGE);
         float border = target.getPickRadius();
         for (int t = 1; t <= lookahead; t++) {
-            AABB box = aim.predictBox(target, t).expand(border, border, border);
-            if (box.isVecInside(eyes) || box.calculateIntercept(eyes, end) != null)
+            AABB box = aim.predictBox(target, t).inflate(border);
+            if (box.contains(eyes) || box.clip(eyes, end).isPresent())
                 return true;
         }
 

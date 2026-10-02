@@ -231,7 +231,7 @@ public class BedPlates extends Module {
     private void addBlock(BlockPos pos, Set<String> seen, List<ItemStack> stacks) {
         IBlockState state = mc.level.getBlockState(pos);
         Block block = state.getBlock();
-        if (block == null || block == Blocks.air || block instanceof BlockBed || block.getMaterial() == Material.air) return;
+        if (block == null || block == Blocks.AIR || block instanceof BlockBed || block.defaultBlockState().isAir()) return;
 
         Item item = Item.getItemFromBlock(block);
         if (item == null) return;
@@ -269,8 +269,8 @@ public class BedPlates extends Module {
 
         GlStateManager.translate(x, y, z);
         GL11.glNormal3f(0, 1, 0);
-        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0, 1, 0);
-        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1, 0, 0);
+        GlStateManager.rotate(-mc.gameRenderer.mainCamera().yRot(), 0, 1, 0);
+        GlStateManager.rotate(mc.gameRenderer.mainCamera().xRot(), 1, 0, 0);
         GlStateManager.scale(-scale, -scale, scale);
 
         if (br.defenses.isEmpty()) {
@@ -300,7 +300,7 @@ public class BedPlates extends Module {
         if (count > 0) {
         }
 
-        mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+        mc.getTextureManager().getTexture(TextureMap.locationBlocksTexture);
 
         for (int i = 0; i < count; i++) {
             ItemStack stack = stacks.get(i);

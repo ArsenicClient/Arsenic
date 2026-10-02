@@ -9,7 +9,7 @@ import arsenic.module.ModuleInfo;
 public class CustomMenu extends Module {
 
     public void display() {
-        mc.displayGuiScreen(new Screen());
+        mc.gui.setScreen(new ArsenicMainMenu());
     }
 
 }

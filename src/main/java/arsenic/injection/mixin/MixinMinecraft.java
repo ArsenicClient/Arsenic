@@ -70,6 +70,13 @@ public abstract class MixinMinecraft {
         return Arsenic.getArsenic().getSilentRotationManager().isBlockingUserInput();
     }
 
+    @Inject(method = "shouldEntityAppearGlowing", at = @At("RETURN"), cancellable = true)
+    private void arsenic$espGlow(net.minecraft.world.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
+        arsenic.module.impl.visual.ESP esp = Arsenic.getArsenic().getModuleManager().getModuleByClass(arsenic.module.impl.visual.ESP.class);
+        if (esp != null && esp.shouldGlow(entity))
+            cir.setReturnValue(true);
+    }
+
     @Inject(method = "startUseItem", at = @At("RETURN"))
     private void arsenic$fastPlace(CallbackInfo ci) {
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);

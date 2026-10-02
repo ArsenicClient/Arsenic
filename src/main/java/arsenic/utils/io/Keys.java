@@ -132,6 +132,17 @@ public final class Keys {
         return names;
     }
 
+    /**
+     * Whether the physical key or button bound to {@code mapping} is held right now, regardless of
+     * what the mapping itself thinks - modules that force a mapping down need the real state.
+     */
+    public static boolean isPhysicallyDown(net.minecraft.client.KeyMapping mapping) {
+        InputConstants.Key key = ((arsenic.injection.accessor.IMixinKeyMapping) mapping).getBoundKey();
+        if (key.getType() == InputConstants.Type.MOUSE)
+            return isMouseDown(fromSdlButton(key.getValue()));
+        return isKeyDown(key.getValue());
+    }
+
     public static boolean isKeyDown(int code) {
         return code != NONE && InputConstants.isKeyDown(code);
     }

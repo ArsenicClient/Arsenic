@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -82,8 +83,8 @@ public class AimAssist extends Module {
             return;
         // prevRotationYaw/Pitch were already rolled over this tick, so the frame interpolation
         // renders this as a smooth turn rather than a snap.
-        mc.player.rotationYaw = event.getYaw();
-        mc.player.rotationPitch = event.getPitch();
+        mc.player.setYRot(event.getYaw());
+        mc.player.setXRot(event.getPitch());
     };
 
     /**
@@ -92,7 +93,7 @@ public class AimAssist extends Module {
      * just jitter between them.
      */
     private LivingEntity pickTarget() {
-        if (!mc.options.keyBindAttack.isKeyDown() || mc.gui.screen() != null)
+        if (!mc.options.keyAttack.isDown() || mc.gui.screen() != null)
             return null;
         KillAura killAura = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class);
         if (killAura.isEnabled() && killAura.target != null)
@@ -114,8 +115,8 @@ public class AimAssist extends Module {
     private boolean isBehindWall(LivingEntity entity) {
         Vec3 eyes = mc.player.getEyePosition(1f);
         Vec3 aimVec = RotationUtils.getBestHitVec(entity);
-        MovingObjectPosition mop = mc.level.rayTraceBlocks(eyes, aimVec, false, true, false);
-        return mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK;
+        HitResult mop = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyes, aimVec);
+        return mop != null && mop.getType() == HitResult.Type.BLOCK;
     }
 
     /**

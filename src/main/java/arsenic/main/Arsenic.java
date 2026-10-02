@@ -10,6 +10,7 @@ import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
 import arsenic.module.impl.client.CapeHandler;
+import arsenic.module.impl.visual.PostProcessing;
 import arsenic.notifications.NotificationManager;
 import arsenic.utils.font.Fonts;
 import arsenic.utils.lag.LagManager;
@@ -77,6 +78,9 @@ public class Arsenic implements ClientModInitializer {
         // Drawn last so client overlays sit on top of every vanilla HUD element.
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("arsenic", "hud"), (graphics, deltaTracker) -> {
             try (RenderContext ignored = RenderContext.begin(graphics)) {
+                PostProcessing postProcessing = moduleManager.getModuleByClass(PostProcessing.class);
+                if (postProcessing != null && postProcessing.isEnabled())
+                    postProcessing.renderGlow();
                 eventManager.post(new EventRender2D(graphics, deltaTracker.getGameTimeDeltaPartialTick(false)));
             }
         });

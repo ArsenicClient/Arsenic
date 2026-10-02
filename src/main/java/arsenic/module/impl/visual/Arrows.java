@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.render.QuadBatch;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -8,7 +9,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.world.entity.player.Player;
 
 @ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true)
@@ -42,19 +42,15 @@ public class Arrows extends Module {
         double eyeY = interp(mc.player.yo, mc.player.getY(), partial) + mc.player.getEyeHeight();
         double eyeZ = interp(mc.player.zo, mc.player.getZ(), partial);
 
-        double vfov = Math.toRadians(mc.options.fovSetting);
+        double vfov = Math.toRadians(mc.gameRenderer.mainCamera().getFov());
         double tanV = Math.tan(vfov / 2.0);
-        double aspect = mc.displayHeight == 0 ? 1.0 : (double) mc.displayWidth / mc.displayHeight;
+        double aspect = mc.getWindow().getHeight() == 0 ? 1.0 : (double) mc.getWindow().getWidth() / mc.getWindow().getHeight();
         double tanH = tanV * aspect;
 
-        ScaledResolution sr = event.getSr();
-        float cx = sr.getScaledWidth() / 2f;
-        float cy = sr.getScaledHeight() / 2f;
+        float cx = event.getWidth() / 2f;
+        float cy = event.getHeight() / 2f;
 
-        // the HUD ortho flips Y, making our triangles clockwise in window space;
-        // with the GUI's GL_CULL_FACE enabled they'd be back-face culled away
-
-        for (Player player : mc.level.playerEntities) {
+        for (Player player : mc.level.players()) {
             if (player == mc.player) continue;
             if (player.isRemoved() || player.isInvisible()) continue;
             if (AntiBot.isBot(player)) continue;
@@ -62,7 +58,7 @@ public class Arrows extends Module {
             if (dist > 64) continue;
 
             double tx = interp(player.xo, player.getX(), partial) - eyeX;
-            double ty = interp(player.yo, player.getY(), partial) + player.height * 0.5 - eyeY;
+            double ty = interp(player.yo, player.getY(), partial) + player.getBbHeight() * 0.5 - eyeY;
             double tz = interp(player.zo, player.getZ(), partial) - eyeZ;
             double len = Math.sqrt(tx * tx + ty * ty + tz * tz);
             if (len < 1e-6) continue;
@@ -110,16 +106,7 @@ public class Arrows extends Module {
         float rightX = backX - (float) (-s * wid);
         float rightY = backY - (float) (c * wid);
 
-        float a = ((color >> 24) & 0xFF) / 255f;
-        float r = ((color >> 16) & 0xFF) / 255f;
-        float g = ((color >> 8) & 0xFF) / 255f;
-        float b = (color & 0xFF) / 255f;
-
-        GL11.glBegin(GL11.GL_TRIANGLES);
-        GL11.glVertex2f(tipX, tipY);
-        GL11.glVertex2f(leftX, leftY);
-        GL11.glVertex2f(rightX, rightY);
-        GL11.glEnd();
+        new QuadBatch().triangle(tipX, tipY, leftX, leftY, rightX, rightY, color).submit();
     }
 
     private static double interp(double prev, double now, float partial) {

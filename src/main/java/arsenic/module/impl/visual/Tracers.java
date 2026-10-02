@@ -1,118 +1,47 @@
 package arsenic.module.impl.visual;
 
-import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
-import arsenic.main.Arsenic;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
-import net.minecraft.client.Minecraft;
+import arsenic.utils.render.RenderUtils;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import org.lwjgl.BufferUtils;
-
-import java.awt.*;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.phys.Vec3;
 
 @ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, hidden = true)
 public class Tracers extends Module {
 
-    private final FloatBuffer modelView = BufferUtils.createFloatBuffer(16);
-    private final FloatBuffer projection = BufferUtils.createFloatBuffer(16);
-    private final IntBuffer viewport = BufferUtils.createIntBuffer(16);
-    private final FloatBuffer screenCoords = BufferUtils.createFloatBuffer(3);
-
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
+        Vec3 eyes = mc.gameRenderer.mainCamera().position();
+        // start just in front of the camera so the lines converge on the crosshair
+        Vec3 start = eyes.add(Vec3.directionFromRotation(mc.player.getXRot(), mc.player.getYRot()).scale(0.2));
 
-        for (Player player : Minecraft.getInstance().level.playerEntities) {
+        for (Player player : mc.level.players()) {
             if (player == mc.player) continue;
             if (AntiBot.isBot(player)) continue;
 
-            double x = (player.xo + (player.getX() - player.xo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosX;
-            double y = (player.yo + (player.getY() - player.yo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosY;
-            double z = (player.zo + (player.getZ() - player.zo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosZ;
-
-            if (false && isOnScreen(x, y + player.height / 2, z)) continue;
-
-            Color c = new Color(getBedWarsColor(player), true);
-
-
-            GL11.glBegin(GL11.GL_LINES);
-            GL11.glVertex3d(0, mc.player.getEyeHeight(), 0);
-            GL11.glVertex3d(x, y + player.height / 2, z);
-            GL11.glEnd();
-
+            Vec3 pos = RenderUtils.interpolatedPosition(player).add(0, player.getBbHeight() / 2, 0);
+            RenderUtils.drawLine(start, pos, 0xFF000000 | getBedWarsColor(player), 1.5f);
         }
     };
 
-    /** Projects a viewer-relative point to the screen and checks whether it lands inside the viewport. */
-    private boolean isOnScreen(double x, double y, double z) {
-        screenCoords.clear();
-        if (!project((float) x, (float) y, (float) z, modelView, projection, viewport, screenCoords))
-            return false;
-        float winX = screenCoords.get(0);
-        float winY = screenCoords.get(1);
-        float winZ = screenCoords.get(2);
-        if (winZ < 0f || winZ > 1f) return false; // behind the camera
-        int vx = viewport.get(0);
-        int vy = viewport.get(1);
-        int vw = viewport.get(2);
-        int vh = viewport.get(3);
-        return winX >= vx && winX <= vx + vw && winY >= vy && winY <= vy + vh;
-    }
-
+    /** Team colour from a dyed leather chestplate, the way Bed Wars kits show it. */
     private int getBedWarsColor(Player player) {
-        if (player.getCurrentArmor(2) != null) {
-            net.minecraft.nbt.NBTTagCompound tag = player.getCurrentArmor(2).getTagCompound();
-            if (tag != null) {
-                net.minecraft.nbt.NBTTagCompound display = tag.getCompoundTag("display");
-                if (display != null && display.hasKey("color", 3)) {
-                    return display.getInteger("color");
-                }
-            }
-        }
+        ItemStack chestplate = player.getItemBySlot(EquipmentSlot.CHEST);
+        DyedItemColor dyed = chestplate.get(DataComponents.DYED_COLOR);
+        if (dyed != null)
+            return dyed.rgb();
         return ThemeManager.getMainColor();
-    }
-
-    /**
-     * Projects an object-space point to window coordinates. Drop-in replacement for
-     * GLU.gluProject (from the lwjgl_util library, which LabyMod does not ship on the
-     * classpath) using identical math, so behaviour is unchanged.
-     */
-    private static boolean project(float objX, float objY, float objZ,
-                                   FloatBuffer model, FloatBuffer proj, IntBuffer view,
-                                   FloatBuffer winPos) {
-        float[] in = {objX, objY, objZ, 1.0f};
-        float[] out = new float[4];
-        multMatrixVec(model, in, out); // -> eye space
-        multMatrixVec(proj, out, in);  // -> clip space
-        if (in[3] == 0.0f) return false;
-        in[3] = (1.0f / in[3]) * 0.5f;
-        in[0] = in[0] * in[3] + 0.5f;  // -> normalized device coords in [0,1]
-        in[1] = in[1] * in[3] + 0.5f;
-        in[2] = in[2] * in[3] + 0.5f;
-        winPos.put(0, in[0] * view.get(2) + view.get(0));
-        winPos.put(1, in[1] * view.get(3) + view.get(1));
-        winPos.put(2, in[2]);
-        return true;
-    }
-
-    /** Column-major 4x4 matrix times a 4-vector: out = m * in. */
-    private static void multMatrixVec(FloatBuffer m, float[] in, float[] out) {
-        for (int i = 0; i < 4; i++) {
-            out[i] = in[0] * m.get(i)
-                    + in[1] * m.get(4 + i)
-                    + in[2] * m.get(8 + i)
-                    + in[3] * m.get(12 + i);
-        }
     }
 }

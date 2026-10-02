@@ -11,7 +11,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.item.ItemBow;
+import net.minecraft.world.item.BowItem;
 import net.minecraft.util.Mth;
 
 @ModuleInfo(name = "BowAimbot", category = ModuleCategory.COMBAT)
@@ -24,7 +24,7 @@ public class BowAimbot extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
-        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof ItemBow) || !mc.player.isUsingItem())
+        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof BowItem) || !mc.player.isUsingItem())
             return;
 
         LivingEntity target = TargetManager.getTarget();
@@ -36,8 +36,8 @@ public class BowAimbot extends Module {
 
         float[] rots = getBowRotations(target);
         if (rots != null) {
-            mc.player.rotationYaw = rots[0];
-            mc.player.rotationPitch = rots[1];
+            mc.player.setYRot(rots[0]);
+            mc.player.setXRot(rots[1]);
         }
     };
 
@@ -47,7 +47,7 @@ public class BowAimbot extends Module {
         double y = target.getY() + target.getEyeHeight() - 0.1 - mc.player.getY() - mc.player.getEyeHeight();
 
         if (predict.getValue()) {
-            double bowPower = mc.player.getItemInUseDuration() / 20.0;
+            double bowPower = mc.player.getTicksUsingItem() / 20.0;
             bowPower = (bowPower * bowPower + bowPower * 2.0) / 3.0;
             if (bowPower > 1.0) bowPower = 1.0;
 

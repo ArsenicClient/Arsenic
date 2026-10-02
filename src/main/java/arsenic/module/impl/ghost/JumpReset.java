@@ -11,7 +11,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.utils.minecraft.PlayerUtils;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 
 @ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT)
 public class JumpReset extends Module {
@@ -23,8 +23,8 @@ public class JumpReset extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> eventPacketListener = event -> {
-        if (event.getPacket() instanceof S12PacketEntityVelocity) {
-            if (((S12PacketEntityVelocity) event.getPacket()).getEntityID() == mc.player.getId()) {
+        if (event.getPacket() instanceof ClientboundSetEntityMotionPacket) {
+            if (((ClientboundSetEntityMotionPacket) event.getPacket()).id() == mc.player.getId()) {
                 if(Math.random() <= chance.getValue().getInput()) {
                     shouldJump = true;
                 }

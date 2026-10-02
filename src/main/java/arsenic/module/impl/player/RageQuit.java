@@ -21,7 +21,7 @@ public class RageQuit extends Module {
     public final Listener<EventUpdate.Pre> onUpdate = event -> {
         if (mc.player.getHealth() <= health.getValue().getInput()) {
             onDisable();
-            mc.getConnection().getNetworkManager().closeChannel(new ChatComponentText(""));
+            mc.getConnection().getConnection().disconnect(Component.literal(""));
         }
     };
 }

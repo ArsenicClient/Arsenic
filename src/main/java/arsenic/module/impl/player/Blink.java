@@ -39,7 +39,7 @@ public class Blink extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
         if (startPos == null) return;
-        RenderUtils.drawBoundingBox(startPos, new Color(255, 255, 255));
+        RenderUtils.drawBoundingBox(new net.minecraft.world.phys.AABB(startPos.x - 0.3, startPos.y, startPos.z - 0.3, startPos.x + 0.3, startPos.y + 1.8, startPos.z + 0.3), 0xFFFFFFFF);
     };
 
     /** Ticks currently held, against the cap - the one number that matters while blinking. */

@@ -138,6 +138,15 @@ public class PlayerUtils extends UtilityClass {
         return targets;
     }
 
+    /**
+     * 1.8's World#rayTraceBlocks: the first block between two points, against outline shapes.
+     * Returns a MISS result (never null) when nothing is in the way.
+     */
+    public static net.minecraft.world.phys.BlockHitResult rayTraceBlocks(Vec3 from, Vec3 to) {
+        return mc.level.clip(new net.minecraft.world.level.ClipContext(from, to,
+                net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+    }
+
     /** True once there is a player and a level to act on. */
     public static boolean isPlayerLoaded() {
         return mc.player != null && mc.level != null;

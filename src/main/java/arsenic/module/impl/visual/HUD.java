@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.render.ScaledResolution;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
@@ -31,7 +32,6 @@ import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.Options;
 
 import java.util.function.BinaryOperator;
@@ -287,14 +287,14 @@ public class HUD extends Module {
         String suffix = null;
         switch (watermarkMode.getValue()) {
             case FPS:
-                suffix = Minecraft.getDebugFPS() + " fps";
+                suffix = mc.getFps() + " fps";
                 break;
             case COORDS:
                 if (mc.player != null)
                     suffix = String.format("%.0f, %.0f, %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
                 break;
             case IP:
-                suffix = mc.getCurrentServerData() != null ? mc.getCurrentServerData().serverIP : "singleplayer";
+                suffix = mc.getCurrentServer() != null ? mc.getCurrentServer().ip : "singleplayer";
                 break;
             case TEXT:
             default:
@@ -339,7 +339,7 @@ public class HUD extends Module {
         float rowH = 11f;
         float w = 0;
         for (Module m : binds)
-            w = Math.max(w, fr.getWidth(m.getName() + "   " + Options.getKeyDisplayString(m.getKeybind())));
+            w = Math.max(w, fr.getWidth(m.getName() + "   " + arsenic.utils.io.Keys.getKeyName(m.getKeybind())));
         w += pad * 2f;
         float h = binds.size() * rowH + pad * 1.5f;
 
@@ -347,7 +347,7 @@ public class HUD extends Module {
 
         float y = keybindsY + pad * 0.75f;
         for (Module m : binds) {
-            String key = Options.getKeyDisplayString(m.getKeybind());
+            String key = arsenic.utils.io.Keys.getKeyName(m.getKeybind());
             fr.drawStringWithShadow(m.getName(), keybindsX + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted());
             fr.drawStringWithShadow(key, keybindsX + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted());
             y += rowH;

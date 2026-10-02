@@ -17,9 +17,9 @@ import arsenic.utils.lag.LagManager;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.play.client.C02PacketUseEntity;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 
 /**
  * Turns the target's invulnerability window into a free extra hit.
@@ -146,16 +146,12 @@ public class DoubleHit extends Module {
         if (holding || target == null || mc.player == null)
             return;
 
-        WorldClient world = mc.level;
-        if (world == null || !(event.getPacket() instanceof C02PacketUseEntity))
-            return;
-
-        C02PacketUseEntity use = (C02PacketUseEntity) event.getPacket();
-        if (use.getAction() != C02PacketUseEntity.Action.ATTACK)
+        ClientLevel world = mc.level;
+        if (world == null || !(event.getPacket() instanceof ServerboundAttackPacket use))
             return;
 
         // Only our own tracked target matters; a swing at anything else is not the one being eaten.
-        if (use.getEntityFromWorld(world) != target)
+        if (world.getEntity(use.entityId()) != target)
             return;
 
         if (canStartHold())
@@ -277,9 +273,9 @@ public class DoubleHit extends Module {
     private boolean isTargetValid() {
         return target != null
                 && target != mc.player
-                && target.isEntityAlive()
+                && target.isAlive()
                 && !target.isRemoved()
-                && mc.level.getEntityByID(target.getId()) == target;
+                && mc.level.getEntity(target.getId()) == target;
     }
 
     private void startHold() {

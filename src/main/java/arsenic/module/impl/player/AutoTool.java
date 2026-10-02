@@ -1,6 +1,7 @@
 package arsenic.module.impl.player;
 
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
+import com.mojang.blaze3d.platform.InputConstants;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -11,7 +12,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.HitResult;
-import org.lwjgl.input.Mouse;
+import arsenic.utils.io.Keys;
 
 @ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true)
 public class AutoTool extends Module {
@@ -42,37 +43,37 @@ public class AutoTool extends Module {
         if (currentItem == -1) {
             return;
         }
-        mc.player.inventory.currentItem = currentItem;
+        mc.player.getInventory().setSelectedSlot(currentItem);
     }
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (!mc.inGameHasFocus || mc.gui.screen() != null || (DISABLE_WHILE_RIGHT_CLICK && Mouse.isButtonDown(1)) || !mc.player.capabilities.allowEdit) {
+        if (!mc.isWindowActive() || mc.gui.screen() != null || (DISABLE_WHILE_RIGHT_CLICK && Keys.isMouseDown(1)) || !mc.player.getAbilities().mayBuild) {
             resetVariables();
             return;
         }
-        if (shiftOnly.getValue() && !Keyboard.isKeyDown(mc.options.keyBindSneak.getKeyCode())) {
+        if (shiftOnly.getValue() && !Keys.isPhysicallyDown(mc.options.keyShift)) {
             resetVariables();
             return;
         }
-        if (!Mouse.isButtonDown(0) && REQUIRE_MOUSE_DOWN) {
+        if (!Keys.isMouseDown(0) && REQUIRE_MOUSE_DOWN) {
             resetSlot();
             return;
         }
-        MovingObjectPosition over = mc.hitResult;
-        if (over == null || over.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
+        HitResult over = mc.hitResult;
+        if (over == null || over.getType() != HitResult.Type.BLOCK) {
             resetSlot();
             resetVariables();
             return;
         }
-        currentBlock = over.getBlockPos();
+        currentBlock = ((net.minecraft.world.phys.BlockHitResult) over).getBlockPos();
         {
-            int slot = PlayerUtils.getTool(mc.level.getBlockState(currentBlock).getBlock());
+            int slot = PlayerUtils.getTool(mc.level.getBlockState(currentBlock));
             if (slot == -1) {
                 return;
             }
             if (previousSlot == -1) {
-                previousSlot = mc.player.inventory.currentItem;
+                previousSlot = mc.player.getInventory().getSelectedSlot();
             }
             setSlot(slot);
         }

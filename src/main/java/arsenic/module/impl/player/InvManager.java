@@ -15,8 +15,8 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.Timer;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.Items;
-import net.minecraft.inventory.ContainerPlayer;
-import net.minecraft.item.*;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +36,8 @@ public class InvManager extends Module {
 
     private final Runnable closeAction = () -> {
         if(true) {
-            mc.player.closeScreen();
-            mc.gui.screen() = null;
+            mc.player.closeContainer();
+            mc.gui.setScreen(null);
         }
     };
 
@@ -78,12 +78,12 @@ public class InvManager extends Module {
     @EventLink
     public final Listener<EventDisplayGuiScreen> guiDisplayListener = event -> {
         shouldSteal = false;
-        if(mc.player == null || event.getGuiScreen() == null || mc.player.openContainer == null)
+        if(mc.player == null || event.getGuiScreen() == null || mc.player.containerMenu == null)
             return;
-        if(mc.player.openContainer != mc.player.inventoryContainer || !(event.getGuiScreen() instanceof AbstractContainerScreen))
+        if(mc.player.containerMenu != mc.player.inventoryMenu || !(event.getGuiScreen() instanceof AbstractContainerScreen))
             return;
 
-        ContainerPlayer container = (ContainerPlayer) mc.player.openContainer;
+        InventoryMenu container = (InventoryMenu) mc.player.containerMenu;
         path = generatePath(container);
         shouldSteal = true;
         timer.start();
@@ -106,7 +106,7 @@ public class InvManager extends Module {
         shouldSteal = false;
     }
 
-    public List<Action> generatePath(ContainerPlayer inv) {
+    public List<Action> generatePath(InventoryMenu inv) {
         ArrayList<Action> actions = new ArrayList<>();
 
         // Track best items for each slot
@@ -131,19 +131,19 @@ public class InvManager extends Module {
         bestItemSlots[2] = ContainerUtils.getMostBlocks();
 
         // Slot 4: Ender Pearls
-        bestItemSlots[3] = ContainerUtils.getBiggestStack(Items.ender_pearl);
+        bestItemSlots[3] = ContainerUtils.getBiggestStack(Items.ENDER_PEARL);
 
         // Slot 5: Golden Apples
-        bestItemSlots[4] = ContainerUtils.getBiggestStack(Items.golden_apple);
+        bestItemSlots[4] = ContainerUtils.getBiggestStack(Items.GOLDEN_APPLE);
 
         // Slot 6: Bow
         bestItemSlots[5] = ContainerUtils.getBestBow();
 
         // Slots 6-9: Best tool items (pickaxe, axe, shovel)
-        bestItemSlots[6] = ContainerUtils.getBestTool(ItemPickaxe.class);
-        bestItemSlots[8] = ContainerUtils.getBestTool(ItemSpade.class);
+        bestItemSlots[6] = ContainerUtils.getBestTool(net.minecraft.tags.ItemTags.PICKAXES);
+        bestItemSlots[8] = ContainerUtils.getBestTool(net.minecraft.tags.ItemTags.SHOVELS);
         Arsenic.getArsenic().getLogger().info(bestItemSlots[1] + "");
-        bestItemSlots[7] = ContainerUtils.getBestTool(ItemAxe.class);
+        bestItemSlots[7] = ContainerUtils.getBestTool(net.minecraft.tags.ItemTags.AXES);
 
         // Find best armor
         for(int i = 0; i < 4; i++) {
@@ -157,7 +157,7 @@ public class InvManager extends Module {
 
             if(bestArmorSlot != -1 && bestArmorSlot != curArmorSlot) {
                 ItemStack currentArmor = ContainerUtils.getItemStack(curArmorSlot);
-                if(currentArmor != null) {
+                if(currentArmor != null && !currentArmor.isEmpty()) {
                     // Click to unequip current armor first
                     actions.add(new Action(ActionType.CLICK, curArmorSlot));
                 }
@@ -169,7 +169,7 @@ public class InvManager extends Module {
         //Phase 2: Drop items that should be removed
         for(int i = 9; i < 45; i++) {
             ItemStack stack = ContainerUtils.getItemStack(i);
-            if(stack == null) continue;
+            if(stack == null || stack.isEmpty()) continue;
 
             // Check if this item is one of our best items
             boolean isBestItem = false;

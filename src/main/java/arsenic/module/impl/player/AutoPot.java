@@ -10,12 +10,10 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import net.minecraft.item.ItemPotion;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.potion.PotionEffect;
+import arsenic.utils.minecraft.ItemUtils;
 
-import java.util.List;
 
 @ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER)
 public class AutoPot extends Module {
@@ -51,14 +49,13 @@ public class AutoPot extends Module {
         int potSlot = findBestPot();
         if (potSlot == -1) return;
 
-        int oldSlot = mc.player.inventory.currentItem;
-        mc.player.inventory.currentItem = potSlot;
-        mc.player.rotationPitch = 90;
+        int oldSlot = mc.player.getInventory().getSelectedSlot();
+        mc.player.getInventory().setSelectedSlot(potSlot);
+        mc.player.setXRot(90);
         shouldLookDown = true;
         lookDownUntil = now + 200;
-        mc.gameMode.updateController();
-        mc.gameMode.sendUseItem(mc.player, mc.level, mc.player.inventory.getCurrentItem());
-        mc.player.inventory.currentItem = oldSlot;
+        mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        mc.player.getInventory().setSelectedSlot(oldSlot);
         lastThrow = now;
     };
 
@@ -75,16 +72,10 @@ public class AutoPot extends Module {
 
     private int findBestPot() {
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack == null || !(stack.getItem() instanceof ItemPotion)) continue;
-            ItemPotion pot = (ItemPotion) stack.getItem();
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (!ItemUtils.isSplashPotion(stack)) continue;
             if (HEAL_ONLY) {
-                List<PotionEffect> effects = pot.getEffects(stack);
-                if (effects != null) {
-                    for (PotionEffect effect : effects) {
-                        if (effect.getPotionID() == Potion.heal.id) return i;
-                    }
-                }
+                if (ItemUtils.hasEffect(stack, MobEffects.INSTANT_HEALTH)) return i;
             } else {
                 return i;
             }

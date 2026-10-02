@@ -5,7 +5,6 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
 import arsenic.event.impl.EventRender2D;
-import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -17,14 +16,14 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.ScaledResolution;
+import arsenic.utils.render.RenderContext;
+import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.WorldToScreen;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.StringUtils;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3x2fStack;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -55,20 +54,6 @@ public class TargetHUD extends Module {
             target = (AbstractClientPlayer) targetPlayer;
             lastTargetTime = System.currentTimeMillis();
             recentTargets.put(targetPlayer, lastTargetTime);
-        }
-    };
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventRenderWorldLast> onWorldRender = event -> {
-        if (stick.getValue() && target != null && animatedScale > 0.01f) {
-            double renderX = (target.xo + (target.getX() - target.xo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosX;
-            double renderY = (target.yo + (target.getY() - target.yo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosY;
-            double renderZ = (target.zo + (target.getZ() - target.zo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosZ;
-            renderStickHUD(target, renderX, renderY, renderZ, animatedScale);
         }
     };
 
@@ -118,6 +103,8 @@ public class TargetHUD extends Module {
 
         if (renderTarget != null && draw2D) {
             drawTargetHUD(renderTarget, currentTime - lastTargetTime, fadeMs, animatedScale);
+        } else if (renderTarget != null && stick.getValue()) {
+            renderStickHUD(renderTarget, animatedScale);
         }
         if (renderTarget == null && !fadingOut) {
             target = null;
@@ -143,9 +130,12 @@ public class TargetHUD extends Module {
         int hudWidth = 150;
         int hudHeight = 50;
 
-        GL11.glTranslated(x + hudWidth / 2.0, y + hudHeight / 2.0, 0);
-        GL11.glScalef(scale, scale, 1.0f);
-        GL11.glTranslated(-(x + hudWidth / 2.0), -(y + hudHeight / 2.0), 0);
+        Matrix3x2fStack pose = RenderContext.graphics().pose();
+        pose.pushMatrix();
+        pose.translate(x + hudWidth / 2f, y + hudHeight / 2f);
+        pose.scale(scale, scale);
+        pose.translate(-(x + hudWidth / 2f), -(y + hudHeight / 2f));
+        try {
 
         long timeSinceDamage = System.currentTimeMillis() - damageFlashTime;
         float flashAlpha = timeSinceDamage < 300 ? 1f - (timeSinceDamage / 300f) : 0;
@@ -164,13 +154,12 @@ public class TargetHUD extends Module {
                 : (int) (alpha * 0xFF) << 24 | getThemeColor();
         DrawUtils.drawBorderedRoundedRect(x, y, x + hudWidth, y + hudHeight, 8, 2, borderColor, 0x00000000);
 
-        mc.getTextureManager().bindTexture(target.getLocationSkin());
-        Gui.drawScaledCustomSizeModalRect(x + 5, y + 5, 8.0F, 8.0F, 8, 8, 30, 30, 64.0F, 64.0F);
+        PlayerFaceExtractor.extractRenderState(RenderContext.graphics(), target.getSkin(), x + 5, y + 5, 30, RenderContext.applyAlpha(0xFFFFFFFF));
 
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) { GL11.glPopMatrix(); return; }
+        if (fr == null) return;
 
-        String name = StringUtils.stripControlCodes(target.getName());
+        String name = net.minecraft.ChatFormatting.stripFormatting(target.getName().getString());
         fr.drawStringWithShadow(name, x + 40, y + 8, (int) (alpha * 0xFF) << 24 | 0xFFFFFF);
 
         float health = target.getHealth();
@@ -189,7 +178,7 @@ public class TargetHUD extends Module {
         DrawUtils.drawRoundedRect(x + 40, healthBarY, x + 40 + (int) (healthBarWidth * healthPercent), healthBarY + 8, 4,
                 (int) (alpha * 0xFF) << 24 | healthColor);
 
-        int armor = target.getTotalArmorValue();
+        int armor = target.getArmorValue();
         if (animatedArmor == 0 || target == mc.player) animatedArmor = armor;
         animatedArmor = interpolate(animatedArmor, armor, 0.1f);
 
@@ -202,6 +191,9 @@ public class TargetHUD extends Module {
 
         String healthText = String.format("%.1f/%.1f", animatedHealth, maxHealth);
         fr.drawString(healthText, x + 40, y + 15, (int) (alpha * 0xFF) << 24 | 0xCCCCCC);
+        } finally {
+            pose.popMatrix();
+        }
 
     }
 
@@ -212,9 +204,12 @@ public class TargetHUD extends Module {
         int hudWidth = 130;
         int hudHeight = 32;
 
-        GL11.glTranslated(x + hudWidth / 2.0, y + hudHeight / 2.0, 0);
-        GL11.glScalef(scale, scale, 1.0f);
-        GL11.glTranslated(-(x + hudWidth / 2.0), -(y + hudHeight / 2.0), 0);
+        Matrix3x2fStack pose = RenderContext.graphics().pose();
+        pose.pushMatrix();
+        pose.translate(x + hudWidth / 2f, y + hudHeight / 2f);
+        pose.scale(scale, scale);
+        pose.translate(-(x + hudWidth / 2f), -(y + hudHeight / 2f));
+        try {
 
         long timeSinceDamage = System.currentTimeMillis() - damageFlashTime;
         float flashAlpha = timeSinceDamage < 300 ? 1f - (timeSinceDamage / 300f) : 0;
@@ -234,9 +229,9 @@ public class TargetHUD extends Module {
         DrawUtils.drawBorderedRoundedRect(x, y, x + hudWidth, y + hudHeight, 8, 2, borderColor, 0x00000000);
 
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) { GL11.glPopMatrix(); return; }
+        if (fr == null) return;
 
-        String name = StringUtils.stripControlCodes(target.getName());
+        String name = net.minecraft.ChatFormatting.stripFormatting(target.getName().getString());
         fr.drawStringWithShadow(name, x + 5, y + 5, (int) (alpha * 0xFF) << 24 | 0xFFFFFF);
 
         float health = target.getHealth();
@@ -258,6 +253,9 @@ public class TargetHUD extends Module {
         String healthText = String.format("%d/%d", Math.round(animatedHealth), (int) maxHealth);
         float textWidth = fr.getWidth(healthText);
         fr.drawString(healthText, (int) (x + hudWidth - 5 - textWidth), y + 5, (int) (alpha * 0xFF) << 24 | 0xCCCCCC);
+        } finally {
+            pose.popMatrix();
+        }
 
     }
 
@@ -265,26 +263,29 @@ public class TargetHUD extends Module {
         return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
     }
 
-    private void renderStickHUD(AbstractClientPlayer en, double renderX, double renderY, double renderZ, float scale) {
-        GL11.glTranslated(renderX, renderY + en.height + 0.5, renderZ);
-        GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-        float s = 0.02666667F;
-        GlStateManager.scale(-s, -s, s);
-        GlStateManager.translate(35, -15, 0);
-
+    /**
+     * "Stick" mode: the HUD floats above the target. 1.8 drew it as a billboard in the world; the
+     * same effect here comes from projecting the head position onto the screen, sizing the panel by
+     * distance, and drawing the normal 2D HUD there.
+     */
+    private void renderStickHUD(AbstractClientPlayer en, float scale) {
+        Vec3 head = RenderUtils.interpolatedPosition(en).add(0, en.getBbHeight() + 0.5, 0);
+        WorldToScreen.Point point = WorldToScreen.project(head);
+        if (point == null)
+            return;
+        float distanceScale = Math.max(0.35f, Math.min(1.5f, 6f / point.depth()));
         int origX = HUD.targetHUDX;
         int origY = HUD.targetHUDY;
-        HUD.targetHUDX = 0;
-        HUD.targetHUDY = 0;
+        int hudWidth = mode.getValue() == TargetHUDMode.Simple ? 130 : 150;
+        HUD.targetHUDX = Math.round(point.x() - hudWidth / 2f);
+        HUD.targetHUDY = Math.round(point.y() - 50);
 
         switch (mode.getValue()) {
             case Simple:
-                drawSimpleMode(en, scale);
+                drawSimpleMode(en, scale * distanceScale);
                 break;
             default:
-                drawFaceMode(en, scale);
+                drawFaceMode(en, scale * distanceScale);
                 break;
         }
 

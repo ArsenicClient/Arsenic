@@ -75,6 +75,21 @@ public class ItemUtils extends UtilityClass {
         return slot == null ? 0 : attribute(stack, Attributes.ARMOR, 0, slot) + attribute(stack, Attributes.ARMOR_TOUGHNESS, 0, slot) * 0.5;
     }
 
+    /** Splash potions - what AutoPot throws and Refill stocks. */
+    public static boolean isSplashPotion(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.getItem() instanceof net.minecraft.world.item.SplashPotionItem;
+    }
+
+    public static boolean hasEffect(ItemStack stack, Holder<net.minecraft.world.effect.MobEffect> effect) {
+        net.minecraft.world.item.alchemy.PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
+        if (contents == null)
+            return false;
+        for (net.minecraft.world.effect.MobEffectInstance instance : contents.getAllEffects())
+            if (instance.getEffect().equals(effect))
+                return true;
+        return false;
+    }
+
     public static int enchantLevel(ResourceKey<Enchantment> enchantment, ItemStack stack) {
         if (stack == null || stack.isEmpty() || mc.level == null)
             return 0;

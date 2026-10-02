@@ -16,7 +16,7 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.Timer;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.inventory.ContainerChest;
+import net.minecraft.world.inventory.ChestMenu;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -36,11 +36,11 @@ public class ChestStealer extends Module {
     private int totalSlots;
     private float percentStolen;
     private final Timer timer = new Timer();
-    private ContainerChest chest;
+    private ChestMenu chest;
 
     private Runnable nextAction;
     private final Runnable closeAction = () -> {
-        mc.player.closeScreen();
+        mc.player.closeContainer();
         inChest = false;
     };
 
@@ -51,8 +51,8 @@ public class ChestStealer extends Module {
             return;
         }
         percentStolen = (totalSlots - path.size()) / (float) (totalSlots);
-        mc.level.playSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), "note.hat", 3f, percentStolen * 2f, false);
-        mc.gameMode.windowClick(mc.player.openContainer.windowId, path.remove(0).s, 0, 1, mc.player);
+        mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), net.minecraft.sounds.SoundEvents.NOTE_BLOCK_HAT.value(), net.minecraft.sounds.SoundSource.PLAYERS, 3f, percentStolen * 2f, false);
+        mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, path.remove(0).s, 0, net.minecraft.world.inventory.ContainerInput.values()[1], mc.player);
         timer.setCooldown((int) delay.getValue().getInput());
     };
 
@@ -65,10 +65,10 @@ public class ChestStealer extends Module {
 
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
-        inChest = (event.getGuiScreen() instanceof ContainerScreen && mc.player.openContainer instanceof ContainerChest);
+        inChest = (event.getGuiScreen() instanceof ContainerScreen && mc.player.containerMenu instanceof ChestMenu);
         if (!inChest)
             return;
-        chest = (ContainerChest) mc.player.openContainer;
+        chest = (ChestMenu) mc.player.containerMenu;
         percentStolen = 0;
         path.clear();
         timer.setCooldown((int) delay.getValue().getInput());
@@ -94,10 +94,10 @@ public class ChestStealer extends Module {
     }
 
     //below is copied from raven b++ i will review this later
-    public ArrayList<Slot> generatePath(ContainerChest chest) {
+    public ArrayList<Slot> generatePath(ChestMenu chest) {
         ArrayList<Slot> slots = new ArrayList<Slot>();
-        for (int i = 0; i < chest.getLowerChestInventory().getSizeInventory(); i++) {
-            if (chest.getInventory().get(i) != null)
+        for (int i = 0; i < chest.getContainer().getContainerSize(); i++) {
+            if (!chest.getSlot(i).getItem().isEmpty())
                 slots.add(new Slot(i));
         }
         Slot[] ss = sort(slots.toArray(new Slot[slots.size()]));
@@ -155,7 +155,6 @@ public class ChestStealer extends Module {
         float textX = (container.width) / 2f;
         float textY = 2 * (container.height / 3f);
         int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
-        GlStateManager.color(1f, 1f, 1f, 1f);
         String text = "Stealing (press escape to leave)";
         fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
         float fontWidth = fr.getWidth(text);

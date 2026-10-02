@@ -10,9 +10,10 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityChest;
-import net.minecraft.tileentity.TileEntityEnderChest;
+import arsenic.utils.minecraft.WorldUtils;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
 
 @ModuleInfo(name = "ChestESP", category = ModuleCategory.RENDER, hidden = true)
 public class ChestESP extends Module {
@@ -26,11 +27,11 @@ public class ChestESP extends Module {
         int mainColor = ThemeManager.getMainColor();
         int darkerColor = ThemeManager.getDarkerColor();
 
-        for (TileEntity te : mc.level.loadedTileEntityList) {
-            if (te instanceof TileEntityChest && chests.getValue()) {
-                RenderUtils.renderBlock(te.getPos(), mainColor, true, true);
-            } else if (te instanceof TileEntityEnderChest && enderChests.getValue()) {
-                RenderUtils.renderBlock(te.getPos(), darkerColor, true, true);
+        for (BlockEntity te : WorldUtils.loadedBlockEntities()) {
+            if (te instanceof ChestBlockEntity && chests.getValue()) {
+                RenderUtils.renderBlock(te.getBlockPos(), mainColor, true, true);
+            } else if (te instanceof EnderChestBlockEntity && enderChests.getValue()) {
+                RenderUtils.renderBlock(te.getBlockPos(), darkerColor, true, true);
             }
         }
     };

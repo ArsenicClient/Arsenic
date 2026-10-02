@@ -5,7 +5,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
-import arsenic.injection.accessor.IMixinS14PacketEntity;
+import arsenic.injection.accessor.IMixinMoveEntityPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -16,11 +16,15 @@ import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.play.server.*;
+import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
+import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
+import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+import net.minecraft.network.protocol.game.VecDeltaCodec;
+import net.minecraft.world.entity.PositionMoveRotation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,7 +38,8 @@ import java.util.function.Predicate;
 public class BackTrack extends Module {
 
     private static final Predicate<Packet<?>> ALL_TRACKED =
-            p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
+            p -> p instanceof ClientboundMoveEntityPacket || p instanceof ClientboundTeleportEntityPacket
+                    || p instanceof ClientboundEntityPositionSyncPacket;
 
     public enum BacktrackMode {NORMAL, PULSE}
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
@@ -50,6 +55,8 @@ public class BackTrack extends Module {
 
     private static class TrackEntry {
         volatile Vec3 vec3;
+        /** Our own copy of the entity's position codec - move packets are deltas against it. */
+        final VecDeltaCodec codec = new VecDeltaCodec();
         final int latency;
         final Player player;
         final long trackStart;
@@ -57,6 +64,7 @@ public class BackTrack extends Module {
         TrackEntry(Player player, Vec3 vec3, int latency) {
             this.player = player;
             this.vec3 = vec3;
+            this.codec.setBase(player.getPositionCodec().getBase());
             this.latency = latency;
             trackStart = System.currentTimeMillis();
         }
@@ -67,7 +75,7 @@ public class BackTrack extends Module {
     @Override
     public void onEnable() {
         tracked.clear();
-        // All S15/S16/S17 move packets are subclasses of S14PacketEntity, so one selector covers them.
+        // Pos, PosRot and Rot are all ClientboundMoveEntityPacket, so one selector covers them.
         LagManager.delay(BackTrack.class, ALL_TRACKED, this::onDelayPacket);
     }
 
@@ -79,10 +87,12 @@ public class BackTrack extends Module {
     }
 
     private long onDelayPacket(Packet<?> raw) {
-        if (raw instanceof S18PacketEntityTeleport)
-            return onEntityTeleport(raw);
-        if (raw instanceof S14PacketEntity)
-            return onEntityMove(raw);
+        if (raw instanceof ClientboundTeleportEntityPacket teleport)
+            return onEntityTeleport(teleport);
+        if (raw instanceof ClientboundEntityPositionSyncPacket sync)
+            return onPositionSync(sync);
+        if (raw instanceof ClientboundMoveEntityPacket move)
+            return onEntityMove(move);
         return 0L;
     }
 
@@ -95,25 +105,36 @@ public class BackTrack extends Module {
     };
 
 
-    private long onEntityMove(Packet<?> raw) {
-        TrackEntry entry = tracked.get(((IMixinS14PacketEntity) raw).getId());
+    private long onEntityMove(ClientboundMoveEntityPacket packet) {
+        TrackEntry entry = tracked.get(((IMixinMoveEntityPacket) packet).getEntityId());
         if (entry == null) return 0L;
 
-        S14PacketEntity packet = (S14PacketEntity) raw;
-        entry.vec3 = entry.vec3.add(
-                packet.func_149062_c() / 32.0D,
-                packet.func_149061_d() / 32.0D,
-                packet.func_149064_e() / 32.0D
-        );
+        if (packet.hasPosition()) {
+            Vec3 end = packet.getPositionDelta().decode(entry.codec).endPosition();
+            entry.codec.setBase(end);
+            entry.vec3 = end;
+        }
         return entry.latency;
     }
 
-    private long onEntityTeleport(Packet<?> raw) {
-        S18PacketEntityTeleport packet = (S18PacketEntityTeleport) raw;
-        TrackEntry entry = tracked.get(packet.getId());
+    private long onEntityTeleport(ClientboundTeleportEntityPacket packet) {
+        TrackEntry entry = tracked.get(packet.id());
         if (entry == null) return 0L;
 
-        entry.vec3 = new Vec3(packet.getX() / 32.0D, packet.getY() / 32.0D, packet.getZ() / 32.0D);
+        PositionMoveRotation current = new PositionMoveRotation(entry.vec3, Vec3.ZERO, 0, 0);
+        Vec3 end = PositionMoveRotation.calculateAbsolute(current, packet.change(), packet.relatives()).position();
+        entry.codec.setBase(end);
+        entry.vec3 = end;
+        return entry.latency;
+    }
+
+    private long onPositionSync(ClientboundEntityPositionSyncPacket packet) {
+        TrackEntry entry = tracked.get(packet.id());
+        if (entry == null) return 0L;
+
+        Vec3 end = packet.position().endPosition();
+        entry.codec.setBase(end);
+        entry.vec3 = end;
         return entry.latency;
     }
 
@@ -138,12 +159,10 @@ public class BackTrack extends Module {
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> listener = event -> {
         if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
-        if (!(event.getPacket() instanceof S19PacketEntityStatus)) return;
+        // a damage event is what 1.8 sent as entity status 2, the hurt animation
+        if (!(event.getPacket() instanceof ClientboundDamageEventPacket packet)) return;
 
-        S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
-        if (packet.getOpCode() != 2) return; //hurt animation
-
-        Entity entity = packet.getEntity(mc.level);
+        Entity entity = mc.level.getEntity(packet.entityId());
         if (!(entity instanceof Player)) return;
 
         Player target = (Player) entity;
@@ -204,20 +223,11 @@ public class BackTrack extends Module {
             Player target = entry.player;
             if (vec3 == null || target.isRemoved()) continue;
 
-            if (mode == EspMode.MODEL) {
-                // Translate by the XZ delta only; Y is anchored to the player so it stays grounded
-                double dx = vec3.x - target.getX();
-                double dz = vec3.z - target.getZ();
-                GlStateManager.translate(dx, 0, dz);
-                mc.getRenderManager().renderEntityStatic(target, event.partialTicks, false);
-                continue;
-            }
-
             // Build a bounding box at the backtracked XZ but at our own Y,
             // matching the player's real hitbox dimensions.
-            double rx = vec3.x - mc.getRenderManager().viewerPosX;
-            double ry = vec3.y - mc.getRenderManager().viewerPosY;
-            double rz = vec3.z - mc.getRenderManager().viewerPosZ;
+            double rx = vec3.x;
+            double ry = vec3.y;
+            double rz = vec3.z;
 
             AABB playerBB = target.getBoundingBox();
             double w = playerBB.maxX - playerBB.minX;
@@ -230,13 +240,14 @@ public class BackTrack extends Module {
 
             switch (mode) {
                 case BOX:
-                    RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                case MODEL: // drawing a second copy of the model is not possible on the new renderer
+                    RenderUtils.drawBoundingBox(bb, color.getRGB());
                     break;
                 case FILLED:
                     RenderUtils.drawShadedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), 63);
                     break;
                 case WIREFRAME:
-                    RenderGlobal.drawOutlinedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                    RenderUtils.drawBoundingBox(bb, color.getRGB());
                     break;
             }
         }
@@ -245,10 +256,12 @@ public class BackTrack extends Module {
 
     private static Predicate<Packet<?>> filterFor(int entityId) {
         return p -> {
-            if (p instanceof S14PacketEntity)
-                return ((IMixinS14PacketEntity) p).getId() == entityId;
-            if (p instanceof S18PacketEntityTeleport)
-                return ((S18PacketEntityTeleport) p).getId() == entityId;
+            if (p instanceof ClientboundMoveEntityPacket)
+                return ((IMixinMoveEntityPacket) p).getEntityId() == entityId;
+            if (p instanceof ClientboundTeleportEntityPacket teleport)
+                return teleport.id() == entityId;
+            if (p instanceof ClientboundEntityPositionSyncPacket sync)
+                return sync.id() == entityId;
             return false;
         };
     }

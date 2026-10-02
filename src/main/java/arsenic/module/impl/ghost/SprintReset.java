@@ -98,7 +98,7 @@ public class SprintReset extends Module {
                 break;
             case UNSPRINT:
                 if (mc.player.isSprinting() && target.hurtTime == hurtTime) {
-                    KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), false);
+                    mc.options.keySprint.setDown(false);
                     mc.player.setSprinting(false);
                     target = null;
                 }

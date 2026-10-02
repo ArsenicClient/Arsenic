@@ -16,7 +16,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.item.ItemSword;
+import arsenic.utils.minecraft.ItemUtils;
 import net.minecraft.world.phys.HitResult;
 
 import java.util.ArrayList;
@@ -83,11 +83,10 @@ public class BlockHit extends Module {
             return;
 
         // Aiming at another player, resolved from the silent-rotation raytrace (blocks + entities).
-        MovingObjectPosition mop = event.getRayTraceEntity();
-        boolean aimingAtPlayer = mop != null
-                && mop.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY
-                && mop.entityHit instanceof Player
-                && mop.entityHit != mc.player;
+        HitResult mop = event.getRayTraceEntity();
+        boolean aimingAtPlayer = mop instanceof net.minecraft.world.phys.EntityHitResult entityHit
+                && entityHit.getEntity() instanceof Player
+                && entityHit.getEntity() != mc.player;
 
         List<Integer> swords = swordSlots();
         if (!aimingAtPlayer || swords.isEmpty()) {
@@ -101,9 +100,9 @@ public class BlockHit extends Module {
         // Swap between the two swords ONLY when the hurtTime gate says it's time to attack again —
         // the same timing SprintReset uses — so we swap once per hit cycle, not every tick.
         if (swords.size() >= 2 && target != null && !hasSwapped && target.hurtTime == swapHurtTime) {
-            int current = mc.player.inventory.currentItem;
+            int current = mc.player.getInventory().getSelectedSlot();
             int next = current == swords.get(0) ? swords.get(1) : swords.get(0);
-            mc.player.inventory.currentItem = next;
+            mc.player.getInventory().setSelectedSlot(next);
             hasSwapped = true;
         }
     };
@@ -112,8 +111,8 @@ public class BlockHit extends Module {
     private List<Integer> swordSlots() {
         List<Integer> slots = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.mainInventory[i];
-            if (stack != null && stack.getItem() instanceof ItemSword)
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (stack != null && ItemUtils.isSword(stack))
                 slots.add(i);
         }
         return slots;
@@ -127,20 +126,18 @@ public class BlockHit extends Module {
 
     public boolean isPlayerHoldingSword() {
         return (mc.player.getMainHandItem() != null)
-                && (mc.player.getMainHandItem().getItem() instanceof ItemSword);
+                && ItemUtils.isSword((mc.player.getMainHandItem()));
     }
 
     private void release() {
-        int key = mc.options.keyBindUseItem.getKeyCode();
-        KeyMapping.setKeyBindState(key, false);
+        mc.options.keyUse.setDown(false);
         down = false;
         target = null;
     }
 
     private void press() {
         down = true;
-        int key = mc.options.keyBindUseItem.getKeyCode();
-        KeyMapping.setKeyBindState(key, true);
+        mc.options.keyUse.setDown(true);
         //KeyMapping.onTick(key);
     }
 

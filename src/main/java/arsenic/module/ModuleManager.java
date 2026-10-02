@@ -4,7 +4,6 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.visual.PostProcessing;
 import arsenic.utils.java.ClassScanner;
 import net.minecraft.client.Minecraft;
 
@@ -22,9 +21,6 @@ public class ModuleManager {
             throw new RuntimeException("Double initialization of Module Manager.");
 
         ClassScanner.findSubTypes("arsenic.module", Module.class).forEach(this::addModule);
-
-        if(System.getProperty("os.name").toLowerCase().contains("mac"))
-            modules.remove(PostProcessing.class);
 
         // Remove modules where dev is true
         modules.entrySet().removeIf(entry -> {

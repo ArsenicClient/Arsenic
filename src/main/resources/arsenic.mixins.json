@@ -3,6 +3,7 @@
     "package": "arsenic.injection",
     "compatibilityLevel": "JAVA_25",
     "client": [
+        "accessor.IMixinKeyMapping",
         "accessor.IMixinLocalPlayer",
         "accessor.IMixinMinecraft",
         "accessor.IMixinMoveEntityPacket",
@@ -18,6 +19,7 @@
         "mixin.MixinKeyboardHandler",
         "mixin.MixinKeyboardInput",
         "mixin.MixinLevelExtractor",
+        "mixin.MixinLightmapRenderStateExtractor",
         "mixin.MixinLivingEntity",
         "mixin.MixinLivingEntityRenderer",
         "mixin.MixinLocalPlayer",

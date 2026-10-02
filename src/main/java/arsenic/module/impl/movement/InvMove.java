@@ -13,14 +13,14 @@ import arsenic.module.ModuleInfo;
 import arsenic.utils.lag.LagManager;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.inventory.ContainerPlayer;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.play.client.C0DPacketCloseWindow;
-import net.minecraft.network.play.client.C0EPacketClickWindow;
-import net.minecraft.network.play.client.C10PacketCreativeInventoryAction;
-import org.lwjgl.input.Keyboard;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import arsenic.utils.io.Keys;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Arrays;
 
 import static arsenic.utils.lag.LagManager.isHolding;
@@ -31,22 +31,22 @@ public class InvMove extends Module {
     private boolean pendingFlush = false;
     private boolean justFlushed = false;
 
-    private final ArrayList<Integer> keys = new ArrayList<>(Arrays.asList(
-            mc.options.keyBindJump.getKeyCode(),
-            mc.options.keyBindForward.getKeyCode(),
-            mc.options.keyBindBack.getKeyCode(),
-            mc.options.keyBindLeft.getKeyCode(),
-            mc.options.keyBindRight.getKeyCode()
-    ));
+    private final List<KeyMapping> keys = Arrays.asList(
+            mc.options.keyJump,
+            mc.options.keyUp,
+            mc.options.keyDown,
+            mc.options.keyLeft,
+            mc.options.keyRight
+    );
 
     private boolean shouldBuffer() {
         // Only the player inventory with its 2x2 crafting grid. openContainer alone can't say that:
-        // it stays the player's ContainerPlayer behind every screen that isn't a container - chat,
+        // it stays the player's InventoryMenu behind every screen that isn't a container - chat,
         // pause, the click GUI - so it's the screen itself that's checked. Creative uses its own
         // GuiContainerCreative, so it's excluded here too.
         return mc.gui.screen() instanceof InventoryScreen
                 && mc.player != null
-                && mc.player.openContainer instanceof ContainerPlayer;
+                && mc.player.containerMenu instanceof InventoryMenu;
     }
 
     @RequiresPlayer
@@ -55,15 +55,15 @@ public class InvMove extends Module {
         if (mc.gui.screen() == null) return;
 
         if (shouldBuffer()) {
-            for (int keyCode : keys) {
-                KeyMapping.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
+            for (KeyMapping key : keys) {
+                key.setDown(Keys.isPhysicallyDown(key));
             }
 
             if (!isHolding(getClass())) {
                 LagManager.acquire(getClass(), p ->
-                        p instanceof C0EPacketClickWindow
-                                || p instanceof C0DPacketCloseWindow
-                                || p instanceof C10PacketCreativeInventoryAction
+                        p instanceof ServerboundContainerClickPacket
+                                || p instanceof ServerboundContainerClosePacket
+                                || p instanceof ServerboundSetCreativeModeSlotPacket
                 );
             }
         } else {
@@ -77,7 +77,7 @@ public class InvMove extends Module {
     @EventLink
     public final Listener<EventPacket.OutGoing> onPacket = event -> {
         Packet<?> packet = event.getPacket();
-        if (packet instanceof C0DPacketCloseWindow) {
+        if (packet instanceof ServerboundContainerClosePacket) {
             pendingFlush = true;
         }
     };
@@ -90,8 +90,8 @@ public class InvMove extends Module {
             return;
         pendingFlush = false;
         justFlushed = true;
-        for (int keyCode : keys) {
-            KeyMapping.setKeyBindState(keyCode, false);
+        for (KeyMapping key : keys) {
+            key.setDown(false);
         }
         // Send the held clicks and close now that the keys are up for this movement tick.
         LagManager.release(getClass());
@@ -105,8 +105,8 @@ public class InvMove extends Module {
         // One-shot: left set, this re-read the raw keyboard every tick from then on, so typing
         // W in chat walked you forward.
         justFlushed = false;
-        for (int keyCode : keys) {
-            KeyMapping.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
+        for (KeyMapping key : keys) {
+            key.setDown(Keys.isPhysicallyDown(key));
         }
     };
 

@@ -15,10 +15,12 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.enchantment.EnchantmentHelper;
+import arsenic.utils.minecraft.ItemUtils;
+import arsenic.utils.minecraft.PlayerUtils;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
@@ -167,8 +169,8 @@ public class Hitflick extends Module {
             case RESTORING:
                 if (pendingTarget != null) {
                     attackTick = mc.player.tickCount;
-                    mc.player.swingItem();
-                    mc.gameMode.attackEntity(mc.player, pendingTarget);
+                    PlayerUtils.swingItem();
+                    mc.gameMode.attack(mc.player, pendingTarget);
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
                     pendingTarget = null;
@@ -206,42 +208,24 @@ public class Hitflick extends Module {
         if (voidArrows.isEmpty())
             return;
 
-
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer wr = tessellator.getWorldRenderer();
-        double vx = mc.getRenderManager().viewerPosX;
-        double vy = mc.getRenderManager().viewerPosY;
-        double vz = mc.getRenderManager().viewerPosZ;
-
         for (VoidArrow arrow : voidArrows) {
             float alpha = 1f - (now - arrow.spawnTime) / (float) ARROW_LIFETIME_MS;
             double baseX = arrow.x, baseY = arrow.y + 1.2, baseZ = arrow.z;
-
+            int a = (int) (alpha * 255) << 24;
             // Black outline, drawn oversized so it peeks out from behind the white fill.
-            wr.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_COLOR);
-            addArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, OUTLINE_THICKNESS,
-                    0f, 0f, 0f, alpha, vx, vy, vz);
-            tessellator.draw();
-
+            drawArrow(baseX, baseY - 0.01, baseZ, arrow.dirX, arrow.dirZ, OUTLINE_THICKNESS, a);
             // White fill on top, true size.
-            wr.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_COLOR);
-            addArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, 0,
-                    1f, 1f, 1f, alpha, vx, vy, vz);
-            tessellator.draw();
+            drawArrow(baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, 0, a | 0xFFFFFF);
         }
-
     };
 
     /**
-     * Emits the six triangles (shaft quad + head) of a flat arrow lying in the XZ plane, pointing
-     * from {@code (baseX, baseZ)} along {@code (dirX, dirZ)}. {@code expand} grows every edge
-     * outward by that much - 0 for the true-size fill, {@link #OUTLINE_THICKNESS} for the outline
-     * pass drawn behind it.
+     * Draws a flat arrow lying in the XZ plane, pointing from {@code (baseX, baseZ)} along
+     * {@code (dirX, dirZ)}. {@code expand} grows every edge outward by that much - 0 for the
+     * true-size fill, {@link #OUTLINE_THICKNESS} for the outline pass drawn behind it.
      */
-    private static void addArrowTriangles(WorldRenderer wr, double baseX, double baseY, double baseZ,
-                                           double dirX, double dirZ, double expand,
-                                           float r, float g, float b, float a,
-                                           double vx, double vy, double vz) {
+    private static void drawArrow(double baseX, double baseY, double baseZ, double dirX, double dirZ,
+                                  double expand, int color) {
         double perpX = -dirZ, perpZ = dirX;
 
         double tailX = baseX - dirX * expand;
@@ -254,31 +238,18 @@ public class Hitflick extends Module {
         double shaftHalf = SHAFT_HALF_WIDTH + expand;
         double headHalf = HEAD_HALF_WIDTH + expand;
 
-        double tailLeftX = tailX + perpX * shaftHalf, tailLeftZ = tailZ + perpZ * shaftHalf;
-        double tailRightX = tailX - perpX * shaftHalf, tailRightZ = tailZ - perpZ * shaftHalf;
-        double shaftLeftX = shaftEndX + perpX * shaftHalf, shaftLeftZ = shaftEndZ + perpZ * shaftHalf;
-        double shaftRightX = shaftEndX - perpX * shaftHalf, shaftRightZ = shaftEndZ - perpZ * shaftHalf;
-        double headLeftX = shaftEndX + perpX * headHalf, headLeftZ = shaftEndZ + perpZ * headHalf;
-        double headRightX = shaftEndX - perpX * headHalf, headRightZ = shaftEndZ - perpZ * headHalf;
+        Vec3 tailLeft = new Vec3(tailX + perpX * shaftHalf, baseY, tailZ + perpZ * shaftHalf);
+        Vec3 tailRight = new Vec3(tailX - perpX * shaftHalf, baseY, tailZ - perpZ * shaftHalf);
+        Vec3 shaftLeft = new Vec3(shaftEndX + perpX * shaftHalf, baseY, shaftEndZ + perpZ * shaftHalf);
+        Vec3 shaftRight = new Vec3(shaftEndX - perpX * shaftHalf, baseY, shaftEndZ - perpZ * shaftHalf);
+        Vec3 headLeft = new Vec3(shaftEndX + perpX * headHalf, baseY, shaftEndZ + perpZ * headHalf);
+        Vec3 headRight = new Vec3(shaftEndX - perpX * headHalf, baseY, shaftEndZ - perpZ * headHalf);
+        Vec3 tip = new Vec3(tipX, baseY, tipZ);
 
-        // Shaft (two triangles forming a rectangle).
-        vertex(wr, tailLeftX, baseY, tailLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftLeftX, baseY, shaftLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftRightX, baseY, shaftRightZ, vx, vy, vz, r, g, b, a);
-
-        vertex(wr, tailLeftX, baseY, tailLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftRightX, baseY, shaftRightZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, tailRightX, baseY, tailRightZ, vx, vy, vz, r, g, b, a);
-
-        // Head (one triangle, wider than the shaft).
-        vertex(wr, headLeftX, baseY, headLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, tipX, baseY, tipZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, headRightX, baseY, headRightZ, vx, vy, vz, r, g, b, a);
-    }
-
-    private static void vertex(WorldRenderer wr, double x, double y, double z,
-                                double vx, double vy, double vz, float r, float g, float b, float a) {
-        wr.pos(x - vx, y - vy, z - vz).color(r, g, b, a).endVertex();
+        GizmoStyle style = GizmoStyle.fill(color);
+        Gizmos.rect(tailLeft, shaftLeft, shaftRight, tailRight, style).setAlwaysOnTop();
+        // the head is a triangle: a quad with its last corner folded onto the tip
+        Gizmos.rect(headLeft, tip, headRight, headRight, style).setAlwaysOnTop();
     }
 
     private void spawnVoidArrow(Entity target, float yaw) {
@@ -293,7 +264,7 @@ public class Hitflick extends Module {
 
     /** Knockback level the server will use for our next hit: the Knockback enchant, plus one for sprinting. */
     private int knockbackLevel() {
-        int level = EnchantmentHelper.getKnockbackModifier(mc.player);
+        int level = ItemUtils.enchantLevel(Enchantments.KNOCKBACK, mc.player.getMainHandItem());
         if (mc.player.isSprinting())
             level++;
         return level;
@@ -377,7 +348,7 @@ public class Hitflick extends Module {
             double nextY = posY + motionY;
             double nextZ = posZ + motionZ;
 
-            if (collides(target, nextX, posY, nextY, nextZ, target.height))
+            if (collides(target, nextX, posY, nextY, nextZ, target.getBbHeight()))
                 return false;
 
             posX = nextX;
@@ -389,10 +360,10 @@ public class Hitflick extends Module {
             motionX *= 0.91;
             motionZ *= 0.91;
 
-            if (posY < 0)
+            if (posY < mc.level.getMinY()) // the world floor is no longer y=0
                 return true;
             if (startY - posY > VOID_DROP)
-                return !collides(target, posX, 0, posY, posZ, 0);
+                return !collides(target, posX, mc.level.getMinY(), posY, posZ, 0);
         }
         return false;
     }
@@ -406,7 +377,7 @@ public class Hitflick extends Module {
         double minY = Math.min(fromY, toY) - 0.1;
         double maxY = Math.max(fromY, toY) + height + 0.1;
         AABB probe = new AABB(x - 0.3, minY, z - 0.3, x + 0.3, maxY, z + 0.3);
-        return !mc.level.getCollidingBoundingBoxes(target, probe).isEmpty();
+        return !mc.level.noCollision(target, probe);
     }
 
     private float getFlickAngle() {

@@ -18,10 +18,9 @@ import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
-import ibxm.Player;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 
 @ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT)
 public class KnockbackDelay extends Module {
@@ -59,9 +58,9 @@ public class KnockbackDelay extends Module {
 
     @EventLink(Priorities.HIGH)
     public Listener<EventPacket.Incoming.Pre> listener = event -> {
-       if(event.getPacket() instanceof S12PacketEntityVelocity) {
-           S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
-           if(p.getMotionX() != 0 && p.getMotionZ() != 0 && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
+       if(event.getPacket() instanceof ClientboundSetEntityMotionPacket) {
+           ClientboundSetEntityMotionPacket p = (ClientboundSetEntityMotionPacket) event.getPacket();
+           if(p.movement().x != 0 && p.movement().z != 0 && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
                if(Math.random() > 100/100f)
                    return;
                Player target = PlayerUtils.getClosestPlayerWithin(5.0);

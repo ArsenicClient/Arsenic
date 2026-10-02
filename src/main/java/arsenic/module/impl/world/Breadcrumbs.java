@@ -7,10 +7,8 @@ import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.utils.render.DrawUtils;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import arsenic.utils.render.RenderUtils;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,38 +58,15 @@ public class Breadcrumbs extends Module {
         if (points.size() < 2) return;
 
         int themeColor = arsenic.main.Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
-        float r = ((themeColor >> 16) & 0xFF) / 255.0f;
-        float g = ((themeColor >> 8) & 0xFF) / 255.0f;
-        float b = (themeColor & 0xFF) / 255.0f;
 
-
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer wr = tessellator.getWorldRenderer();
-
-        if (true) {
-            int total = points.size();
-            for (int i = 0; i < total - 1; i++) {
-                double[] p1 = points.get(i);
-                double[] p2 = points.get(i + 1);
-                float alpha = (float) i / total;
-                wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-                wr.pos(p1[0] - mc.getRenderManager().viewerPosX,
-                        p1[1] - mc.getRenderManager().viewerPosY,
-                        p1[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
-                wr.pos(p2[0] - mc.getRenderManager().viewerPosX,
-                        p2[1] - mc.getRenderManager().viewerPosY,
-                        p2[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
-                tessellator.draw();
-            }
-        } else {
-            wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
-            for (double[] p : points) {
-                wr.pos(p[0] - mc.getRenderManager().viewerPosX,
-                        p[1] - mc.getRenderManager().viewerPosY,
-                        p[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, 0.8f).endVertex();
-            }
-            tessellator.draw();
+        // older segments fade out towards the tail
+        int total = points.size();
+        for (int i = 0; i < total - 1; i++) {
+            double[] p1 = points.get(i);
+            double[] p2 = points.get(i + 1);
+            float alpha = (float) i / total;
+            int color = RenderUtils.withAlpha(themeColor, (int) (alpha * 0.8f * 255));
+            RenderUtils.drawLine(new Vec3(p1[0], p1[1], p1[2]), new Vec3(p2[0], p2[1], p2[2]), color, 2f);
         }
-
     };
 }

@@ -73,6 +73,13 @@ public abstract class MixinEntity {
         return aimAssist.modifyPitch((float) pitch);
     }
 
+    @Inject(method = "getTeamColor", at = @At("HEAD"), cancellable = true)
+    private void arsenic$espColour(CallbackInfoReturnable<Integer> cir) {
+        arsenic.module.impl.visual.ESP esp = Arsenic.getArsenic().getModuleManager().getModuleByClass(arsenic.module.impl.visual.ESP.class);
+        if (esp != null && esp.shouldGlow((Entity) (Object) this))
+            cir.setReturnValue(esp.getGlowColour((Entity) (Object) this));
+    }
+
     /**
      * The crosshair raycast reads the camera entity's view vector. While a silent rotation is
      * active the client should pick along the rotation the server sees, not the camera's. The flag

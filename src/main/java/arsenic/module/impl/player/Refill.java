@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.minecraft.ItemUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -11,9 +12,8 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.item.ItemPotion;
+import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.play.client.C16PacketClientStatus;
 
 @ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER)
 public class Refill extends Module {
@@ -47,7 +47,8 @@ public class Refill extends Module {
         }
 
         if (openInv && !inInv) {
-            mc.player.sendQueue.addToSendQueue(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+            // 1.8 announced the open inventory with an achievement packet; modern servers track
+            // the player inventory as always open, so there is nothing to send.
             openInv = false;
         }
 
@@ -58,11 +59,11 @@ public class Refill extends Module {
 
     private boolean doRefill() {
         for (int hotbarSlot = 36; hotbarSlot <= 44; hotbarSlot++) {
-            ItemStack stack = mc.player.openContainer.getSlot(hotbarSlot).getStack();
-            if (stack == null || !(stack.getItem() instanceof ItemPotion)) {
+            ItemStack stack = mc.player.containerMenu.getSlot(hotbarSlot).getItem();
+            if (stack == null || !ItemUtils.isSplashPotion(stack)) {
                 int potSlot = findPotionInInventory();
                 if (potSlot != -1) {
-                    mc.gameMode.windowClick(mc.player.openContainer.windowId, potSlot, 0, 1, mc.player);
+                    mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, potSlot, 0, net.minecraft.world.inventory.ContainerInput.values()[1], mc.player);
                     return true;
                 }
                 return false;
@@ -73,8 +74,8 @@ public class Refill extends Module {
 
     private int findPotionInInventory() {
         for (int i = 9; i < 36; i++) {
-            ItemStack stack = mc.player.openContainer.getSlot(i).getStack();
-            if (stack != null && stack.getItem() instanceof ItemPotion) return i;
+            ItemStack stack = mc.player.containerMenu.getSlot(i).getItem();
+            if (ItemUtils.isSplashPotion(stack)) return i;
         }
         return -1;
     }
@@ -82,8 +83,8 @@ public class Refill extends Module {
     private int countPotsInHotbar() {
         int count = 0;
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() instanceof ItemPotion) count++;
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (ItemUtils.isSplashPotion(stack)) count++;
         }
         return count;
     }
@@ -91,8 +92,8 @@ public class Refill extends Module {
     private int countPotsInInventory() {
         int count = 0;
         for (int i = 9; i < 36; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack != null && stack.getItem() instanceof ItemPotion) count++;
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (ItemUtils.isSplashPotion(stack)) count++;
         }
         return count;
     }
@@ -100,8 +101,8 @@ public class Refill extends Module {
     private int countEmptyOrNonPotHotbarSlots() {
         int count = 0;
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack == null || !(stack.getItem() instanceof ItemPotion)) count++;
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (stack == null || !ItemUtils.isSplashPotion(stack)) count++;
         }
         return count;
     }

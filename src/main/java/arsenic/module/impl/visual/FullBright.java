@@ -7,38 +7,32 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.potion.PotionEffect;
-import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "FullBright", category = ModuleCategory.RENDER, keybind = Keyboard.KEY_F, hidden = true)
+@ModuleInfo(name = "FullBright", category = ModuleCategory.RENDER, keybind = InputConstants.KEY_F, hidden = true)
 public class FullBright extends Module {
     public final EnumProperty<fEnum> fullbrightmode = new EnumProperty<>("Mode: ",fEnum.Gamma );
 
-    int originalGamma = 0;
-
-    @Override
-    protected void onEnable() {
-        originalGamma = (int) mc.options.gammaSetting;
+    /** Read by MixinLightmapRenderStateExtractor while the lightmap is built. */
+    public boolean isGammaActive() {
+        return isEnabled() && fullbrightmode.getValue() == fEnum.Gamma;
     }
+
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (fullbrightmode.getValue().equals(fEnum.Gamma)) {
-            mc.options.gammaSetting = 1000;
-        }
         if (fullbrightmode.getValue().equals(fEnum.Potion)) {
-            Potion nightVision = Potion.getPotionFromResourceLocation("night_vision");
-            PotionEffect nightVisionEffect = mc.player.getEffect(nightVision);
-            if (nightVisionEffect == null) {
-                mc.player.addPotionEffect(new PotionEffect(Potion.nightVision.id, 69420));
+            if (mc.player.getEffect(MobEffects.NIGHT_VISION) == null) {
+                mc.player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 69420));
             }
         }
     };
 
     @Override
     protected void onDisable() {
-        mc.options.gammaSetting = originalGamma;
-        mc.player.removePotionEffect(Potion.nightVision.id);
+        if (mc.player != null)
+            mc.player.removeEffect(MobEffects.NIGHT_VISION);
     }
 
     public enum fEnum {

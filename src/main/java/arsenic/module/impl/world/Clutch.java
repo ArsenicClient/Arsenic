@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -8,7 +9,6 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventSilentRotation;
-import arsenic.injection.accessor.IMixinEntity;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -21,8 +21,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.item.BlockItem;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -42,7 +42,7 @@ public class Clutch extends Module {
     // How many block layers below the feet to also scan for a catch (0 = feet layer only). Higher
     // catches are still preferred; lower layers are a fallback when nothing is reachable up top.
 
-    private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
+    private static final BlockItem placeholderBlock = new BlockItem(Blocks.TNT);
     private static final double REACH = 4.5;
 
     private BlockData blockData;      // placement found THIS tick (null on ticks with nothing to place)
@@ -91,7 +91,7 @@ public class Clutch extends Module {
         event.setPreventDuplicateLook(true);
 
         Item item = keyBlock();
-        if (item instanceof ItemBlock) {
+        if (item instanceof BlockItem) {
             // Keep the player's rotations: lock yaw to where they're actually looking rather than
             // deriving it from movement direction like Scaffold does. Only pitch is solved to hit
             // the block face.
@@ -130,12 +130,12 @@ public class Clutch extends Module {
             return;
 
         Item item = keyBlock();
-        if (!(item instanceof ItemBlock))
+        if (!(item instanceof BlockItem))
             return;
-        ItemBlock itemBlock = (ItemBlock) item;
+        BlockItem itemBlock = (BlockItem) item;
 
-        MovingObjectPosition mop = event.getRayTraceEntity();
-        if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK)
+        HitResult mop = event.getRayTraceEntity();
+        if (mop == null || mop.getType() != HitResult.Type.BLOCK)
             return;
         // Never cap a block from below; allow towering (UP) only when the player has clearance above
         // it, otherwise keep the catch at the player's current level (KeepY).
@@ -143,17 +143,17 @@ public class Clutch extends Module {
             return;
         if (mop.sideHit == Direction.UP && !canPlaceUpOn(mop.getBlockPos()))
             return;
-        if (mc.level.getBlockState(mop.getBlockPos()).getBlock().getMaterial() == Material.air)
+        if (mc.level.getBlockState(mop.getBlockPos()).getBlock().defaultBlockState().isAir())
             return;
         if (!itemBlock.canPlaceBlockOnSide(mc.level, mop.getBlockPos(), mop.sideHit, mc.player, mc.player.getMainHandItem()))
             return;
 
         blockData = new BlockData(mop.getBlockPos(), mop.sideHit);
         mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, mc.player.inventory.getCurrentItem(),
+                mc.player, mc.level, mc.player.getMainHandItem(),
                 blockData.getPosition(), blockData.getFacing(), ScaffoldUtil.getNewVector(blockData)
         );
-        mc.player.swingItem();
+        PlayerUtils.swingItem();
         lastPlaceTime = System.currentTimeMillis();
         lastClutchTime = lastPlaceTime;
     };
@@ -181,9 +181,9 @@ public class Clutch extends Module {
 
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> knockbackListener = event -> {
-        if (mc.player == null || !(event.getPacket() instanceof S12PacketEntityVelocity))
+        if (mc.player == null || !(event.getPacket() instanceof ClientboundSetEntityMotionPacket))
             return;
-        S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
+        ClientboundSetEntityMotionPacket p = (ClientboundSetEntityMotionPacket) event.getPacket();
         if (p.getEntityID() != mc.player.getId())
             return;
         if (p.getMotionX() != 0 || p.getMotionY() != 0 || p.getMotionZ() != 0)
@@ -243,14 +243,14 @@ public class Clutch extends Module {
 
     /** Ensure a stack of blocks is held; returns the held item (or null if none usable). */
     private Item keyBlock() {
-        if (mc.player.inventory.getCurrentItem() == null
-                || !(mc.player.inventory.getCurrentItem().getItem() instanceof ItemBlock)
-                || mc.player.inventory.getCurrentItem().stackSize <= 1) {
-            mc.player.inventory.currentItem = ScaffoldUtil.getBlockSlot();
+        if (mc.player.getMainHandItem() == null
+                || !(mc.player.getMainHandItem().getItem() instanceof BlockItem)
+                || mc.player.getMainHandItem().getCount() <= 1) {
+            mc.player.getInventory().setSelectedSlot(ScaffoldUtil.getBlockSlot());
         }
-        if (mc.player.inventory.getCurrentItem() == null)
+        if (mc.player.getMainHandItem() == null)
             return null;
-        return mc.player.inventory.getCurrentItem().getItem();
+        return mc.player.getMainHandItem().getItem();
     }
 
     /**
@@ -286,13 +286,13 @@ public class Clutch extends Module {
                 for (int z = -4; z <= 4; z++) {
                     BlockPos pos = layer.add(x, 0, z);
                     IBlockState state = mc.level.getBlockState(pos);
-                    if (state.getBlock() == Blocks.air) continue;
+                    if (state.getBlock() == Blocks.AIR) continue;
                     if (!state.getBlock().isFullCube()) continue;
 
                     // Existing catch: a solid block under the landing footprint with air above is
                     // something the player will simply land on. Record how good that catch is.
                     if (overlapsFootprint(pos, predicted)
-                            && mc.level.getBlockState(pos.up()).getBlock() == Blocks.air) {
+                            && mc.level.getBlockState(pos.up()).getBlock() == Blocks.AIR) {
                         double ex = cellScore(pos, targetX, targetY, targetZ);
                         if (ex < existingScore) existingScore = ex;
                     }
@@ -307,7 +307,7 @@ public class Clutch extends Module {
                             continue;
 
                         BlockPos neighbor = pos.relative(facing);
-                        if (mc.level.getBlockState(neighbor).getBlock() != Blocks.air)
+                        if (mc.level.getBlockState(neighbor).getBlock() != Blocks.AIR)
                             continue;
 
                         // Relevance: the placed block has to sit under the player's landing footprint,
@@ -332,11 +332,11 @@ public class Clutch extends Module {
                         if (rots == null)
                             rots = Scaffold.getFreeRotationsForFace(pos, facing);
 
-                        Vec3 lookDir = ((IMixinEntity) player).invokeGetVectorForRotation(rots[1], rots[0]);
+                        Vec3 lookDir = net.minecraft.world.entity.Entity.calculateViewVector(rots[1], rots[0]);
                         Vec3 traceEnd = eyeVec.add(lookDir.x * REACH, lookDir.y * REACH, lookDir.z * REACH);
-                        MovingObjectPosition hit = player.level().rayTraceBlocks(eyeVec, traceEnd, false, false, true);
+                        HitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
 
-                        if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
+                        if (hit == null || hit.getType() != HitResult.Type.BLOCK) continue;
                         if (!hit.getBlockPos().equals(pos)) continue;
                         if (hit.sideHit != facing) continue;
 

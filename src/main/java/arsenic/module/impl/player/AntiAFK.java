@@ -12,8 +12,9 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.KeyMapping;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
+import arsenic.utils.io.Keys;
+import com.mojang.blaze3d.platform.InputConstants;
+import arsenic.utils.io.Keys;
 
 @ModuleInfo(name = "AntiAFK", category = ModuleCategory.PLAYER)
 public class AntiAFK extends Module {
@@ -51,23 +52,20 @@ public class AntiAFK extends Module {
 
         switch (mode.getValue()) {
             case Jump:
-                KeyMapping.setKeyBindState(mc.options.keyBindJump.getKeyCode(), true);
+                mc.options.keyJump.setDown(true);
                 break;
             case Forward:
-                KeyMapping.setKeyBindState(mc.options.keyBindForward.getKeyCode(), true);
+                mc.options.keyUp.setDown(true);
                 break;
             case Backward:
-                KeyMapping.setKeyBindState(mc.options.keyBindBack.getKeyCode(), true);
+                mc.options.keyDown.setDown(true);
                 break;
             case Strafe:
-                KeyMapping.setKeyBindState(
-                        mc.player.tickCount % 2 == 0 ? mc.options.keyBindRight.getKeyCode() : mc.options.keyBindLeft.getKeyCode(),
-                        true
-                );
+                (mc.player.tickCount % 2 == 0 ? mc.options.keyRight : mc.options.keyLeft).setDown(true);
                 break;
         }
 
-        mc.player.rotationYaw += mc.player.tickCount % 2 == 0 ? 15 : -15;
+        mc.player.setYRot(mc.player.getYRot() + (mc.player.tickCount % 2 == 0 ? 15 : -15));
 
         releaseTimer.reset();
     };
@@ -76,17 +74,17 @@ public class AntiAFK extends Module {
         if (!actionHeld) return;
         switch (currentAction) {
             case Jump:
-                KeyMapping.setKeyBindState(mc.options.keyBindJump.getKeyCode(), false);
+                mc.options.keyJump.setDown(false);
                 break;
             case Forward:
-                KeyMapping.setKeyBindState(mc.options.keyBindForward.getKeyCode(), false);
+                mc.options.keyUp.setDown(false);
                 break;
             case Backward:
-                KeyMapping.setKeyBindState(mc.options.keyBindBack.getKeyCode(), false);
+                mc.options.keyDown.setDown(false);
                 break;
             case Strafe:
-                KeyMapping.setKeyBindState(mc.options.keyBindLeft.getKeyCode(), false);
-                KeyMapping.setKeyBindState(mc.options.keyBindRight.getKeyCode(), false);
+                mc.options.keyLeft.setDown(false);
+                mc.options.keyRight.setDown(false);
                 break;
         }
         actionHeld = false;
@@ -95,15 +93,15 @@ public class AntiAFK extends Module {
     }
 
     private boolean isPlayerActive() {
-        if (mc.player.motionX != 0 || mc.player.motionZ != 0 || mc.player.motionY != 0) return true;
-        if (Keyboard.isKeyDown(mc.options.keyBindForward.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindBack.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindLeft.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindRight.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindJump.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindSneak.getKeyCode()) ||
-                Keyboard.isKeyDown(mc.options.keyBindSprint.getKeyCode())) return true;
-        if (Mouse.isButtonDown(0) || Mouse.isButtonDown(1) || Mouse.isButtonDown(2)) return true;
+        if (mc.player.getDeltaMovement().x != 0 || mc.player.getDeltaMovement().z != 0 || mc.player.getDeltaMovement().y != 0) return true;
+        if (Keys.isPhysicallyDown(mc.options.keyUp) ||
+                Keys.isPhysicallyDown(mc.options.keyDown) ||
+                Keys.isPhysicallyDown(mc.options.keyLeft) ||
+                Keys.isPhysicallyDown(mc.options.keyRight) ||
+                Keys.isPhysicallyDown(mc.options.keyJump) ||
+                Keys.isPhysicallyDown(mc.options.keyShift) ||
+                Keys.isPhysicallyDown(mc.options.keySprint)) return true;
+        if (Keys.isMouseDown(0) || Keys.isMouseDown(1) || Keys.isMouseDown(2)) return true;
         return false;
     }
 

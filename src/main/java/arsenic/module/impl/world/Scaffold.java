@@ -1,5 +1,7 @@
 package arsenic.module.impl.world;
 
+import arsenic.utils.render.ScaledResolution;
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -7,7 +9,6 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
-import arsenic.injection.accessor.IMixinEntity;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -19,7 +20,6 @@ import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -36,9 +36,10 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.item.BlockItem;
 import net.minecraft.util.*;
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
 import static arsenic.utils.rotations.RotationUtils.patchGCD;
@@ -78,12 +79,12 @@ public class Scaffold extends Module {
     private int placementHead = 0;
     private int placementCount = 0;
     private float blockFlashIntensity = 0f;
-    private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
+    private static final BlockItem placeholderBlock = new BlockItem(Blocks.TNT);
 
 
     @Override
     protected void onEnable() {
-        KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), false);
+        mc.options.keySprint.setDown(false);
         blockData = null;
         animatedScale = 0f;
         super.onEnable();
@@ -99,7 +100,7 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.player.motionY < 0.3;
+        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.player.getDeltaMovement().y < 0.3;
         blockData = findBestPlacement();
         Item item = keyBlock();
         event.setSpeed((float) rotationSpeed.getValue().getRandomInRange());
@@ -144,10 +145,10 @@ public class Scaffold extends Module {
             return mc.player.getYRot();
 
         int forward = 0, strafe = 0;
-        if (mc.options.keyBindForward.isKeyDown()) forward++;
-        if (mc.options.keyBindBack.isKeyDown())    forward--;
-        if (mc.options.keyBindLeft.isKeyDown())    strafe++;
-        if (mc.options.keyBindRight.isKeyDown())   strafe--;
+        if (mc.options.keyUp.isDown()) forward++;
+        if (mc.options.keyDown.isDown())    forward--;
+        if (mc.options.keyLeft.isDown())    strafe++;
+        if (mc.options.keyRight.isDown())   strafe--;
 
         float offset;
         if (forward > 0) {
@@ -178,8 +179,7 @@ public class Scaffold extends Module {
     // Force sneak on when shift is requested; otherwise fall back to the player's physical key
     // so we never cancel a manual crouch.
     private void setShift(boolean shift) {
-        KeyMapping.setKeyBindState(mc.options.keyBindSneak.getKeyCode(),
-                shift || Keyboard.isKeyDown(mc.options.keyBindSneak.getKeyCode()));
+        mc.options.keyShift.setDown(shift || Keys.isPhysicallyDown(mc.options.keyShift));
     }
 
     @RequiresPlayer
@@ -190,11 +190,11 @@ public class Scaffold extends Module {
         boolean placed = false;
 
         Item item = keyBlock();
-        if (item instanceof ItemBlock && blockData != null) {
-            ItemBlock itemBlock = (ItemBlock) item;
-            MovingObjectPosition movingObjectPosition = event.getRayTrace();
+        if (item instanceof BlockItem && blockData != null) {
+            BlockItem itemBlock = (BlockItem) item;
+            HitResult movingObjectPosition = event.getRayTrace();
             if (movingObjectPosition != null
-                    && movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                    && movingObjectPosition.getType() == HitResult.Type.BLOCK
                     && (movingObjectPosition.sideHit != Direction.DOWN)
                     && (!false || movingObjectPosition.sideHit != Direction.UP)
                     && itemBlock.canPlaceBlockOnSide(mc.level, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.player, mc.player.getMainHandItem())) {
@@ -269,9 +269,9 @@ public class Scaffold extends Module {
         if (mc.player == null) return 0;
         int count = 0;
         for (int i = 0; i < 36; i++) {
-            ItemStack stack = mc.player.inventory.mainInventory[i];
-            if (stack != null && stack.getItem() instanceof ItemBlock && stack.stackSize > 0) {
-                count += stack.stackSize;
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (stack != null && stack.getItem() instanceof BlockItem && stack.getCount() > 0) {
+                count += stack.getCount();
             }
         }
         return count;
@@ -564,7 +564,7 @@ public class Scaffold extends Module {
                 BlockPos pos = layerPos.add(x, 0, z);
                 IBlockState state = mc.level.getBlockState(pos);
 
-                if (state.getBlock() == Blocks.air) continue;
+                if (state.getBlock() == Blocks.AIR) continue;
                 if (!state.getBlock().isFullCube()) continue;
 
                 // This block already exists on the support layer. Record how well it fills the
@@ -591,7 +591,7 @@ public class Scaffold extends Module {
                     BlockPos neighbor = pos.relative(facing);
                     IBlockState neighborState = mc.level.getBlockState(neighbor);
 
-                    if (neighborState.getBlock() != Blocks.air)
+                    if (neighborState.getBlock() != Blocks.AIR)
                         continue;
 
                     // The block we'd actually create occupies `neighbor`. Score it by how well it
@@ -616,15 +616,15 @@ public class Scaffold extends Module {
                     }
 
                     Vec3 eyeVec = player.getEyePosition(1.0f);
-                    Vec3 lookDir = ((IMixinEntity) player).invokeGetVectorForRotation(rots[1], rots[0]);
+                    Vec3 lookDir = net.minecraft.world.entity.Entity.calculateViewVector(rots[1], rots[0]);
                     Vec3 traceEnd = eyeVec.add(
                             lookDir.x * 4.5,
                             lookDir.y * 4.5,
                             lookDir.z * 4.5
                     );
-                    MovingObjectPosition hit = player.level().rayTraceBlocks(eyeVec, traceEnd, false, false, true);
+                    HitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
 
-                    if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
+                    if (hit == null || hit.getType() != HitResult.Type.BLOCK) continue;
                     if (!hit.getBlockPos().equals(pos)) continue;
                     if (hit.sideHit != facing) continue;
 
@@ -648,13 +648,13 @@ public class Scaffold extends Module {
 
 
     private Item keyBlock() {
-        if (mc.player.inventory.getCurrentItem() == null
-                || !(mc.player.inventory.getCurrentItem().getItem() instanceof ItemBlock) || mc.player.inventory.getCurrentItem().stackSize <= 1) {
-            mc.player.inventory.currentItem = ScaffoldUtil.getBlockSlot();
+        if (mc.player.getMainHandItem() == null
+                || !(mc.player.getMainHandItem().getItem() instanceof BlockItem) || mc.player.getMainHandItem().getCount() <= 1) {
+            mc.player.getInventory().setSelectedSlot(ScaffoldUtil.getBlockSlot());
         }
-        if(mc.player.inventory.getCurrentItem() == null)
+        if(mc.player.getMainHandItem() == null)
             return null;
-        return mc.player.inventory.getCurrentItem().getItem();
+        return mc.player.getMainHandItem().getItem();
     }
 
 
@@ -664,19 +664,19 @@ public class Scaffold extends Module {
             return;
         }
 
-        MovingObjectPosition objectOver = event.getRayTrace();
+        HitResult objectOver = event.getRayTrace();
         BlockPos blockpos = objectOver.getBlockPos();
-        if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
-                || mc.level.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
+        if (objectOver.getType() != HitResult.Type.BLOCK
+                || mc.level.getBlockState(blockpos).getBlock().defaultBlockState().isAir()) {
             return;
         }
 
         mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, mc.player.inventory.getCurrentItem(),
+                mc.player, mc.level, mc.player.getMainHandItem(),
                 blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData)
         );
 
-        mc.player.swingItem();
+        PlayerUtils.swingItem();
         recordPlacement();
     }
 

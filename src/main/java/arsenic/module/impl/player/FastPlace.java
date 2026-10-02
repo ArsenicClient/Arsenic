@@ -5,7 +5,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.world.item.BlockItem;
 
 @ModuleInfo(name = "Fastplace", category = ModuleCategory.PLAYER)
 public class FastPlace extends Module {
@@ -15,7 +15,7 @@ public class FastPlace extends Module {
     public int getTickDelay() {
         if(!true)
             return (int) ticks.getValue().getRandomInRange();
-        if(mc.player.getMainHandItem() != null && mc.player.getMainHandItem().getItem() instanceof ItemBlock)
+        if(mc.player.getMainHandItem() != null && mc.player.getMainHandItem().getItem() instanceof BlockItem)
             return (int) ticks.getValue().getRandomInRange();
         return 4;
     }

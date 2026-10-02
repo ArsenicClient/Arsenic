@@ -1,36 +1,26 @@
 package arsenic.module.impl.visual;
 
-import arsenic.utils.render.DrawUtils;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
-import arsenic.injection.accessor.IMixinRenderManager;
-import arsenic.main.Arsenic;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderGlobal;
-import net.minecraft.client.renderer.culling.Frustum;
-import net.minecraft.client.renderer.culling.ICamera;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.phys.AABB;
-import arsenic.gui.themes.ThemeManager;
-import arsenic.utils.render.GlowRenderer;
 import arsenic.utils.render.RenderUtils;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3fc;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
+import java.awt.Color;
 
 @ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true)
 public class ESP extends Module {
@@ -43,133 +33,66 @@ public class ESP extends Module {
     public enum Mode {
         /** Shaded box plus outline. The default: readable at any distance, costs nothing. */
         Box,
-        /** Soft coloured halo through walls. */
+        /** Coloured outline through walls - vanilla's glowing-entity outline, in the team colour. */
         Glow,
-        /** Flat coloured player models. Unaffected by shaderpacks. */
+        /**
+         * Flat coloured player models on 1.8. Modern Minecraft renders entities through its own
+         * feature pipeline, so this now draws the same through-wall outline as Glow.
+         */
         Chams
     }
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
 
-    // Tuning, fixed at the values that were already the defaults.
-    private static final int GLOW_RADIUS = 8;
-    private static final float GLOW_STRENGTH = 3f;
-    private static final boolean GLOW_OUTLINE_ONLY = true;
-    private static final float GLOW_FILL = 0.15f;
-    private static final float CHAMS_ALPHA = 0.6f;
-    private static final boolean CHAMS_FLAT = true;
-
-    private final GlowRenderer glowRenderer = new GlowRenderer();
-    private final List<Player> glowTargets = new ArrayList<>();
-
-    @Override
-    protected void onDisable() {
-        glowRenderer.release();
-        glowTargets.clear();
-    }
-
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        glowTargets.clear();
-        ICamera camera = new Frustum();
-        for (Player entity : Minecraft.getInstance().level.playerEntities) {
-            if (entity == mc.player)
+        for (Player entity : mc.level.players()) {
+            if (!isTarget(entity))
                 continue;
-            if (AntiBot.isBot(entity))
-                continue;
-            IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
-            double x = (entity.xo + (entity.getX() - entity.xo) * event.partialTicks) - renderManager.getRenderPosX();
-            double y = (entity.yo + (entity.getY() - entity.yo) * event.partialTicks) - renderManager.getRenderPosY();
-            double z = (entity.zo + (entity.getZ() - entity.zo) * event.partialTicks) - renderManager.getRenderPosZ();
-            AABB axisalignedbb = entity.getBoundingBox();
-            AABB axisalignedbb1 = new AABB(axisalignedbb.minX - entity.getX() + x, axisalignedbb.minY - entity.getY() + y, axisalignedbb.minZ - entity.getZ() + z, axisalignedbb.maxX - entity.getX() + x, axisalignedbb.maxY - entity.getY() + y, axisalignedbb.maxZ - entity.getZ() + z);
-            if (!camera.isBoundingBoxInFrustum(axisalignedbb1))
-                continue;
-            if (mode.getValue() == Mode.Glow)
-                glowTargets.add(entity);
-            Color color = new Color(getBedWarsColor(entity));
-            if (mode.getValue() == Mode.Box) {
-                RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
-                RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
-            }
+            AABB box = RenderUtils.interpolatedBox(entity);
+            if (mode.getValue() == Mode.Box)
+                RenderUtils.renderBox(box, 0xC0000000 | getBedWarsColor(entity), true, true);
             // Health always shows. It was off by default, which meant the module shipped without
             // the one piece of information that actually changes how you play a fight.
-            drawHealthEsp(entity, x, y, z);
+            drawHealthEsp(entity, box);
         }
-
-        // The glow composites the whole screen, so it runs once per distinct colour rather than once
-        // per player - normally that is a single pass, but in BedWars each team's colour needs its
-        // own mask or every player would glow whichever colour happened to be first in the list.
-        if (mode.getValue() == Mode.Glow && !glowTargets.isEmpty()) {
-            Map<Integer, List<Player>> byColour = new LinkedHashMap<>();
-            for (Player target : glowTargets)
-                byColour.computeIfAbsent(getGlowColour(target), c -> new ArrayList<>()).add(target);
-
-            for (Map.Entry<Integer, List<Player>> group : byColour.entrySet())
-                glowRenderer.render(group.getValue(), event.partialTicks, group.getKey(),
-                        GLOW_RADIUS, GLOW_STRENGTH, GLOW_OUTLINE_ONLY, GLOW_FILL);
-        }
-        glowTargets.clear();
     };
 
-    /** BedWars team colour, falling back to the client theme when the entity isn't a player. */
-    private int resolveColour(Player entity) {
-        if (entity != null)
-            return getBedWarsColor(entity);
-        return ThemeManager.getMainColor();
+    private boolean isTarget(Entity entity) {
+        return entity instanceof Player player && player != mc.player && !AntiBot.isBot(player);
     }
 
-    private int getGlowColour(Player entity) {
-        return resolveColour(entity);
+    /** Read by MixinMinecraft#shouldEntityAppearGlowing. */
+    public boolean shouldGlow(Entity entity) {
+        return isEnabled() && mode.getValue() != Mode.Box && isTarget(entity);
     }
 
-    // read by ChamsRenderer from inside RendererLivingEntity#renderModel
-    public boolean isChamsEnabled() {
-        return mode.getValue() == Mode.Chams;
+    /** Read by MixinEntity#getTeamColor so the outline takes the BedWars team colour. */
+    public int getGlowColour(Entity entity) {
+        return entity instanceof Player player ? getBedWarsColor(player) & 0xFFFFFF : ThemeManager.getMainColor();
     }
 
-    public int getChamsColour(net.minecraft.entity.LivingEntity entity) {
-        return resolveColour(entity instanceof Player ? (Player) entity : null);
-    }
-
-    public boolean isChamsFlat() {
-        return CHAMS_FLAT;
-    }
-
-    public float getChamsAlpha() {
-        return CHAMS_ALPHA;
-    }
-
-    private void drawHealthEsp(Player entity, double x, double y, double z) {
-        if (!(entity instanceof LivingEntity)) return;
-        LivingEntity en = (LivingEntity) entity;
+    /** A health bar standing beside the player, always facing the camera. */
+    private void drawHealthEsp(Player en, AABB box) {
         double r = JavaUtils.limit(en.getHealth() / en.getMaxHealth(), 0, 1);
-        int b = (int) (74.0D * r);
         int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
 
-        GL11.glTranslated(x, y - 0.2D, z);
-        GL11.glRotated(-mc.getRenderManager().playerViewY, 0.0D, 1.0D, 0.0D);
-        GL11.glScalef(0.03F, 0.03F, 0.03F); // Removed 'd' from scale, assuming 'd' was a variable from original context not available here.
-        int i = 21; // Assuming 'shift' was also a context variable, using a fixed value for 'i'
-        net.minecraft.client.gui.DrawUtils.drawRect(i, -1, i + 4, 75, Color.black.getRGB());
-        net.minecraft.client.gui.DrawUtils.drawRect(i + 1, b, i + 3, 74, Color.darkGray.getRGB());
-        net.minecraft.client.gui.DrawUtils.drawRect(i + 1, 0, i + 3, b, hc);
+        Vector3fc left = mc.gameRenderer.mainCamera().leftVector();
+        double side = (box.maxX - box.minX) / 2 + 0.25;
+        Vec3 centre = box.getCenter();
+        Vec3 base = new Vec3(centre.x - left.x() * side, box.minY, centre.z - left.z() * side);
+        Vec3 top = base.add(0, box.maxY - box.minY, 0);
+        Vec3 filled = base.add(0, (box.maxY - box.minY) * r, 0);
+
+        RenderUtils.drawLine(base, top, 0xFF000000, 4f);
+        RenderUtils.drawLine(base, filled, hc, 2.5f);
     }
 
+    /** Team colour from a dyed leather chestplate, the way BedWars kits show it. */
     public int getBedWarsColor(Player entityPlayer) {
-        ItemStack stack = entityPlayer.getCurrentArmor(2);
-        if (stack == null)
-            return ThemeManager.getMainColor(); // not wearing a chest plate
-        NBTTagCompound nbttagcompound = stack.getTagCompound();
-        if (nbttagcompound != null) {
-            NBTTagCompound nbttagcompound1 = nbttagcompound.getCompoundTag("display");
-            if (nbttagcompound1 != null && nbttagcompound1.hasKey("color", 3)) {
-                return nbttagcompound1.getInteger("color");
-            }
-        }
-
+        DyedItemColor dyed = entityPlayer.getItemBySlot(EquipmentSlot.CHEST).get(DataComponents.DYED_COLOR);
+        if (dyed != null)
+            return dyed.rgb();
         return ThemeManager.getMainColor();
     }
-
-
 }

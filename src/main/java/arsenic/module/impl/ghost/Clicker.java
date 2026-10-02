@@ -42,7 +42,7 @@ public class Clicker extends Module {
 
     @EventLink
     public final Listener<EventLiving> eventLivingListener = e -> {
-        lmbDown = mc.options.keyBindAttack.isKeyDown();
+        lmbDown = mc.options.keyAttack.isDown();
     };
     
     @RequiresPlayer
@@ -72,8 +72,7 @@ public class Clicker extends Module {
                 lastSound = System.currentTimeMillis() + 80;
             }
             //((IMixinMinecraft) mc).leftClick();
-            int key = mc.options.keyBindAttack.getKeyCode();
-            KeyMapping.onTick(key);
+            KeyMapping.click(((arsenic.injection.accessor.IMixinKeyMapping) mc.options.keyAttack).getBoundKey());
             prevCps = cps;
             cps = (long) rangeProperty.getValue().getRandomInRange();
             timer.reset();

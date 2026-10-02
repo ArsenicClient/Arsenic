@@ -13,16 +13,18 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.block.BlockCake;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.CakeBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.network.play.server.S23PacketBlockChange;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.input.Mouse;
+import arsenic.utils.io.Keys;
 
 @ModuleInfo(name = "Fast Cake", category = ModuleCategory.PLAYER)
 public class FastCake extends Module {
@@ -43,7 +45,7 @@ public class FastCake extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onRotation = event -> {
-        if (!Mouse.isButtonDown(1) || !autoAim.getValue())
+        if (!Keys.isMouseDown(1) || !autoAim.getValue())
             return;
 
         BlockPos cake = findNearestCake();
@@ -59,76 +61,66 @@ public class FastCake extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (!Mouse.isButtonDown(1)) {
+        if (!Keys.isMouseDown(1)) {
             pendingCake = null;
             return;
         }
 
         if (autoAim.getValue()) {
-            if (pendingCake != null && mc.level.getBlockState(pendingCake).getBlock() == Blocks.cake) {
-                Block block = Blocks.cake;
-                block.setBlockBoundsBasedOnState(mc.level, pendingCake);
-                double cx = pendingCake.getX() + (block.getBlockBoundsMinX() + block.getBlockBoundsMaxX()) / 2.0;
-                double cz = pendingCake.getZ() + (block.getBlockBoundsMinZ() + block.getBlockBoundsMaxZ()) / 2.0;
-                Vec3 hitVec = new Vec3(cx, pendingCake.getY() + block.getBlockBoundsMaxY(), cz);
-                mc.gameMode.onPlayerRightClick(
-                        mc.player, mc.level, mc.player.getMainHandItem(),
-                        pendingCake, Direction.UP, hitVec
-                );
+            if (pendingCake != null && mc.level.getBlockState(pendingCake).is(Blocks.CAKE)) {
+                AABB bounds = cakeBounds(pendingCake);
+                Vec3 hitVec = new Vec3((bounds.minX + bounds.maxX) / 2.0, bounds.maxY, (bounds.minZ + bounds.maxZ) / 2.0);
+                mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hitVec, Direction.UP, pendingCake, false));
             }
             return;
         }
 
-        MovingObjectPosition mop = mc.hitResult;
-        if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK)
+        if (!(mc.hitResult instanceof BlockHitResult mop) || mop.getType() != HitResult.Type.BLOCK)
             return;
 
         BlockPos pos = mop.getBlockPos();
-        if (mc.level.getBlockState(pos).getBlock() != Blocks.cake)
+        if (!mc.level.getBlockState(pos).is(Blocks.CAKE))
             return;
 
-        mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, mc.player.getMainHandItem(),
-                pos, mop.sideHit, mop.hitVec
-        );
+        mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, mop);
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> onBlockUpdate = event -> {
-        if (!(event.getPacket() instanceof S23PacketBlockChange))
+        if (!(event.getPacket() instanceof ClientboundBlockUpdatePacket packet))
             return;
 
-        S23PacketBlockChange packet = (S23PacketBlockChange) event.getPacket();
-        IBlockState serverState = packet.getBlockState();
-        if (serverState.getBlock() != Blocks.cake)
+        BlockState serverState = packet.getBlockState();
+        if (!serverState.is(Blocks.CAKE))
             return;
 
-        BlockPos pos = packet.getBlockPosition();
-        IBlockState clientState = mc.level.getBlockState(pos);
+        BlockPos pos = packet.getPos();
+        BlockState clientState = mc.level.getBlockState(pos);
 
-        if (clientState.getBlock() != Blocks.cake) {
+        if (!clientState.is(Blocks.CAKE)) {
             event.setCancelled(true);
             return;
         }
 
-        int serverBites = serverState.getValue(BlockCake.BITES);
-        int clientBites = clientState.getValue(BlockCake.BITES);
+        int serverBites = serverState.getValue(CakeBlock.BITES);
+        int clientBites = clientState.getValue(CakeBlock.BITES);
         if (clientBites > serverBites)
             event.setCancelled(true);
     };
 
+    /** The cake's actual shape in world space - it shrinks as it is eaten. */
+    private AABB cakeBounds(BlockPos cake) {
+        return mc.level.getBlockState(cake).getShape(mc.level, cake).bounds().move(cake);
+    }
+
     private float[] getCakeRotations(BlockPos cake) {
-        Block block = Blocks.cake;
-        block.setBlockBoundsBasedOnState(mc.level, cake);
-        double cx = cake.getX() + (block.getBlockBoundsMinX() + block.getBlockBoundsMaxX()) / 2.0;
-        double cy = cake.getY() + (block.getBlockBoundsMinY() + block.getBlockBoundsMaxY()) / 2.0;
-        double cz = cake.getZ() + (block.getBlockBoundsMinZ() + block.getBlockBoundsMaxZ()) / 2.0;
+        Vec3 centre = cakeBounds(cake).getCenter();
 
         Vec3 eyes = mc.player.getEyePosition(1f);
-        double dx = cx - eyes.x;
-        double dy = cy - eyes.y;
-        double dz = cz - eyes.z;
+        double dx = centre.x - eyes.x;
+        double dy = centre.y - eyes.y;
+        double dz = centre.z - eyes.z;
         double dist = Math.sqrt(dx * dx + dz * dz);
         float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
@@ -137,15 +129,15 @@ public class FastCake extends Module {
 
     private BlockPos findNearestCake() {
         int r = (int) Math.ceil(range.getValue().getInput());
-        BlockPos playerPos = new BlockPos(mc.player);
+        BlockPos playerPos = mc.player.blockPosition();
         BlockPos closest = null;
         double closestDist = Double.MAX_VALUE;
         for (int x = -r; x <= r; x++) {
             for (int y = -r; y <= r; y++) {
                 for (int z = -r; z <= r; z++) {
-                    BlockPos pos = playerPos.add(x, y, z);
-                    if (mc.level.getBlockState(pos).getBlock() == Blocks.cake) {
-                        double dist = mc.player.getDistanceSq(pos);
+                    BlockPos pos = playerPos.offset(x, y, z);
+                    if (mc.level.getBlockState(pos).is(Blocks.CAKE)) {
+                        double dist = mc.player.distanceToSqr(Vec3.atCenterOf(pos));
                         if (dist < closestDist) {
                             closestDist = dist;
                             closest = pos;

@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,9 +10,8 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.entity.projectile.EntityFireball;
+import net.minecraft.world.entity.projectile.hurtingprojectile.Fireball;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
@@ -46,7 +46,7 @@ public class AntiFireball extends Module {
         if (target == null)
             return;
 
-        Vec3 targetVec = new Vec3(target.getX(), target.getY() + target.height / 2, target.getZ());
+        Vec3 targetVec = new Vec3(target.getX(), target.getY() + target.getBbHeight() / 2, target.getZ());
         Vec3 eyePos = mc.player.getEyePosition(1f);
         double dx = targetVec.x - eyePos.x;
         double dy = targetVec.y - eyePos.y;
@@ -63,7 +63,7 @@ public class AntiFireball extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
-        if (target == null || !target.isEntityAlive())
+        if (target == null || !target.isAlive())
             return;
 
         if (RotationUtils.getDistanceToEntityBox(target) > RANGE)
@@ -74,25 +74,25 @@ public class AntiFireball extends Module {
 
         // Always a real swing: a bare animation packet without the client-side arm movement is
         // both easier to spot and pointless here, since the swing is visible anyway.
-        mc.player.swingItem();
-        mc.gameMode.attackEntity(mc.player, target);
+        PlayerUtils.swingItem();
+        mc.gameMode.attack(mc.player, target);
         attackTimer.reset();
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRender2D> eventRender2D = event -> {
-        for (Entity e : mc.level.loadedEntityList) {
-            if (!(e instanceof EntityFireball))
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (!(e instanceof Fireball))
                 continue;
             if (mc.player.distanceTo(e) > 64)
                 continue;
 
-            drawFireballIndicator(e, event.getSr());
+            drawFireballIndicator(e, event.getWidth(), event.getHeight());
         }
     };
 
-    private void drawFireballIndicator(Entity fireball, ScaledResolution sr) {
+    private void drawFireballIndicator(Entity fireball, int screenWidth, int screenHeight) {
         double dx = fireball.getX() - mc.player.getX();
         double dz = fireball.getZ() - mc.player.getZ();
         float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
@@ -100,8 +100,8 @@ public class AntiFireball extends Module {
 
         double radians = Math.toRadians(angle + 90);
         int radius = 50;
-        int centerX = sr.getScaledWidth() / 2;
-        int centerY = sr.getScaledHeight() / 2;
+        int centerX = screenWidth / 2;
+        int centerY = screenHeight / 2;
 
         int indicatorX = centerX + (int) (radius * Math.cos(radians));
         int indicatorY = centerY - (int) (radius * Math.sin(radians));
@@ -110,18 +110,15 @@ public class AntiFireball extends Module {
 
 
         float size = 6.0f;
-        GL11.glBegin(GL11.GL_TRIANGLES);
-        GL11.glVertex2d(indicatorX, indicatorY - size);
-        GL11.glVertex2d(indicatorX - size, indicatorY + size);
-        GL11.glVertex2d(indicatorX + size, indicatorY + size);
-        GL11.glEnd();
+        new arsenic.utils.render.QuadBatch().triangle(indicatorX, indicatorY - size, indicatorX - size, indicatorY + size,
+                indicatorX + size, indicatorY + size, 0xFFFF5050).submit();
 
-        mc.font.drawStringWithShadow(dist + "m", indicatorX - 8, indicatorY + 8, new Color(255, 80, 80).getRGB());
+        arsenic.utils.render.RenderContext.graphics().text(mc.font, dist + "m", indicatorX - 8, indicatorY + 8, new Color(255, 80, 80).getRGB(), true);
     }
 
     private Entity findBestFireball() {
-        List<Entity> fireballs = mc.level.loadedEntityList.stream()
-                .filter(e -> e instanceof EntityFireball)
+        List<Entity> fireballs = arsenic.utils.minecraft.WorldUtils.entities().stream()
+                .filter(e -> e instanceof Fireball)
                 .filter(e -> {
                     if (e.tickCount <= MIN_FIREBALL_AGE_TICKS)
                         return false;
@@ -146,11 +143,11 @@ public class AntiFireball extends Module {
             if (horizontalDist < 0.1)
                 return fb;
 
-            double dot = dx * fb.motionX + dz * fb.motionZ;
+            double dot = dx * fb.getDeltaMovement().x + dz * fb.getDeltaMovement().z;
             if (dot < 0)
                 continue;
 
-            double cross = Math.abs(dx * fb.motionZ - dz * fb.motionX);
+            double cross = Math.abs(dx * fb.getDeltaMovement().z - dz * fb.getDeltaMovement().x);
             if (cross / horizontalDist < 2.0)
                 return fb;
         }

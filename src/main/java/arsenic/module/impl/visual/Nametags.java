@@ -54,7 +54,7 @@ public class Nametags extends Module {
             double z = (player.zo + (player.getZ() - player.zo) * event.partialTicks)
                     - mc.getRenderManager().viewerPosZ;
 
-            String name = StringUtils.stripControlCodes(player.getName());
+            String name = net.minecraft.ChatFormatting.stripFormatting(player.getName().getString());
             String healthText = true
                     ? String.format(" §7%.1f", player.getHealth())
                     : "";
@@ -77,8 +77,8 @@ public class Nametags extends Module {
 
             GL11.glTranslated(x, y + player.height + 0.6, z);
             GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+            GlStateManager.rotate(-mc.gameRenderer.mainCamera().yRot(), 0.0F, 1.0F, 0.0F);
+            GlStateManager.rotate(mc.gameRenderer.mainCamera().xRot(), 1.0F, 0.0F, 0.0F);
             GlStateManager.scale(-scale, -scale, scale);
 
             drawGear(fr, collectGear(player));
@@ -130,7 +130,7 @@ public class Nametags extends Module {
         float iconTop = iconBottom - ICON_SIZE;
 
         // Icons.
-        mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+        mc.getTextureManager().getTexture(TextureMap.locationBlocksTexture);
         GlStateManager.color(1, 1, 1, 1);
 
         for (int i = 0; i < count; i++) {
@@ -199,7 +199,7 @@ public class Nametags extends Module {
             default:
                 Enchantment ench = Enchantment.getEnchantmentById(id);
                 if (ench != null) {
-                    String n = StringUtils.stripControlCodes(net.minecraft.client.resources.I18n.format(ench.getName()));
+                    String n = net.minecraft.ChatFormatting.stripFormatting(net.minecraft.client.resources.I18n.format(ench.getName()));
                     return n.length() > 3 ? n.substring(0, 3) : n;
                 }
                 return "?";

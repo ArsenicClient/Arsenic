@@ -10,7 +10,8 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.client.KeyMapping;
-import org.lwjgl.input.Keyboard;
+import arsenic.utils.io.Keys;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
 
@@ -48,7 +49,7 @@ public class BridgeAssist extends Module {
         }
 
         // Backwards, and looking down far enough to be placing blocks.
-        boolean bridging = mc.options.keyBindBack.isKeyDown()
+        boolean bridging = mc.options.keyDown.isDown()
                 && mc.player.getXRot() >= BRIDGE_PITCH;
 
         setSneak(bridging && willFallNextTick(safety.getValue().getInput()));
@@ -63,8 +64,7 @@ public class BridgeAssist extends Module {
      * result means the module can only ever <em>add</em> sneaking.
      */
     private void setSneak(boolean wanted) {
-        int key = mc.options.keyBindSneak.getKeyCode();
-        KeyMapping.setKeyBindState(key, wanted || Keyboard.isKeyDown(key));
+        mc.options.keyShift.setDown(wanted || Keys.isPhysicallyDown(mc.options.keyShift));
     }
 
     @Override

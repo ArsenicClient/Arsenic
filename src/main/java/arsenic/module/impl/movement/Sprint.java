@@ -24,11 +24,11 @@ public class Sprint extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event ->
-            KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), true);
+            mc.options.keySprint.setDown(true);
 
     @Override
     protected void onDisable() {
-        KeyMapping.setKeyBindState(mc.options.keyBindSprint.getKeyCode(), false);
+        mc.options.keySprint.setDown(false);
         mc.player.setSprinting(false);
     }
 }
