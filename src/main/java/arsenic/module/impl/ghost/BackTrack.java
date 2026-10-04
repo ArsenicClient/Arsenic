@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -39,7 +40,7 @@ public class BackTrack extends Module {
             p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
     public enum BacktrackMode {NORMAL, PULSE}
-    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
+    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
     public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 

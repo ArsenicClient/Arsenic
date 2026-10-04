@@ -3,6 +3,7 @@ package arsenic.module.impl.client;
 import arsenic.event.impl.EventPacket;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
+import arsenic.module.impl.player.AutoHunt;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.player.EntityPlayer;
@@ -41,6 +42,7 @@ public class TargetManager extends Module {
 
     private static final Map<Integer, Float> serverHurtTime = new HashMap<>();
     private static final Map<Integer, Long> attackSentTime = new HashMap<>();
+    private static Map<EntityPlayer, Float> lastSortValues = new HashMap<>();
 
     // Intentionally always-on: this hidden SETTINGS module backs the aura/target logic,
     // so the incoming 'enabled' flag is deliberately ignored.
@@ -151,13 +153,29 @@ public class TargetManager extends Module {
         List<EntityPlayer> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput() + 1);
         en.removeIf(player -> !isValidTarget(player));
         en.removeIf(player -> !(RotationUtils.getDistanceToEntityBox(player) < distance.getValue().getInput()));
-        en.sort(Comparator.comparingDouble(target -> sortMode.getValue().sv.value(target)));
+        // Each value is worked out once: SmartSwitch's has side effects (a second call for the same
+        // player can answer differently), and a comparator that changes its mind mid-sort can
+        // throw "Comparison method violates its general contract".
+        Map<EntityPlayer, Float> values = new HashMap<>();
+        for (EntityPlayer player : en)
+            values.put(player, sortMode.getValue().sv.value(player));
+        en.sort(Comparator.comparingDouble(values::get));
+        lastSortValues = values;
         return en;
     }
 
-    private static boolean isValidTarget(EntityPlayer ep) {
+    /** {@code player}'s value under the current sort mode (lower is better), as the last {@link #getTargets()} sorted it. */
+    public static float sortValue(EntityPlayer player) {
+        Float v = lastSortValues.get(player);
+        return v != null ? v : sortMode.getValue().sv.value(player);
+    }
+
+    /** Whether {@code ep} may be targeted at all, before any distance limit. */
+    public static boolean isValidTarget(EntityPlayer ep) {
         return (ep != mc.thePlayer)
-                && (bots.getValue()       || !AntiBot.isBot(ep))
+                && !Arsenic.getArsenic().getFriendManager().isFriend(ep)
+                && AutoHunt.allowsTarget(ep)
+                && (bots.getValue()      || !AntiBot.isBot(ep))
                 && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
                 && (invis.getValue()      || !ep.isInvisible())
                 && (unArmoured.getValue() || !PlayerUtils.isPlayerWearingArmour(ep))

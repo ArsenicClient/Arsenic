@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -32,7 +33,7 @@ import net.minecraft.util.Vec3;
 @ModuleInfo(name = "Clutch", category = ModuleCategory.PLAYER)
 public class Clutch extends Module {
     /** Degrees per tick the view may turn while clutching. */
-    public final DoubleProperty rotationSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(10, 360, 200, 1));
+    public final DoubleProperty rotationSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(10, 360, 200, 1), SliderScale.LOG);
 
 
     // Rotation catch-up speed (degrees/tick). High by default so the block lands in time.

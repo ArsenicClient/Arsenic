@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -15,15 +16,14 @@ import arsenic.module.impl.client.TargetManager;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.aimcore.TargetPicker;
 import arsenic.utils.rotations.AimController;
+import arsenic.utils.rotations.SilentRotationManager;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.timer.MSTimer;
@@ -31,27 +31,19 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @ModuleInfo(name = "KillAura", category = ModuleCategory.COMBAT)
 public class KillAura extends Module {
 
-    public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1));
-    public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1));
+    public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
+    public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 8, 12, 1));
-    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotations", AimController.RotationMode.Instant);
-    /** Ticks of target movement to lead the aim by. */
-    public final DoubleProperty prediction = new DoubleProperty("Prediction", new DoubleValue(0, 5, 1, 0.1));
-    /** How long before/after the crosshair is on the target the aura keeps clicking. */
-    public final DoubleProperty clickGrace = new DoubleProperty("Click Grace", new DoubleValue(0, 500, 200, 10));
-    /**
-     * Extra distance past attack range to start aiming from - only when there is a single target,
-     * so the aura never pre-aims at one player while another is the real threat.
-     */
-    public final DoubleProperty preAim = new DoubleProperty("Pre-Aim Range", new DoubleValue(0, 5, 1, 0.1));
     /** Off: the aura's rotation is applied to the real camera too, so what you see is what's sent. */
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public EntityPlayer target = null;
@@ -71,8 +63,30 @@ public class KillAura extends Module {
 
     private static final double ATTACK_RANGE = 3.0;
 
+    // Fixed tuning - these used to be settings.
+    /** Rotations always use the human-shaped Lazy turn. */
+    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
+    /**
+     * Ticks of target movement to lead the aim by. 3 led so far that the crosshair sat ahead of the
+     * hitbox: 1 tick stays on target far more often, with fewer missed swings.
+     */
+    private static final float PREDICTION_TICKS = 1f;
+    /** How long before/after the crosshair is on the target the aura keeps clicking. */
+    private static final double CLICK_GRACE_MS = 300;
+    /**
+     * Extra distance past attack range to start aiming from - only when there is a single target,
+     * so the aura never pre-aims at one player while another is the real threat.
+     */
+    private static final double PRE_AIM_RANGE = 4;
+
     /** Aim point and turn shaping, shared with AimAssist. */
     private final AimController aim = new AimController();
+    /**
+     * Which candidate to aim at. Taking the first in sort order every tick flipped targets whenever
+     * one stepped across the range edge or the order shuffled, each flip a fresh flick; this keeps
+     * the current one unless another can clearly be hit sooner.
+     */
+    private final TargetPicker picker = new TargetPicker();
 
 
     /**
@@ -106,8 +120,8 @@ public class KillAura extends Module {
             return;
         }
         if (target != null) {
-            float[] rots = aim.getPredictedRotations(target, (float) prediction.getValue().getInput());
-            aim.rotate(event, target, rots, rotationMode.getValue(),
+            float[] rots = aim.aimAt(target, PREDICTION_TICKS);
+            aim.rotate(event, target, rots, ROTATION_MODE,
                     (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), flickBudget());
             hadTarget = true;
         } else if (hadTarget) {
@@ -152,13 +166,17 @@ public class KillAura extends Module {
         // instead of stacking a second attack on the same tick.
         if (hitflick.attackedThisTick())
             resetAttackCycle();
-        if (target != null
+        // Only the turn is lazy, never the clicking: any valid (non-friend) player under the
+        // crosshair is hit as soon as the APS allows, whether or not it's the one being aimed at.
+        EntityPlayer hitPlayer = hit instanceof EntityPlayer && TargetManager.isValidTarget((EntityPlayer) hit)
+                ? (EntityPlayer) hit : null;
+        if ((target != null || hitPlayer != null)
+                && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && attackTimer.getTime() >= currentAttackDelay
-                && mc.currentScreen == null
                 && !usingItem
                 && !wasUsingItem) {
-            if (hit == target) {
+            if (hitPlayer != null) {
                 // Hand the hit to Hitflick when it takes it: it flicks next tick and throws this
                 // attack itself the tick after. Void mode declines when no angle empties into the
                 // void, and the hit goes through normally then.
@@ -169,7 +187,7 @@ public class KillAura extends Module {
                     mc.playerController.attackEntity(mc.thePlayer, hit);
                     resetAttackCycle();
                 }
-            } else if (hit == null
+            } else if (hit == null && target != null
                     && RotationUtils.getDistanceToEntityBox(target) <= ATTACK_RANGE
                     && shouldMissClick(event)) {
                 // Crosshair just slipped off, or is about to land: keep clicking like a player
@@ -178,8 +196,8 @@ public class KillAura extends Module {
                 mc.thePlayer.swingItem();
                 resetAttackCycle();
             }
-            // A different entity under the crosshair (teammate, bot, armour stand) gets neither a
-            // hit nor a swing - a player wouldn't click on it either.
+            // Anything else under the crosshair (a friend, a filtered-out player, an armour stand)
+            // gets neither a hit nor a swing.
         }
         wasUsingItem = usingItem;
     };
@@ -203,7 +221,7 @@ public class KillAura extends Module {
 
     /**
      * The best target to aim at, if any is close enough. Aiming normally starts at attack range;
-     * with exactly one candidate it starts {@link #preAim} further out, so the turn is already done
+     * with exactly one candidate it starts {@link #PRE_AIM_RANGE} further out, so the turn is already done
      * by the time they walk into reach instead of snapping the moment they do.
      */
     private Hitflick hitflick() {
@@ -211,13 +229,30 @@ public class KillAura extends Module {
     }
 
     private EntityPlayer pickTarget() {
+        // The server thinks we're in an inventory (or just sent chat): no aiming, no hitting. With no
+        // target the rotation eases back to the camera and the attack check never runs.
+        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
+            return null;
         List<EntityPlayer> candidates = TargetManager.getTargets();
-        double aimRange = ATTACK_RANGE + (candidates.size() == 1 ? preAim.getValue().getInput() : 0);
-        for (EntityPlayer candidate : candidates) {
-            if (RotationUtils.getDistanceToEntityBox(candidate) <= aimRange)
-                return candidate;
+        double aimRange = ATTACK_RANGE + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
+        // The sort mode's value in ticks-until-hittable terms: SmartSwitch's already is ticks, a
+        // degree off the crosshair is worth 1/25 of a tick, a point of health a tick.
+        picker.valueScale = TargetManager.sortMode.getValue() == TargetManager.SortMode.Fov ? 0.04f : 1f;
+        SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
+        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
+        List<TargetPicker.Candidate> list = new ArrayList<>(candidates.size());
+        for (EntityPlayer p : candidates) {
+            AxisAlignedBB box = p.getEntityBoundingBox();
+            double dx = (box.minX + box.maxX) / 2 - eyes.xCoord, dz = (box.minZ + box.maxZ) / 2 - eyes.zCoord;
+            double dy = MathHelper.clamp_double(eyes.yCoord, box.minY, box.maxY) - eyes.yCoord;
+            float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+            float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+            float angle = Math.max(Math.abs(MathHelper.wrapAngleTo180_float(yaw - srm.yaw)), Math.abs(pitch - srm.pitch));
+            list.add(new TargetPicker.Candidate(p.getEntityId(), TargetManager.sortValue(p),
+                    RotationUtils.getDistanceToEntityBox(p), angle));
         }
-        return null;
+        int i = picker.pick(list, target == null ? Integer.MIN_VALUE : target.getEntityId(), aimRange);
+        return i < 0 ? null : candidates.get(i);
     }
 
     /**
@@ -248,7 +283,7 @@ public class KillAura extends Module {
      * enough to get there in time.
      */
     private boolean shouldMissClick(EventSilentRotation.Post event) {
-        double graceMs = clickGrace.getValue().getInput();
+        double graceMs = CLICK_GRACE_MS;
         if (graceMs <= 0)
             return false;
         if (everOnTarget && onTargetTimer.getTime() <= graceMs)

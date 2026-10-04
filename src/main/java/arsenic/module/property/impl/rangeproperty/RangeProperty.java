@@ -5,6 +5,7 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.module.property.impl.SliderScale;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.timer.AnimationTimer;
@@ -19,10 +20,24 @@ import java.util.function.BiConsumer;
 public class RangeProperty extends SerializableProperty<RangeValue> {
 
     private final DisplayMode displayMode;
+    private final SliderScale scale;
 
     public RangeProperty(String name, RangeValue value) {
+        this(name, value, SliderScale.LINEAR);
+    }
+
+    public RangeProperty(String name, RangeValue value, SliderScale scale) {
         super(name, value);
         this.displayMode = DisplayMode.NORMAL;
+        this.scale = scale;
+    }
+
+    private float toPercent(double v) {
+        return scale.toPercent(v, getValue().getMinBound(), getValue().getMaxBound());
+    }
+
+    private double fromPercent(double pct) {
+        return scale.fromPercent(pct, getValue().getMinBound(), getValue().getMaxBound());
     }
 
     @Override
@@ -69,9 +84,8 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
             @Override
             protected float draw(RenderInfo ri) {
-                double lo = getValue().getMinBound(), hi = getValue().getMaxBound();
-                float pctMin = (float) ((getValue().getMin() - lo) / (hi - lo));
-                float pctMax = (float) ((getValue().getMax() - lo) / (hi - lo));
+                float pctMin = toPercent(getValue().getMin());
+                float pctMax = toPercent(getValue().getMax());
                 float grab = grabTimer.getPercent();
 
                 float chipHeight = height * 0.5f;
@@ -129,8 +143,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
 
             private void applyFromMouse(int mouseX) {
                 float pct = Math.max(0f, Math.min(1f, (mouseX - dragX1) / dragWidth));
-                double lo = getValue().getMinBound(), hi = getValue().getMaxBound();
-                helping.setValue(self, lo + (pct * (hi - lo)));
+                helping.setValue(self, fromPercent(pct));
                 arsenic.utils.java.SoundUtils.slide(pct);
             }
         };

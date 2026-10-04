@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
@@ -31,7 +32,7 @@ public class KnockbackDelay extends Module {
     public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 500, 200, 300, 10));
     public final EnumProperty<DelayMode> mode = new EnumProperty<>("Mode", DelayMode.AntiCombo);
     /** Minimum gap after a delay ends before another may be triggered. */
-    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10));
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10), SliderScale.LOG);
     private final MSTimer releaseTimer = new MSTimer();
     private final MSTimer cdTimer = new MSTimer();
     private long lag = 0;

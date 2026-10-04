@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -35,7 +36,7 @@ import net.minecraft.util.Vec3;
 public class AimAssist extends Module {
 
     /** Degrees per tick. Named apart from the old single-value "Speed" so old configs don't fail to load. */
-    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1));
+    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1), SliderScale.LOG);
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotations", AimController.RotationMode.Lazy);
     /** Ticks of target movement to lead the aim by. */
     public final DoubleProperty prediction = new DoubleProperty("Prediction", new DoubleValue(0, 5, 1, 0.1));
@@ -69,7 +70,7 @@ public class AimAssist extends Module {
             return;
         }
 
-        float[] rots = aim.getPredictedRotations(target, (float) prediction.getValue().getInput());
+        float[] rots = aim.aimAt(target, (float) prediction.getValue().getInput());
         aim.rotate(event, target, rots, rotationMode.getValue(),
                 (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), 0f);
         aiming = true;
