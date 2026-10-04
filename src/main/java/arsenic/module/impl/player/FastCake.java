@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -31,7 +32,7 @@ public class FastCake extends Module {
     @PropertyInfo(reliesOn = "Auto Aim", value = "true")
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 6, 4, 0.5));
     @PropertyInfo(reliesOn = "Auto Aim", value = "true")
-    public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 180, 1));
+    public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 180, 1), SliderScale.LOG);
 
     private BlockPos pendingCake;
 

@@ -88,7 +88,7 @@ public class ESP extends Module {
                 continue;
             if (mode.getValue() == Mode.Glow)
                 glowTargets.add(entity);
-            Color color = new Color(getBedWarsColor(entity));
+            Color color = new Color(resolveColour(entity));
             GlStateManager.pushMatrix();
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -128,11 +128,27 @@ public class ESP extends Module {
         glowTargets.clear();
     };
 
-    /** BedWars team colour, falling back to the client theme when the entity isn't a player. */
+    /**
+     * Friend colour for friends, otherwise BedWars team colour, falling back to the client theme
+     * when the entity isn't a player.
+     */
     private int resolveColour(EntityPlayer entity) {
+        if (entity != null && Arsenic.getArsenic().getFriendManager().isFriend(entity))
+            return getFriendColour();
         if (entity != null)
             return getBedWarsColor(entity);
         return ThemeManager.getMainColor();
+    }
+
+    /**
+     * The theme colour's opposite on the colour wheel, at full saturation so it reads clearly: a
+     * green theme draws friends magenta, a blue one orange. Players without a team colour fall
+     * back to the theme colour, so a friend can never be mistaken for one of them.
+     */
+    private static int getFriendColour() {
+        int theme = ThemeManager.getMainColor();
+        float[] hsb = Color.RGBtoHSB((theme >> 16) & 0xFF, (theme >> 8) & 0xFF, theme & 0xFF, null);
+        return 0xFF000000 | Color.HSBtoRGB((hsb[0] + 0.5f) % 1f, Math.max(0.7f, hsb[1]), Math.max(0.85f, hsb[2]));
     }
 
     private int getGlowColour(EntityPlayer entity) {

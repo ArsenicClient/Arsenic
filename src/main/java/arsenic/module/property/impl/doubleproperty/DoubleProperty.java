@@ -5,6 +5,7 @@ import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
+import arsenic.module.property.impl.SliderScale;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.timer.AnimationTimer;
@@ -17,10 +18,16 @@ import org.lwjgl.input.Mouse;
 public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
     private final DisplayMode displayMode;
+    private final SliderScale scale;
 
     public DoubleProperty(String name, DoubleValue value) {
+        this(name, value, SliderScale.LINEAR);
+    }
+
+    public DoubleProperty(String name, DoubleValue value, SliderScale scale) {
         super(name, value);
         this.displayMode = DisplayMode.NORMAL;
+        this.scale = scale;
     }
 
     @Override
@@ -61,9 +68,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
             @Override
             protected float draw(RenderInfo ri) {
-                double min = getValue().getMinBound(), max = getValue().getMaxBound();
-                float percent = (float) ((getValue().getInput() - min) / (max - min));
-                percent = Math.max(0f, Math.min(1f, percent));
+                float percent = scale.toPercent(getValue().getInput(), getValue().getMinBound(), getValue().getMaxBound());
 
                 float grab = grabTimer.getPercent();
 
@@ -117,10 +122,9 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             private void applyFromMouse(int mouseX) {
                 float pct = Math.max(0f, Math.min(1f, (mouseX - dragX1) / dragWidth));
                 double min = getValue().getMinBound(), max = getValue().getMaxBound();
-                getValue().setInput(min + (pct * (max - min)));
+                getValue().setInput(scale.fromPercent(pct, min, max));
                 onValueUpdate();
-                arsenic.utils.java.SoundUtils.slide(
-                        (float) ((getValue().getInput() - min) / (max - min)));
+                arsenic.utils.java.SoundUtils.slide(scale.toPercent(getValue().getInput(), min, max));
             }
         };
     }

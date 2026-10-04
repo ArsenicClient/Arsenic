@@ -2,6 +2,7 @@ package arsenic.main;
 
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
+import arsenic.config.FriendManager;
 import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.gui.ErrorOverlay;
@@ -38,6 +39,7 @@ public class Arsenic {
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
     private final LaunchID launchID = new LaunchID();
+    private final FriendManager friendManager = new FriendManager();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
     @Mod.EventHandler
@@ -119,4 +121,6 @@ public class Arsenic {
     public final ServerInfo getServerInfo() { return serverInfo; }
 
     public final LaunchID getLaunchID() { return launchID; }
+
+    public final FriendManager getFriendManager() { return friendManager; }
 }

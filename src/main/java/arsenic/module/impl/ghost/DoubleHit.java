@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -58,7 +59,7 @@ public class DoubleHit extends Module {
      * Hard cap on a hold. The only reason to touch this is server tolerance: longer holds recover
      * more hits and look worse to a movement-simulating anticheat.
      */
-    public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ms)", new DoubleValue(50, 1500, 400, 10));
+    public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ms)", new DoubleValue(50, 1500, 400, 10), SliderScale.LOG);
 
     /** Minimum gap between one flush and the next hold, so this stays an opportunity, not a state. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 5000, 900, 50));

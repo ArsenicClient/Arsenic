@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventAttack;
@@ -23,9 +24,9 @@ import java.util.List;
 @ModuleInfo(name = "LagRange", category = ModuleCategory.COMBAT)
 public class FakeLag extends Module {
 
-    public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 2000, 100, 200, 10));
+    public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 2000, 100, 200, 10), SliderScale.LOG);
     /** Minimum gap after releasing a lag burst before another may start. */
-    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10));
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10), SliderScale.LOG);
     private static final int MAX_POSITION_HISTORY = 400;
 
     private final List<Vec3> positionHistory = new ArrayList<>();

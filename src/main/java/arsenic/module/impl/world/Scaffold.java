@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -58,7 +59,7 @@ public class Scaffold extends Module {
      */
     public BooleanProperty sprint = new BooleanProperty("Sprint", false);
 
-    public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1));
+    public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     // Eagle == built-in SafeWalk: sneak whenever a step would carry the player off a ledge.
     public BooleanProperty eagle = new BooleanProperty("Eagle", true);
     // Look-ahead safety for Eagle, mirroring SafeWalk's "Safety" property.
