@@ -22,7 +22,7 @@ The client features:
 
 -   Install JDK 25 (e.g. Eclipse Temurin) and make sure `java` is on your PATH or `JAVA_HOME` is set.
 -   Clone the repository and check out the `modern` branch.
--   Run `setup.bat`. It downloads Minecraft and the Fabric toolchain, decompiles Minecraft so your IDE can show its sources, and does a first build. On macOS/Linux, run `./gradlew genSources` and then `./gradlew build` instead.
+-   Run `.\setup.bat` (or double-click it). It downloads Minecraft and the Fabric toolchain, decompiles Minecraft so your IDE can show its sources, and does a first build. On macOS/Linux, run `./gradlew genSources` and then `./gradlew build` instead.
 -   Open the project in your IDE.
 -   Load the Gradle project.
 -   Start developing!
