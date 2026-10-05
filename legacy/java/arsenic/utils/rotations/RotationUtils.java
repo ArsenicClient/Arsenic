@@ -1,5 +1,6 @@
 package arsenic.utils.rotations;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.UtilityClass;
@@ -14,7 +15,22 @@ public class RotationUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    //dont bloat this method again. Let it be the way it was when i first made it
+    /** Yaw that faces the horizontal offset (dx, dz). */
+    public static float yawTo(double dx, double dz) {
+        return (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+    }
+
+    /** Pitch that faces the offset (dx, dy, dz); negative looks up. */
+    public static float pitchTo(double dx, double dy, double dz) {
+        return (float) -Math.toDegrees(Math.atan2(dy, MathUtils.horizontalDistance(dx, dz)));
+    }
+
+    /** {yaw, pitch} that look from one point at another. */
+    public static float[] rotationsTo(Vec3 from, Vec3 to) {
+        double dx = to.xCoord - from.xCoord, dy = to.yCoord - from.yCoord, dz = to.zCoord - from.zCoord;
+        return new float[]{yawTo(dx, dz), pitchTo(dx, dy, dz)};
+    }
+
     public static float[] getRotationsToEntity(EntityLivingBase e) {
         if (e == null) return null;
         final Vec3 targetVec = getBestHitVec(e);
@@ -93,7 +109,6 @@ public class RotationUtils extends UtilityClass {
         return (float) (yaw * -1.0D);
     }
 
-    // old arsenic
     public static float[] getRotations(Vec3 from, Vec3 to) {
         final float diffY = (float) (from.yCoord - to.yCoord);
         final float diffX = (float) (from.xCoord - to.xCoord);
@@ -118,7 +133,6 @@ public class RotationUtils extends UtilityClass {
         return mc.thePlayer.getPositionVector().distanceTo(new Vec3(blockPos));
     }
 
-    //haven't tested if this works
     public static float[] getPlayerRotationsToBlock(BlockPos pos, EnumFacing face) {
         return getPlayerRotationsToVec(getVec3FromBlockPosAndEnumFacing(pos, face));
     }
@@ -142,7 +156,10 @@ public class RotationUtils extends UtilityClass {
         final double x = blockPos.getX() + 0.45 - mc.thePlayer.posX;
         final double y = blockPos.getY() + 0.45 - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
         final double z = blockPos.getZ() + 0.45 - mc.thePlayer.posZ;
-        float[] targetRots = new float[]{mc.thePlayer.rotationYaw + MathHelper.wrapAngleTo180_float((float) (Math.atan2(z, x) * 57.295780181884766) - 90.0f - mc.thePlayer.rotationYaw), clamp(mc.thePlayer.rotationPitch + MathHelper.wrapAngleTo180_float((float) (-(Math.atan2(y, MathHelper.sqrt_double(x * x + z * z)) * 57.295780181884766)) - mc.thePlayer.rotationPitch))};
+        float yaw = mc.thePlayer.rotationYaw, pitch = mc.thePlayer.rotationPitch;
+        float[] targetRots = new float[]{
+                yaw + MathHelper.wrapAngleTo180_float(yawTo(x, z) - yaw),
+                clamp(pitch + MathHelper.wrapAngleTo180_float(pitchTo(x, y, z) - pitch))};
 
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;

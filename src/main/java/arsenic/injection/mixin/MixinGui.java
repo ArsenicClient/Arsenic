@@ -20,9 +20,8 @@ public abstract class MixinGui {
         Arsenic arsenic = Arsenic.getArsenic();
         if (arsenic == null || arsenic.getModuleManager() == null)
             return;
-        CustomMenu customMenu = arsenic.getModuleManager().getModuleByClass(CustomMenu.class);
-        if (screen instanceof TitleScreen && customMenu != null && customMenu.isEnabled())
-            customMenu.display();
+        if (screen instanceof TitleScreen && !CustomMenu.consumeVanillaRequest())
+            CustomMenu.display();
         arsenic.getEventManager().post(new EventDisplayGuiScreen(screen));
     }
 }

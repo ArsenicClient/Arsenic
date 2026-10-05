@@ -1,5 +1,6 @@
 package arsenic.module.property.impl;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.ThemeManager;
@@ -57,26 +58,10 @@ public class ColourProperty extends SerializableProperty<Integer> {
         return ColorUtils.getColor(value, i);
     }
 
-    /**
-     * The stored colour, ignoring theme-follow mode. The channel sliders must edit the user's own
-     * value even while the swatch is displaying the theme colour, or switching back off THEME would
-     * silently discard what they set.
-     */
     private int rawValue() { return value; }
 
-    /** Channel order used by {@link ColorUtils}: 0 = alpha, 1 = red, 2 = green, 3 = blue. */
     private static final String[] CHANNEL_NAMES = {"A", "R", "G", "B"};
 
-    /**
-     * Colour picker: a swatch that opens four labelled channel sliders.
-     * <p>
-     * The old control crammed four draggable dots onto one shared line, which meant the dots
-     * overlapped whenever two channels held similar values and there was no way to tell which one
-     * you had grabbed. Each channel now owns its own row and its own track, tinted to show what
-     * that channel actually does to the colour, with the numeric value on the right.
-     * <p>
-     * Right-click still flips between a custom colour and following the active theme.
-     */
     @Override
     public PropertyComponent<ColourProperty> createComponent() {
         return new PropertyComponent<ColourProperty>(this) {
@@ -84,8 +69,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
             private boolean open;
             private int dragging = -1;
             private float trackX1, trackX2, trackWidth, rowHeight, swatchX1;
-            // Always four channel rows, so the distance never varies and a fixed duration is
-            // already a fixed speed.
             private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
 
             @Override
@@ -107,8 +90,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
                             ri.getFr().getScaleModifier(0.8f), ri.getFr().LEFTSHIFTX, ri.getFr().CENTREY);
                 }
 
-                // Checkerboard behind the swatch so a low-alpha colour reads as transparent
-                // rather than as a darker shade of itself.
                 checker(swatchX1, swatchY1, x2, swatchY2, swatchHeight / 3f);
                 DrawUtils.drawRoundedRect(swatchX1, swatchY1, x2, swatchY2, radius, getValue());
                 DrawUtils.drawRoundedOutline(swatchX1, swatchY1, x2, swatchY2, radius, 1f,
@@ -146,7 +127,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
                 DrawUtils.drawRoundedRect(trackX1, ty1, trackX2, ty2, r,
                         UITheme.fade(UITheme.alpha(ThemeManager.getButtonBackground(), 200), openPct));
 
-                // Fill tinted with this channel at full strength - the bar shows its own meaning.
                 int tint = channel == 0
                         ? ThemeManager.getWhite()
                         : ColorUtils.setColor(0xFF000000, channel, 255);
@@ -162,7 +142,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
                         ri.getFr().getScaleModifier(0.8f), ri.getFr().LEFTSHIFTX, ri.getFr().CENTREY);
             }
 
-            /** Two-tone grid used as the transparency backdrop for the swatch. */
             private void checker(float cx1, float cy1, float cx2, float cy2, float cell) {
                 DrawUtils.drawRoundedRect(cx1, cy1, cx2, cy2, UITheme.radiusChip(cy2 - cy1), 0xFF9A9A9A);
                 boolean dark = false;
@@ -179,11 +158,7 @@ public class ColourProperty extends SerializableProperty<Integer> {
 
             @Override
             public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
-                // The expanded channel rows live below this component's own rect, and the base
-                // class only forwards into that overflow for containers. This control keeps its
-                // rows as plain geometry, so it claims the whole expanded area itself.
-                if (self.isVisible() && mouseX >= x1 && mouseX <= x2
-                        && mouseY >= y1 && mouseY <= y2 + expandY) {
+                if (self.isVisible() && MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2 + expandY)) {
                     click(mouseX, mouseY, mouseButton);
                     playClickSound();
                     return true;
@@ -200,7 +175,6 @@ public class ColourProperty extends SerializableProperty<Integer> {
                 if (mode != cMode.CUSTOM)
                     return;
 
-                // Clicking the swatch expands or collapses the channel rows.
                 if (mouseY <= y2 && mouseX >= swatchX1) {
                     open = !open;
                     return;
@@ -225,9 +199,8 @@ public class ColourProperty extends SerializableProperty<Integer> {
             }
 
             private void applyFromMouse(int mouseX) {
-                float pct = Math.max(0f, Math.min(1f, (mouseX - trackX1) / trackWidth));
+                float pct = MathUtils.clamp01((mouseX - trackX1) / trackWidth);
                 setColor(dragging, (int) (pct * 255));
-                // ringing tone tracks the channel value: C (min) up to C (max)
                 arsenic.utils.java.SoundUtils.slide(pct);
             }
 

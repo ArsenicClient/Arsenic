@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -11,9 +12,6 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.impl.client.TargetManager;
-import arsenic.module.property.impl.EnumProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.rotations.AimController;
@@ -22,28 +20,16 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Pulls the player's view onto the current target while they are attacking, using the same aim
- * as KillAura ({@link AimController}): the same prediction-led, drifting aim point and the same
- * Instant/Lazy turn shaping.
- * <p>
- * The turn goes through the silent rotation manager like KillAura's, then is written onto the real
- * camera once the manager has committed it - exactly KillAura's non-silent path - so the view and
- * what the server sees never differ. Mouse input is ignored while a target is up, so it can't
- * fight the turn between ticks.
- */
 @ModuleInfo(name = "AimAssist", category = ModuleCategory.COMBAT)
 public class AimAssist extends Module {
 
-    /** Degrees per tick. Named apart from the old single-value "Speed" so old configs don't fail to load. */
-    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1));
-    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotations", AimController.RotationMode.Lazy);
-    /** Ticks of target movement to lead the aim by. */
-    public final DoubleProperty prediction = new DoubleProperty("Prediction", new DoubleValue(0, 5, 1, 0.1));
+    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1), SliderScale.LOG);
+
+    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
+    private static final float PREDICTION_TICKS = 3f;
 
     private final AimController aim = new AimController();
     private LivingEntity target;
-    /** Whether this tick's rotation is ours, so Post knows to put it on the camera. */
     private boolean aiming;
 
     @Override
@@ -70,8 +56,8 @@ public class AimAssist extends Module {
             return;
         }
 
-        float[] rots = aim.getPredictedRotations(target, (float) prediction.getValue().getInput());
-        aim.rotate(event, target, rots, rotationMode.getValue(),
+        float[] rots = aim.aimAt(target, PREDICTION_TICKS);
+        aim.rotate(event, target, rots, ROTATION_MODE,
                 (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), 0f);
         aiming = true;
     };
@@ -81,17 +67,10 @@ public class AimAssist extends Module {
     public final Listener<EventSilentRotation.Post> onRotationPost = event -> {
         if (!aiming)
             return;
-        // prevRotationYaw/Pitch were already rolled over this tick, so the frame interpolation
-        // renders this as a smooth turn rather than a snap.
         mc.player.setYRot(event.getYaw());
         mc.player.setXRot(event.getPitch());
     };
 
-    /**
-     * The target to pull onto, if any: only while attacking, never through terrain, and never
-     * while KillAura or Hitflick already own the rotation - two aimers fighting over one view
-     * just jitter between them.
-     */
     private LivingEntity pickTarget() {
         if (!mc.options.keyAttack.isDown() || mc.gui.screen() != null)
             return null;
@@ -107,11 +86,6 @@ public class AimAssist extends Module {
         return candidate;
     }
 
-    /**
-     * Line of sight test against terrain: trace from the eyes to the target's own hitbox rather
-     * than wherever the crosshair happens to be pointing, so being off-target (crosshair on the
-     * ground or a wall behind them) doesn't switch the assist off when it's needed most.
-     */
     private boolean isBehindWall(LivingEntity entity) {
         Vec3 eyes = mc.player.getEyePosition(1f);
         Vec3 aimVec = RotationUtils.getBestHitVec(entity);
@@ -119,11 +93,6 @@ public class AimAssist extends Module {
         return mop != null && mop.getType() == HitResult.Type.BLOCK;
     }
 
-    /**
-     * @param yaw the player's raw mouse delta, before {@code setAngles} scales it
-     * @return the value {@code setAngles} should use instead - nothing while a target is up, so
-     *         the mouse can't drag the view off the tick's committed turn between ticks
-     */
     public float modifyYaw(float yaw) {
         return target == null ? yaw : 0f;
     }

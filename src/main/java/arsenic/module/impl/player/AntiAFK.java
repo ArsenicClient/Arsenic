@@ -18,7 +18,6 @@ import arsenic.utils.io.Keys;
 
 @ModuleInfo(name = "AntiAFK", category = ModuleCategory.PLAYER)
 public class AntiAFK extends Module {
-    /** Seconds between actions. */
     public final DoubleProperty delay = new DoubleProperty("Delay (s)", new DoubleValue(5, 300, 30, 1));
 
 

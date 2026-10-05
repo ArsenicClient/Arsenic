@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -24,14 +25,9 @@ import java.util.List;
 
 import static arsenic.utils.lag.LagManager.getPing;
 
-/**
- * @author Kv
- * @since 1/4/26 (Aus)
- */
 
 @ModuleInfo(name = "BlockHit", category = ModuleCategory.COMBAT)
 public class BlockHit extends Module {
-    /** Target hurt time at which to unblock. Higher blocks more of the trade. */
     public final DoubleProperty hurtime = new DoubleProperty("Hurtime", new DoubleValue(0.0, 10.0, 2.0, 1.0));
 
     public final EnumProperty<mode> blockType = new EnumProperty<>("Mode", mode.Legit);
@@ -42,7 +38,6 @@ public class BlockHit extends Module {
     }
     public LivingEntity target;
     public boolean down;
-    // TwoSword timing: mirrors SprintReset's hurtTime gate so we swap only when it's time to attack.
     public int swapHurtTime = 1;
     public boolean hasSwapped = false;
 
@@ -82,7 +77,6 @@ public class BlockHit extends Module {
         if (blockType.getValue() != mode.TwoSword)
             return;
 
-        // Aiming at another player, resolved from the silent-rotation raytrace (blocks + entities).
         HitResult mop = event.getRayTraceEntity();
         boolean aimingAtPlayer = mop instanceof net.minecraft.world.phys.EntityHitResult entityHit
                 && entityHit.getEntity() instanceof Player
@@ -94,11 +88,8 @@ public class BlockHit extends Module {
             return;
         }
 
-        // Keep blocking (hold right click) the whole time we're aimed at a player.
         if (!down) press();
 
-        // Swap between the two swords ONLY when the hurtTime gate says it's time to attack again —
-        // the same timing SprintReset uses — so we swap once per hit cycle, not every tick.
         if (swords.size() >= 2 && target != null && !hasSwapped && target.hurtTime == swapHurtTime) {
             int current = mc.player.getInventory().getSelectedSlot();
             int next = current == swords.get(0) ? swords.get(1) : swords.get(0);
@@ -107,7 +98,6 @@ public class BlockHit extends Module {
         }
     };
 
-    /** Hotbar slots (0-8) that currently hold a sword. */
     private List<Integer> swordSlots() {
         List<Integer> slots = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
@@ -125,8 +115,7 @@ public class BlockHit extends Module {
     }
 
     public boolean isPlayerHoldingSword() {
-        return (mc.player.getMainHandItem() != null)
-                && ItemUtils.isSword((mc.player.getMainHandItem()));
+        return PlayerUtils.isPlayerHoldingSword();
     }
 
     private void release() {
@@ -138,7 +127,6 @@ public class BlockHit extends Module {
     private void press() {
         down = true;
         mc.options.keyUse.setDown(true);
-        //KeyMapping.onTick(key);
     }
 
 

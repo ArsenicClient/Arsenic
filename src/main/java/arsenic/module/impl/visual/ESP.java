@@ -1,9 +1,11 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.gui.themes.ThemeManager;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -25,13 +27,7 @@ import java.awt.Color;
 @ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true)
 public class ESP extends Module {
 
-    /**
-     * How players are drawn. These were four independent toggles plus two folders of tuning - a
-     * combinatorial mess where most combinations were either invisible or drew the same player
-     * three times. They are one choice now, because they always were one choice.
-     */
     public enum Mode {
-        /** Shaded box plus outline. The default: readable at any distance, costs nothing. */
         Box,
         /** Coloured outline through walls - vanilla's glowing-entity outline, in the team colour. */
         Glow,
@@ -51,15 +47,27 @@ public class ESP extends Module {
                 continue;
             AABB box = RenderUtils.interpolatedBox(entity);
             if (mode.getValue() == Mode.Box)
-                RenderUtils.renderBox(box, 0xC0000000 | getBedWarsColor(entity), true, true);
-            // Health always shows. It was off by default, which meant the module shipped without
-            // the one piece of information that actually changes how you play a fight.
+                RenderUtils.renderBox(box, 0xC0000000 | resolveColour(entity), true, true);
             drawHealthEsp(entity, box);
         }
     };
 
     private boolean isTarget(Entity entity) {
         return entity instanceof Player player && player != mc.player && !AntiBot.isBot(player);
+    }
+
+    private int resolveColour(Player entity) {
+        if (entity != null && Arsenic.getArsenic().getFriendManager().isFriend(entity))
+            return getFriendColour();
+        if (entity != null)
+            return getBedWarsColor(entity);
+        return ThemeManager.getMainColor();
+    }
+
+    private static int getFriendColour() {
+        int theme = ThemeManager.getMainColor();
+        float[] hsb = Color.RGBtoHSB((theme >> 16) & 0xFF, (theme >> 8) & 0xFF, theme & 0xFF, null);
+        return 0xFF000000 | Color.HSBtoRGB((hsb[0] + 0.5f) % 1f, Math.max(0.7f, hsb[1]), Math.max(0.85f, hsb[2]));
     }
 
     /** Read by MixinMinecraft#shouldEntityAppearGlowing. */
@@ -69,7 +77,7 @@ public class ESP extends Module {
 
     /** Read by MixinEntity#getTeamColor so the outline takes the BedWars team colour. */
     public int getGlowColour(Entity entity) {
-        return entity instanceof Player player ? getBedWarsColor(player) & 0xFFFFFF : ThemeManager.getMainColor();
+        return entity instanceof Player player ? resolveColour(player) & 0xFFFFFF : ThemeManager.getMainColor();
     }
 
     /** A health bar standing beside the player, always facing the camera. */

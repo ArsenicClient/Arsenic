@@ -110,9 +110,7 @@ public class AntiBot extends Module {
     }
 
 
-    // UTILS
 
-    /** Tab entries that are also loaded as entities. Anyone in tab but out of range is skipped. */
     public static ArrayList<Player> getPlayerList() {
         ArrayList<Player> list = new ArrayList<>();
         if (mc.player == null || mc.level == null || mc.getConnection() == null) {
@@ -155,10 +153,6 @@ public class AntiBot extends Module {
         return false;
     }
 
-    /**
-     * True when the given player's UUID appears more than once in the tab list,
-     * indicating a duplicate entity (likely a bot).
-     */
     public static boolean hasDuplicateUUID(Player target) {
         ClientPacketListener netHandler = mc.getConnection();
         if (netHandler == null || target.getUUID() == null) {

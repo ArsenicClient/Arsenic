@@ -28,7 +28,6 @@ public class DisableCommand extends Command {
 
     @Override
     protected List<String> getAutoComplete(String str, int arg, List<String> list) {
-        // only suggest modules that are currently enabled
         return arg == 0 ? autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getEnabledModules().stream()
                 .map(Module::getName).collect(Collectors.toList()), str) : list;
     }

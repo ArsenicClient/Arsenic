@@ -13,6 +13,15 @@ import net.minecraft.client.gui.ScaledResolution;
 @Mixin(priority = 1111, value = GuiIngame.class)
 public class MixinGuiIngame {
 
+    @Inject(method = "renderGameOverlay", at = @At("RETURN"))
+    private void arsenic$fadeIntoGame(float partialTicks, CallbackInfo ci) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+        if (mc.currentScreen == null) {
+            ScaledResolution sr = new ScaledResolution(mc);
+            arsenic.module.impl.visual.custommainmenu.ScreenTransition.drawOverlay(sr.getScaledWidth(), sr.getScaledHeight());
+        }
+    }
+
     @Inject(method = "renderTooltip", at = @At("RETURN"))
     private void renderTooltip(ScaledResolution sr, float partialTicks, CallbackInfo ci) {
         if (!System.getProperty("os.name").toLowerCase().contains("mac")) {

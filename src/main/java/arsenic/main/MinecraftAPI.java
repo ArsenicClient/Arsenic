@@ -2,7 +2,6 @@ package arsenic.main;
 
 public class MinecraftAPI {
 
-    // kv why...
     public static float cachedYawM;
     public static float cachedYawL, cachedPrevYawL, cachedPitchL, cachedPrevPitchL;
 

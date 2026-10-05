@@ -38,12 +38,6 @@ public class Theme implements ISerializable {
     private int status = 0xFFFFFFAA;
     private boolean gradient;
 
-    /**
-     * The ClickGUI backdrop this theme asks for. Colour and backdrop are the same decision - an
-     * orange client over a green caustics shader looks like two unrelated things layered on top of
-     * each other - so the shader travels with the theme rather than being a separate setting.
-     * Defaults to Aurora, which is neutral enough to sit under any hue.
-     */
     private arsenic.gui.click.GuiStyle.BgShader bgShader = arsenic.gui.click.GuiStyle.BgShader.AURORA;
 
     public Theme(String name, int mainColor, int darkerColor, int white, int black) {
@@ -140,7 +134,7 @@ public class Theme implements ISerializable {
     public int getConfigsCard() { return configsCard; }
     public void setConfigsCard(int configsCard) { this.configsCard = configsCard; }
 
-    public int getConfigsCardBorder() { return configsCardBorder; }
+    public int getConfigsCardBorder() { return adjusted(0, configsCardBorder, 1.8); }
     public void setConfigsCardBorder(int configsCardBorder) { this.configsCardBorder = configsCardBorder; }
 
     public int getSeparator() { return separator; }
@@ -149,7 +143,7 @@ public class Theme implements ISerializable {
     public int getConfigsHoverBackground() { return configsHoverBackground; }
     public void setConfigsHoverBackground(int configsHoverBackground) { this.configsHoverBackground = configsHoverBackground; }
 
-    public int getConfigsHoverBorder() { return configsHoverBorder; }
+    public int getConfigsHoverBorder() { return adjusted(1, configsHoverBorder, 2.8); }
     public void setConfigsHoverBorder(int configsHoverBorder) { this.configsHoverBorder = configsHoverBorder; }
 
     public int getEnumBackground() { return enumBackground; }
@@ -158,13 +152,31 @@ public class Theme implements ISerializable {
     public int getFolderBackground() { return folderBackground; }
     public void setFolderBackground(int folderBackground) { this.folderBackground = folderBackground; }
 
-    public int getTextPrimary() { return textPrimary; }
+
+
+    private final int[] adjKey = new int[5];
+    private final int[] adjVal = new int[5];
+
+    private int adjusted(int slot, int colour, double target) {
+        int key = colour * 31 + configsBackground * 17 + configsCard * 13 + moduleBackground * 7 + configsHoverBackground;
+        if (adjKey[slot] == key && adjVal[slot] != 0)
+            return adjVal[slot];
+        int bg = configsBackground & 0xFFFFFF;
+        int[] surfaces = {bg, configsCard & 0xFFFFFF, Contrast.over(moduleBackground, bg),
+                Contrast.over(configsHoverBackground, bg)};
+        if (slot < 2) surfaces = new int[]{configsCard & 0xFFFFFF};
+        int v = Contrast.ensure(colour, surfaces, target);
+        adjKey[slot] = key;
+        adjVal[slot] = v;
+        return v;
+    }
+    public int getTextPrimary() { return adjusted(2, textPrimary, 10); }
     public void setTextPrimary(int textPrimary) { this.textPrimary = textPrimary; }
 
-    public int getTextSecondary() { return textSecondary; }
+    public int getTextSecondary() { return adjusted(3, textSecondary, 6.5); }
     public void setTextSecondary(int textSecondary) { this.textSecondary = textSecondary; }
 
-    public int getTextMuted() { return textMuted; }
+    public int getTextMuted() { return adjusted(4, textMuted, 4.5); }
     public void setTextMuted(int textMuted) { this.textMuted = textMuted; }
 
     public int getError() { return error; }
@@ -189,8 +201,6 @@ public class Theme implements ISerializable {
     }
 
 
-    //configs could be done with reflection
-    // but this would look strange with obfuscation and honestly not much of a point
     @Override
     public void loadFromJson(JsonObject obj) {
         setLogoPath(obj.get("resourcelocation").getAsString());

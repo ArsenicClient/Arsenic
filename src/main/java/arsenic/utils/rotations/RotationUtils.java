@@ -1,5 +1,6 @@
 package arsenic.utils.rotations;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.UtilityClass;
@@ -14,7 +15,22 @@ import net.minecraft.world.phys.Vec3;
 
 public class RotationUtils extends UtilityClass {
 
-    //dont bloat this method again. Let it be the way it was when i first made it
+    /** Yaw that faces the horizontal offset (dx, dz). */
+    public static float yawTo(double dx, double dz) {
+        return (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+    }
+
+    /** Pitch that faces the offset (dx, dy, dz); negative looks up. */
+    public static float pitchTo(double dx, double dy, double dz) {
+        return (float) -Math.toDegrees(Math.atan2(dy, MathUtils.horizontalDistance(dx, dz)));
+    }
+
+    /** {yaw, pitch} that look from one point at another. */
+    public static float[] rotationsTo(Vec3 from, Vec3 to) {
+        double dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+        return new float[]{yawTo(dx, dz), pitchTo(dx, dy, dz)};
+    }
+
     public static float[] getRotationsToEntity(LivingEntity e) {
         if (e == null) return null;
         final Vec3 targetVec = getBestHitVec(e);
@@ -89,7 +105,6 @@ public class RotationUtils extends UtilityClass {
         return (float) (yaw * -1.0D);
     }
 
-    // old arsenic
     public static float[] getRotations(Vec3 from, Vec3 to) {
         final float diffY = (float) (from.y - to.y);
         final float diffX = (float) (from.x - to.x);
@@ -114,7 +129,6 @@ public class RotationUtils extends UtilityClass {
         return mc.player.position().distanceTo(Vec3.atLowerCornerOf(blockPos));
     }
 
-    //haven't tested if this works
     public static float[] getPlayerRotationsToBlock(BlockPos pos, Direction face) {
         return getPlayerRotationsToVec(getVec3FromBlockPosAndEnumFacing(pos, face));
     }
@@ -138,11 +152,10 @@ public class RotationUtils extends UtilityClass {
         final double x = blockPos.getX() + 0.45 - mc.player.getX();
         final double y = blockPos.getY() + 0.45 - (mc.player.getY() + mc.player.getEyeHeight());
         final double z = blockPos.getZ() + 0.45 - mc.player.getZ();
-        float yaw = mc.player.getYRot();
-        float pitch = mc.player.getXRot();
+        float yaw = mc.player.getYRot(), pitch = mc.player.getXRot();
         float[] targetRots = new float[]{
-                yaw + Mth.wrapDegrees((float) (Math.atan2(z, x) * 57.295780181884766) - 90.0f - yaw),
-                clamp(pitch + Mth.wrapDegrees((float) (-(Math.atan2(y, Math.sqrt(x * x + z * z)) * 57.295780181884766)) - pitch))};
+                yaw + Mth.wrapDegrees(yawTo(x, z) - yaw),
+                clamp(pitch + Mth.wrapDegrees(pitchTo(x, y, z) - pitch))};
         float currentYaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
         float[] lastRots = new float[]{currentYaw, currentPitch};

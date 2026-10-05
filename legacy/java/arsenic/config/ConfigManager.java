@@ -49,11 +49,9 @@ public class ConfigManager implements ISerializable {
         try {
             File defaultConfigFile = new File(configDirectory.getPath(), "default.json");
 
-            // Load the resource file
             InputStream resourceStream = getClass().getResourceAsStream("/assets/arsenic/configs/default.json");
 
             if (resourceStream != null) {
-                // Copy resource to config directory
                 try (FileOutputStream fos = new FileOutputStream(defaultConfigFile)) {
                     byte[] buffer = new byte[1024];
                     int bytesRead;
@@ -66,12 +64,10 @@ public class ConfigManager implements ISerializable {
                 System.out.println("Created default config from resource file");
             } else {
                 System.out.println("Resource file not found, creating empty default config");
-                // Fallback to creating empty config
                 createConfig("default");
                 return;
             }
 
-            // Load the newly created config
             ModuleConfig config = new ModuleConfig(defaultConfigFile);
             configs.put("default", config);
             currentConfig = config;
@@ -79,7 +75,6 @@ public class ConfigManager implements ISerializable {
         } catch (Exception e) {
             System.err.println("Failed to load default config from resources: " + e.getMessage());
             e.printStackTrace();
-            // Fallback to creating empty config
             createConfig("default");
         }
     }
@@ -88,7 +83,7 @@ public class ConfigManager implements ISerializable {
         configs.clear();
 
         if (configDirectory.listFiles() == null || (Objects.requireNonNull(configDirectory.listFiles()).length == 0))
-            return; // nothing to discover if there are no files in the directory
+            return;
 
         for (File file : Objects.requireNonNull(configDirectory.listFiles())) {
             if (file.getName().endsWith(".json")) {
@@ -160,7 +155,4 @@ public class ConfigManager implements ISerializable {
         return "config";
     }
 
-    // remember to only call this during events that the user can call eg closing
-    // the clickgui, using commands etc.
-    // if you don't then there is a potential of recursion
 }

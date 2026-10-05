@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -15,7 +16,7 @@ public class FastPlace extends Module {
     public int getTickDelay() {
         if(!true)
             return (int) ticks.getValue().getRandomInRange();
-        if(mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemBlock)
+        if(PlayerUtils.isPlayerHoldingBlocks())
             return (int) ticks.getValue().getRandomInRange();
         return 4;
     }

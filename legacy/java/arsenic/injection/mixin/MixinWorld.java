@@ -17,12 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinWorld {
 
 
-    /*
-    @ModifyVariable(method = "spawnEntityInWorld", at = @At("STORE"), ordinal = 0)
-    public EntityPlayer mixinSpawnEntityInWorld(EntityPlayer entityplayer) {
-        Arsenic.getArsenic().getEventManager().post(new EventPlayerJoinWorld(entityplayer, entityplayer.getEntityWorld()));
-        return entityplayer;
-    } */
 
     @Inject(method = "spawnEntityInWorld", at = @At("HEAD"))
     public void spawnEntityInWorld(Entity entityIn, CallbackInfoReturnable<Boolean> cir) {

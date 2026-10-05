@@ -59,8 +59,6 @@ public class CommandManager {
             return;
         }
 
-        // fallback: treat the first token as a module name so you can type
-        // ".sprint" to toggle it or ".sprint multiplier 1.5" to change a setting
         if (handleModuleCommand(name, args))
             return;
 
@@ -102,7 +100,6 @@ public class CommandManager {
             String[] args = str.length() > name.length() ? str.substring(name.length() + 1, str.length()).split(" ")
                     : new String[]{};
             if (args.length == 0) {
-                // still completing the first token: offer command names and module names
                 List<String> options = getClosestCommandName(name);
                 options.addAll(autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getModules().stream()
                         .map(Module::getName).collect(Collectors.toList()), name));
@@ -114,9 +111,8 @@ public class CommandManager {
                 setAutoCompletions(command.getAutoComplete(args));
                 return;
             }
-            // no command: maybe it's a module, so complete its settings / values
             setAutoCompletions(getModuleAutoComplete(name, args));
-        } catch (ArrayIndexOutOfBoundsException ignored){} //crashes if you try to autocomplete a command that does not exist
+        } catch (ArrayIndexOutOfBoundsException ignored){}
     }
 
     private List<String> getModuleAutoComplete(String name, String[] args) {
@@ -128,12 +124,10 @@ public class CommandManager {
         if (args.length == 1)
             return autoCompleteHelper(CommandUtils.getSettingNames(module), current);
 
-        // value position: suggest enum modes / booleans for the setting named in args[0]
         CommandUtils.PropMatch match = CommandUtils.matchProperty(module, new String[] { args[0] });
         return match != null ? autoCompleteHelper(CommandUtils.valueSuggestions(match.property), current) : new ArrayList<>();
     }
 
-    // sorts alphabetically
     private void setAutoCompletions(List<String> list) {
         list.sort(Comparator.naturalOrder());
         autoCompletions = list;

@@ -22,6 +22,7 @@ public class ClientConfig implements IConfig<ISerializable> {
         contents.add(Arsenic.getInstance().getThemeManager());
         contents.add(arsenic.gui.click.GuiStyle.get());
         contents.add(Arsenic.getInstance().getLaunchID());
+        contents.add(Arsenic.getInstance().getFriendManager());
         contents.add(Arsenic.getInstance().getErrorOverlay());
     }
 

@@ -29,11 +29,13 @@ public class ModuleManager {
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
 
-        // Remove modules where dev is true
-        modules.entrySet().removeIf(entry -> {
-            ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
-            return info != null && info.dev();
-        });
+        // devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar)
+        if(ModuleManager.class.getResource("/devmode.properties") == null) {
+            modules.entrySet().removeIf(entry -> {
+                ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
+                return info != null && info.tier() == ModuleTier.DEV;
+            });
+        }
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
@@ -68,11 +70,6 @@ public class ModuleManager {
         return null;
     }
 
-    /**
-     * Fixed bind that opens the ClickGUI. It is not rebindable on purpose: it used to be a keybind
-     * property on a ClickGui module that existed for little else, and a client whose whole point is
-     * having few settings should not spend one of them on this.
-     */
     private static final int CLICK_GUI_KEY = org.lwjgl.input.Keyboard.KEY_RSHIFT;
 
     @EventLink
@@ -82,7 +79,7 @@ public class ModuleManager {
             return;
         }
 
-        AtomicBoolean saveConfig = new AtomicBoolean(false); // for eff
+        AtomicBoolean saveConfig = new AtomicBoolean(false);
 
         getModules().stream().filter(m -> m.getKeybind() == event.getKeycode())
                 .forEach(m -> {

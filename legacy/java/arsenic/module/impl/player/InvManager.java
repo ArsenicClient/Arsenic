@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.event.bus.Listener;
@@ -23,9 +24,8 @@ import java.util.List;
 
 @ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYER)
 public class InvManager extends Module {
-    /** Gap between inventory clicks. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
-
+    public final BooleanProperty dropItems = new BooleanProperty("Drop Items", true);
 
 
     private Timer timer = new Timer();
@@ -45,8 +45,7 @@ public class InvManager extends Module {
         if(!path.isEmpty()) {
             Action action = path.remove(0);
 
-            //skips the switch statement and moves onto the next action
-            if(!true && action.type == ActionType.DROP) {
+            if(!dropItems.getValue() && action.type == ActionType.DROP) {
                 getExecuteAction().run();
                 return;
             }
@@ -109,69 +108,54 @@ public class InvManager extends Module {
     public List<Action> generatePath(ContainerPlayer inv) {
         ArrayList<Action> actions = new ArrayList<>();
 
-        // Track best items for each slot
-        int[] bestItemSlots = new int[9]; // Hotbar slots 1-9 (indices 0-8 map to slots 1-9)
+        int[] bestItemSlots = new int[9];
         for(int i = 0; i < 9; i++) {
             bestItemSlots[i] = -1;
         }
-        int[] bestArmorSlots = new int[4]; // Armor slots
+        int[] bestArmorSlots = new int[4];
         for(int i = 0; i < 4; i++) {
             bestArmorSlots[i] = -1;
         }
 
-        // Find best items using ContainerUtils
 
-        // Slot 1: Sword
         bestItemSlots[0] = ContainerUtils.getBestWeapon();
 
-        // Slot 2: Projectiles (eggs/snowballs)
         bestItemSlots[1] = ContainerUtils.getMostProjectiles();
 
-        // Slot 3: Blocks
         bestItemSlots[2] = ContainerUtils.getMostBlocks();
 
-        // Slot 4: Ender Pearls
         bestItemSlots[3] = ContainerUtils.getBiggestStack(Items.ender_pearl);
 
-        // Slot 5: Golden Apples
         bestItemSlots[4] = ContainerUtils.getBiggestStack(Items.golden_apple);
 
-        // Slot 6: Bow
         bestItemSlots[5] = ContainerUtils.getBestBow();
 
-        // Slots 6-9: Best tool items (pickaxe, axe, shovel)
         bestItemSlots[6] = ContainerUtils.getBestTool(ItemPickaxe.class);
         bestItemSlots[8] = ContainerUtils.getBestTool(ItemSpade.class);
         Arsenic.getArsenic().getLogger().info(bestItemSlots[1] + "");
         bestItemSlots[7] = ContainerUtils.getBestTool(ItemAxe.class);
 
-        // Find best armor
         for(int i = 0; i < 4; i++) {
             bestArmorSlots[i] = ContainerUtils.getBestArmor(i);
         }
 
-        // Phase 1: Handle armor first
         for(int i = 0; i < 4; i++) {
-            int curArmorSlot = i + 5; // Armor slots are 5-8
+            int curArmorSlot = i + 5;
             int bestArmorSlot = bestArmorSlots[i];
 
             if(bestArmorSlot != -1 && bestArmorSlot != curArmorSlot) {
                 ItemStack currentArmor = ContainerUtils.getItemStack(curArmorSlot);
                 if(currentArmor != null) {
-                    // Click to unequip current armor first
                     actions.add(new Action(ActionType.CLICK, curArmorSlot));
                 }
-                // Click to equip new armor
                 actions.add(new Action(ActionType.CLICK, bestArmorSlot));
             }
         }
 
-        //Phase 2: Drop items that should be removed
         for(int i = 9; i < 45; i++) {
             ItemStack stack = ContainerUtils.getItemStack(i);
             if(stack == null) continue;
 
-            // Check if this item is one of our best items
             boolean isBestItem = false;
             for(int j = 0; j < bestItemSlots.length; j++) {
                 if(bestItemSlots[j] == i) {
@@ -186,14 +170,11 @@ public class InvManager extends Module {
                 }
             }
 
-            // If not a best item and can be dropped, drop it
             if(!isBestItem) {
                 actions.add(new Action(ActionType.DROP, i));
             }
         }
 
-        // Phase 2: Move best items to their preferred hotbar slots
-        // Now move items in order: Sword -> Projectiles -> Blocks -> Pearls -> Gapples -> Tools
         for(int i = 0; i < bestItemSlots.length; i++) {
             int bestSlot = bestItemSlots[i];
             int targetInvSlot = i + 36;

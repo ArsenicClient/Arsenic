@@ -11,6 +11,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,6 +30,11 @@ public class PlayerUtils extends UtilityClass {
         }
     }
 
+    public static boolean isHolding(Class<? extends Item> type) {
+        ItemStack held = mc.player.getMainHandItem();
+        return held != null && type.isInstance(held.getItem());
+    }
+
     public static boolean isPlayerHoldingWeapon() {
         return ItemUtils.isWeapon(mc.player.getMainHandItem());
     }
@@ -39,6 +45,10 @@ public class PlayerUtils extends UtilityClass {
 
     public static boolean isPlayerHoldingSword() {
         return ItemUtils.isSword(mc.player.getMainHandItem());
+    }
+
+    public static boolean isPlayerHoldingBow() {
+        return mc.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.BowItem;
     }
 
     public static void addWaterMarkedMessageToChat(Object object) {
@@ -110,7 +120,6 @@ public class PlayerUtils extends UtilityClass {
     public static boolean withinFov(Entity entity, float fov) {
         float f = fov * 0.5f;
         float angle = RotationUtils.fovToEntity(entity);
-        // Use silent aim yaw so FOV is centered on where we're actually aiming
         float yaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float angleDiff = ((yaw - angle) % 360 + 540) % 360 - 180;
         return angleDiff > -f && angleDiff < f;

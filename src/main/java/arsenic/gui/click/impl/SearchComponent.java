@@ -1,5 +1,6 @@
 package arsenic.gui.click.impl;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
@@ -19,6 +20,11 @@ import arsenic.utils.io.Keys;
 import java.util.stream.Collectors;
 
 public class SearchComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
+    @Override
+    protected boolean followsMoreToggle() {
+        return false;
+    }
+
     final ClickGuiScreen gui = Arsenic.getArsenic().getClickGuiScreen();
     private final StringBuilder inp = new StringBuilder();
     private final AnimationTimer activateTimer = new AnimationTimer(200, () -> gui.getCmcc() == this, TickMode.SINE);
@@ -38,7 +44,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     }
     @Override
     public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
-        boolean isMouseOver = mouseX >= x && mouseX <= x1 && mouseY >= (y - 10) && mouseY <= (y + 10);
+        boolean isMouseOver = MathUtils.inside(mouseX, mouseY, x, y - 10, x1, y + 10);
         if (isMouseOver && mouseButton == 0){
             toggleSearch();
         }

@@ -43,9 +43,6 @@ public final class EventBus<Event> implements Bus<Event> {
                 try {
                     Listener<Event> listener = (Listener<Event>) LOOKUP.unreflectGetter(field).invokeWithArguments(subscriber);
 
-                    // A null field means we were handed a half-constructed object: its initialisers
-                    // have not run. Registering it anyway would bake a call site that throws NPE on
-                    // every dispatch, forever, with nothing pointing back at the real mistake.
                     if (listener == null) {
                         EventErrors.report(subscriber, null, new IllegalStateException(
                                 "listener field '" + field.getName() + "' was null when subscribed"
@@ -59,8 +56,6 @@ public final class EventBus<Event> implements Bus<Event> {
                         try {
                             originalListener.call(event);
                         } catch (Throwable t) {
-                            // caught per listener so the throw can be attributed to the module that
-                            // owns it, and so one broken listener cannot kill the rest of the event
                             EventErrors.report(subscriber, event, t);
                         }
                     };
@@ -123,8 +118,6 @@ public final class EventBus<Event> implements Bus<Event> {
 
             while (i < listenersSize) { listeners.get(i++).call(event); }
         } catch (Exception e){
-            // safety net: listener bodies are wrapped individually, so this only catches problems in
-            // the dispatch itself
             EventErrors.report(null, event, e);
             System.out.println("\u001B[31m"+"ERROR IN THE EVENT BUS");
             e.printStackTrace();

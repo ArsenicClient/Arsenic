@@ -81,11 +81,6 @@ public class EventSilentRotation implements Event {
         return smoothing;
     }
 
-    /**
-     * When {@code false}, the manager skips its ease-out/momentum curve and moves straight toward
-     * the requested rotation, capped only by {@link #getSpeed()}. For modules that shape their own
-     * per-tick motion and need it applied as-is. Defaults to {@code true} and resets every tick.
-     */
     public void setSmoothing(boolean smoothing) {
         this.smoothing = smoothing;
     }
@@ -94,23 +89,10 @@ public class EventSilentRotation implements Event {
         return blockUserInput;
     }
 
-    /**
-     * When {@code true}, the player's own attack/use inputs (break block, place block, hit) are
-     * swallowed for this tick — the keybinds behave as if they were never pressed, and queued
-     * presses are drained so nothing fires once blocking stops. Client-side invocations of
-     * {@code clickMouse()}/{@code rightClickMouse()} (Clicker, KillAura, Scaffold, ...) are
-     * unaffected. Defaults to {@code false} and resets every tick, so a module must re-assert it.
-     */
     public void setBlockUserInput(boolean blockUserInput) {
         this.blockUserInput = blockUserInput;
     }
 
-    /**
-     * Fired once per tick after the {@code SilentRotationManager} has settled on the
-     * final rotations it will apply (post GCD-patch, speed limiting and duplicate-look
-     * handling). Read-only: consumers observe the values the manager committed to, they
-     * do not influence them — use the enclosing {@link EventSilentRotation} for that.
-     */
     public static class Post implements Event {
 
         private final float yaw, pitch;

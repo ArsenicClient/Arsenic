@@ -27,6 +27,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     private final String name;
     private final String description;
     private final ModuleCategory category;
+    private final ModuleTier tier;
     private boolean enabled;
     private boolean hidden;
     private String displayName;
@@ -47,14 +48,11 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         displayName = name;
         description = info.description();
         category = info.category();
+        tier = info.tier();
         hidden = info.hidden();
         keybind = info.keybind();
 
         if (info.enabled()) {
-            // Only raise the flag here. Subscribing at this point would hand the bus a subclass
-            // whose field initialisers have not run yet, so every @EventLink Listener field still
-            // reads null and the bus caches call sites that invoke null forever. The actual
-            // subscribe happens in registerProperties(), once construction has finished.
             enabled = true;
         }
     }
@@ -65,8 +63,6 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     public void registerProperties() throws IllegalAccessException {
-        // Called once construction is complete, so the listener fields finally hold real values.
-        // setEnabledSilently would no-op here (the flag is already true), so subscribe directly.
         if (enabled && !registered) {
             Arsenic.getInstance().getEventManager().subscribe(this);
             registered = true;
@@ -107,26 +103,13 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
-    /**
-     * Short live-state string shown next to this module's name in the HUD arraylist and in its
-     * ClickGUI card - "240ms", "witholding", "combo", the current target-switch mode.
-     * <p>
-     * Return {@code null} (the default) for modules that have nothing worth saying; most do not.
-     * Prefer the module's <em>current state</em> over its configured setting where the two differ,
-     * because the point of the suffix is to answer "what is this doing right now" at a glance.
-     * <p>
-     * This is called every frame from the render loop, so keep it allocation-light and never let it
-     * do work that can block. Callers guard against exceptions, but not against a slow one.
-     */
     public String getHudInfo() {
         return null;
     }
 
-    //triggers when the module is enabled
     protected void onEnable() {
     }
 
-    //triggers when the module is disabled
     protected void onDisable() {
     }
 
@@ -137,6 +120,10 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
     public final String getDescription() {
         return description;
+    }
+
+    public final ModuleTier getTier() {
+        return tier;
     }
 
     public final ModuleCategory getCategory() {
@@ -158,7 +145,6 @@ public class Module implements IContainer<Property<?>>, ISerializable {
             if (enabled) {
                 onEnable();
 
-                // prevents registering when it gets disabled on enable
                 if (this.enabled) {
                     Arsenic.getInstance().getEventManager().subscribe(this);
                     registered = true;
@@ -243,7 +229,6 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         postApplyConfig();
     }
 
-    //triggers after the config has been applied
     protected void postApplyConfig() {
     }
 

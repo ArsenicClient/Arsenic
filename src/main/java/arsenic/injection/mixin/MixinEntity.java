@@ -51,8 +51,6 @@ public abstract class MixinEntity {
         ci.cancel();
     }
 
-    // AimAssist hooks the actual mouse-look deltas here, where Minecraft turns them into a rotation
-    // change, and swallows them while it has a target so the mouse can't fight its turn.
     @ModifyVariable(method = "turn", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private double arsenic$aimAssistYaw(double yaw) {
         if ((Object) this != Minecraft.getInstance().player)

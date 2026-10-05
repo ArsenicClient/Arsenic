@@ -6,6 +6,10 @@ import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketListener;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.core.Holder;
+import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.sounds.SoundEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -47,6 +51,11 @@ public abstract class MixinConnection {
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void arsenic$receive(ChannelHandlerContext ctx, Packet<?> packet, CallbackInfo ci) {
+        // servers can probe for the client by playing sounds from our resource namespace
+        if (arsenic$isOwnSound(packet)) {
+            ci.cancel();
+            return;
+        }
         EventPacket e = new EventPacket.Incoming.Pre(packet);
         Arsenic.getArsenic().getEventManager().post(e);
         if (e.isCancelled()) {
@@ -60,6 +69,13 @@ public abstract class MixinConnection {
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At("RETURN"))
     private void arsenic$receivePost(ChannelHandlerContext ctx, Packet<?> packet, CallbackInfo ci) {
         Arsenic.getArsenic().getEventManager().post(new EventPacket.Incoming.Post(packet));
+    }
+
+    @Unique
+    private static boolean arsenic$isOwnSound(Packet<?> packet) {
+        Holder<SoundEvent> sound = packet instanceof ClientboundSoundPacket p ? p.getSound()
+                : packet instanceof ClientboundSoundEntityPacket p ? p.getSound() : null;
+        return sound != null && "arsenic".equals(sound.value().location().getNamespace());
     }
 
     @Unique

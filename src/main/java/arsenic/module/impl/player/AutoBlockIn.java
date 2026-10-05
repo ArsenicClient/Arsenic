@@ -1,4 +1,5 @@
 package arsenic.module.impl.player;
+import arsenic.utils.java.ColorUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.main.Arsenic;
@@ -33,7 +34,6 @@ import net.minecraft.world.phys.Vec3;
 import java.util.*;
 @ModuleInfo(name = "AutoBlockIn", category = ModuleCategory.PLAYER)
 public class AutoBlockIn extends Module {
-    /** Blocks placed per second while walling up. */
     public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 20, 15, 1));
 
     public final EnumProperty<AutoBlockInMode> mode = new EnumProperty<>("Mode", AutoBlockInMode.SILENT);
@@ -75,9 +75,6 @@ public class AutoBlockIn extends Module {
     private static final double[][] DITHER = {
         {0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {2, 0}, {-2, 0}, {0, 2}, {0, -2}
     };
-    // NORMAL mode (disabled)
-    // private float savedYaw;
-    // private float savedPitch;
     private int savedSlot;
     
     private int lastSetSlot;
@@ -114,10 +111,6 @@ public class AutoBlockIn extends Module {
     private int remainingFinalCount;
     
     private int remainingSupportCount;
-    // NORMAL mode (disabled)
-    // private float yawDelta;
-    // private float pitchDelta;
-    // private float prevPartialTicks;
     @Override
     protected void onEnable() {
         if (mc.player == null || mc.level == null
@@ -126,9 +119,6 @@ public class AutoBlockIn extends Module {
             return;
         }
         savedSlot = mc.player.getInventory().getSelectedSlot();
-        // NORMAL mode (disabled)
-        // savedYaw = mc.player.getYRot();
-        // savedPitch = mc.player.getXRot();
         lockedPos = null;
         airborneTicks = 0;
         lastSetSlot = -1;
@@ -152,20 +142,11 @@ public class AutoBlockIn extends Module {
         cachedSolids = null;
         remainingFinalCount = 0;
         remainingSupportCount = 0;
-        // NORMAL mode (disabled)
-        // yawDelta = 0;
-        // pitchDelta = 0;
-        // prevPartialTicks = 0;
         placeTimer.reset();
     }
     @Override
     protected void onDisable() {
         if (mc.player != null) {
-            // NORMAL mode (disabled)
-            // if (mode.getValue() == AutoBlockInMode.NORMAL) {
-            //     mc.player.setYRot(savedYaw);
-            //     mc.player.setXRot(savedPitch);
-            // }
             mc.player.getInventory().setSelectedSlot(savedSlot);
         }
         plan = null;
@@ -173,9 +154,6 @@ public class AutoBlockIn extends Module {
         currentAim = null;
         aimPlanIndex = -1;
         verifyPos = null;
-        // NORMAL mode (disabled)
-        // yawDelta = 0;
-        // pitchDelta = 0;
     }
 
     private boolean shouldAutoDisable() {
@@ -450,17 +428,6 @@ public class AutoBlockIn extends Module {
         return new Vec3((double) (f1 * f2), (double) f3, (double) (f * f2));
     }
     
-    private static float[] rotationsTo(Vec3 eyes, Vec3 p) {
-        double dx = p.x - eyes.x;
-        double dy = p.y - eyes.y;
-        double dz = p.z - eyes.z;
-        double dist = (float) Math.sqrt(dx * dx + dz * dz);
-        return new float[]{
-            (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0),
-            (float) (-Math.toDegrees(Math.atan2(dy, dist)))
-        };
-    }
-    
     private static double angularDist(float y1, float p1, float y2, float p2) {
         Vec3 a = lookVector(y1, p1);
         Vec3 b = lookVector(y2, p2);
@@ -574,13 +541,13 @@ public class AutoBlockIn extends Module {
             double[][] points = { {pc.cc[0], pc.cc[1]}, centroid(pc.poly) };
             for (double[] uv : points) {
                 Vec3 w = f.toWorld(uv[0], uv[1]);
-                float[] rots = rotationsTo(eyes, w);
+                float[] rots = RotationUtils.rotationsTo(eyes, w);
                 BlockHitResult mop = rotationRayTrace(eyes, rots[0], rots[1], virtualSolids);
                 if (mop == null || mop.getType() != HitResult.Type.BLOCK) continue;
                 if (!mop.getBlockPos().equals(neighbor) || mop.getDirection() != facing) continue;
                 double[] nb = nearestBoundary(pc.poly, uv[0], uv[1]);
                 Vec3 wb = f.toWorld(nb[1], nb[2]);
-                float[] rotsB = rotationsTo(eyes, wb);
+                float[] rotsB = RotationUtils.rotationsTo(eyes, wb);
                 double clearance = angularDist(rots[0], rots[1], rotsB[0], rotsB[1]);
                 return new FaceTarget(neighbor, facing, rots[0], rots[1], mop.getLocation(), clearance);
             }
@@ -1243,10 +1210,7 @@ public class AutoBlockIn extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> silentRotationListener = event -> {
-        // if (mode.getValue() != AutoBlockInMode.SILENT) return;
         if (preTick()) return;
-        // The module owns the hand while surrounding — the player's own attack/use presses would
-        // break the blocks we just placed or desync the plan, so swallow them for the duration.
         event.setBlockUserInput(true);
         if (currentAim == null) return;
         event.setMovementFix(SilentRotationManager.MovementFix.OFF);
@@ -1272,7 +1236,6 @@ public class AutoBlockIn extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> silentPostListener = event -> {
-        // if (mode.getValue() != AutoBlockInMode.SILENT) return;
         if (currentTarget == null || currentAim == null) return;
         BlockHitResult mop = event.getRayTrace();
         if (!mopHitsTarget(mop)) {
@@ -1283,53 +1246,7 @@ public class AutoBlockIn extends Module {
         if (!placeTimer.finished(getPlaceDelay())) return;
         doPlace(mop);
     };
-    // NORMAL mode (disabled)
-    // @RequiresPlayer
-    // @EventLink
-    // public final Listener<EventTick> tickListener = event -> {
-    //     if (mode.getValue() != AutoBlockInMode.NORMAL) return;
-    //     if (preTick()) return;
-    //     if (currentTarget == null || currentAim == null) {
-    //         yawDelta = 0;
-    //         pitchDelta = 0;
-    //         return;
-    //     }
-    //     yawDelta = getYawDelta(currentAim.yaw);
-    //     pitchDelta = getPitchDelta(currentAim.pitch);
-    //     prevPartialTicks = 0;
-    //     ticksOnStep++;
-    //     if (stepTimedOut()) {
-    //         advancePlan();
-    //         return;
-    //     }
-    //     Vec3 eyes = mc.player.getEyePosition(1);
-    //     Vec3 look = lookVector(mc.player.getYRot(), mc.player.getXRot());
-    //     Vec3 traceEnd = eyes.add(look.x * PLACE_REACH, look.y * PLACE_REACH, look.z * PLACE_REACH);
     //     net.minecraft.world.phys.BlockHitResult mop = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyes, traceEnd);
-    //     if (!mopHitsTarget(mop)) {
-    //         onLiveRayMiss(mc.player.getYRot(), mc.player.getXRot());
-    //         return;
-    //     }
-    //     missTicks = 0;
-    //     if (!placeTimer.finished(getPlaceDelay())) return;
-    //     doPlace(mop);
-    // };
-    // @RequiresPlayer
-    // @EventLink
-    // public final Listener<EventRenderWorldLast> normalRotationListener = event -> {
-    //     if (mode.getValue() != AutoBlockInMode.NORMAL) return;
-    //     if (yawDelta == 0 && pitchDelta == 0) return;
-    //     float t = event.partialTicks - prevPartialTicks;
-    //     float newYaw = mc.player.getYRot() + yawDelta * t;
-    //     float newPitch = mc.player.getXRot() + pitchDelta * t;
-    //     newPitch = Mth.clamp(newPitch, -90, 90);
-    //     float[] fixed = RotationUtils.patchGCD(
-    //         new float[]{mc.player.getYRot(), mc.player.getXRot()},
-    //         new float[]{newYaw, newPitch});
-    //     mc.player.setYRot(fixed[0]);
-    //     mc.player.setXRot(fixed[1]);
-    //     prevPartialTicks = event.partialTicks;
-    // };
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
@@ -1341,32 +1258,16 @@ public class AutoBlockIn extends Module {
             PlanStep step = plan.get(i);
             boolean current = i == planIndex;
             int base = step.isSupport ? support : (current ? main : darker);
-            int fill = withAlpha(base, current ? 90 : (step.isSupport ? 35 : 55));
-            int outline = withAlpha(base, current ? 230 : 160);
+            int fill = ColorUtils.withAlpha(base, current ? 90 : (step.isSupport ? 35 : 55));
+            int outline = ColorUtils.withAlpha(base, current ? 230 : 160);
             RenderUtils.renderBlock(step.placePos, fill, false, true);
             RenderUtils.renderBlock(step.placePos, outline, true, false);
             if (current && step.facing != null) {
                 RenderUtils.renderBlockFace(step.neighbor, step.facing,
-                        withAlpha(main, 200), true, true);
+                        ColorUtils.withAlpha(main, 200), true, true);
             }
         }
     };
-    private static int withAlpha(int rgb, int alpha) {
-        return ((alpha & 0xFF) << 24) | (rgb & 0x00FFFFFF);
-    }
-    // NORMAL mode (disabled)
-    // private float getYawDelta(float targetYaw) {
-    //     float delta = Mth.wrapDegrees(targetYaw - mc.player.getYRot());
-    //     float speedVal = (float) 140;
-    //     float speedCurve = (float) (speedVal * (Math.sin(Math.toRadians(Math.abs(delta))) / 2 + 0.5));
-    //     return Math.min(speedCurve, Math.abs(delta)) * Math.signum(delta);
-    // }
-    // private float getPitchDelta(float targetPitch) {
-    //     float delta = targetPitch - mc.player.getXRot();
-    //     float speedVal = (float) 140;
-    //     float speedCurve = (float) (speedVal * (Math.sin(Math.toRadians(Math.abs(delta))) / 2 + 0.5));
-    //     return Math.min(speedCurve, Math.abs(delta)) * Math.signum(delta);
-    // }
     private boolean isPlayerAtLockedPos() {
         if (lockedPos == null) return false;
         int px = Mth.floor(mc.player.getX());
@@ -1374,7 +1275,6 @@ public class AutoBlockIn extends Module {
         return px == lockedPos.getX() && pz == lockedPos.getZ();
     }
     public enum AutoBlockInMode {
-        // NORMAL,
         SILENT
     }
     

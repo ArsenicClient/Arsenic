@@ -88,11 +88,6 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
         Arsenic.getInstance().getEventManager().post(new EventLiving());
     }
 
-    // When HitSelect holds a hit, suppress the swing too - EntityPlayerSP#swingItem plays the
-    // animation AND sends C0APacketAnimation, so cancelling here means a held hit produces no
-    // arm swing and no swing packet, keeping it invisible to the server. The swing fires before
-    // the attack in clickMouse, so we decide from the pointed entity and let the attack hook
-    // reuse the same (idempotent) decision.
     @Inject(method = "swingItem", at = @At("HEAD"), cancellable = true)
     private void arsenic$hitSelectSwing(CallbackInfo ci) {
         Minecraft mc = Minecraft.getMinecraft();
@@ -121,22 +116,6 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implement
                 .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
     }
 
-    /*@Inject(method = "isSneaking", at = @At("RETURN"), cancellable = true)
-    private void isSneaking(CallbackInfoReturnable<Boolean> cir) {
-        BridgeAssist bridgeAssist = Arsenic.getInstance().getModuleManager().getModuleByClass(BridgeAssist.class);
-        if(!bridgeAssist.isEnabled()) {
-            return;
-        }
-        cir.setReturnValue(bridgeAssist.isSneaking() || cir.getReturnValue());
-    }
 
-    @ModifyVariable(method = "onLivingUpdate", at = @At("STORE"), ordinal = 0)
-    private boolean flag1(boolean flag1) {
-        BridgeAssist bridgeAssist = Arsenic.getInstance().getModuleManager().getModuleByClass(BridgeAssist.class);
-        if(!bridgeAssist.isEnabled()) {
-            return flag1;
-        }
-        return bridgeAssist.isSneaking() || flag1;
-    } */
 
 }

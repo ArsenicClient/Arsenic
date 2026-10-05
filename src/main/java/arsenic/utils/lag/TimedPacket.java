@@ -7,7 +7,6 @@ public class TimedPacket {
 
     private final Packet<?> packet;
     private final Timer timer;
-    /** The module (holder key) that delayed this packet. May be null for legacy usages. */
     private final Class<?> owner;
 
     public TimedPacket(Packet<?> packet) {

@@ -31,23 +31,27 @@ public class PlayerUtils extends UtilityClass {
         }
     }
 
+    public static boolean isHolding(Class<? extends Item> type) {
+        ItemStack held = mc.thePlayer.getCurrentEquippedItem();
+        return held != null && type.isInstance(held.getItem());
+    }
+
     public static boolean isPlayerHoldingWeapon() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null)
-            return false;
-        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-        return item instanceof ItemSword || item instanceof ItemAxe;
+        return isHolding(ItemSword.class) || isHolding(ItemAxe.class);
     }
 
     public static boolean isPlayerHoldingBlocks() {
-        if (mc.thePlayer.getCurrentEquippedItem() == null)
-            return false;
-        Item item = mc.thePlayer.getCurrentEquippedItem().getItem();
-        return item instanceof ItemBlock;
+        return isHolding(ItemBlock.class);
     }
+
     public static boolean isPlayerHoldingSword() {
-        return (mc.thePlayer.getCurrentEquippedItem() != null)
-                && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword);
+        return isHolding(ItemSword.class);
     }
+
+    public static boolean isPlayerHoldingBow() {
+        return isHolding(ItemBow.class);
+    }
+
     public static void addWaterMarkedMessageToChat(Object object) {
         addMessageToChat("§7[§cA§7]§r " + object.toString());
     }
@@ -111,7 +115,6 @@ public class PlayerUtils extends UtilityClass {
     public static boolean withinFov(Entity entity, float fov) {
         float f = fov * 0.5f;
         float angle = RotationUtils.fovToEntity(entity);
-        // Use silent aim yaw so FOV is centered on where we're actually aiming
         float yaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float angleDiff = ((yaw - angle) % 360 + 540) % 360 - 180;
         return angleDiff > -f && angleDiff < f;

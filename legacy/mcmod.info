@@ -3,7 +3,7 @@
         "modid": "arsenic",
         "name": "Arsenic Client",
         "description": "Hypixel Ghost Client",
-        "version": "v0.2",
+        "version": "${version}",
         "url": "",
         "updateUrl": "",
         "authorList": [

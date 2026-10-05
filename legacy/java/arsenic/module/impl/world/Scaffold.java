@@ -1,13 +1,16 @@
 package arsenic.module.impl.world;
 
+import arsenic.utils.java.MathUtils;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
+import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
-import arsenic.injection.accessor.IMixinEntity;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -18,56 +21,33 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.scaffoldcore.ScaffoldCore;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Random;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockAir;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.util.*;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Vec3;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
-import static arsenic.utils.minecraft.ScaffoldUtil.willFallNextTick;
-import static arsenic.utils.rotations.RotationUtils.patchGCD;
-
-@ModuleInfo(name = "Scaffold", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Scaffold", category = ModuleCategory.MOVEMENT)
 public class Scaffold extends Module {
 
-
-
-
-    // Rotation speed cap (degrees/tick), randomised per tick for a more human feel.
-    /**
-     * Keep sprinting while scaffolding. Places faster and covers ground, and is the clearest
-     * possible signal - a person cannot sprint backwards while placing under themselves.
-     */
-    public BooleanProperty sprint = new BooleanProperty("Sprint", false);
-
-    public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1));
-    // Eagle == built-in SafeWalk: sneak whenever a step would carry the player off a ledge.
+    public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     public BooleanProperty eagle = new BooleanProperty("Eagle", true);
-    // Look-ahead safety for Eagle, mirroring SafeWalk's "Safety" property.
-    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 5, 2, 0.1));
+    @PropertyInfo(reliesOn = "Eagle", value = "true")
+    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0.1, 3, 2, 0.1));
 
-
+    private final ScaffoldCore core = new ScaffoldCore(ScaffoldCore.Tuning.best(), new Random());
     private BlockData blockData;
-    private float[] rots = new float[2];
-    private boolean solvedRots;
     private float animatedScale;
     public static int blockCounterX = -1;
     public static int blockCounterY = -1;
@@ -80,14 +60,14 @@ public class Scaffold extends Module {
     private int placementHead = 0;
     private int placementCount = 0;
     private float blockFlashIntensity = 0f;
-    private static final ItemBlock placeholderBlock = new ItemBlock(Blocks.tnt);
-
 
     @Override
     protected void onEnable() {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         blockData = null;
         animatedScale = 0f;
+        core.reset();
+        recentPlacements.clear();
         super.onEnable();
     }
 
@@ -101,116 +81,72 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
-        boolean wilLFall = ScaffoldUtil.willFallNextTick() && mc.thePlayer.motionY < 0.3;
-        blockData = findBestPlacement();
         Item item = keyBlock();
-        event.setSpeed((float) rotationSpeed.getValue().getRandomInRange());
-        event.setPreventDuplicateLook(true);
-
-        // Base yaw follows the direction of travel (opposite of movement) rather than raw player
-        // yaw. e.g. W+A -> face opposite the forward-left vector, so the placed line trails the
-        // player's actual path. Sprint keeps facing forward.
-        float baseYaw = getBaseYaw();
-        event.setYaw(baseYaw);
-        event.setPitch(rots[1]);
-
-        if(item == null)
-            return;
-
-        if(wilLFall) {
-            if (blockData != null) {
-                float[] solved = getRotationsForFace(blockData.getPosition(), blockData.getFacing(), baseYaw);
-                if (solved != null) {
-                    rots = solved;
-                    solvedRots = true;
-                } else {
-                    solvedRots = false;
-                    rots = getFreeRotationsForFace(blockData.getPosition(), blockData.getFacing());
-                }
-            }
-            event.setYaw(solvedRots ? baseYaw : rots[0]);
-            event.setPitch(rots[1]);
-        } else {
-            event.setYaw(baseYaw);
-            event.setPitch(rots[1]);
-        }
+        ScaffoldCore.Rotation rotation = core.rotate(input(true, item != null && haveBlocks()), ScaffoldUtil.WORLD);
+        event.setSpeed(rotation.speed);
+        event.setPreventDuplicateLook(rotation.preventDuplicateLook);
+        event.setYaw(rotation.yaw);
+        event.setPitch(rotation.pitch);
+        updateTarget();
     };
 
-    // Yaw the scaffold should point at: opposite the player's movement input (so blocks trail
-    // the path), or straight ahead while sprinting. Read from the raw movement keys — NOT from
-    // movementInput, whose forward/strafe get rewritten by the silent-rotation movement fix,
-    // which would feed the yaw back into itself. Idle -> face backward (rotationYaw + 180).
-    private float getBaseYaw() {
-        // Sprinting means facing where you are going, so there is no backward yaw to compute.
-        if (sprint.getValue())
-            return mc.thePlayer.rotationYaw;
-
-        int forward = 0, strafe = 0;
-        if (mc.gameSettings.keyBindForward.isKeyDown()) forward++;
-        if (mc.gameSettings.keyBindBack.isKeyDown())    forward--;
-        if (mc.gameSettings.keyBindLeft.isKeyDown())    strafe++;
-        if (mc.gameSettings.keyBindRight.isKeyDown())   strafe--;
-
-        float offset;
-        if (forward > 0) {
-            offset = strafe == 0 ? 180f : (strafe > 0 ? 135f : -135f);
-        } else if (forward < 0) {
-            offset = strafe == 0 ? 0f : (strafe > 0 ? 45f : -45f);
-        } else {
-            offset = strafe == 0 ? 180f : (strafe > 0 ? 90f : -90f);
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventSilentRotation.Post> eventSilentRotationPostListener = event -> {
+        Item item = keyBlock();
+        ScaffoldCore.Input in = input(true, item instanceof ItemBlock && haveBlocks());
+        ScaffoldCore.Action action = core.post(in, ScaffoldUtil.WORLD, event.getYaw(), event.getPitch());
+        boolean placed = false;
+        if (action.place) {
+            place(action);
+            placed = true;
         }
-        return mc.thePlayer.rotationYaw + offset;
+        updateTarget();
+        setShift(core.sneak(in, ScaffoldUtil.WORLD, placed));
+    };
+
+    @RequiresPlayer
+    @EventLink(Priorities.HIGH)
+    public final Listener<EventMovementInput> eventMovementInputListener = event -> {
+        float[] nudge = core.nudge();
+        if (nudge == null || (event.getSpeed() == 0 && event.getStrafe() == 0))
+            return;
+        float scale = Math.max(Math.abs(event.getSpeed()), Math.abs(event.getStrafe()));
+        event.setSpeed(nudge[0] * scale);
+        event.setStrafe(nudge[1] * scale);
+    };
+
+    private ScaffoldCore.Input input(boolean movement, boolean hasBlock) {
+        ScaffoldCore.Input in = ScaffoldUtil.coreInput(movement);
+        in.hasBlock = hasBlock;
+        in.speedMin = rotationSpeed.getValue().getMin();
+        in.speedMax = rotationSpeed.getValue().getMax();
+        in.eagle = eagle.getValue();
+        in.safety = safety.getValue().getInput();
+        return in;
     }
 
-    private void updateShift(boolean placedThisTick) {
-        // Safety shift (grounded only): if no block was placed this tick and the player will fall
-        // next tick, sneak so they don't step off the edge. Covers the case where the rotation was
-        // simply too slow to aim at the target in time.
-        boolean shift = mc.thePlayer.onGround && !placedThisTick && ScaffoldUtil.willFallNextTick();
-
-        // Eagle (built-in SafeWalk): sneak whenever a step would carry the player off a ledge,
-        // using the same look-ahead safety SafeWalk exposes.
-        if (eagle.getValue() && ScaffoldUtil.willFallNextTick(safety.getValue().getInput())) {
-            shift = true;
-        }
-
-        setShift(shift);
+    private void updateTarget() {
+        ScaffoldCore.Target target = core.target();
+        blockData = target == null ? null
+                : new BlockData(new BlockPos(target.x, target.y, target.z), EnumFacing.getFront(target.face));
     }
 
-    // Force sneak on when shift is requested; otherwise fall back to the player's physical key
-    // so we never cancel a manual crouch.
     private void setShift(boolean shift) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(),
                 shift || Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
     }
 
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventSilentRotation.Post> eventSilentRotationPostListener = event -> {
-        // Whether we actually placed a block this tick — determined here, AFTER the speed-capped
-        // rotation has settled, so we know if the aim genuinely reached the target face.
-        boolean placed = false;
-
-        Item item = keyBlock();
-        if (item instanceof ItemBlock && blockData != null) {
-            ItemBlock itemBlock = (ItemBlock) item;
-            MovingObjectPosition movingObjectPosition = event.getRayTrace();
-            if (movingObjectPosition != null
-                    && movingObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                    && (movingObjectPosition.sideHit != EnumFacing.DOWN)
-                    && (!false || movingObjectPosition.sideHit != EnumFacing.UP)
-                    && itemBlock.canPlaceBlockOnSide(mc.theWorld, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.thePlayer, mc.thePlayer.getHeldItem())) {
-                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
-                placePost(event);
-                placed = true;
-            }
-        }
-
-        // Shift decision lives here so safety-shift can react to whether a block was actually
-        // placed this tick (a target can exist but be unreachable if rotations were too slow).
-        updateShift(placed);
-    };
-
+    private void place(ScaffoldCore.Action action) {
+        mc.playerController.onPlayerRightClick(
+                mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(),
+                new BlockPos(action.x, action.y, action.z), EnumFacing.getFront(action.face),
+                new Vec3(action.hitX, action.hitY, action.hitZ)
+        );
+        mc.thePlayer.swingItem();
+        recentPlacements.addLast(System.currentTimeMillis());
+        recordPlacement();
+    }
 
 
     @EventLink
@@ -269,6 +205,18 @@ public class Scaffold extends Module {
         GL11.glPopMatrix();
     };
 
+    private final java.util.ArrayDeque<Long> recentPlacements = new java.util.ArrayDeque<>();
+
+    private boolean haveBlocks() {
+        long now = System.currentTimeMillis();
+        net.minecraft.client.network.NetworkPlayerInfo info = mc.getNetHandler() == null ? null
+                : mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
+        long window = (info != null ? Math.max(0, info.getResponseTime()) : 100) + 60;
+        while (!recentPlacements.isEmpty() && now - recentPlacements.peekFirst() > window)
+            recentPlacements.pollFirst();
+        return getBlockCount() - recentPlacements.size() > 0;
+    }
+
     private int getBlockCount() {
         if (mc.thePlayer == null) return 0;
         int count = 0;
@@ -295,7 +243,7 @@ public class Scaffold extends Module {
             maxBlockCount = blockCount;
         }
         animatedBlockCount = interpolate(animatedBlockCount, blockCount, 0.15f);
-        float displayCount = Math.max(0, Math.min(maxBlockCount, animatedBlockCount));
+        float displayCount = MathUtils.clamp(animatedBlockCount, 0, maxBlockCount);
         animatedRingFill = maxBlockCount > 0 ? displayCount / maxBlockCount : 0f;
 
         GL11.glPushMatrix();
@@ -432,7 +380,6 @@ public class Scaffold extends Module {
         return (r << 16) | (g << 8) | b;
     }
 
-    // ── HUD geometry helpers ──────────────────────────────────────────────────
 
     private static class HudDimensions {
         int x, y, w, h;
@@ -514,7 +461,6 @@ public class Scaffold extends Module {
         RenderUtils.resetColor();
     }
 
-    // ── BPS / BPM tracking ────────────────────────────────────────────────────
 
     private void recordPlacement() {
         long now = System.currentTimeMillis();
@@ -550,127 +496,8 @@ public class Scaffold extends Module {
         return current + (target - current) * speed;
     }
 
-    public BlockData findBestPlacement() {
-        EntityPlayerSP player = mc.thePlayer;
-        float baseYaw = getBaseYaw();
-        BlockPos playerPos = new BlockPos(player);
-        BlockPos scanY = playerPos.down();
-
-        BlockData best = null;
-        double bestScore = Double.MAX_VALUE;
-
-        // The cell the player is about to occupy — this is what the scaffold actually needs to
-        // support, not whatever face happens to be closest to the eyes. Centre it on the
-        // predicted bounding box so selection follows the direction of travel.
-        AxisAlignedBB predicted = ScaffoldUtil.getPredictedBoundingBox(1.0);
-        double targetX = (predicted.minX + predicted.maxX) * 0.5;
-        double targetZ = (predicted.minZ + predicted.maxZ) * 0.5;
-        double targetY = scanY.getY() + 0.5;
-
-        // Score of the best block ALREADY supporting the target cell. If no candidate beats this,
-        // a placement would be redundant — the player is already standing on something at least as
-        // good, so we return null rather than spend a block.
-        double existingScore = Double.MAX_VALUE;
-
-        // When KeepY is off and the player is airborne (jumping / falling), also scan the layer
-        // below so the block directly under the player can be towered: its UP face creates a block
-        // at the player's feet. On ground we only need the regular support layer.
-        boolean tower = !player.onGround && !false;
-        int lowestLayer = tower ? -1 : 0;
-
-        for (int layer = 0; layer >= lowestLayer; layer--) {
-            BlockPos layerPos = scanY.add(0, layer, 0);
-        for (int x = -4; x <= 4; x++) {
-            for (int z = -4; z <= 4; z++) {
-                BlockPos pos = layerPos.add(x, 0, z);
-                IBlockState state = mc.theWorld.getBlockState(pos);
-
-                if (state.getBlock() == Blocks.air) continue;
-                if (!state.getBlock().isFullCube()) continue;
-
-                // This block already exists on the support layer. Record how well it fills the
-                // target cell so we can compare any new placement against what's already there.
-                double exDx = (pos.getX() + 0.5) - targetX;
-                double exDz = (pos.getZ() + 0.5) - targetZ;
-                double exDy = (pos.getY() + 0.5) - targetY;
-                double exScore = exDx * exDx + exDz * exDz + exDy * exDy * 0.25;
-                if (exScore < existingScore)
-                    existingScore = exScore;
-
-                List<EnumFacing> facings = new ArrayList<>(Arrays.asList(EnumFacing.HORIZONTALS));
-                // Allow towering whenever airborne with KeepY off — whether rising or falling — so a
-                // block under the player's feet is a valid candidate. The listener's wilLFall check
-                // still governs WHEN a block is actually spent.
-                if (tower) {
-                    facings.add(EnumFacing.UP);
-                }
-
-                for (EnumFacing facing : facings) {
-                    if (!placeholderBlock.canPlaceBlockOnSide(mc.theWorld, pos, facing, mc.thePlayer, mc.thePlayer.getHeldItem()))
-                        continue;
-
-                    BlockPos neighbor = pos.offset(facing);
-                    IBlockState neighborState = mc.theWorld.getBlockState(neighbor);
-
-                    if (neighborState.getBlock() != Blocks.air)
-                        continue;
-
-                    // The block we'd actually create occupies `neighbor`. Score it by how well it
-                    // fills the cell the player is heading into, so we never return a face whose
-                    // resulting block sits further from the player's path than one already placed.
-                    double nbCenterX = neighbor.getX() + 0.5;
-                    double nbCenterY = neighbor.getY() + 0.5;
-                    double nbCenterZ = neighbor.getZ() + 0.5;
-
-                    double dx = nbCenterX - targetX;
-                    double dz = nbCenterZ - targetZ;
-                    double dy = nbCenterY - targetY;
-                    // Horizontal alignment with the path dominates; vertical offset is a soft tiebreak.
-                    double score = dx * dx + dz * dz + dy * dy * 0.25;
-
-                    if (score >= bestScore)
-                        continue;
-
-                    float[] rots = getRotationsForFace(pos, facing, baseYaw);
-                    if (rots == null) {
-                        rots = getFreeRotationsForFace(pos, facing);
-                    }
-
-                    Vec3 eyeVec = player.getPositionEyes(1.0f);
-                    Vec3 lookDir = ((IMixinEntity) player).invokeGetVectorForRotation(rots[1], rots[0]);
-                    Vec3 traceEnd = eyeVec.addVector(
-                            lookDir.xCoord * 4.5,
-                            lookDir.yCoord * 4.5,
-                            lookDir.zCoord * 4.5
-                    );
-                    MovingObjectPosition hit = player.worldObj.rayTraceBlocks(eyeVec, traceEnd, false, false, true);
-
-                    if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
-                    if (!hit.getBlockPos().equals(pos)) continue;
-                    if (hit.sideHit != facing) continue;
-
-                    bestScore = score;
-                    best = new BlockData(pos, facing);
-                }
-            }
-        }
-        }
-
-
-        // A block is already supporting the target cell at least as well as anything we could
-        // place — placing now would just waste a block, so signal "nothing to do".
-        if (best != null && existingScore <= bestScore) {
-            return null;
-        }
-
-        return best;
-    }
-
-
-
     private Item keyBlock() {
-        if (mc.thePlayer.inventory.getCurrentItem() == null
-                || !(mc.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemBlock) || mc.thePlayer.inventory.getCurrentItem().stackSize <= 1) {
+        if (!ScaffoldUtil.isUsable(mc.thePlayer.inventory.getCurrentItem())) {
             mc.thePlayer.inventory.currentItem = ScaffoldUtil.getBlockSlot();
         }
         if(mc.thePlayer.inventory.getCurrentItem() == null)
@@ -678,262 +505,14 @@ public class Scaffold extends Module {
         return mc.thePlayer.inventory.getCurrentItem().getItem();
     }
 
-
-
-    private void placePost(EventSilentRotation.Post event) {
-        if (blockData == null) {
-            return;
-        }
-
-        MovingObjectPosition objectOver = event.getRayTrace();
-        BlockPos blockpos = objectOver.getBlockPos();
-        if (objectOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
-                || mc.theWorld.getBlockState(blockpos).getBlock().getMaterial() == Material.air) {
-            return;
-        }
-
-        mc.playerController.onPlayerRightClick(
-                mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(),
-                blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData)
-        );
-
-        mc.thePlayer.swingItem();
-        recordPlacement();
-    }
-
     public static float[] getRotationsForFace(BlockPos blockPos, EnumFacing facing, float lockedYaw) {
-        EntityPlayerSP player = mc.thePlayer;
-
-        double eyeX = player.posX;
-        double eyeY = player.posY + player.getEyeHeight();
-        double eyeZ = player.posZ;
-
-        float yawRad = (float) Math.toRadians(lockedYaw);
-
-        double hx = -Math.sin(yawRad);
-        double hz =  Math.cos(yawRad);
-
-        double bx0 = blockPos.getX(), bx1 = bx0 + 1.0;
-        double by0 = blockPos.getY(), by1 = by0 + 1.0;
-        double bz0 = blockPos.getZ(), bz1 = bz0 + 1.0;
-
-        float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
-
-        float bestPitch = Float.MAX_VALUE;
-        float bestDiff  = Float.MAX_VALUE;
-
-        switch (facing) {
-            case UP: {
-                float pitch = pitchToHitPoint(eyeX, eyeY, eyeZ, hx, hz, bx0 + 0.5, by1, bz0 + 0.5);
-                if (!Float.isNaN(pitch)) {
-                    float diff = Math.abs(MathHelper.wrapAngleTo180_float(pitch - currentPitch));
-                    if (diff < bestDiff) { bestDiff = diff; bestPitch = pitch; }
-                }
-                for (double cx : new double[]{bx0 + 0.1, bx1 - 0.1}) {
-                    for (double cz : new double[]{bz0 + 0.1, bz1 - 0.1}) {
-                        float p = pitchToHitPoint(eyeX, eyeY, eyeZ, hx, hz, cx, by1, cz);
-                        if (!Float.isNaN(p)) {
-                            float diff = Math.abs(MathHelper.wrapAngleTo180_float(p - currentPitch));
-                            if (diff < bestDiff) { bestDiff = diff; bestPitch = p; }
-                        }
-                    }
-                }
-                break;
-            }
-            case DOWN: {
-                float pitch = pitchToHitPoint(eyeX, eyeY, eyeZ, hx, hz, bx0 + 0.5, by0, bz0 + 0.5);
-                if (!Float.isNaN(pitch)) {
-                    float diff = Math.abs(MathHelper.wrapAngleTo180_float(pitch - currentPitch));
-                    if (diff < bestDiff) { bestDiff = diff; bestPitch = pitch; }
-                }
-                break;
-            }
-            case NORTH: {
-                float[] candidates = pitchesToHitZPlane(eyeX, eyeY, eyeZ, hx, hz,
-                        bz0, bx0, bx1, by0, by1);
-                for (float p : candidates) {
-                    if (!Float.isNaN(p)) {
-                        float diff = Math.abs(MathHelper.wrapAngleTo180_float(p - currentPitch));
-                        if (diff < bestDiff) { bestDiff = diff; bestPitch = p; }
-                    }
-                }
-                break;
-            }
-            case SOUTH: {
-                float[] candidates = pitchesToHitZPlane(eyeX, eyeY, eyeZ, hx, hz,
-                        bz1, bx0, bx1, by0, by1);
-                for (float p : candidates) {
-                    if (!Float.isNaN(p)) {
-                        float diff = Math.abs(MathHelper.wrapAngleTo180_float(p - currentPitch));
-                        if (diff < bestDiff) { bestDiff = diff; bestPitch = p; }
-                    }
-                }
-                break;
-            }
-            case WEST: {
-                float[] candidates = pitchesToHitXPlane(eyeX, eyeY, eyeZ, hx, hz,
-                        bx0, by0, by1, bz0, bz1);
-                for (float p : candidates) {
-                    if (!Float.isNaN(p)) {
-                        float diff = Math.abs(MathHelper.wrapAngleTo180_float(p - currentPitch));
-                        if (diff < bestDiff) { bestDiff = diff; bestPitch = p; }
-                    }
-                }
-                break;
-            }
-            case EAST: {
-                float[] candidates = pitchesToHitXPlane(eyeX, eyeY, eyeZ, hx, hz,
-                        bx1, by0, by1, bz0, bz1);
-                for (float p : candidates) {
-                    if (!Float.isNaN(p)) {
-                        float diff = Math.abs(MathHelper.wrapAngleTo180_float(p - currentPitch));
-                        if (diff < bestDiff) { bestDiff = diff; bestPitch = p; }
-                    }
-                }
-                break;
-            }
-        }
-
-        if (bestPitch == Float.MAX_VALUE) {
-            return null;  // locked yaw can't hit this face
-        }
-
-        bestPitch = MathHelper.clamp_float(bestPitch, -90f, 90f);
-
-        float[] lastRots = new float[]{lockedYaw, currentPitch};
-        float[] targetRots = new float[]{lockedYaw, bestPitch};
-        float[] fixedRots = patchGCD(lastRots, targetRots);
-        fixedRots[0] = lockedYaw;
-        return fixedRots;
+        return ScaffoldCore.rotationsForFace(ScaffoldUtil.coreInput(false), blockPos.getX(), blockPos.getY(), blockPos.getZ(),
+                facing.getIndex(), lockedYaw);
     }
 
     public static float[] getFreeRotationsForFace(BlockPos blockPos, EnumFacing facing) {
-        EntityPlayerSP player = mc.thePlayer;
-
-        double eyeX = player.posX;
-        double eyeY = player.posY + player.getEyeHeight();
-        double eyeZ = player.posZ;
-
-        double faceCX = blockPos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
-        double faceCY = blockPos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
-        double faceCZ = blockPos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
-
-        double dx = faceCX - eyeX;
-        double dy = faceCY - eyeY;
-        double dz = faceCZ - eyeZ;
-
-        float yaw   = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
-
-        pitch = MathHelper.clamp_float(pitch, -90f, 90f);
-
-        float currentYaw   = Arsenic.getArsenic().getSilentRotationManager().yaw;
-        float currentPitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
-
-        float[] lastRots   = new float[]{currentYaw, currentPitch};
-        float[] targetRots = new float[]{yaw, pitch};
-        return patchGCD(lastRots, targetRots);
-    }
-
-
-    private static float pitchToHitPoint(double eyeX, double eyeY, double eyeZ,
-                                         double hx, double hz,
-                                         double targetX, double targetY, double targetZ) {
-        double dx = targetX - eyeX;
-        double dy = targetY - eyeY;
-        double dz = targetZ - eyeZ;
-
-        double tCosp;
-        if (Math.abs(hx) > Math.abs(hz)) {
-            if (Math.abs(hx) < 1e-6) return Float.NaN;
-            tCosp = dx / hx;
-        } else {
-            if (Math.abs(hz) < 1e-6) return Float.NaN;
-            tCosp = dz / hz;
-        }
-
-        if (tCosp <= 0) return Float.NaN;
-
-        double tanPitch = -dy / tCosp;
-        return (float) Math.toDegrees(Math.atan(tanPitch));
-    }
-
-    private static float[] pitchesToHitZPlane(double eyeX, double eyeY, double eyeZ,
-                                              double hx, double hz,
-                                              double faceZ,
-                                              double xMin, double xMax,
-                                              double yMin, double yMax) {
-        if (Math.abs(hz) < 1e-6) return new float[0];
-
-        double tCosp = (faceZ - eyeZ) / hz;
-        if (tCosp <= 0) return new float[0];
-
-        double[] sampleY = {
-                yMin + 0.1,
-                yMin + (yMax - yMin) * 0.2,
-                yMin + (yMax - yMin) * 0.3,
-                yMin + (yMax - yMin) * 0.4,
-                (yMin + yMax) * 0.5,
-                yMin + (yMax - yMin) * 0.6,
-                yMin + (yMax - yMin) * 0.7,
-                yMin + (yMax - yMin) * 0.8,
-                yMin + (yMax - yMin) * 0.9,
-                yMax - 0.1
-        };
-
-        float[] results = new float[sampleY.length];
-        int count = 0;
-        for (double sy : sampleY) {
-            double dy = sy - eyeY;
-            double hitX = eyeX + hx * tCosp;
-            if (hitX < xMin || hitX > xMax) continue;
-
-            double tanPitch = -dy / tCosp;
-            results[count++] = (float) Math.toDegrees(Math.atan(tanPitch));
-        }
-
-        float[] trimmed = new float[count];
-        System.arraycopy(results, 0, trimmed, 0, count);
-        return trimmed;
-    }
-
-    private static float[] pitchesToHitXPlane(double eyeX, double eyeY, double eyeZ,
-                                              double hx, double hz,
-                                              double faceX,
-                                              double yMin, double yMax,
-                                              double zMin, double zMax) {
-        if (Math.abs(hx) < 1e-6) return new float[0];
-
-        double tCosp = (faceX - eyeX) / hx;
-        if (tCosp <= 0) return new float[0];
-
-        double[] sampleY = {
-                yMin + 0.1,
-                yMin + (yMax - yMin) * 0.2,
-                yMin + (yMax - yMin) * 0.3,
-                yMin + (yMax - yMin) * 0.4,
-                (yMin + yMax) * 0.5,
-                yMin + (yMax - yMin) * 0.6,
-                yMin + (yMax - yMin) * 0.7,
-                yMin + (yMax - yMin) * 0.8,
-                yMin + (yMax - yMin) * 0.9,
-                yMax - 0.1
-        };
-
-        float[] results = new float[sampleY.length];
-        int count = 0;
-        for (double sy : sampleY) {
-            double dy = sy - eyeY;
-            double hitZ = eyeZ + hz * tCosp;
-            if (hitZ < zMin || hitZ > zMax) continue;
-
-            double tanPitch = -dy / tCosp;
-            results[count++] = (float) Math.toDegrees(Math.atan(tanPitch));
-        }
-
-        float[] trimmed = new float[count];
-        System.arraycopy(results, 0, trimmed, 0, count);
-        return trimmed;
+        return ScaffoldCore.freeRotationsForFace(ScaffoldUtil.coreInput(false), blockPos.getX(), blockPos.getY(), blockPos.getZ(),
+                facing.getIndex());
     }
 
     public static class BlockData {

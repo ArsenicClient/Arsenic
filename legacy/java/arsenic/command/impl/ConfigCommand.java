@@ -16,7 +16,6 @@ import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
 
 @CommandInfo(name = "config", args = { "save/load/list/delete", "config name" }, aliases = { "c" }, help = "helps you manipulate configs", minArgs = 1)
 public class ConfigCommand extends Command {
-    //don't scroll down if you wish to have living braincells
     ArrayList<String> args = new ArrayList<>(Arrays.asList("list", "load", "save", "delete"));
     @Override
     public void execute(String[] args) {
@@ -27,13 +26,13 @@ public class ConfigCommand extends Command {
                     PlayerUtils.addWaterMarkedMessageToChat("I need the name of the config");
                     break;
                 }
-                String lastConfig = configManager.getCurrentConfig().getName(); //gets the last config before trying to load another one
+                String lastConfig = configManager.getCurrentConfig().getName();
                 try {
-                    configManager.saveConfig(); // save the current config before we load another one
+                    configManager.saveConfig();
                     configManager.loadConfig(args[1]);
                     PlayerUtils.addWaterMarkedMessageToChat("loaded " + args[1]);
                 } catch (NullPointerException e) {
-                    configManager.loadConfig(lastConfig); //applies lastConfig if the passed args were invalid/config was null
+                    configManager.loadConfig(lastConfig);
                     PlayerUtils.addWaterMarkedMessageToChat(args[1] + " does not exist");
                 }
                 break;
@@ -47,10 +46,10 @@ public class ConfigCommand extends Command {
                     break;
                 }
                 try {
-                    String prevConfig = configManager.getCurrentConfig().getName(); //get the current config (before saving)
+                    String prevConfig = configManager.getCurrentConfig().getName();
                     configManager.createConfig(args[1]);
                     PlayerUtils.addWaterMarkedMessageToChat("created/saved " + args[1]);
-                    configManager.loadConfig(prevConfig); //load the previous config again cuz config manager just loads the saved config for no reason
+                    configManager.loadConfig(prevConfig);
                 } catch (ArrayIndexOutOfBoundsException r){
                     PlayerUtils.addWaterMarkedMessageToChat("could not create/save a config with the name "+ args[1]);
                 }
@@ -83,7 +82,6 @@ public class ConfigCommand extends Command {
         if (args.length <= 1)
             return autoCompleteHelper(this.args, current);
 
-        // "load" and "delete" act on existing configs, so complete from the saved config names
         String sub = args[0].toLowerCase();
         if (sub.equals("load") || sub.equals("delete"))
             return autoCompleteHelper(new ArrayList<>(Arsenic.getArsenic().getConfigManager().getConfigList()), current);

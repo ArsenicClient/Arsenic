@@ -23,19 +23,16 @@ public class Arrows extends Module {
 
         float partial = event.getPartialTicks();
 
-        // Camera basis: forward, right (horizontal), up. Built from the interpolated view rotation.
         double yaw = Math.toRadians(interp(mc.thePlayer.prevRotationYaw, mc.thePlayer.rotationYaw, partial));
         double pitch = Math.toRadians(interp(mc.thePlayer.prevRotationPitch, mc.thePlayer.rotationPitch, partial));
 
         double fx = -Math.sin(yaw) * Math.cos(pitch);
         double fy = -Math.sin(pitch);
         double fz = Math.cos(yaw) * Math.cos(pitch);
-        // right = normalize(cross(forward, worldUp))
         double rx = -fz, rz = fx;
         double rLen = Math.sqrt(rx * rx + rz * rz);
         if (rLen < 1e-6) { rx = 1; rz = 0; rLen = 1; }
         rx /= rLen; rz /= rLen;
-        // up = cross(right, forward)
         double ux = -rz * fy;
         double uy = rz * fx - rx * fz;
         double uz = rx * fy;
@@ -57,8 +54,6 @@ public class Arrows extends Module {
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.disableTexture2D();
-        // the HUD ortho flips Y, making our triangles clockwise in window space;
-        // with the GUI's GL_CULL_FACE enabled they'd be back-face culled away
         GlStateManager.disableCull();
 
         for (EntityPlayer player : mc.theWorld.playerEntities) {
@@ -76,25 +71,19 @@ public class Arrows extends Module {
             tx /= len; ty /= len; tz /= len;
 
             double fwd = tx * fx + ty * fy + tz * fz;
-            double right = tx * rx + tz * rz;              // R has no y component
+            double right = tx * rx + tz * rz;
             double up = tx * ux + ty * uy + tz * uz;
 
-            // On-screen? Skip — arrows are only for players you can't see. The 1.1
-            // margin covers MC's dynamic FOV (sprint/speed widen the real frustum
-            // beyond fovSetting), so we never point at someone already visible.
             if (fwd > 0.0) {
                 double ndcX = (right / fwd) / tanH;
                 double ndcY = (up / fwd) / tanV;
                 if (Math.abs(ndcX) <= 1.1 && Math.abs(ndcY) <= 1.1) continue;
             }
 
-            // Screen-space bearing to the target (HUD y grows downward, so up-world -> -y).
-            // Directly behind, right/up are ~0 and atan2 degenerates - point down.
             double angle = (fwd < 0.0 && Math.abs(right) < 1e-4 && Math.abs(up) < 1e-4)
                     ? Math.PI / 2.0
                     : Math.atan2(-up, right);
             float t = Math.min(1f, dist / (float) 64);
-            // Near/far now read as the theme's own two-tone gradient.
             int color = lerpColor(ThemeManager.getMainColor(), ThemeManager.getGradientColor(), t);
 
             drawArrow(cx, cy, (float) 34, (float) 11, angle, color);
@@ -109,7 +98,6 @@ public class Arrows extends Module {
 
     private void drawArrow(float cx, float cy, float radius, float len, double angle, int color) {
         double c = Math.cos(angle), s = Math.sin(angle);
-        // Anchor the arrow on a ring around the crosshair, pointing outward along (c, s).
         float baseX = cx + (float) (c * radius);
         float baseY = cy + (float) (s * radius);
         float tipX = baseX + (float) (c * len);

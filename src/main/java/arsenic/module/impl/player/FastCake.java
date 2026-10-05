@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.rotations.RotationUtils;
+import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,6 +11,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -26,14 +29,14 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import arsenic.utils.io.Keys;
 
-@ModuleInfo(name = "Fast Cake", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "FastCake", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class FastCake extends Module {
 
     public final BooleanProperty autoAim = new BooleanProperty("Auto Aim", false);
     @PropertyInfo(reliesOn = "Auto Aim", value = "true")
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 6, 4, 0.5));
     @PropertyInfo(reliesOn = "Auto Aim", value = "true")
-    public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 180, 1));
+    public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 180, 1), SliderScale.LOG);
 
     private BlockPos pendingCake;
 
@@ -118,13 +121,7 @@ public class FastCake extends Module {
         Vec3 centre = cakeBounds(cake).getCenter();
 
         Vec3 eyes = mc.player.getEyePosition(1f);
-        double dx = centre.x - eyes.x;
-        double dy = centre.y - eyes.y;
-        double dz = centre.z - eyes.z;
-        double dist = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
-        return new float[]{yaw, pitch};
+        return RotationUtils.rotationsTo(eyes, centre);
     }
 
     private BlockPos findNearestCake() {

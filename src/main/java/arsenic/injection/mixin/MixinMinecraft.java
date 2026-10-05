@@ -9,6 +9,7 @@ import arsenic.module.impl.ghost.HitSelect;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
+import arsenic.module.impl.world.BridgeAssist;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -44,12 +45,6 @@ public abstract class MixinMinecraft {
         Arsenic.getInstance().getEventManager().post(new EventRunTick());
     }
 
-    /**
-     * Swallows the player's own attack/use presses while a silent rotation asked for input to be
-     * blocked. The original {@code consumeClick()} is still called so the queued press count is
-     * drained - otherwise every press held back would fire in a burst once blocking ends. Direct
-     * client-side attacks (KillAura, Clicker, ...) go through other paths and are unaffected.
-     */
     @Redirect(method = "handleKeybinds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/KeyMapping;consumeClick()Z"))
     private boolean arsenic$consumeClick(KeyMapping keyMapping) {
         if (!shouldBlockInput(keyMapping))
@@ -79,6 +74,14 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "startUseItem", at = @At("RETURN"))
     private void arsenic$fastPlace(CallbackInfo ci) {
+        BridgeAssist bridgeAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(BridgeAssist.class);
+        if (bridgeAssist != null && bridgeAssist.isEnabled()) {
+            bridgeAssist.onPlace();
+            if (bridgeAssist.isBridging()) {
+                rightClickDelay = bridgeAssist.getPlaceDelay();
+                return;
+            }
+        }
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
         if (fastPlace == null || !fastPlace.isEnabled())
             return;
@@ -107,8 +110,6 @@ public abstract class MixinMinecraft {
 
         Hitflick hitflick = modules.getModuleByClass(Hitflick.class);
         if (hitflick != null && hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(target)) {
-            // Only swallow the real hit once the flick actually armed - Void mode can decline
-            // (no angle empties into the void), and the attack must go through normally then.
             this.hitResult = BlockHitResult.miss(hitResult.getLocation(), entityHit.getEntity().getDirection(), entityHit.getEntity().blockPosition());
         }
     }

@@ -8,6 +8,7 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.core.component.DataComponents;
@@ -17,7 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.phys.Vec3;
 
-@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, tier = ModuleTier.EXTRA, hidden = true)
 public class Tracers extends Module {
 
     @RequiresPlayer

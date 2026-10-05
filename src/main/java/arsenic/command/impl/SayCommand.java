@@ -15,7 +15,6 @@ public class SayCommand extends Command {
             PlayerUtils.addWaterMarkedMessageToChat("you need to be in a world to send a message");
             return;
         }
-        // sendChatMessage on the player sends straight to the server, bypassing the command hook
         mc.player.connection.sendChat(String.join(" ", args));
     }
 }

@@ -37,7 +37,6 @@ public interface IConfig<T extends ISerializable & IContainable> extends IContai
         try {
             Files.delete(getDirectory().toPath());
         } catch (IOException e) {
-            //ignored
         }
     }
 
@@ -49,7 +48,6 @@ public interface IConfig<T extends ISerializable & IContainable> extends IContai
             try {
                 content.loadFromJson(jsonElement != null ? jsonElement.getAsJsonObject() : new JsonObject());
             } catch (NullPointerException e){
-                //thrown when the values that it wants doesnt exist
             }
         });
     }

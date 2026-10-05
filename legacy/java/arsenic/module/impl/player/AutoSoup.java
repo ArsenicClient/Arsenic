@@ -7,13 +7,15 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.init.Items;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.ItemAppleGold;
 import net.minecraft.item.ItemMonsterPlacer;
+import net.minecraft.item.ItemSkull;
 import net.minecraft.item.ItemSoup;
 import net.minecraft.item.ItemStack;
 
@@ -21,47 +23,53 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AutoSoup extends Module {
 
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(0, 20, 7, 0.1));
 
     private final MSTimer actionTimer = new MSTimer();
     private final MSTimer refillTimer = new MSTimer();
-    private State state = State.WAITING;
+    private State state = State.NONE;
     private int originalSlot;
     private boolean inInv;
     private List<Integer> sortedSlots = new ArrayList<>();
 
+    private static final long RETURN_DELAY_MS = 500;
+    private static final long EAT_COOLDOWN_MS = 1000;
+
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        boolean shouldEat = (mc.currentScreen == null)
-                && mc.thePlayer.getHealth() < health.getValue().getInput()
-                && actionTimer.hasTimeElapsed(1);
-
-        if (shouldEat) {
-            switch (state) {
-                case WAITING:
-                    actionTimer.reset();
-                    break;
-                case NONE:
+        switch (state) {
+            case NONE:
+                if (mc.currentScreen == null
+                        && mc.thePlayer.getHealth() < health.getValue().getInput()
+                        && actionTimer.hasTimeElapsed(EAT_COOLDOWN_MS)) {
                     int slot = getEdibleSlot();
-                    if (slot == -1) return;
-                    originalSlot = mc.thePlayer.inventory.currentItem;
-                    mc.thePlayer.inventory.currentItem = slot;
-                    actionTimer.reset();
-                    break;
-                case SWITCHED:
-                    KeyBinding.onTick(mc.gameSettings.keyBindUseItem.getKeyCode());
-                    actionTimer.reset();
-                    break;
-                case CLICKED:
+                    if (slot != -1) {
+                        originalSlot = mc.thePlayer.inventory.currentItem;
+                        mc.thePlayer.inventory.currentItem = slot;
+                        state = State.SWITCHED;
+                    }
+                }
+                break;
+            case SWITCHED:
+                ItemStack held = mc.thePlayer.inventory.getCurrentItem();
+                if (held != null) {
+                    mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held);
+                }
+                actionTimer.reset();
+                state = State.CLICKED;
+                break;
+            case CLICKED:
+                if (actionTimer.hasTimeElapsed(RETURN_DELAY_MS)) {
+                    if (mc.thePlayer.isUsingItem())
+                        mc.playerController.onStoppedUsingItem(mc.thePlayer);
                     mc.thePlayer.inventory.currentItem = originalSlot;
-                    actionTimer.reset();
-                    break;
-            }
-            state = state.next();
+                    state = State.NONE;
+                }
+                break;
         }
 
         if (mc.currentScreen != null && mc.thePlayer.openContainer instanceof ContainerPlayer) {
@@ -80,6 +88,10 @@ public class AutoSoup extends Module {
         }
     };
 
+    public boolean isSwapping() {
+        return state == State.SWITCHED || state == State.CLICKED;
+    }
+
     private void generatePath(ContainerPlayer inv) {
         List<Integer> slots = new ArrayList<>();
         int slotsNeeded = 0;
@@ -97,6 +109,12 @@ public class AutoSoup extends Module {
     }
 
     private int getEdibleSlot() {
+        if (mc.thePlayer.getAbsorptionAmount() <= 0) {
+            for (int slot = 0; slot <= 8; slot++) {
+                ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slot);
+                if (stack != null && isHead(stack)) return slot;
+            }
+        }
         for (int slot = 0; slot <= 8; slot++) {
             ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slot);
             if (stack != null && isEdible(stack)) return slot;
@@ -104,25 +122,26 @@ public class AutoSoup extends Module {
         return -1;
     }
 
-    /**
-     * Soup, a golden apple reskinned/renamed as a "Golden Head", or a chicken spawn egg -
-     * BedWars' regen items, both right-clicked to use like any other item.
-     */
     private static boolean isEdible(ItemStack stack) {
         if (stack.getItem() instanceof ItemSoup) return true;
+        if (isPotato(stack)) return true;
         String name = stack.getDisplayName().toLowerCase(Locale.ROOT);
+        if (isHead(stack)) return true;
         if (stack.getItem() instanceof ItemAppleGold) return name.contains("head");
         if (stack.getItem() instanceof ItemMonsterPlacer) return name.contains("chicken");
         return false;
     }
 
+    private static boolean isPotato(ItemStack stack) {
+        return stack.getItem() == Items.potato || stack.getItem() == Items.baked_potato;
+    }
+
+    private static boolean isHead(ItemStack stack) {
+        return (stack.getItem() instanceof ItemSkull || stack.getItem() instanceof ItemAppleGold)
+                && stack.getDisplayName().toLowerCase(Locale.ROOT).contains("golden head");
+    }
+
     private enum State {
-        WAITING, NONE, SWITCHED, CLICKED;
-
-        private static final State[] vals = values();
-
-        public State next() {
-            return vals[(this.ordinal() + 1) % vals.length];
-        }
+        NONE, SWITCHED, CLICKED
     }
 }

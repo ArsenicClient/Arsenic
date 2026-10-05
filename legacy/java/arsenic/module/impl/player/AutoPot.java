@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.timer.MSTimer;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -8,6 +9,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.item.ItemPotion;
@@ -17,33 +19,23 @@ import net.minecraft.potion.PotionEffect;
 
 import java.util.List;
 
-@ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AutoPot extends Module {
 
-    /** Health percentage below which to pot. */
     public final DoubleProperty healthThreshold = new DoubleProperty("Health %", new DoubleValue(1, 100, 40, 1));
 
-    /** Gap between throws. Lower heals through more damage and looks less like a person. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(100, 3000, 500, 50));
 
-    /**
-     * Only healing potions are ever thrown, and the throw always moves the real view.
-     * <p>
-     * The silent-rotation path pitched the view server side only, which is the single most obvious
-     * thing this module could do - the player is suddenly facing straight down for one tick without
-     * their screen moving. It was off by default for that reason, so it is simply gone.
-     */
     private static final boolean HEAL_ONLY = true;
 
-    private long lastThrow;
+    private final MSTimer throwTimer = MSTimer.expired();
     private boolean shouldLookDown;
-    private long lookDownUntil;
+    private final MSTimer lookDown = MSTimer.expired();
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        long now = System.currentTimeMillis();
-        if (now - lastThrow < delay.getValue().getInput()) return;
+        if (!throwTimer.finished((long) delay.getValue().getInput())) return;
 
         float healthPct = (mc.thePlayer.getHealth() / mc.thePlayer.getMaxHealth()) * 100.0f;
         if (healthPct > healthThreshold.getValue().getInput()) return;
@@ -55,18 +47,18 @@ public class AutoPot extends Module {
         mc.thePlayer.inventory.currentItem = potSlot;
         mc.thePlayer.rotationPitch = 90;
         shouldLookDown = true;
-        lookDownUntil = now + 200;
+        lookDown.reset();
         mc.playerController.updateController();
         mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem());
         mc.thePlayer.inventory.currentItem = oldSlot;
-        lastThrow = now;
+        throwTimer.reset();
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onUpdate = event -> {
         event.setSpeed(180);
-        if (shouldLookDown && System.currentTimeMillis() < lookDownUntil) {
+        if (shouldLookDown && lookDown.getTime() < 200) {
             event.setPitch(90);
         } else {
             shouldLookDown = false;

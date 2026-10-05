@@ -18,6 +18,25 @@ public class MixinGuiScreen {
     @Shadow
     public Minecraft mc;
 
+    @Shadow
+    public int width;
+
+    @Shadow
+    public int height;
+
+    // the dirt tile and the plain dark veil are both replaced by the ocean theme
+    @Inject(method = "drawWorldBackground", at = @At("HEAD"), cancellable = true)
+    private void arsenic$worldBackground(int tint, CallbackInfo ci) {
+        arsenic.module.impl.visual.custommainmenu.MenuTheme.drawBackground(width, height);
+        ci.cancel();
+    }
+
+    @Inject(method = "drawBackground", at = @At("HEAD"), cancellable = true)
+    private void arsenic$dirtBackground(int tint, CallbackInfo ci) {
+        arsenic.module.impl.visual.custommainmenu.MenuTheme.drawBackground(width, height);
+        ci.cancel();
+    }
+
     @Inject(method = "sendChatMessage(Ljava/lang/String;Z)V", at = @At(value = "HEAD"), cancellable = true)
     public void sendChatMessage(String msg, boolean addToChat, CallbackInfo ci) {
         if (msg.startsWith(".")) {

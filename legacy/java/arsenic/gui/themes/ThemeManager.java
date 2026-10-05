@@ -20,12 +20,33 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
     public int initialize() {
         System.out.println("initialized theme manager");
         loadConfig();
+        if (getContentByJsonKey("Ocean") == null) {
+            Theme ocean = new Theme("Ocean", 0xFF3B82F6, new Color(0xFF3B82F6).darker().getRGB(),
+                    0xFFEAF2FF, 0xFF000000, true, 0xFF1D4ED8);
+            ocean.setClickGuiBackground(0xE6000000);
+            ocean.setClickGuiSeparator(new Color(59, 130, 246, 38).getRGB());
+            ocean.setConfigsBackground(0xFF000000);
+            ocean.setConfigsCard(0xFF04070D);
+            ocean.setConfigsCardBorder(0xFF10203F);
+            ocean.setConfigsHoverBackground(0xFF070D18);
+            ocean.setConfigsHoverBorder(0xFF1E3A6B);
+            ocean.setSeparator(new Color(16, 32, 63).getRGB());
+            ocean.setModuleBackground(new Color(3, 6, 13, 175).getRGB());
+            ocean.setEnumBackground(new Color(0, 0, 0, 255).getRGB());
+            ocean.setFolderBackground(new Color(0, 0, 0, 180).getRGB());
+            ocean.setButtonBackground(new Color(10, 16, 30, 234).getRGB());
+            ocean.setTextPrimary(0xFFEAF2FF);
+            ocean.setTextSecondary(0xFF8CA3C7);
+            ocean.setTextMuted(0xFF3D4F73);
+            ocean.setBgShader(arsenic.gui.click.GuiStyle.BgShader.STARFIELD);
+            themeList.add(ocean);
+        }
+
         if(getContentByJsonKey("Classic") == null) {
             Theme classic = new Theme("Classic", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
-            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.AURORA); // red/pink - aurora keeps the base theme neutral
+            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.AURORA);
             themeList.add(classic);
         }
-        // Void — deep purple with electric violet accent
         if (getContentByJsonKey("Void") == null) {
             Theme voidTheme = new Theme("Void", 0xFF7C3AED, new Color(0xFF7C3AED).darker().getRGB(), 0xFFF0EEFF, 0xFF1A1025);
             voidTheme.setClickGuiBackground(0xDD0F081A);
@@ -35,11 +56,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             voidTheme.setModuleBackground(new Color(22, 10, 33, 160).getRGB());
             voidTheme.setEnumBackground(new Color(11, 5, 16, 255).getRGB());
             voidTheme.setFolderBackground(new Color(11, 5, 16, 180).getRGB());
-            voidTheme.setBgShader(arsenic.gui.click.GuiStyle.BgShader.NEBULA); // violet - nebula is the same purple family
+            voidTheme.setBgShader(arsenic.gui.click.GuiStyle.BgShader.NEBULA);
             themeList.add(voidTheme);
         }
 
-        // Specter — cold ice blue, dark slate background
         if (getContentByJsonKey("Specter") == null) {
             Theme specter = new Theme("Specter", 0xFF38BDF8, new Color(0xFF38BDF8).darker().getRGB(), 0xFFE8F7FF, 0xFF0D1B2A);
             specter.setClickGuiBackground(0xDD050A12);
@@ -49,11 +69,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             specter.setModuleBackground(new Color(12, 20, 33, 160).getRGB());
             specter.setEnumBackground(new Color(6, 10, 16, 255).getRGB());
             specter.setFolderBackground(new Color(6, 10, 16, 180).getRGB());
-            specter.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS); // electric blue - arcing blue lightning
+            specter.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS);
             themeList.add(specter);
         }
 
-        // Ember — burnt orange with a near-black charcoal bg
         if (getContentByJsonKey("Ember") == null) {
             Theme ember = new Theme("Ember", 0xFFEA580C, new Color(0xFFEA580C).darker().getRGB(), 0xFFFFF7F0, 0xFF1C1008);
             ember.setClickGuiBackground(0xDD120A05);
@@ -63,11 +82,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             ember.setModuleBackground(new Color(29, 17, 12, 160).getRGB());
             ember.setEnumBackground(new Color(14, 8, 6, 255).getRGB());
             ember.setFolderBackground(new Color(14, 8, 6, 180).getRGB());
-            ember.setBgShader(arsenic.gui.click.GuiStyle.BgShader.FIRESTORM); // orange - fire, the obvious pairing
+            ember.setBgShader(arsenic.gui.click.GuiStyle.BgShader.FIRESTORM);
             themeList.add(ember);
         }
 
-        // Jade — muted emerald green, dark forest bg
         if (getContentByJsonKey("Jade") == null) {
             Theme jade = new Theme("Jade", 0xFF10B981, new Color(0xFF10B981).darker().getRGB(), 0xFFEDFDF5, 0xFF081A12);
             jade.setClickGuiBackground(0xDD05120C);
@@ -77,11 +95,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             jade.setModuleBackground(new Color(12, 33, 24, 160).getRGB());
             jade.setEnumBackground(new Color(6, 16, 12, 255).getRGB());
             jade.setFolderBackground(new Color(6, 16, 12, 180).getRGB());
-            jade.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CAUSTICS); // green - underwater light, same green cast
+            jade.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CAUSTICS);
             themeList.add(jade);
         }
 
-        // Obsidian — a pure monochrome / near-white accent on pure black
         if (getContentByJsonKey("Obsidian") == null) {
             Theme obsidian = new Theme("Obsidian", 0xFFE2E2E2, new Color(0xFFE2E2E2).darker().getRGB(), 0xFFFFFFFF, 0xFF0A0A0A);
             obsidian.setClickGuiBackground(0xDD000000);
@@ -91,11 +108,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             obsidian.setModuleBackground(new Color(13, 13, 13, 160).getRGB());
             obsidian.setEnumBackground(new Color(0, 0, 0, 255).getRGB());
             obsidian.setFolderBackground(new Color(0, 0, 0, 180).getRGB());
-            obsidian.setBgShader(arsenic.gui.click.GuiStyle.BgShader.STARFIELD); // monochrome white on black - stars on void
+            obsidian.setBgShader(arsenic.gui.click.GuiStyle.BgShader.STARFIELD);
             themeList.add(obsidian);
         }
 
-        // Sakura — soft cherry blossom pink, warm cream background
         if (getContentByJsonKey("Sakura") == null) {
             Theme sakura = new Theme("Sakura", 0xFFF472B6, new Color(0xFFF472B6).darker().getRGB(), 0xFFFFF0F7, 0xFF2D1520);
             sakura.setClickGuiBackground(0xDD1A0D15);
@@ -105,11 +121,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             sakura.setModuleBackground(new Color(45, 22, 35, 160).getRGB());
             sakura.setEnumBackground(new Color(22, 11, 17, 255).getRGB());
             sakura.setFolderBackground(new Color(22, 11, 17, 180).getRGB());
-            sakura.setBgShader(arsenic.gui.click.GuiStyle.BgShader.SYNTHWAVE); // pink - synthwave is a pink/magenta grid
+            sakura.setBgShader(arsenic.gui.click.GuiStyle.BgShader.SYNTHWAVE);
             themeList.add(sakura);
         }
 
-        // Toxin — acid green on deep dark, high contrast
         if (getContentByJsonKey("Toxin") == null) {
             Theme toxin = new Theme("Toxin", 0xFF84CC16, new Color(0xFF84CC16).darker().getRGB(), 0xFFF3FFE0, 0xFF0C1200);
             toxin.setClickGuiBackground(0xDD0A1200);
@@ -119,65 +134,14 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             toxin.setModuleBackground(new Color(21, 33, 12, 160).getRGB());
             toxin.setEnumBackground(new Color(10, 16, 6, 255).getRGB());
             toxin.setFolderBackground(new Color(10, 16, 6, 180).getRGB());
-            toxin.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS); // lime - zippy green arcs
+            toxin.setBgShader(arsenic.gui.click.GuiStyle.BgShader.ZIPPYZAPS);
             themeList.add(toxin);
-        }
-
-        // Cloud — Clean light theme
-        if (getContentByJsonKey("Cloud") == null) {
-            Theme cloud = new Theme("Cloud", 0xFF3B82F6, new Color(0xFF3B82F6).darker().getRGB(), 0xFF1F2937, 0xFFF9FAFB);
-            cloud.setClickGuiBackground(0xEEFFFFFF);
-            cloud.setConfigsBackground(0xFFF3F4F6);
-            cloud.setConfigsCard(0xFFFFFFFF);
-            cloud.setConfigsCardBorder(0xFFE5E7EB);
-            cloud.setModuleBackground(new Color(243, 244, 246, 255).getRGB());
-            cloud.setModuleHover(new Color(0, 0, 0, 10).getRGB());
-            cloud.setEnumBackground(new Color(255, 255, 255, 255).getRGB());
-            cloud.setFolderBackground(new Color(243, 244, 246, 255).getRGB());
-            cloud.setTextPrimary(0xFF111827);
-            cloud.setTextSecondary(0xFF4B5563);
-            cloud.setTextMuted(0xFF9CA3AF);
-            cloud.setClickGuiSeparator(new Color(0, 0, 0, 20).getRGB());
-            cloud.setScrollbarTrack(new Color(0, 0, 0, 15).getRGB());
-            cloud.setScrollbarThumb(new Color(0, 0, 0, 40).getRGB());
-            cloud.setButtonBackground(new Color(209, 213, 219, 234).getRGB());
-            cloud.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CHROME); // light theme - liquid chrome stays bright
-            themeList.add(cloud);
-        }
-
-        // Monochrome — High contrast black on white refined
-        if (getContentByJsonKey("Mono") == null) {
-            Theme mono = new Theme("Mono", 0xFF000000, 0xFF333333, 0xFF000000, 0xFFFFFFFF);
-            mono.setLogoPath("classic");
-            mono.setClickGuiBackground(0xEEF9F9F9); // Very light grey base
-            mono.setConfigsBackground(0xFFF2F2F2);
-            mono.setConfigsCard(0xFFFFFFFF);
-            mono.setConfigsCardBorder(0xFFE0E0E0);
-            mono.setModuleBackground(new Color(255, 255, 255, 255).getRGB());
-            mono.setModuleHover(new Color(0, 0, 0, 15).getRGB());
-            mono.setEnumBackground(new Color(255, 255, 255, 255).getRGB());
-            mono.setFolderBackground(new Color(248, 248, 248, 255).getRGB());
-            mono.setTextPrimary(0xFF000000);
-            mono.setTextSecondary(0xFF444444);
-            mono.setTextMuted(0xFF888888);
-            mono.setClickGuiSeparator(new Color(0, 0, 0, 30).getRGB());
-            mono.setScrollbarTrack(new Color(0, 0, 0, 20).getRGB());
-            mono.setScrollbarThumb(0xFF333333);
-            mono.setButtonBackground(new Color(220, 220, 220, 234).getRGB());
-            mono.setBgShader(arsenic.gui.click.GuiStyle.BgShader.CHROME); // greyscale - chrome is the only colourless one
-            themeList.add(mono);
         }
 
         currentTheme = getContentByJsonKey("Classic");
         return themeList.size();
     }
 
-    /**
-     * Never null once themes are loaded. Every colour in the client funnels through here, so a null
-     * return does not fail locally - it throws somewhere deep in a render call, and during startup
-     * log4j can mangle that into a completely unrelated NoClassDefFoundError. Falling back to the
-     * first registered theme keeps a bad init order looking wrong rather than being fatal.
-     */
     public Theme getCurrentTheme() {
         if (currentTheme == null && !getContents().isEmpty())
             currentTheme = getContents().iterator().next();
@@ -227,7 +191,9 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
     public void loadFromJson(JsonObject obj) {
         JsonElement jsonElement = obj.get("currentTheme");
         if(jsonElement != null) {
-            Theme theme = getContentByJsonKey(jsonElement.getAsString());
+            String saved = jsonElement.getAsString();
+            if (saved.equals("Midnight")) saved = "Ocean";
+            Theme theme = getContentByJsonKey(saved);
             if(theme != null) {
                 setCurrentTheme(theme);
             }

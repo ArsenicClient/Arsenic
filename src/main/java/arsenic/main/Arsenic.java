@@ -2,10 +2,12 @@ package arsenic.main;
 
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
+import arsenic.config.FriendManager;
 import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.event.impl.EventRender2D;
 import arsenic.gui.ErrorOverlay;
+import arsenic.gui.KillAuraButton;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.ModuleManager;
@@ -53,6 +55,7 @@ public class Arsenic implements ClientModInitializer {
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
     private final LaunchID launchID = new LaunchID();
+    private final FriendManager friendManager = new FriendManager();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
     @Override
@@ -87,6 +90,8 @@ public class Arsenic implements ClientModInitializer {
 
         // The ClickGUI resolves fonts and textures while building, which needs resources loaded.
         // The component tree also needs the module list and a current theme, both set up above.
+        KillAuraButton.register();
+
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             clickGuiScreen.buildComponents();
             logger.info("Built ClickGUI.");
@@ -146,4 +151,6 @@ public class Arsenic implements ClientModInitializer {
     public final ServerInfo getServerInfo() { return serverInfo; }
 
     public final LaunchID getLaunchID() { return launchID; }
+
+    public final FriendManager getFriendManager() { return friendManager; }
 }

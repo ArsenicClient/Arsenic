@@ -10,14 +10,14 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.ItemStack;
 
-@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class Refill extends Module {
-    /** Gap between inventory clicks. Lower refills faster and looks less like a human. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 80, 10));
 
 

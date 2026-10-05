@@ -29,7 +29,6 @@ import java.util.stream.IntStream;
  */
 public class ContainerUtils extends UtilityClass {
 
-    //Inv Manager Actions
     public static void click(int slot) {
         mc.gameMode.handleContainerInput(mc.player.inventoryMenu.containerId, slot, 0, ContainerInput.QUICK_MOVE, mc.player);
     }
@@ -56,7 +55,6 @@ public class ContainerUtils extends UtilityClass {
                 .collect(Collectors.toList());
     }
 
-    //Get best items
     public static int getBestWeapon() {
         return getInventoryItems().stream()
                 .filter(s -> ItemUtils.isSword(s.item))

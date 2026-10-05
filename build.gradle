@@ -66,6 +66,28 @@ jar {
     }
 }
 
+// Second jar built alongside the normal one on every `gradle build`: the same contents plus a
+// devmode.properties, which unlocks the DEV-tier modules (see ModuleManager).
+def devmodeDir = layout.buildDirectory.dir("devmode")
+tasks.register("devJar", Jar) {
+    archiveClassifier = "dev"
+    dependsOn jar
+    from(zipTree(jar.archiveFile)) {
+        exclude "META-INF/MANIFEST.MF"
+    }
+    from(devmodeDir)
+    manifest {
+        from(jar.manifest)
+        attributes("DevMode": true)
+    }
+    doFirst {
+        def dir = devmodeDir.get().asFile
+        dir.mkdirs()
+        new File(dir, "devmode.properties").text = "devmode=true\n"
+    }
+}
+build.dependsOn devJar
+
 loom {
     runs {
         client {

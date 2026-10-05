@@ -105,7 +105,6 @@ public class BedPlates extends Module {
         }
     };
 
-    // ── Scanning ────────────────────────────────────────────────────────
 
     private void removeBrokenBeds() {
         List<String> stale = new ArrayList<>();
@@ -250,7 +249,6 @@ public class BedPlates extends Module {
         return Math.max(1, ((int) 64 + 15) >> 4);
     }
 
-    // ── Rendering ───────────────────────────────────────────────────────
 
     /**
      * The label floats over the bed. 1.8 drew it as a world-space billboard; here the point is
@@ -275,7 +273,7 @@ public class BedPlates extends Module {
                 String text = "Uncovered";
                 int w = mc.font.width(text) / 2;
                 DrawUtils.drawRect(-w - 2, -2, w + 2, mc.font.lineHeight + 2, 0x73000000);
-                event.getGraphics().text(mc.font, text, -w, 0, 0xFFFFFFFF, false);
+                event.getGraphics().text(mc.font, text, -w, 1, 0xFFFFFFFF, false);
             } else {
                 drawIcons(br.defenses, event);
             }
@@ -308,7 +306,6 @@ public class BedPlates extends Module {
         return Math.max(0.5f, Math.min(1.5f, 12f / Math.max(1f, dist)));
     }
 
-    // ── Math helpers ────────────────────────────────────────────────────
 
     private double distSq(BlockPos a, BlockPos b) {
         double cx = (a.getX() + b.getX()) / 2.0 + 0.5;
@@ -343,7 +340,6 @@ public class BedPlates extends Module {
         queuedChunks.clear();
     }
 
-    // ── Data classes ────────────────────────────────────────────────────
 
     private static class CachedBed {
         final BlockPos first, second;

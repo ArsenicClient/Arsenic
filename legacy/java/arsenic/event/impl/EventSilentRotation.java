@@ -80,11 +80,6 @@ public class EventSilentRotation implements Event {
         return smoothing;
     }
 
-    /**
-     * When {@code false}, the manager skips its ease-out/momentum curve and moves straight toward
-     * the requested rotation, capped only by {@link #getSpeed()}. For modules that shape their own
-     * per-tick motion and need it applied as-is. Defaults to {@code true} and resets every tick.
-     */
     public void setSmoothing(boolean smoothing) {
         this.smoothing = smoothing;
     }
@@ -93,23 +88,10 @@ public class EventSilentRotation implements Event {
         return blockUserInput;
     }
 
-    /**
-     * When {@code true}, the player's own attack/use inputs (break block, place block, hit) are
-     * swallowed for this tick — the keybinds behave as if they were never pressed, and queued
-     * presses are drained so nothing fires once blocking stops. Client-side invocations of
-     * {@code clickMouse()}/{@code rightClickMouse()} (Clicker, KillAura, Scaffold, ...) are
-     * unaffected. Defaults to {@code false} and resets every tick, so a module must re-assert it.
-     */
     public void setBlockUserInput(boolean blockUserInput) {
         this.blockUserInput = blockUserInput;
     }
 
-    /**
-     * Fired once per tick after the {@code SilentRotationManager} has settled on the
-     * final rotations it will apply (post GCD-patch, speed limiting and duplicate-look
-     * handling). Read-only: consumers observe the values the manager committed to, they
-     * do not influence them — use the enclosing {@link EventSilentRotation} for that.
-     */
     public static class Post implements Event {
 
         private final float yaw, pitch;
@@ -150,11 +132,9 @@ public class EventSilentRotation implements Event {
             Vec3 vec31 = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw);
             Vec3 vec32 = vec3.addVector(vec31.xCoord * 4.5, vec31.yCoord * 4.5, vec31.zCoord * 4.5);
 
-            // Raycast blocks
             MovingObjectPosition blockHit = mc.thePlayer.worldObj.rayTraceBlocks(vec3, vec32, false, false, true);
             double blockDistance = blockHit != null ? vec3.distanceTo(blockHit.hitVec) : Double.MAX_VALUE;
 
-            // Raycast entities
             MovingObjectPosition entityHit = null;
             double entityDistance = Double.MAX_VALUE;
 

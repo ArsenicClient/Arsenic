@@ -57,7 +57,6 @@ public class SetCommand extends Command {
         if (args.length == 2)
             return autoCompleteHelper(CommandUtils.getSettingNames(module), current);
 
-        // value position: suggest enum modes / booleans for the named setting
         CommandUtils.PropMatch match = CommandUtils.matchProperty(module, new String[] { args[1] });
         return match != null ? autoCompleteHelper(CommandUtils.valueSuggestions(match.property), current) : new ArrayList<>();
     }

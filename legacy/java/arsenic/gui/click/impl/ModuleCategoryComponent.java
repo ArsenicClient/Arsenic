@@ -1,9 +1,11 @@
 package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
+import arsenic.gui.click.GuiStyle;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
+import arsenic.module.ModuleTier;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
@@ -40,17 +42,38 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         self = category;
         icon = new ResourceLocation("arsenic", "icons/" + self.getName().toLowerCase() + ".png");
         contents = self.getContents().stream().map(ModuleComponent::new).sorted(Comparator.comparing(ModuleComponent::getName)).collect(Collectors.toList());
-        contents.forEach(module -> {
-            if ((contentsL.size() + contentsR.size()) % 2 == 0) {
-                contentsL.add(module);
-            } else {
-                contentsR.add(module);
-            }
-        });
+refreshListing();
     }
 
     @Override
     public String getName() { return self.getName(); }
+
+    private boolean listedWithMore;
+
+    protected boolean followsMoreToggle() {
+        return true;
+    }
+
+    private boolean isListed(ModuleComponent module) {
+        return !followsMoreToggle() || GuiStyle.get().isShowMoreModules()
+                || module.getModule().getTier() == ModuleTier.CORE;
+    }
+
+    public void refreshListing() {
+        listedWithMore = GuiStyle.get().isShowMoreModules();
+        contentsL.clear();
+        contentsR.clear();
+        for (ModuleComponent module : contents) {
+            if (!isListed(module))
+                continue;
+            if ((contentsL.size() + contentsR.size()) % 2 == 0)
+                contentsL.add(module);
+            else
+                contentsR.add(module);
+        }
+        scroll = 0;
+        targetScroll = 0;
+    }
 
     @Override
     public Collection<ModuleComponent> getContents() { return contents; }
@@ -65,7 +88,6 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
-        // lift the active/hovered pill toward the viewer
         if (anim > 0.01f)
             DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
                     arsenic.gui.click.GuiStyle.shadowSpread(height * 0.18f),
@@ -73,9 +95,6 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
         DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
 
-        // What the label and icon sit on changes as the pill fades in: the sidebar panel when
-        // idle, the accent gradient when selected. Both need a contrasting colour, and on a light
-        // theme those two are opposite - so pick each by luminance and interpolate between them.
         int onPanel = arsenic.gui.click.UITheme.readableOn(ThemeManager.getModuleBackground());
         int onAccent = arsenic.gui.click.UITheme.readableOn(getEnabledColor());
         int foreground = arsenic.gui.click.UITheme.mix(onPanel, onAccent, anim);
@@ -84,13 +103,10 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
         float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
         Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
-        // The icons are white glyphs, so they are invisible on a light surface until tinted. Colour
-        // modulation multiplies the texture, which is exactly the tint we want.
-        GlStateManager.color(((foreground >> 16) & 0xFF) / 255f, ((foreground >> 8) & 0xFF) / 255f,
-                (foreground & 0xFF) / 255f, 1f);
+        RenderUtils.color2(foreground, 1f);
         Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
 
-        GlStateManager.color(1f, 1f, 1f, 1f); // reset after texture, not before gradient
+        GlStateManager.color(1f, 1f, 1f, 1f);
 
         ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, foreground, ri.getFr().CENTREY);
         return height;
@@ -102,8 +118,8 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
+if (followsMoreToggle() && listedWithMore != GuiStyle.get().isShowMoreModules())            refreshListing();
         maxHeight = 0;
-        // ease the actual scroll toward the target each frame for smooth wheel scrolling
         scroll += (targetScroll - scroll) * arsenic.gui.click.GuiStyle.scrollEase();
         if (Math.abs(targetScroll - scroll) < 0.5f)
             scroll = targetScroll;
@@ -132,12 +148,14 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     @Override
     protected void playClickSound() {
-        // switching category gets its own chord (G major)
         arsenic.utils.java.SoundUtils.chordCategory();
     }
 
     public void clickChildren(int mouseX, int mouseY, int mouseButton) {
-        this.contents.forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
+        for (ModuleComponent component : new ArrayList<>(contentsL))
+            component.handleClick(mouseX, mouseY, mouseButton);
+        for (ModuleComponent component : new ArrayList<>(contentsR))
+            component.handleClick(mouseX, mouseY, mouseButton);
     }
 
     public void setCurrentCategory(boolean currentCategory) {
@@ -149,7 +167,6 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
     }
 
     public void scroll(int scroll) {
-        // move the target; drawLeft eases the visible scroll toward it
         this.targetScroll += scroll;
         this.targetScroll = Math.max(Math.min(0, this.targetScroll), -maxHeight);
     }

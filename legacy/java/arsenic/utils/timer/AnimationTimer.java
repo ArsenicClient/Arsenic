@@ -32,15 +32,6 @@ public class AnimationTimer {
         ticksLived = ms;
     }
 
-    /**
-     * Retunes how long this animation takes, keeping whatever progress it has already made.
-     * <p>
-     * Elapsed time is rescaled rather than left alone, so changing the duration mid-flight does not
-     * teleport the animation: an element that is 40% open stays 40% open and simply covers the rest
-     * at the new rate. That is what lets a panel whose content height is only known at draw time
-     * pick a duration proportional to how far it actually has to travel, instead of every panel
-     * sharing one duration and the tall ones appearing to whip open.
-     */
     public void setMaxMs(int maxMs) {
         maxMs = Math.max(1, maxMs);
         if (maxMs == this.maxMs)

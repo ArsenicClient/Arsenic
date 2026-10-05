@@ -1,5 +1,6 @@
 package arsenic.gui.hud;
 
+import arsenic.utils.java.MathUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -21,51 +22,36 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-/**
- * Drag-to-position editor for the HUD.
- * <p>
- * Every movable element is described once as an {@link Element} - a label, a size, and a pair of
- * accessors onto the static position fields it owns - so adding a new HUD element to the editor is
- * one line rather than another copy of the drag/hit-test/reset boilerplate the old editor repeated
- * per element (and which is why the Radar and TargetHUD hitboxes had quietly drifted from what was
- * actually drawn).
- * <p>
- * Dragging snaps: to the screen's centre lines, to the screen edges, and to the edges of the other
- * elements. Whichever guides are active are drawn while the drag is live, so the snap is visible
- * rather than a mystery jump.
- */
 public class HudEditorScreen extends Screen {
 
-    /** How close, in HUD pixels, an edge must be before it snaps. */
     private static final int SNAP_DISTANCE = 5;
-    private static final int GRID = 0; // 0 disables grid snapping; edges and guides still apply
+    private static final int GRID = 0;
 
     private final List<Element> elements = new ArrayList<>();
     private Element dragging;
     private int dragOffsetX, dragOffsetY;
 
-    /** Guides to draw this frame: {@code {x...}} and {@code {y...}} in screen space. */
     private final List<Float> activeGuidesX = new ArrayList<>();
     private final List<Float> activeGuidesY = new ArrayList<>();
 
     private float saveX1, saveY1, saveX2, saveY2;
     private float resetX1, resetY1, resetX2, resetY2;
 
-    /**
-     * One draggable thing. Position is read and written through accessors because HUD positions
-     * live in static fields on several different modules; copying them into the editor and back
-     * would be one more place for them to fall out of sync.
-     */
     private static final class Element {
         final String label;
         final IntSupplier getX, getY;
         final IntConsumer setX, setY;
-        final int width, height;
-        /** True when X is stored as an offset from the right screen edge (the arraylist). */
+        int width, height;
+        final IntSupplier sizeW, sizeH;
         final boolean rightAnchored;
 
         Element(String label, IntSupplier getX, IntConsumer setX, IntSupplier getY, IntConsumer setY,
                 int width, int height, boolean rightAnchored) {
+            this(label, getX, setX, getY, setY, width, height, rightAnchored, null, null);
+        }
+
+        Element(String label, IntSupplier getX, IntConsumer setX, IntSupplier getY, IntConsumer setY,
+                int width, int height, boolean rightAnchored, IntSupplier sizeW, IntSupplier sizeH) {
             this.label = label;
             this.getX = getX;
             this.setX = setX;
@@ -74,6 +60,8 @@ public class HudEditorScreen extends Screen {
             this.width = width;
             this.height = height;
             this.rightAnchored = rightAnchored;
+            this.sizeW = sizeW;
+            this.sizeH = sizeH;
         }
 
         float x1(int screenWidth) {
@@ -81,6 +69,13 @@ public class HudEditorScreen extends Screen {
         }
 
         float y1() { return getY.getAsInt(); }
+
+        void refresh() {
+            if (sizeW != null)
+                width = sizeW.getAsInt();
+            if (sizeH != null)
+                height = sizeH.getAsInt();
+        }
 
         void moveTo(int screenWidth, float x, float y) {
             setX.accept(Math.round(rightAnchored ? x + width - screenWidth : x));
@@ -100,33 +95,32 @@ public class HudEditorScreen extends Screen {
                 () -> HUD.arrayListY, v -> HUD.arrayListY = v, 92, 70, true));
         elements.add(new Element("Watermark",
                 () -> HUD.watermarkX, v -> HUD.watermarkX = v,
-                () -> HUD.watermarkY, v -> HUD.watermarkY = v, 78, 16, false));
+                () -> HUD.watermarkY, v -> HUD.watermarkY = v, 78, 16, false,
+                () -> HUD.watermarkW, () -> HUD.watermarkH));
         elements.add(new Element("TargetHUD",
                 () -> HUD.targetHUDX, v -> HUD.targetHUDX = v,
                 () -> HUD.targetHUDY, v -> HUD.targetHUDY = v, 152, 52, false));
         elements.add(new Element("Coordinates",
                 () -> HUD.coordsX, v -> HUD.coordsX = v,
-                () -> HUD.coordsY, v -> HUD.coordsY = v, 96, 16, false));
+                () -> HUD.coordsY, v -> HUD.coordsY = v, 96, 16, false,
+                () -> HUD.coordsW, () -> HUD.coordsH));
         elements.add(new Element("Keybinds",
                 () -> HUD.keybindsX, v -> HUD.keybindsX = v,
-                () -> HUD.keybindsY, v -> HUD.keybindsY = v, 104, 46, false));
+                () -> HUD.keybindsY, v -> HUD.keybindsY = v, 104, 46, false,
+                () -> HUD.keybindsW, () -> HUD.keybindsH));
         elements.add(new Element("Radar",
                 () -> Radar.radarX, v -> Radar.radarX = v,
                 () -> Radar.radarY, v -> Radar.radarY = v, 124, 124, false));
 
+        elements.forEach(Element::refresh);
         snapOnScreenElements();
     }
 
-    /**
-     * Pulls any element that is currently off-screen back into view - e.g. after a resolution
-     * change left a saved position beyond the new screen bounds. Uses the same bounds the live drag
-     * enforces, so an element can never end up somewhere it couldn't have been dragged to.
-     */
     private void snapOnScreenElements() {
         for (Element e : elements) {
             float x1 = e.x1(width), y1 = e.y1();
             float clampedX = Math.max(-e.width + 12, Math.min(width - 12, x1));
-            float clampedY = Math.max(0, Math.min(height - 12, y1));
+            float clampedY = MathUtils.clamp(y1, 0, height - 12);
             if (clampedX != x1 || clampedY != y1)
                 e.moveTo(width, clampedX, clampedY);
         }
@@ -144,12 +138,11 @@ public class HudEditorScreen extends Screen {
     }
 
     private void draw(int mouseX, int mouseY) {
+        elements.forEach(Element::refresh);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
-        // Scrim: dark enough to make the overlay elements legible against any world.
         DrawUtils.drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
 
-        // Centre lines, always visible - the primary reference for lining anything up.
         DrawUtils.drawRect(0, height / 2f, width, height / 2f + 0.75f, UITheme.alpha(ThemeManager.getWhite(), 26));
         DrawUtils.drawRect(width / 2f, 0, width / 2f + 0.75f, height, UITheme.alpha(ThemeManager.getWhite(), 26));
 
@@ -173,14 +166,14 @@ public class HudEditorScreen extends Screen {
         UITheme.surface(x, 10, x + w, 10 + h, 6f, UITheme.alpha(0x000000, 170), UITheme.Elevation.FLOATING);
         fr.drawString(title, width / 2f, 10 + pad * 0.6f, ThemeManager.getWhite(), fr.CENTREX);
         fr.drawString(hint, width / 2f, 10 + pad * 0.6f + fr.getHeight(title) + 2,
-                UITheme.alpha(ThemeManager.getTextMuted(), 210), fr.CENTREX);
+                ThemeManager.getTextMuted(), fr.CENTREX);
     }
 
     private void drawElement(FontRendererExtension<?> fr, Element e, int mouseX, int mouseY) {
         float x1 = e.x1(width), y1 = e.y1();
         float x2 = x1 + e.width, y2 = y1 + e.height;
         boolean active = dragging == e;
-        boolean hovered = mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2;
+        boolean hovered = MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2);
 
         int fill = UITheme.alpha(active ? UITheme.accent() : 0x000000, active ? 60 : (hovered ? 120 : 80));
         UITheme.surface(x1, y1, x2, y2, 5f, fill,
@@ -192,7 +185,6 @@ public class HudEditorScreen extends Screen {
                 active || hovered ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200),
                 fr.CENTREX, fr.CENTREY);
 
-        // Live coordinates while dragging, so a value can be matched between two elements.
         if (active)
             fr.drawString(Math.round(x1) + ", " + Math.round(y1), (x1 + x2) / 2f, y2 + 7,
                     UITheme.alpha(UITheme.accent(), 230), fr.CENTREX);
@@ -242,6 +234,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        elements.forEach(Element::refresh);
         int mouseX = (int) event.x(), mouseY = (int) event.y();
         if (Keys.fromSdlButton(event.button()) != 0)
             return false;
@@ -256,7 +249,6 @@ public class HudEditorScreen extends Screen {
             return true;
         }
 
-        // Topmost first, so overlapping elements pick the one drawn last.
         for (int i = elements.size() - 1; i >= 0; i--) {
             Element e = elements.get(i);
             float x1 = e.x1(width), y1 = e.y1();
@@ -272,6 +264,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        elements.forEach(Element::refresh);
         int mouseX = (int) event.x(), mouseY = (int) event.y();
         if (dragging == null || Keys.fromSdlButton(event.button()) != 0)
             return false;
@@ -290,19 +283,13 @@ public class HudEditorScreen extends Screen {
             targetY = Math.round(targetY / GRID) * (float) GRID;
         }
 
-        // Never let an element be dragged fully off-screen and become unreachable.
         targetX = Math.max(-dragging.width + 12, Math.min(width - 12, targetX));
-        targetY = Math.max(0, Math.min(height - 12, targetY));
+        targetY = MathUtils.clamp(targetY, 0, height - 12);
 
         dragging.moveTo(width, targetX, targetY);
         return true;
     }
 
-    /**
-     * Snaps one axis. Each of the element's three interesting positions - leading edge, centre,
-     * trailing edge - is tested against every candidate line, and the closest match within
-     * {@link #SNAP_DISTANCE} wins. Returns the adjusted leading-edge coordinate.
-     */
     private float snapAxis(float start, float size, List<Float> candidates, List<Float> guidesOut) {
         float best = start;
         float bestDelta = SNAP_DISTANCE + 1;
@@ -369,7 +356,6 @@ public class HudEditorScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (event.key() == InputConstants.KEY_ESCAPE) {
-            // Leaving the editor is a commit, not a discard - positions were already applied live.
             Arsenic.getArsenic().getConfigManager().saveConfig();
             minecraft.gui.setScreen(null);
             return true;

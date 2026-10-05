@@ -1,5 +1,7 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,6 +11,8 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
@@ -36,6 +40,9 @@ import java.util.Map;
 @ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
 public class Nametags extends Module {
 
+    public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));
+    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(8, 128, 64, 1));
+
     private static final float ICON_SIZE = 16f;
     private static final float ICON_SPACING = 18f;
 
@@ -53,13 +60,14 @@ public class Nametags extends Module {
             if (player == mc.player) continue;
             if (AntiBot.isBot(player)) continue;
             if (player.isRemoved()) continue;
+            if (mc.player.distanceTo(player) > range.getValue().getInput()) continue;
 
             WorldToScreen.Point point = WorldToScreen.project(
                     RenderUtils.interpolatedPosition(player).add(0, player.getBbHeight() + 0.6, 0));
             if (point == null) continue;
 
             // the same apparent size a world-space tag of fixed height would have
-            float scale = (float) Math.max(0.4, Math.min(2.0, 7.0 / point.depth()));
+            float scale = (float) (Math.max(0.4, Math.min(2.0, 7.0 / point.depth())) * tagScale.getValue().getInput());
             Matrix3x2fStack pose = event.getGraphics().pose();
             pose.pushMatrix();
             pose.translate(point.x(), point.y());
@@ -111,7 +119,6 @@ public class Nametags extends Module {
         float totalW = count * ICON_SPACING;
         float startX = -totalW / 2f;
 
-        // enchant text sits between the icon row and the name; leave room above the name for it.
         float enchScale = 0.55f;
         int enchLineH = (int) (textHeight * enchScale) + 1;
         int maxEnchLines = 0;
@@ -136,7 +143,6 @@ public class Nametags extends Module {
             graphics.pose().popMatrix();
         }
 
-        // Enchant abbreviations, centred under each icon column.
         for (int i = 0; i < count; i++) {
             List<String> lines = enchLists.get(i);
             float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;

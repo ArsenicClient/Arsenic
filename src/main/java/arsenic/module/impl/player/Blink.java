@@ -42,7 +42,6 @@ public class Blink extends Module {
         RenderUtils.drawBoundingBox(new net.minecraft.world.phys.AABB(startPos.x - 0.3, startPos.y, startPos.z - 0.3, startPos.x + 0.3, startPos.y + 1.8, startPos.z + 0.3), 0xFFFFFFFF);
     };
 
-    /** Ticks currently held, against the cap - the one number that matters while blinking. */
     @Override
     public String getHudInfo() {
         return ticksElapsed + "/" + (int) doubleProperty.getValue().getInput() + "t";

@@ -13,7 +13,6 @@ public class PanicCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-        // getEnabledModules() returns a fresh list, so disabling while iterating is safe
         Collection<Module> enabled = Arsenic.getArsenic().getModuleManager().getEnabledModules();
         int count = enabled.size();
         enabled.forEach(module -> module.setEnabled(false));

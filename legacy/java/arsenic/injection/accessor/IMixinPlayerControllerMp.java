@@ -10,4 +10,7 @@ public interface IMixinPlayerControllerMp {
     @Accessor
     NetHandlerPlayClient getNetClientHandler();
 
+    @Accessor("isHittingBlock")
+    boolean isHittingBlock();
+
 }

@@ -39,6 +39,11 @@ public class DrawUtils extends UtilityClass {
                 .submit();
     }
 
+    /** A plain top to bottom argb gradient. */
+    public static void drawVerticalGradient(float x1, float y1, float x2, float y2, int top, int bottom) {
+        drawGradientRect(x1, y1, x2, y2, top, bottom);
+    }
+
     public static void drawHorizontalGradientRect(float x, float y, float x1, float y1, int left, int right) {
         new QuadBatch()
                 .vertex(x, y, left).vertex(x, y1, left).vertex(x1, y1, right).vertex(x1, y, right)
@@ -100,15 +105,6 @@ public class DrawUtils extends UtilityClass {
         drawRoundedRect(x, y, x + width, y + height, radius, c);
     }
 
-    /**
-     * Soft elevation shadow - the element reads as hovering slightly above whatever is behind it.
-     * Two feathered passes: a centred ambient halo and a key shadow with a small downward drop.
-     * Draw this BEFORE the element's own fill.
-     *
-     * @param radius corner radius of the element being shadowed
-     * @param spread elevation - how far (px) the shadow reaches
-     * @param alpha  darkness of the shadow's core (0-255)
-     */
     public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha) {
         drawShadow(x1, y1, x2, y2, radius, spread, alpha, 6);
     }
@@ -135,12 +131,6 @@ public class DrawUtils extends UtilityClass {
         fillPath(inner, (px, py) -> core);
     }
 
-    /**
-     * Subtle light rim around a raised element. Draw this AFTER the element's fill.
-     *
-     * @param color base RGB of the rim (alpha byte ignored)
-     * @param alpha rim opacity (0-255)
-     */
     public static void drawEdgeHighlight(float x1, float y1, float x2, float y2, float radius, int color, int alpha) {
         if (alpha <= 0)
             return;
@@ -150,11 +140,6 @@ public class DrawUtils extends UtilityClass {
         drawRoundedOutline(x1, y1, x2, y2, radius, 1.5f, inner);
     }
 
-    /**
-     * Frosted-glass surface treatment drawn ON TOP of a panel's base fill. The 1.8 version was an
-     * animated shader; this keeps its look in static form - a tint film, a vertical gloss and a
-     * bright rim - which reads the same at a glance and costs nothing.
-     */
     public static void drawGlassRect(float x, float y, float x1, float y1, float radius,
                                      int filmColor, int rimColor, float strength) {
         if (strength <= 0f)

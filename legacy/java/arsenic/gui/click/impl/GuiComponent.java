@@ -14,21 +14,8 @@ import arsenic.utils.render.RenderInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The GUI pane: pick a look, pick a colour, and that is the whole of the client's visual
- * configuration.
- * <p>
- * It replaces the old ClickGui module, which carried nineteen properties for what is really a
- * single decision. Each card here sets every one of those values at once via
- * {@link GuiStyle.Preset}, so the GUI can never end up in a combination nobody chose.
- * <p>
- * Structurally this is a sibling of {@link ConfigsComponent}: a category component that draws a full
- * pane in the content area rather than a module list, which is why it sits in the sidebar next to
- * Configs and behaves identically when you click it.
- */
 public class GuiComponent extends ModuleCategoryComponent {
 
-    /** A rectangle plus the thing to do when it is clicked. Rebuilt every frame during the draw. */
     private static final class Hit {
         float x1, y1, x2, y2;
         final Runnable action;
@@ -45,6 +32,8 @@ public class GuiComponent extends ModuleCategoryComponent {
 
     private final List<Hit> hits = new ArrayList<>();
 
+    private static final float BOTTOM_MARGIN = 28f;
+
     public GuiComponent() {
         super(ModuleCategory.GUI);
     }
@@ -53,10 +42,6 @@ public class GuiComponent extends ModuleCategoryComponent {
     public void drawLeft(PosInfo pi, RenderInfo ri) {
         hits.clear();
 
-        // This pane draws its own layout instead of the two-column module list, which means it also
-        // has to do the scrolling the list normally does for it: ease the visible offset toward the
-        // wheel's target, shift the content by it, and report the content height at the end so the
-        // screen can size the scrollbar and clamp the wheel.
         scroll += (targetScroll - scroll) * GuiStyle.scrollEase();
         if (Math.abs(targetScroll - scroll) < 0.5f)
             scroll = targetScroll;
@@ -71,7 +56,6 @@ public class GuiComponent extends ModuleCategoryComponent {
         drawSectionLabel("Appearance", x + 5, y, ri);
         y += 16;
 
-        // ---- preset cards ----
         for (GuiStyle.Preset preset : GuiStyle.Preset.values()) {
             float cardX = x + 5;
             float cardH = 42;
@@ -88,15 +72,13 @@ public class GuiComponent extends ModuleCategoryComponent {
                     active ? UITheme.alpha(UITheme.accent(), 190)
                            : (hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder()));
 
-            // Same left accent spine an enabled module card gets, so "this one is live" looks
-            // identical everywhere in the GUI.
             if (active)
                 UITheme.accentBar(cardX, y, cardX + 3, y + cardH, 10f, 1f);
 
             ri.getFr().drawString(preset.label, cardX + 14, y + 12,
                     active ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary());
             ri.getFr().drawString(preset.description, cardX + 14, y + 26,
-                    UITheme.alpha(ThemeManager.getTextMuted(), 210),
+                    ThemeManager.getTextMuted(),
                     ri.getFr().getScaleModifier(0.85f));
 
             drawPreview(cardX + rowW - 74, y + 9, 60, cardH - 18, preset);
@@ -113,13 +95,12 @@ public class GuiComponent extends ModuleCategoryComponent {
         DrawUtils.drawRect(x + 5, y, maxX, y + 1, ThemeManager.getSeparator());
         y += 14;
 
-        // ---- theme swatches ----
         drawSectionLabel("Colour", x + 5, y, ri);
         y += 16;
 
         float swatch = 22, gap = 6, sx = x + 5;
         for (Theme theme : Arsenic.getArsenic().getThemeManager().getContents()) {
-            if (sx + swatch > maxX - 5) {          // wrap to the next row
+            if (sx + swatch > maxX - 5) {
                 sx = x + 5;
                 y += swatch + gap;
             }
@@ -143,14 +124,13 @@ public class GuiComponent extends ModuleCategoryComponent {
         y += swatch + 8;
 
         ri.getFr().drawString(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getName(),
-                x + 5, y, UITheme.alpha(ThemeManager.getTextMuted(), 210),
+                x + 5, y, ThemeManager.getTextMuted(),
                 ri.getFr().getScaleModifier(0.85f));
         y += 18;
 
         DrawUtils.drawRect(x + 5, y, maxX, y + 1, ThemeManager.getSeparator());
         y += 14;
 
-        // ---- the two remaining switches ----
         drawSectionLabel("Interface", x + 5, y, ri);
         y += 16;
 
@@ -164,9 +144,12 @@ public class GuiComponent extends ModuleCategoryComponent {
                     GuiStyle.get().setSounds(!GuiStyle.get().isSounds());
                     Arsenic.getArsenic().getConfigManager().saveConfig();
                 });
+        y = drawChoice(ri, x + 5, y, rowW, mx, my, "Menu Style",
+                "Element".equals(GuiStyle.get().getScreenStyle()) ? "Element 33" : GuiStyle.get().getScreenStyle(), () -> {
+                    GuiStyle.get().setScreenStyle("Ocean".equals(GuiStyle.get().getScreenStyle()) ? "Element" : "Ocean");
+                    Arsenic.getArsenic().getConfigManager().saveConfig();
+                });
 
-        // PostProcessing drives the blur and bloom behind this GUI, so it belongs here rather than
-        // in the module list. It is still a real module - this row just toggles it in place.
         arsenic.module.Module postProcessing = Arsenic.getArsenic().getModuleManager()
                 .getModuleByClass(arsenic.module.impl.visual.PostProcessing.class);
         if (postProcessing != null) {
@@ -177,15 +160,9 @@ public class GuiComponent extends ModuleCategoryComponent {
             });
         }
 
-        // Total height of everything drawn. ClickGuiScreen subtracts the visible height from this,
-        // leaving the actual overflow to scroll through.
-        maxHeight = y - contentTop;
+        maxHeight = y - contentTop + BOTTOM_MARGIN;
     }
 
-    /**
-     * A miniature of what the preset looks like - a backdrop band, a panel and an accent bar. Words
-     * like "frosted" mean little until you see them; three rectangles do the job.
-     */
     private void drawPreview(float x, float y, float w, float h, GuiStyle.Preset preset) {
         DrawUtils.drawRoundedRect(x, y, x + w, y + h, 4f, ThemeManager.getConfigsBackground());
         if (preset.background)
@@ -205,7 +182,25 @@ public class GuiComponent extends ModuleCategoryComponent {
         DrawUtils.drawRoundedRect(px1, py1, px1 + 2, py2, 1f, UITheme.accent());
     }
 
-    /** Label on the left, toggle pill on the right - the same shape as a boolean property row. */
+    /** Label on the left, the current choice on the right in the accent; clicking cycles it. */
+    private float drawChoice(RenderInfo ri, float x, float y, float rowW, float mx, float my,
+                             String label, String value, Runnable cycle) {
+        float h = 26;
+        boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+
+        UITheme.surface(x, y, x + rowW, y + h, 8f, ThemeManager.getConfigsCard(),
+                hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, 0.6f);
+        DrawUtils.drawRoundedOutline(x, y, x + rowW, y + h, 8f, 1f,
+                hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder());
+
+        ri.getFr().drawString(label, x + 12, y + h / 2f, ThemeManager.getTextPrimary(), ri.getFr().CENTREY);
+        ri.getFr().drawString(value, x + rowW - 12 - ri.getFr().getWidth(value), y + h / 2f,
+                UITheme.accent(), ri.getFr().CENTREY);
+
+        hits.add(new Hit(x, y, x + rowW, y + h, cycle));
+        return y + h + 6;
+    }
+
     private float drawSwitch(RenderInfo ri, float x, float y, float rowW, float mx, float my,
                              String label, boolean on, Runnable toggle) {
         float h = 26;
@@ -231,7 +226,6 @@ public class GuiComponent extends ModuleCategoryComponent {
         return y + h + 6;
     }
 
-    /** Small letter-spaced caps, matching the sidebar's group headings. */
     private void drawSectionLabel(String label, float x, float y, RenderInfo ri) {
         StringBuilder sb = new StringBuilder();
         String upper = label.toUpperCase();
@@ -240,11 +234,10 @@ public class GuiComponent extends ModuleCategoryComponent {
             if (i < upper.length() - 1)
                 sb.append(' ');
         }
-        ri.getFr().drawString(sb.toString(), x, y, UITheme.alpha(ThemeManager.getTextMuted(), 190),
+        ri.getFr().drawString(sb.toString(), x, y, ThemeManager.getTextMuted(),
                 ri.getFr().getScaleModifier(0.78f));
     }
 
-    /** Single column: this pane draws its own layout rather than a two-column module list. */
     @Override
     public void drawRight(PosInfo pi, RenderInfo ri) {
     }

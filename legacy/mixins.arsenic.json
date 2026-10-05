@@ -19,6 +19,10 @@
     "mixin.MixinGuiChat",
     "mixin.MixinGuiContainer",
     "mixin.MixinGuiIngame",
+    "mixin.MixinGuiButton",
+    "mixin.MixinGuiOptionSlider",
+    "mixin.MixinGuiSlot",
+    "mixin.MixinForgeHooksClient",
     "mixin.MixinGuiScreen",
     "mixin.MixinGuiSpectator",
     "mixin.MixinItemRenderer",
@@ -28,7 +32,8 @@
     "mixin.MixinNetworkManager",
     "mixin.MixinPlayerControllerMp",
     "mixin.MixinAbstractClientPlayer",
-    "mixin.MixinRendererLivingEntity"
+    "mixin.MixinRendererLivingEntity",
+    "mixin.MixinSplashProgress"
   ],
   "mixins": [
     "accessor.C03PacketPlayerAccessor",

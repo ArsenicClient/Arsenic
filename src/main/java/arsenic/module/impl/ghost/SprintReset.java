@@ -23,13 +23,7 @@ public class SprintReset extends Module {
     public final EnumProperty<wMode> mode = new EnumProperty<>("Mode", wMode.COMBO);
     public boolean hasTapped = false;
 
-    /**
-     * Whether the server has actually acknowledged our hit yet, i.e. we have seen the target's
-     * hurtTime go above zero since we attacked. COMBO must not judge the hurt window before this
-     * is true - see the guard in the movement listener.
-     */
     private boolean sawHurt = false;
-    /** Guards against a target sticking forever when a hit simply did not land. */
     private final MSTimer attackTimer = new MSTimer();
 
     @Override
@@ -59,12 +53,6 @@ public class SprintReset extends Module {
                 double distToTarget = RotationUtils.getDistanceToEntityBox(target);
                 double targetDistToPlayer = RotationUtils.getDistanceToEntityBox(mc.player, target);
 
-                // hurtTime is set client side only when the server's damage packet arrives, a full
-                // round trip after we swing. On the ticks in between it is still 0, so testing
-                // "hurtTime < hurtTime" straight away threw the target out before the hit had ever
-                // been acknowledged - which is why COMBO only fired when the packet happened to
-                // land inside the same tick. Wait until we have actually seen the target flinch
-                // before judging the window.
                 if (target.hurtTime > 0)
                     sawHurt = true;
 
@@ -72,7 +60,6 @@ public class SprintReset extends Module {
                     target = null;
                     return;
                 }
-                // Nothing came back at all: give up rather than hold a stale target forever.
                 if (!sawHurt && attackTimer.hasTimeElapsed(getPing() + 500L)) {
                     target = null;
                     return;

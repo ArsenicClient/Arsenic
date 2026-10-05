@@ -56,6 +56,13 @@ public final class QuadBatch {
         return vertex(x0, y0, color).vertex(x1, y1, color).vertex(x2, y2, color).vertex(x3, y3, color);
     }
 
+    /** A convex quad with a colour per corner, for gradients. Winding is fixed up like {@link #quad}. */
+    public QuadBatch quad(float x0, float y0, int c0, float x1, float y1, int c1, float x2, float y2, int c2, float x3, float y3, int c3) {
+        if (isBackFacing(x0, y0, x1, y1, x2, y2))
+            return vertex(x0, y0, c0).vertex(x3, y3, c3).vertex(x2, y2, c2).vertex(x1, y1, c1);
+        return vertex(x0, y0, c0).vertex(x1, y1, c1).vertex(x2, y2, c2).vertex(x3, y3, c3);
+    }
+
     /** Front faces have a negative signed area in screen space (y down), matching vanilla fills. */
     private static boolean isBackFacing(float x0, float y0, float x1, float y1, float x2, float y2) {
         return (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0) > 0;

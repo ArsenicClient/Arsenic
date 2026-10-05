@@ -243,7 +243,8 @@ public class TargetHUD extends Module {
         if (fr == null) { GL11.glPopMatrix(); return; }
 
         String name = StringUtils.stripControlCodes(target.getName());
-        fr.drawStringWithShadow(name, x + 5, y + 5, (int) (alpha * 0xFF) << 24 | 0xFFFFFF);
+        float textMid = y + 9.5f;
+        fr.drawStringWithShadow(name, x + 5, textMid, (int) (alpha * 0xFF) << 24 | 0xFFFFFF, fr.CENTREY);
 
         float health = target.getHealth();
         float maxHealth = target.getMaxHealth();
@@ -263,7 +264,7 @@ public class TargetHUD extends Module {
 
         String healthText = String.format("%d/%d", Math.round(animatedHealth), (int) maxHealth);
         float textWidth = fr.getWidth(healthText);
-        fr.drawString(healthText, (int) (x + hudWidth - 5 - textWidth), y + 5, (int) (alpha * 0xFF) << 24 | 0xCCCCCC);
+        fr.drawString(healthText, (int) (x + hudWidth - 5 - textWidth), textMid, (int) (alpha * 0xFF) << 24 | 0xCCCCCC, fr.CENTREY);
 
         GL11.glPopMatrix();
     }

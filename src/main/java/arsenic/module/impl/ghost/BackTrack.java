@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -42,7 +43,7 @@ public class BackTrack extends Module {
                     || p instanceof ClientboundEntityPositionSyncPacket;
 
     public enum BacktrackMode {NORMAL, PULSE}
-    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
+    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
     public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 
@@ -98,8 +99,6 @@ public class BackTrack extends Module {
 
     @EventLink
     public final Listener<EventPlayerJoinWorld> onJoinWorld = event -> {
-        // Re-initialise (re-bind the packet delays, clear stale tracks) whenever the local player
-        // joins a new world — the previous world's entity tracks no longer mean anything.
         if (event.getEntity() == mc.player)
             onEnable();
     };
@@ -159,7 +158,6 @@ public class BackTrack extends Module {
     @EventLink
     public final Listener<EventPacket.Incoming.Pre> listener = event -> {
         if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
-        // a damage event is what 1.8 sent as entity status 2, the hurt animation
         if (!(event.getPacket() instanceof ClientboundDamageEventPacket packet)) return;
 
         Entity entity = mc.level.getEntity(packet.entityId());
@@ -214,7 +212,6 @@ public class BackTrack extends Module {
         EspMode mode = espMode.getValue();
         if (mode == EspMode.NONE) return;
 
-        // Colour follows the client theme rather than a per-module picker.
         Color color = new Color(ThemeManager.getMainColor(), true);
 
 
@@ -223,8 +220,6 @@ public class BackTrack extends Module {
             Player target = entry.player;
             if (vec3 == null || target.isRemoved()) continue;
 
-            // Build a bounding box at the backtracked XZ but at our own Y,
-            // matching the player's real hitbox dimensions.
             double rx = vec3.x;
             double ry = vec3.y;
             double rz = vec3.z;

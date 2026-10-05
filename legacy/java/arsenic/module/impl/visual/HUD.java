@@ -1,5 +1,7 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.timer.FrameClock;
+import arsenic.utils.java.MathUtils;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
@@ -36,19 +38,6 @@ import net.minecraft.client.settings.GameSettings;
 
 import java.util.function.BinaryOperator;
 
-/**
- * The in-game overlay.
- * <p>
- * Each arraylist row draws its own backdrop, sized to that row's text, with an accent edge on the
- * outer side. Every row carries its module's live state next to the name - "LagRange 240ms",
- * "DoubleHit witholding" - sourced from {@link Module#getHudInfo()}.
- * <p>
- * Rows animate. Entries are kept in {@link #entries} across frames so a module that is toggled off
- * can slide out instead of vanishing, and rows ease toward their target Y so the list reflows
- * smoothly when something in the middle disappears. That state is the reason the render is split
- * into "measure and advance" ({@link #buildEntries}) and "draw" ({@link #drawArrayList}): the bloom
- * and blur passes re-draw the exact same geometry and must not advance the animation a second time.
- */
 @ModuleInfo(name = "HUD", category = ModuleCategory.RENDER, hidden = true)
 public class HUD extends Module {
 
@@ -73,22 +62,21 @@ public class HUD extends Module {
     public static int keybindsX = 4;
     public static int keybindsY = 80;
 
-    /** Row geometry, in HUD pixels. Everything else is derived from these two. */
+    public static int watermarkW = 78, watermarkH = 16;
+    public static int coordsW = 96, coordsH = 16;
+    public static int keybindsW = 104, keybindsH = 46;
+
     private static final float ROW_HEIGHT = 13f;
     private static final float PANEL_PAD_X = 6f;
     private static final float ACCENT_WIDTH = 1.6f;
     private static final float RADIUS = 3.5f;
 
-    /** Width changes smaller than this never reorder the list at all. */
     private static final float SORT_TOLERANCE = 2f;
-    /** How long a new width must hold before it is allowed to reorder the list. */
     private static final long SORT_SETTLE_MS = 500L;
 
-    /** Live row state, keyed by module so a toggle can animate rather than pop. */
     private final Map<Module, Entry> entries = new LinkedHashMap<>();
-    /** The ordered, laid-out snapshot the draw passes consume. */
     private List<Entry> visible = new ArrayList<>();
-    private long lastFrameMs = System.currentTimeMillis();
+    private final FrameClock clock = new FrameClock();
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
@@ -120,11 +108,6 @@ public class HUD extends Module {
         drawArrayList(fr, sr, Pass.NORMAL);
     };
 
-    /**
-     * Bloom pass. It re-draws the arraylist at full opacity into the bloom buffer so the panel and
-     * accents glow; it deliberately reuses the already-measured {@link #visible} snapshot instead of
-     * rebuilding, because rebuilding here would double-step every animation.
-     */
     @EventLink
     public final Listener<EventShader.Bloom> bloomListener = event -> {
         if (!shouldRender())
@@ -135,7 +118,6 @@ public class HUD extends Module {
         drawArrayList(fr, new ScaledResolution(mc), Pass.BLOOM);
     };
 
-    /** Blur pass: solid silhouettes only, which is all the blur mask needs. */
     @EventLink
     public final Listener<EventShader.Blur> blurListener = event -> {
         if (!shouldRender())
@@ -154,19 +136,10 @@ public class HUD extends Module {
 
     private enum Pass { NORMAL, BLOOM, BLUR }
 
-    // ---------------------------------------------------------------
-    //  Arraylist
-    // ---------------------------------------------------------------
 
-    /**
-     * Reconciles the live module list against the animated {@link #entries} map and lays the rows
-     * out. Called exactly once per frame, from the normal render pass.
-     */
     private void buildEntries(FontRendererExtension<?> fr) {
         long now = System.currentTimeMillis();
-        // Delta-time driven so the animation runs at the same speed regardless of framerate.
-        float dt = Math.min(120f, now - lastFrameMs) / 1000f;
-        lastFrameMs = now;
+        float dt = clock.tick();
 
         Set<Module> enabled = Arsenic.getArsenic().getModuleManager().getEnabledModules()
                 .stream().filter(m -> !m.isHidden()).collect(Collectors.toSet());
@@ -174,7 +147,6 @@ public class HUD extends Module {
         for (Module m : enabled)
             entries.computeIfAbsent(m, Entry::new);
 
-        // Measure first: sorting by width needs the width the row will actually be drawn at.
         for (Map.Entry<Module, Entry> e : entries.entrySet()) {
             Entry entry = e.getValue();
             entry.alive = enabled.contains(e.getKey());
@@ -188,17 +160,16 @@ public class HUD extends Module {
         List<Entry> ordered = new ArrayList<>(entries.values());
         ordered.sort(arraylistSort.getValue().getComparator());
 
-        // Advance each row toward its target opacity and slot.
         float y = 0;
         visible = new ArrayList<>(ordered.size());
         for (Entry entry : ordered) {
             float target = entry.alive ? 1f : 0f;
             entry.opacity += Math.signum(target - entry.opacity) * dt * 5.5f;
-            entry.opacity = Math.max(0f, Math.min(1f, entry.opacity));
+            entry.opacity = MathUtils.clamp01(entry.opacity);
 
             if (entry.y < 0)
-                entry.y = y; // first appearance: start in place rather than sliding from the top
-            entry.y += (y - entry.y) * Math.min(1f, dt * 14f);
+                entry.y = y;
+            entry.y = FrameClock.approach(entry.y, y, 14f, dt);
 
             if (entry.opacity > 0.004f) {
                 visible.add(entry);
@@ -206,8 +177,6 @@ public class HUD extends Module {
             }
         }
 
-        // A row is only forgotten once it is both disabled and fully faded, so re-enabling a module
-        // mid-fade picks the same row back up instead of restarting it from nothing.
         entries.values().removeIf(entry -> !entry.alive && entry.opacity <= 0.004f);
 
     }
@@ -237,51 +206,38 @@ public class HUD extends Module {
             float rowMid = rowY + ROW_HEIGHT / 2f;
             int color = colorMode.getValue().getColor(4, i * 20);
 
-            // Rows slide in from the right as they fade, which reads as the list making room.
             float slide = (1f - entry.opacity) * 10f;
             float rowRight = right + slide;
-            // Each row's backdrop is exactly as wide as that row's own text. A shared panel sized
-            // to the longest name leaves a dead slab of background behind every shorter one.
             float rowLeft = rowRight - (entry.width + PANEL_PAD_X * 2f);
             float alpha = pass == Pass.BLOOM ? 1f : entry.opacity;
 
             if (pass == Pass.BLUR) {
-                // The blur mask only needs coverage, so a plain solid row is both correct and the
-                // cheapest thing to submit.
                 DrawUtils.drawRoundedRect(rowLeft, rowY, rowRight, rowY + rowH, RADIUS, 0xFFFFFFFF);
                 continue;
             }
 
-            // The bloom pass deliberately skips the backdrop: it is near-black, so drawing it into
-            // the bloom buffer would only mask the glow coming off the text and accent on top.
             if (pass == Pass.NORMAL
                     && (bg == ArrayListBackground.PANEL || bg == ArrayListBackground.RECTANGLE)) {
                 DrawUtils.drawRoundedRect(rowLeft, rowY, rowRight, rowY + rowH, RADIUS,
                         UITheme.alpha(0x000000, (int) (panelAlpha * entry.opacity)));
             }
 
-            // Accent edge on the outer side of the row.
             if (bg != ArrayListBackground.NONE)
                 DrawUtils.drawRoundedRect(rowRight - ACCENT_WIDTH, rowY, rowRight, rowY + rowH,
                         ACCENT_WIDTH / 2f, UITheme.alpha(color, alpha));
 
-            // Info first, right-aligned, then the name to its left - so the name column stays put
-            // while a changing info string grows and shrinks.
             float cursor = rowRight - PANEL_PAD_X;
             if (entry.info != null) {
                 float infoW = fr.getWidth(entry.info);
-                fr.drawStringWithShadow(entry.info, cursor - infoW, rowMid - fr.getHeight(entry.info) / 2f,
-                        UITheme.alpha(pass == Pass.BLOOM ? color : ThemeManager.getTextMuted(), alpha));
+                fr.drawStringWithShadow(entry.info, cursor - infoW, rowMid,
+                        UITheme.alpha(pass == Pass.BLOOM ? color : ThemeManager.getTextMuted(), alpha), fr.CENTREY);
                 cursor -= infoW + fr.getWidth(" ");
             }
             fr.drawStringWithShadow(entry.name, cursor - entry.nameWidth,
-                    rowMid - fr.getHeight(entry.name) / 2f, UITheme.alpha(color, alpha));
+                    rowMid, UITheme.alpha(color, alpha), fr.CENTREY);
         }
     }
 
-    // ---------------------------------------------------------------
-    //  Other elements
-    // ---------------------------------------------------------------
 
     private void renderWatermark(FontRendererExtension<?> fr, int color) {
         String suffix = null;
@@ -306,15 +262,17 @@ public class HUD extends Module {
         float h = fr.getHeight(title) + pad * 1.5f;
         float w = fr.getWidth(title) + (suffix == null ? 0 : fr.getWidth("  " + suffix)) + pad * 2f;
         float mid = watermarkY + h / 2f;
+        watermarkW = (int) Math.ceil(w);
+        watermarkH = (int) Math.ceil(h);
 
         chipBackground(watermarkX, watermarkY, watermarkX + w, watermarkY + h);
         DrawUtils.drawRoundedRect(watermarkX, watermarkY + pad * 0.6f,
                 watermarkX + 1.6f, watermarkY + h - pad * 0.6f, 0.8f, color);
 
-        fr.drawStringWithShadow(title, watermarkX + pad, mid - fr.getHeight(title) / 2f, color);
+        fr.drawStringWithShadow(title, watermarkX + pad, mid, color, fr.CENTREY);
         if (suffix != null)
             fr.drawStringWithShadow(suffix, watermarkX + pad + fr.getWidth(title + "  "),
-                    mid - fr.getHeight(suffix) / 2f, ThemeManager.getTextMuted());
+                    mid, ThemeManager.getTextMuted(), fr.CENTREY);
     }
 
     private void renderCoords(FontRendererExtension<?> fr, int color) {
@@ -322,9 +280,12 @@ public class HUD extends Module {
         float pad = 4f;
         float h = fr.getHeight(text) + pad * 1.5f;
         float w = fr.getWidth("XYZ  " + text) + pad * 2f;
+        coordsW = (int) Math.ceil(w);
+        coordsH = (int) Math.ceil(h);
         chipBackground(coordsX, coordsY, coordsX + w, coordsY + h);
-        fr.drawStringWithShadow("XYZ", coordsX + pad, coordsY + pad * 0.75f, ThemeManager.getTextMuted());
-        fr.drawStringWithShadow(text, coordsX + pad + fr.getWidth("XYZ  "), coordsY + pad * 0.75f, color);
+        float coordsMid = coordsY + h / 2f;
+        fr.drawStringWithShadow("XYZ", coordsX + pad, coordsMid, ThemeManager.getTextMuted(), fr.CENTREY);
+        fr.drawStringWithShadow(text, coordsX + pad + fr.getWidth("XYZ  "), coordsMid, color, fr.CENTREY);
     }
 
     private void renderKeybinds(FontRendererExtension<?> fr, int color) {
@@ -336,34 +297,33 @@ public class HUD extends Module {
             return;
 
         float pad = 4f;
-        float rowH = 11f;
+        float textH = fr.getHeight("Ag");
+        float rowH = textH + 3f;
         float w = 0;
         for (Module m : binds)
             w = Math.max(w, fr.getWidth(m.getName() + "   " + GameSettings.getKeyDisplayString(m.getKeybind())));
         w += pad * 2f;
         float h = binds.size() * rowH + pad * 1.5f;
+        keybindsW = (int) Math.ceil(w);
+        keybindsH = (int) Math.ceil(h);
 
         chipBackground(keybindsX, keybindsY, keybindsX + w, keybindsY + h);
 
-        float y = keybindsY + pad * 0.75f;
+        float y = keybindsY + pad * 0.75f + rowH / 2f;
         for (Module m : binds) {
             String key = GameSettings.getKeyDisplayString(m.getKeybind());
-            fr.drawStringWithShadow(m.getName(), keybindsX + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted());
-            fr.drawStringWithShadow(key, keybindsX + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted());
+            fr.drawStringWithShadow(m.getName(), keybindsX + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted(), fr.CENTREY);
+            fr.drawStringWithShadow(key, keybindsX + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted(), fr.CENTREY);
             y += rowH;
         }
     }
 
-    /** Shared translucent backing used by every non-arraylist element, so they read as one family. */
     private void chipBackground(float x1, float y1, float x2, float y2) {
         int a = (int) (255 * (backgroundOpacity.getValue().getInput() / 100.0));
         DrawUtils.drawShadow(x1, y1, x2, y2, RADIUS, 3f, (int) (70 * (a / 255f)), 3);
         DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(0x000000, a));
     }
 
-    // ---------------------------------------------------------------
-    //  Persistence
-    // ---------------------------------------------------------------
 
     @Override
     public JsonObject saveInfoToJson(JsonObject obj) {
@@ -420,7 +380,6 @@ public class HUD extends Module {
         postApplyConfig();
     }
 
-    /** Restores every draggable element to its default corner. Used by the editor's Reset. */
     public static void resetPositions() {
         arrayListX = 0;
         arrayListY = 0;
@@ -436,25 +395,15 @@ public class HUD extends Module {
         Radar.radarY = 4;
     }
 
-    /** One animated row of the arraylist. */
     private static class Entry {
         final String name;
         String info;
-        /** Width of the name alone. */
         float nameWidth;
-        /** Full drawn width including the suffix - the size of this row's backdrop. */
         float width;
-        /**
-         * The width the list is actually ordered by: {@link #width}, but only after it has held
-         * still. See {@link #settleSortWidth(long)}.
-         */
         float sortWidth = -1f;
-        /** The width we are currently waiting on, and when we first saw it. */
         private float candidateWidth;
         private long candidateSince;
-        /** 0..1 fade, also drives the row's contribution to the panel height. */
         float opacity;
-        /** Eased Y offset from the top of the panel; negative means "not placed yet". */
         float y = -1f;
         boolean alive;
 
@@ -462,20 +411,8 @@ public class HUD extends Module {
             this.name = module.getName();
         }
 
-        /**
-         * Decides when a width change is allowed to reorder the list.
-         * <p>
-         * Sorting straight off {@link #width} means every tick of a live suffix - LagRange counting
-         * "240ms" down to "180ms", Clicker's cps, Blink's tick counter - reshuffles the list. Sorting
-         * off the name alone is stable but then a row with a long suffix visibly breaks the length
-         * ordering. So the list sorts by the full width, but a new width only becomes the sort key
-         * once it has stayed put for {@link #SORT_SETTLE_MS}, and changes smaller than
-         * {@link #SORT_TOLERANCE} never count at all. A suffix that flickers between two lengths
-         * therefore never reorders anything, while a real, lasting change does - just half a second
-         * late, which nobody notices.
-         */
         void settleSortWidth(long now) {
-            if (sortWidth < 0f) {            // first frame: adopt immediately
+            if (sortWidth < 0f) {
                 sortWidth = width;
                 candidateWidth = width;
                 candidateSince = now;
@@ -483,13 +420,13 @@ public class HUD extends Module {
             }
 
             if (Math.abs(width - sortWidth) <= SORT_TOLERANCE) {
-                candidateWidth = sortWidth;  // close enough to what we already use - nothing to do
+                candidateWidth = sortWidth;
                 candidateSince = now;
                 return;
             }
 
             if (Math.abs(width - candidateWidth) > SORT_TOLERANCE) {
-                candidateWidth = width;      // a different width again: restart the clock
+                candidateWidth = width;
                 candidateSince = now;
                 return;
             }
@@ -533,7 +470,6 @@ public class HUD extends Module {
         }
     }
 
-    /** RECTANGLE is kept so configs written by older builds still resolve; it renders as PANEL. */
     public enum ArrayListBackground {
         PANEL, RECTANGLE, BAR, NONE
     }

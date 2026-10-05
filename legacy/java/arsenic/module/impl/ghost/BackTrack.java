@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -39,7 +40,7 @@ public class BackTrack extends Module {
             p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
     public enum BacktrackMode {NORMAL, PULSE}
-    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10));
+    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
     public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 
@@ -69,7 +70,6 @@ public class BackTrack extends Module {
     @Override
     public void onEnable() {
         tracked.clear();
-        // All S15/S16/S17 move packets are subclasses of S14PacketEntity, so one selector covers them.
         LagManager.delay(BackTrack.class, ALL_TRACKED, this::onDelayPacket);
     }
 
@@ -90,8 +90,6 @@ public class BackTrack extends Module {
 
     @EventLink
     public final Listener<EventPlayerJoinWorld> onJoinWorld = event -> {
-        // Re-initialise (re-bind the packet delays, clear stale tracks) whenever the local player
-        // joins a new world — the previous world's entity tracks no longer mean anything.
         if (event.getEntity() == mc.thePlayer)
             onEnable();
     };
@@ -143,7 +141,7 @@ public class BackTrack extends Module {
         if (!(event.getPacket() instanceof S19PacketEntityStatus)) return;
 
         S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
-        if (packet.getOpCode() != 2) return; //hurt animation
+        if (packet.getOpCode() != 2) return;
 
         Entity entity = packet.getEntity(mc.theWorld);
         if (!(entity instanceof EntityPlayer)) return;
@@ -197,7 +195,6 @@ public class BackTrack extends Module {
         EspMode mode = espMode.getValue();
         if (mode == EspMode.NONE) return;
 
-        // Colour follows the client theme rather than a per-module picker.
         Color color = new Color(ThemeManager.getMainColor(), true);
 
         GlStateManager.pushMatrix();
@@ -213,7 +210,6 @@ public class BackTrack extends Module {
             if (vec3 == null || target.isDead) continue;
 
             if (mode == EspMode.MODEL) {
-                // Translate by the XZ delta only; Y is anchored to the player so it stays grounded
                 double dx = vec3.xCoord - target.posX;
                 double dz = vec3.zCoord - target.posZ;
                 GlStateManager.pushMatrix();
@@ -227,8 +223,6 @@ public class BackTrack extends Module {
                 continue;
             }
 
-            // Build a bounding box at the backtracked XZ but at our own Y,
-            // matching the player's real hitbox dimensions.
             double rx = vec3.xCoord - mc.getRenderManager().viewerPosX;
             double ry = vec3.yCoord - mc.getRenderManager().viewerPosY;
             double rz = vec3.zCoord - mc.getRenderManager().viewerPosZ;

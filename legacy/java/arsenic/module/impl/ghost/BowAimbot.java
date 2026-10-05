@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.rotations.RotationUtils;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -16,7 +17,6 @@ import net.minecraft.util.MathHelper;
 
 @ModuleInfo(name = "BowAimbot", category = ModuleCategory.COMBAT)
 public class BowAimbot extends Module {
-    /** Lead the target by its velocity. More hits, and a rotation the player never made. */
     public final BooleanProperty predict = new BooleanProperty("Predict", true);
 
 
@@ -24,7 +24,7 @@ public class BowAimbot extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
-        if (mc.thePlayer.getHeldItem() == null || !(mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) || !mc.thePlayer.isUsingItem())
+        if (!PlayerUtils.isPlayerHoldingBow() || !mc.thePlayer.isUsingItem())
             return;
 
         EntityLivingBase target = TargetManager.getTarget();
@@ -60,7 +60,7 @@ public class BowAimbot extends Module {
         }
 
         double dist = MathHelper.sqrt_double(x * x + z * z);
-        float yaw = (float) (Math.atan2(z, x) * 180.0 / Math.PI) - 90.0f;
+        float yaw = RotationUtils.yawTo(x, z);
 
         double v = 3.0;
         double g = 0.05;
@@ -68,7 +68,7 @@ public class BowAimbot extends Module {
                 (Math.pow(v, 2) - Math.sqrt(Math.pow(v, 4) - g * (g * Math.pow(dist, 2) + 2 * y * Math.pow(v, 2)))) / (g * dist)));
 
         if (Double.isNaN(pitch)) {
-            pitch = -(Math.atan2(y, dist) * 180.0 / Math.PI);
+            pitch = RotationUtils.pitchTo(x, y, z);
         }
 
         return new float[]{

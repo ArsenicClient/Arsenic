@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -7,6 +8,7 @@ import arsenic.event.impl.*;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -20,16 +22,11 @@ import java.awt.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AntiFireball extends Module {
 
-    /** Reach used both to pick a fireball and to decide it is close enough to hit. */
     private static final double RANGE = 4.5;
 
-    /**
-     * Fireballs younger than this are ignored. A fireball is at its spawn point for the first few
-     * ticks, so swinging immediately hits nothing and just looks like a random swing at the air.
-     */
     private static final int MIN_FIREBALL_AGE_TICKS = 10;
 
     private Entity target;
@@ -49,12 +46,9 @@ public class AntiFireball extends Module {
 
         Vec3 targetVec = new Vec3(target.posX, target.posY + target.height / 2, target.posZ);
         Vec3 eyePos = mc.thePlayer.getPositionEyes(1f);
-        double dx = targetVec.xCoord - eyePos.xCoord;
-        double dy = targetVec.yCoord - eyePos.yCoord;
-        double dz = targetVec.zCoord - eyePos.zCoord;
-        double dist = MathHelper.sqrt_double(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90);
-        float pitch = (float) (-Math.toDegrees(Math.atan2(dy, dist)));
+        float[] rots = RotationUtils.rotationsTo(eyePos, targetVec);
+        float yaw = rots[0];
+        float pitch = rots[1];
 
         event.setYaw(yaw);
         event.setPitch(pitch);
@@ -73,8 +67,6 @@ public class AntiFireball extends Module {
         if (!attackTimer.hasTimeElapsed(150))
             return;
 
-        // Always a real swing: a bare animation packet without the client-side arm movement is
-        // both easier to spot and pointless here, since the swing is visible anyway.
         mc.thePlayer.swingItem();
         mc.playerController.attackEntity(mc.thePlayer, target);
         attackTimer.reset();
@@ -96,7 +88,7 @@ public class AntiFireball extends Module {
     private void drawFireballIndicator(Entity fireball, ScaledResolution sr) {
         double dx = fireball.posX - mc.thePlayer.posX;
         double dz = fireball.posZ - mc.thePlayer.posZ;
-        float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
+        float yaw = RotationUtils.yawTo(dx, dz);
         float angle = MathHelper.wrapAngleTo180_float(yaw - mc.thePlayer.rotationYaw);
 
         double radians = Math.toRadians(angle + 90);
@@ -153,7 +145,7 @@ public class AntiFireball extends Module {
         for (Entity fb : fireballs) {
             double dx = fb.posX - mc.thePlayer.posX;
             double dz = fb.posZ - mc.thePlayer.posZ;
-            double horizontalDist = Math.sqrt(dx * dx + dz * dz);
+            double horizontalDist = MathUtils.horizontalDistance(dx, dz);
             if (horizontalDist < 0.1)
                 return fb;
 
