@@ -36,7 +36,7 @@ public class Screen extends GuiScreen {
 
 
     static boolean isLight() {
-        return ColorUtils.luminance(ThemeManager.getBlack()) > 0.6f;
+        return ColorUtils.luminance(MenuTheme.bg()) > 0.6f;
     }
 
     static int ink(int alpha) {
@@ -45,7 +45,7 @@ public class Screen extends GuiScreen {
     }
 
     static int accent(int alpha) {
-        return ColorUtils.withAlpha(ThemeManager.getMainColor(), alpha);
+        return ColorUtils.withAlpha(MenuTheme.main(), alpha);
     }
 
 
@@ -79,8 +79,8 @@ public class Screen extends GuiScreen {
         smoothMX = FrameClock.approach(smoothMX, mouseX / (float) this.width - 0.5f, 4f, dt);
         smoothMY = FrameClock.approach(smoothMY, mouseY / (float) this.height - 0.5f, 4f, dt);
 
-        int main = ThemeManager.getMainColor();
-        int bg = ThemeManager.getBlack();
+        int main = MenuTheme.main();
+        int bg = MenuTheme.bg();
         boolean light = isLight();
         // the shared ocean backdrop, the same one every other screen uses
         MenuTheme.drawBackground(this.width, this.height, mouseX, mouseY, fade);
@@ -99,6 +99,13 @@ public class Screen extends GuiScreen {
         Gui.drawModalRectWithCustomSizedTexture((int) lx, (int) ly, 0, 0, (int) lw, (int) lh, lw, lh);
         GlStateManager.color(1f, 1f, 1f, 1f);
 
+        // Element 33: arsenic's own periodic-table tile beside the logo, pulsing softly
+        if (arsenic.gui.click.GuiStyle.element()) {
+            float tileSize = 50f, tx = lx + lw + 18f, ty = ly + lh / 2f - tileSize / 2f;
+            if (tx + tileSize < this.width - 4)
+                ElementScene.drawElementTile(tx, ty, tileSize, main, 0.6f + 0.4f * (float) Math.sin(time * 1.4f), fade);
+        }
+
         int a = (int) (255 * fade);
         int ulHalf = (int) (50 * TickMode.CUBIC.clamped((elapsed - 150) / 700f));
         int ulY = (int) (ly + lh + 12);
@@ -111,7 +118,8 @@ public class Screen extends GuiScreen {
 
         float slide = (1f - TickMode.CUBIC.clamped((elapsed - 250) / 700f)) * 14f;
         int pa = (int) (fade * 255);
-        DrawUtils.drawRoundedRect(panelX, panelY + slide, panelX + panelW, panelY + panelH + slide, 10f, ((int) (120 * pa / 255f) << 24) | (ColorUtils.mixRgb(ThemeManager.getBlack(), 0x000000, 0.5f) & 0xFFFFFF));
+        MenuTheme.drawPill(panelX, panelY + slide, panelX + panelW, panelY + panelH + slide, 12f, 1f,
+                ((int) (120 * pa / 255f) << 24) | (ColorUtils.mixRgb(MenuTheme.bg(), 0x000000, 0.5f) & 0xFFFFFF), ink((int) (40 * pa / 255f)));
         DrawUtils.drawRoundedRect(panelX + 24, panelY + slide, panelX + panelW - 24, panelY + 1.5f + slide, 0f, accent((int) (120 * pa / 255f)));
 
         super.drawScreen(mouseX, mouseY, partialTicks);
@@ -188,7 +196,7 @@ public class Screen extends GuiScreen {
             if (MathUtils.insideSized(mouseX, mouseY, b.xPosition, b.yPosition, b.width, b.height))
                 overButton = true;
         if (mouseButton == 0 && !overPanel && !overButton)
-            MenuTheme.scene().click(mouseX, mouseY);
+            MenuTheme.click(mouseX, mouseY);
     }
 
     @Override
@@ -239,7 +247,8 @@ public class Screen extends GuiScreen {
             float y0 = yPosition + dy;
 
             int fill = ColorUtils.mixArgb(ink((int) (20 * in)), accent((int) (80 * in)), hover);
-            DrawUtils.drawRoundedRect(xPosition, y0, xPosition + width, y0 + height, height / 2f, fill);
+            MenuTheme.drawPill(xPosition, y0, xPosition + width, y0 + height, height / 2f, 1f, fill,
+                    ColorUtils.mixArgb(ink((int) (55 * in)), accent((int) (235 * in)), hover));
             FontRendererExtension<?> fr = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
             int tc = ColorUtils.mixArgb(ink((int) (205 * in)), ink((int) (255 * in)), hover);
             fr.drawStringWithShadow(displayString, xPosition + width / 2f + 2 * hover, y0 + height / 2f, tc, fr.CENTREX, fr.CENTREY);

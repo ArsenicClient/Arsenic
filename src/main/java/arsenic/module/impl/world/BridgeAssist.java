@@ -6,7 +6,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.bus.Priorities;
-import arsenic.event.impl.EventLiving;
+import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventMovementInput;
 import arsenic.event.impl.EventRender2D;
 import arsenic.main.Arsenic;
@@ -14,6 +14,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.ScaffoldUtil;
@@ -33,14 +34,23 @@ public class BridgeAssist extends Module {
 
     private static final double BRIDGE_PITCH = 65.0;
 
-    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(1, 5, 3, 0.1));
+    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 3, 1, 0.1));
+    public final BooleanProperty smartMode = new BooleanProperty("Smart Mode", false);
 
     private static final double FALL_MARGIN = 0.03;
     private static final double LANE_DEAD = 0.12;
     private static final int PLACE_DELAY = 1;
+    private static final double STEER_GAIN = 15, STEER_MAX = 5, STEER_LIMIT = 25;
 
     private final SneakPresses presses = new SneakPresses();
     private final LaneNudge lane = new LaneNudge();
+
+    {
+        lane.diagonals = true;
+        lane.window = 15;
+        lane.snap = true;
+    }
+
     private float[] nudge;
     private boolean bridging;
     private boolean placedSinceTick;
@@ -68,7 +78,7 @@ public class BridgeAssist extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventLiving> tickEvent = tickEvent -> {
+    public final Listener<EventSilentRotation> tickEvent = event -> {
         bridging = false;
         nudge = null;
         boolean placed = placedSinceTick;
@@ -114,6 +124,13 @@ public class BridgeAssist extends Module {
         boolean diagonal = SneakPresses.diagonal(forward, strafe, mc.thePlayer.rotationYaw);
         setSneak(presses.next(ticks -> ScaffoldCore.willFall(in, ScaffoldUtil.WORLD, ticks, FALL_MARGIN),
                 true, safety.getValue().getInput(), diagonal, placed));
+        if (!smartMode.getValue())
+            return;
+        float yaw = lane.steerYaw(forward, strafe, mc.thePlayer.rotationYaw, mc.thePlayer.rotationYaw, STEER_GAIN, STEER_MAX, 0, STEER_LIMIT);
+        if (Float.isNaN(yaw))
+            return;
+        event.setSpeed(180);
+        event.setYaw(yaw);
     };
 
     @RequiresPlayer

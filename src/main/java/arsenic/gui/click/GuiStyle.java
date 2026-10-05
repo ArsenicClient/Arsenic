@@ -107,6 +107,8 @@ public final class GuiStyle implements ISerializable {
     private boolean customFont = true;
     private boolean sounds = true;
     private boolean showMoreModules = false;
+    /** The whole menu look: "Element" (default) or "Ocean". The loading screen reads it straight from the config file at start-up. */
+    private String screenStyle = "Element";
 
     public Preset getPreset() { return preset; }
 
@@ -122,6 +124,18 @@ public final class GuiStyle implements ISerializable {
     public boolean isSounds() { return sounds; }
 
     public void setSounds(boolean sounds) { this.sounds = sounds; }
+
+    public String getScreenStyle() { return screenStyle; }
+
+
+    public static boolean element() { return "Element".equals(INSTANCE.screenStyle); }
+
+    public void setScreenStyle(String style) {
+        if ("Toxic".equals(style))
+            style = "Element";                      // the removed Toxic style becomes the default
+        if ("Ocean".equals(style) || "Element".equals(style))
+            this.screenStyle = style;
+    }
 
     public boolean isShowMoreModules() { return showMoreModules; }
 
@@ -200,6 +214,7 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("customFont", customFont);
         obj.addProperty("sounds", sounds);
         obj.addProperty("showMoreModules", showMoreModules);
+        obj.addProperty("screenStyle", screenStyle);
         return obj;
     }
 
@@ -214,6 +229,10 @@ public final class GuiStyle implements ISerializable {
                 customFont = obj.get("customFont").getAsBoolean();
             if (obj.has("sounds"))
                 sounds = obj.get("sounds").getAsBoolean();
+            if (obj.has("loadingScreen"))           // the old name for this setting
+                setScreenStyle(obj.get("loadingScreen").getAsString());
+            if (obj.has("screenStyle"))
+                setScreenStyle(obj.get("screenStyle").getAsString());
             if (obj.has("showMoreModules"))
                 showMoreModules = obj.get("showMoreModules").getAsBoolean();
         } catch (Exception e) {

@@ -57,6 +57,12 @@ public class Hitflick extends Module {
     private static final double AIR_STRAFE = 0.026;
     private static final int MAX_SIM_TICKS = 40;
     private static final double VOID_DROP = 14.0;
+    private static final int STRAFE_NONE = 0;
+    private static final int STRAFE_BACK = 1;
+    private static final int STRAFE_LEFT = 2;
+    private static final int STRAFE_RIGHT = 3;
+    private static final float ROBUST_YAW_SPREAD = 6f;
+    private static final double ROBUST_WIDEN = 0.15;
     private static final int ANGLE_STEP = 3;
     private static final float MIN_USEFUL_ANGLE = 3f;
     private static final float SAFE_ANGLE_MARGIN = 1f;
@@ -280,13 +286,27 @@ public class Hitflick extends Module {
             return null;
         int maxDelta = (int) maxVoidAngle.getValue().getInput();
         for (int delta = 0; delta <= maxDelta; delta += ANGLE_STEP) {
-            if (delta <= safeRight - SAFE_ANGLE_MARGIN && wouldKnockIntoVoid(target, originalYaw + delta, level))
+            if (delta <= safeRight - SAFE_ANGLE_MARGIN && isRobustVoid(target, originalYaw + delta, level))
                 return originalYaw + delta;
             if (delta != 0 && delta != 180 && delta <= safeLeft - SAFE_ANGLE_MARGIN
-                    && wouldKnockIntoVoid(target, originalYaw - delta, level))
+                    && isRobustVoid(target, originalYaw - delta, level))
                 return originalYaw - delta;
         }
         return null;
+    }
+
+    private boolean isRobustVoid(EntityLivingBase target, float yaw, int level) {
+        if (!simulateVoid(target, yaw, level, STRAFE_BACK, 0))
+            return false;
+        for (float off : new float[]{-ROBUST_YAW_SPREAD, ROBUST_YAW_SPREAD}) {
+            if (!simulateVoid(target, yaw + off, level, STRAFE_BACK, 0))
+                return false;
+        }
+        for (int mode = STRAFE_NONE; mode <= STRAFE_RIGHT; mode++) {
+            if (!simulateVoid(target, yaw, level, mode, ROBUST_WIDEN))
+                return false;
+        }
+        return simulateVoid(target, yaw, level, STRAFE_BACK, ROBUST_WIDEN);
     }
 
     private float hitboxHalfAngle(Entity target, float baseYaw, int sign, float limit) {
@@ -324,15 +344,28 @@ public class Hitflick extends Module {
         return new double[]{motionX, motionY, motionZ};
     }
 
-    private boolean wouldKnockIntoVoid(EntityLivingBase target, float yaw, int level) {
+    private boolean simulateVoid(EntityLivingBase target, float yaw, int level, int strafeMode, double widen) {
         double[] push = knockbackVelocity(target, yaw, level);
         double motionX = push[0], motionY = push[1], motionZ = push[2];
 
         double[] input = {0, 0};
         double pushLen = Math.sqrt(motionX * motionX + motionZ * motionZ);
-        if (pushLen > 1.0E-4) {
-            input[0] = -motionX / pushLen * AIR_STRAFE;
-            input[1] = -motionZ / pushLen * AIR_STRAFE;
+        if (pushLen > 1.0E-4 && strafeMode != STRAFE_NONE) {
+            double dx = motionX / pushLen, dz = motionZ / pushLen;
+            switch (strafeMode) {
+                case STRAFE_BACK:
+                    input[0] = -dx * AIR_STRAFE;
+                    input[1] = -dz * AIR_STRAFE;
+                    break;
+                case STRAFE_LEFT:
+                    input[0] = -dz * AIR_STRAFE;
+                    input[1] = dx * AIR_STRAFE;
+                    break;
+                case STRAFE_RIGHT:
+                    input[0] = dz * AIR_STRAFE;
+                    input[1] = -dx * AIR_STRAFE;
+                    break;
+            }
         }
 
         double posX = target.posX, posY = target.posY, posZ = target.posZ;
@@ -346,7 +379,7 @@ public class Hitflick extends Module {
             double nextY = posY + motionY;
             double nextZ = posZ + motionZ;
 
-            if (collides(target, nextX, posY, nextY, nextZ, target.height))
+            if (collides(target, nextX, posY, nextY, nextZ, target.height, widen))
                 return false;
 
             posX = nextX;
@@ -361,15 +394,17 @@ public class Hitflick extends Module {
             if (posY < 0)
                 return true;
             if (startY - posY > VOID_DROP)
-                return !collides(target, posX, 0, posY, posZ, 0);
+                return !collides(target, posX, 0, posY, posZ, 0, widen);
         }
         return false;
     }
 
-    private boolean collides(EntityLivingBase target, double x, double fromY, double toY, double z, double height) {
+    private boolean collides(EntityLivingBase target, double x, double fromY, double toY, double z, double height,
+                             double widen) {
         double minY = Math.min(fromY, toY) - 0.1;
         double maxY = Math.max(fromY, toY) + height + 0.1;
-        AxisAlignedBB probe = new AxisAlignedBB(x - 0.3, minY, z - 0.3, x + 0.3, maxY, z + 0.3);
+        double half = 0.3 + widen;
+        AxisAlignedBB probe = new AxisAlignedBB(x - half, minY, z - half, x + half, maxY, z + half);
         return !mc.theWorld.getCollidingBoundingBoxes(target, probe).isEmpty();
     }
 

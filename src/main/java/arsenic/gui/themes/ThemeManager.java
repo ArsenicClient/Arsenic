@@ -138,7 +138,7 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
             themeList.add(toxin);
         }
 
-        currentTheme = getContentByJsonKey("Ocean");
+        currentTheme = getContentByJsonKey("Classic");
         return themeList.size();
     }
 

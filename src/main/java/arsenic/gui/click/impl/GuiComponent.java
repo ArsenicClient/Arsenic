@@ -144,6 +144,11 @@ public class GuiComponent extends ModuleCategoryComponent {
                     GuiStyle.get().setSounds(!GuiStyle.get().isSounds());
                     Arsenic.getArsenic().getConfigManager().saveConfig();
                 });
+        y = drawChoice(ri, x + 5, y, rowW, mx, my, "Menu Style",
+                "Element".equals(GuiStyle.get().getScreenStyle()) ? "Element 33" : GuiStyle.get().getScreenStyle(), () -> {
+                    GuiStyle.get().setScreenStyle("Ocean".equals(GuiStyle.get().getScreenStyle()) ? "Element" : "Ocean");
+                    Arsenic.getArsenic().getConfigManager().saveConfig();
+                });
 
         arsenic.module.Module postProcessing = Arsenic.getArsenic().getModuleManager()
                 .getModuleByClass(arsenic.module.impl.visual.PostProcessing.class);
@@ -175,6 +180,25 @@ public class GuiComponent extends ModuleCategoryComponent {
                 preset.glass ? UITheme.alpha(ThemeManager.getModuleBackground(), (int) (preset.glassFrost * 2.2f))
                              : ThemeManager.getModuleBackground());
         DrawUtils.drawRoundedRect(px1, py1, px1 + 2, py2, 1f, UITheme.accent());
+    }
+
+    /** Label on the left, the current choice on the right in the accent; clicking cycles it. */
+    private float drawChoice(RenderInfo ri, float x, float y, float rowW, float mx, float my,
+                             String label, String value, Runnable cycle) {
+        float h = 26;
+        boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+
+        UITheme.surface(x, y, x + rowW, y + h, 8f, ThemeManager.getConfigsCard(),
+                hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, 0.6f);
+        DrawUtils.drawRoundedOutline(x, y, x + rowW, y + h, 8f, 1f,
+                hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder());
+
+        ri.getFr().drawString(label, x + 12, y + h / 2f, ThemeManager.getTextPrimary(), ri.getFr().CENTREY);
+        ri.getFr().drawString(value, x + rowW - 12 - ri.getFr().getWidth(value), y + h / 2f,
+                UITheme.accent(), ri.getFr().CENTREY);
+
+        hits.add(new Hit(x, y, x + rowW, y + h, cycle));
+        return y + h + 6;
     }
 
     private float drawSwitch(RenderInfo ri, float x, float y, float rowW, float mx, float my,

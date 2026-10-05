@@ -29,10 +29,13 @@ public class ModuleManager {
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
 
-        modules.entrySet().removeIf(entry -> {
-            ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
-            return info != null && info.tier() == ModuleTier.DEV;
-        });
+        // devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar)
+        if(ModuleManager.class.getResource("/devmode.properties") == null) {
+            modules.entrySet().removeIf(entry -> {
+                ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
+                return info != null && info.tier() == ModuleTier.DEV;
+            });
+        }
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
