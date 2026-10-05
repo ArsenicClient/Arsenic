@@ -66,8 +66,10 @@ public class DrawUtils extends UtilityClass {
         // Line widths were in framebuffer pixels too.
         float width = borderSize * RADIUS_SCALE;
         float r = radius * RADIUS_SCALE;
-        float[] outer = roundedPath(x, y, x1, y1, r, round);
-        float[] inner = roundedPath(x + width, y + width, x1 - width, y1 - width, Math.max(0, r - width), round);
+        // both edges need the same number of points so the band joins matching points
+        int segments = segmentsFor(r);
+        float[] outer = roundedPath(x, y, x1, y1, r, round, segments);
+        float[] inner = roundedPath(x + width, y + width, x1 - width, y1 - width, Math.max(0, r - width), round, segments);
         strokeBetween(outer, inner, color, color);
     }
 
@@ -125,8 +127,9 @@ public class DrawUtils extends UtilityClass {
         float r = radius * RADIUS_SCALE;
         y1 += dropY;
         y2 += dropY;
-        float[] inner = roundedPath(x1, y1, x2, y2, r, ALL_CORNERS);
-        float[] outer = roundedPath(x1 - spread, y1 - spread, x2 + spread, y2 + spread, r + spread, ALL_CORNERS);
+        int segments = segmentsFor(r + spread);
+        float[] inner = roundedPath(x1, y1, x2, y2, r, ALL_CORNERS, segments);
+        float[] outer = roundedPath(x1 - spread, y1 - spread, x2 + spread, y2 + spread, r + spread, ALL_CORNERS, segments);
         strokeBetween(outer, inner, 0, core);
         fillPath(inner, (px, py) -> core);
     }
@@ -188,9 +191,21 @@ public class DrawUtils extends UtilityClass {
 
     /** Builds the outline of a rounded rectangle as x,y pairs, going around clockwise from the top-left. */
     private static float[] roundedPath(float x, float y, float x1, float y1, float radius, boolean[] round) {
+        return roundedPath(x, y, x1, y1, radius, round, segmentsFor(radius));
+    }
+
+    /** Steps per corner arc for a radius; 0 means square corners. */
+    private static int segmentsFor(float radius) {
+        return radius <= 0 ? 0 : Math.max(3, Math.min(24, (int) (radius * 3)));
+    }
+
+    /**
+     * As above with a fixed number of steps per corner, so two paths can be paired point for point.
+     * A corner that is square, or whose radius clamps to 0, repeats its corner point instead.
+     */
+    private static float[] roundedPath(float x, float y, float x1, float y1, float radius, boolean[] round, int segments) {
         float maxRadius = Math.max(0, Math.min((x1 - x), (y1 - y)) / 2f);
         float r = Math.max(0, Math.min(radius, maxRadius));
-        int segments = r <= 0 ? 0 : Math.max(3, Math.min(24, (int) (r * 3)));
         float[] path = new float[(segments + 1) * 4 * 2];
         int i = 0;
         // corner centres and the start angle of each arc (0 = +x, angles grow clockwise on screen)
@@ -204,7 +219,7 @@ public class DrawUtils extends UtilityClass {
         for (int c = 0; c < 4; c++) {
             float[] corner = corners[c];
             for (int s = 0; s <= segments; s++) {
-                if (corner[3] == 0 || segments == 0) {
+                if (corner[3] == 0 || segments == 0 || r <= 0) {
                     path[i++] = square[c][0];
                     path[i++] = square[c][1];
                 } else {
