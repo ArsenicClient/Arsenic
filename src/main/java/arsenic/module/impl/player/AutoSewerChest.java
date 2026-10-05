@@ -20,6 +20,8 @@ import arsenic.utils.botcore.Step;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiInventory;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import arsenic.utils.minecraft.ContainerUtils;
 import net.minecraft.block.Block;
@@ -315,9 +317,9 @@ public class AutoSewerChest extends Module {
     }
 
     private int[] nextInventoryFix() {
-        int armor = spareDiamondArmor();
-        if (armor != -1) {
-            return new int[]{armor, -1};
+        int junk = junkSlot();
+        if (junk != -1) {
+            return new int[]{junk, -1};
         }
         ContainerUtils.SlotItem keep = null;
         List<ContainerUtils.SlotItem> blocks = new ArrayList<>();
@@ -346,10 +348,18 @@ public class AutoSewerChest extends Module {
         return (si.slot >= HOTBAR_START ? 1000 : 0) + si.item.stackSize;
     }
 
-    private int spareDiamondArmor() {
+    /**
+     * A slot holding something to throw out: unworn diamond armour, soul sand or leather boots.
+     * Worn armour is never in these slots.
+     */
+    private int junkSlot() {
         for (ContainerUtils.SlotItem si : ContainerUtils.getInventoryItems()) {
-            if (si.item.getItem() instanceof ItemArmor
-                    && ((ItemArmor) si.item.getItem()).getArmorMaterial() == ItemArmor.ArmorMaterial.DIAMOND) {
+            Item item = si.item.getItem();
+            if (item instanceof ItemArmor
+                    && ((ItemArmor) item).getArmorMaterial() == ItemArmor.ArmorMaterial.DIAMOND) {
+                return si.slot;
+            }
+            if (item == Items.leather_boots || item == Item.getItemFromBlock(Blocks.soul_sand)) {
                 return si.slot;
             }
         }
