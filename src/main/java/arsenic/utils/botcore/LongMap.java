@@ -1,10 +1,5 @@
 package arsenic.utils.botcore;
 
-/**
- * Open-addressing hash map from long keys (packed block positions) to values. Java's HashMap with
- * boxed Long keys hashed these badly (the packed x/y/z bits cancel out in Long.hashCode), which made
- * it the search's biggest cost; this mixes the bits properly and avoids boxing.
- */
 final class LongMap<V> {
     private static final long EMPTY = Long.MIN_VALUE;
     private long[] keys;

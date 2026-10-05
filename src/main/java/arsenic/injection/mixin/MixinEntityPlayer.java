@@ -60,10 +60,6 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
     @Shadow
     public abstract void fall(float p_fall_1_, float p_fall_2_);
 
-    /**
-     * @author mc code
-     * @reason kys mixins
-     */
     @Inject(method = "attackTargetEntityWithCurrentItem", at = @At("HEAD"), cancellable = true)
     public void attackTargetEntityWithCurrentItem(Entity p_attackTargetEntityWithCurrentItem_1_, CallbackInfo c) {
         Arsenic.getInstance().getEventManager().post(new EventAttack(p_attackTargetEntityWithCurrentItem_1_));

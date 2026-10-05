@@ -111,7 +111,6 @@ public class PlayerUtils extends UtilityClass {
     public static boolean withinFov(Entity entity, float fov) {
         float f = fov * 0.5f;
         float angle = RotationUtils.fovToEntity(entity);
-        // Use silent aim yaw so FOV is centered on where we're actually aiming
         float yaw = Arsenic.getArsenic().getSilentRotationManager().yaw;
         float angleDiff = ((yaw - angle) % 360 + 540) % 360 - 180;
         return angleDiff > -f && angleDiff < f;

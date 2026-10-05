@@ -5,28 +5,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-/**
- * A* over the places a player can stand. Moves: walk (cardinal/diagonal), step or jump up a block,
- * walk off any height (no fall damage), sprint-jump gaps, climb ladders/vines, pillar up and bridge
- * across with the bot's blocks, and mine the bot's own blocks out of the way.
- */
 public final class Planner {
 
-    /** What the player can do right now. */
     public static final class Caps {
-        /** Movement speed relative to normal (speed effect, pants attribute). */
         public double speed = 1;
-        /** Blocks available to build with. */
         public int blocks = 0;
-        /** A pickaxe is at hand to mine the bot's own blocks. */
         public boolean pickaxe = false;
-        /** Sprint-jumping along open runs (makes them cheaper). */
         public boolean hop = false;
     }
 
     public static final class Result {
         public final List<Step> steps;
-        /** Whether the last step is in the goal (otherwise it is the closest the search got). */
         public final boolean complete;
         public final int nodes;
         public final long millis;
@@ -39,7 +28,6 @@ public final class Planner {
         }
     }
 
-    /** Polled while searching; return true to abandon the search. */
     public interface Cancel {
         boolean cancelled();
     }
@@ -56,7 +44,6 @@ public final class Planner {
         Node parent;
         Step step;
         int blocksUsed;
-        /** Blocks this branch of the plan has placed so far (keys), so later moves can stand on them. */
         long[] placed;
         int heap = -1;
         boolean closed;
@@ -86,16 +73,11 @@ public final class Planner {
         this.avoid = avoid;
     }
 
-    /**
-     * Search from the player's feet block (sx, sy, sz) at height {@code feet}. Returns a path to the
-     * goal, or to the closest point reached if time runs out, or null if no move is possible at all.
-     */
     public static Result plan(BlockView view, int sx, int sy, int sz, double feet, Goal goal, Tuning tun, Caps caps,
                               Set<Long> avoid, Cancel cancel) {
         return plan(view, sx, sy, sz, feet, goal, tun, caps, avoid, cancel, null);
     }
 
-    /** As above; {@code preview}, if given, now and then gets the best route found so far (for drawing). */
     public static Result plan(BlockView view, int sx, int sy, int sz, double feet, Goal goal, Tuning tun, Caps caps,
                               Set<Long> avoid, Cancel cancel, java.util.function.Consumer<List<Step>> preview) {
         Planner p = new Planner(view, goal, tun, caps, avoid);
@@ -105,7 +87,6 @@ public final class Planner {
 
     private java.util.function.Consumer<List<Step>> preview;
 
-    /** Speed the heuristic should assume: faster when sprint-jumping, to match the run cost. */
     private double effSpeed() {
         return caps.speed / (caps.hop ? tun.hopRunFactor : 1);
     }
@@ -212,7 +193,6 @@ public final class Planner {
         offer(from, x, y, z, feet, type, cost, Integer.MIN_VALUE, 0, 0);
     }
 
-    // ---- moves -----------------------------------------------------------------------------------
 
     private static final int[][] CARD = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
     private static final int[][] DIAG = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
@@ -221,14 +201,12 @@ public final class Planner {
         int x = n.x, y = n.y, z = n.z;
         double h = n.feet;
         double fh = t.floorAt(x, y, z);
-        // a start a little off its floor (stepping, slipping off a slab edge) counts as standing on it
         boolean floor = !Double.isNaN(fh) && Math.abs(fh - h) < 0.6;
         if (floor) {
             h = fh;
         }
         boolean holding = !floor && (t.climbable(x, y, z) || t.climbable(x, y - 1, z));
         if (!floor && !holding) {
-            // in the air (only ever the start node): just fall
             for (int ny = y - 1; ny >= y - tun.maxDrop; ny--) {
                 double hb = t.standHeight(x, ny, z);
                 if (!Double.isNaN(hb) && t.solidFloor(x, ny, z)) {
@@ -249,7 +227,6 @@ public final class Planner {
             int dx = d[0], dz = d[1];
             int nx = x + dx, nz = z + dz;
             boolean walkable = false;
-            // walk, step up a stair/slab, or jump up a block
             for (int ny = y + 1; ny >= y - 1; ny--) {
                 double hb = t.standHeight(nx, ny, nz);
                 if (Double.isNaN(hb)) {
@@ -267,11 +244,10 @@ public final class Planner {
                 }
                 double mine = (mineMid + mineEnd) * tun.minePerBlock;
                 if (dh <= Terrain.STEP + Terrain.EPS) {
-                    // walking through a vine/ladder block is capped at 0.15 blocks a tick
                     offer(n, nx, ny, nz, hb, Step.WALK, run + mine + (t.climbable(nx, ny, nz) ? tun.climbWalkExtra : 0));
                     walkable = true;
                 } else if (floor || holding) {
-                    int mineUp = t.fits(x + 0.5, hb, z + 0.5); // room to rise at the start
+                    int mineUp = t.fits(x + 0.5, hb, z + 0.5);
                     if (mineUp >= 0) {
                         offer(n, nx, ny, nz, hb, Step.ASCEND, run + tun.ascendExtra + mine + mineUp * tun.minePerBlock);
                         walkable = true;
@@ -281,7 +257,6 @@ public final class Planner {
             if (walkable || !floor) {
                 continue;
             }
-            // the next column has no floor at our level: drop, jump across, or bridge
             boolean edgeClear = t.fits(x + 0.5 + dx * 0.5, h, z + 0.5 + dz * 0.5) >= 0 && t.fits(nx + 0.5, h, nz + 0.5) >= 0;
             if (!edgeClear) {
                 continue;
@@ -305,8 +280,6 @@ public final class Planner {
             }
         }
 
-        // ladders and vines
-        // up a ladder/vine: only with something to push against (vines hanging free can't be climbed)
         if (t.climbable(x, y, z) && t.pushSide(x, y, z) >= 0) {
             double hb = t.standHeight(x, y + 1, z);
             if (!Double.isNaN(hb)) {
@@ -323,14 +296,12 @@ public final class Planner {
             }
         }
 
-        // dig down through a block of our own we're standing on (e.g. back down a pillar we built
-        // in a shaft), landing on whatever is under it
         if (caps.pickaxe && floor && Math.abs(h - y) < 1e-3 && t.is(x, y - 1, z, BlockView.OWN_BLOCK)
                 && (n.placed == null || !contains(n.placed, Terrain.key(x, y - 1, z)))) {
             for (int ny = y - 1; ny >= y - tun.maxDrop; ny--) {
                 double hb = t.floorAt(x, ny, z);
                 if (ny == y - 1 && !Double.isNaN(hb) && hb >= y - 1e-3) {
-                    continue; // that is the block being mined
+                    continue;
                 }
                 if (!Double.isNaN(hb)) {
                     if (!t.dangerBelow(x, ny, z) && t.fits(x + 0.5, hb, z + 0.5) >= 0) {
@@ -344,7 +315,6 @@ public final class Planner {
             }
         }
 
-        // pillar straight up
         if (canBuild && floor && Math.abs(h - y) < 1e-3 && t.is(x, y, z, BlockView.REPLACEABLE)
                 && t.is(x, y - 1, z, BlockView.PLACE_AGAINST)) {
             int mine = t.fits(x + 0.5, y + 1, z + 0.5);
@@ -359,13 +329,10 @@ public final class Planner {
         return false;
     }
 
-    /** Where a drop down a column lands (feet block Y), or NO_LANDING, by (column, start height). */
     private final LongMap<Integer> dropCache = new LongMap<>(256);
     private static final int NO_LANDING = Integer.MIN_VALUE;
 
     private void drop(Node n, int nx, int nz, double h, double run) {
-        // the long scan down a column is the same for every node along an edge: remember it
-        // (unless this branch of the plan has placed blocks, which could change it)
         long key = Terrain.key(nx, n.y, nz) * 31 + (long) Math.floor(h * 2);
         Integer cached = n.placed == null ? dropCache.get(key) : null;
         int land = cached != null ? cached : scanDrop(nx, nz, n.y, h);
@@ -376,7 +343,6 @@ public final class Planner {
             return;
         }
         double hb = t.floorAt(nx, land, nz);
-        // falling through vines/ladders is capped at 0.15 blocks a tick
         int slowed = 0;
         for (int yy = land; yy < n.y; yy++) {
             if (t.climbable(nx, yy, nz)) slowed++;
@@ -389,7 +355,7 @@ public final class Planner {
             double hb = t.floorAt(nx, ny, nz);
             if (!Double.isNaN(hb)) {
                 if (h - hb <= Terrain.STEP + Terrain.EPS) {
-                    continue; // a small step down, already a walk
+                    continue;
                 }
                 if (t.dangerBelow(nx, ny, nz) || t.fits(nx + 0.5, hb, nz + 0.5) < 0) {
                     return NO_LANDING;
@@ -397,27 +363,22 @@ public final class Planner {
                 return ny;
             }
             if (t.fits(nx + 0.5, ny, nz + 0.5) < 0) {
-                return NO_LANDING; // something in the way of the fall
+                return NO_LANDING;
             }
         }
         return NO_LANDING;
     }
 
-    /**
-     * Sprint-jumps from the edge to any block in range, in any direction (straight, diagonal or a
-     * knight's-move offset), as long as the arc between is clear. Range is the measured reach
-     * (Tuning.parkourReach) for the landing height and speed.
-     */
     private void parkour(Node n, double h, double run) {
         if (t.fits(n.x + 0.5, h + 1.15, n.z + 0.5) < 0) {
-            return; // no room to jump
+            return;
         }
         int r = (int) Math.ceil(tun.maxJump(-2, caps.speed));
         for (int ox = -r; ox <= r; ox++) {
             for (int oz = -r; oz <= r; oz++) {
                 double dist = Math.sqrt(ox * ox + oz * oz);
                 if (dist < 1.9 || dist > r + 1e-6) {
-                    continue; // next-door blocks are walks
+                    continue;
                 }
                 int lx = n.x + ox, lz = n.z + oz;
                 for (int dy = 1; dy >= -2; dy--) {
@@ -444,7 +405,6 @@ public final class Planner {
         }
     }
 
-    /** Whether the player's box clears everything along a jump from (ax, az) to (bx, bz). */
     private boolean arcClear(double ax, double az, double bx, double bz, double h, double hb) {
         double len = Math.sqrt((bx - ax) * (bx - ax) + (bz - az) * (bz - az));
         int steps = Math.max(2, (int) Math.ceil(len / 0.25));
@@ -457,7 +417,7 @@ public final class Planner {
                 return false;
             }
             if (f > 0.8 && t.fits(px, Math.max(land, h + 0.6), pz) != 0) {
-                return false; // nowhere to come down into
+                return false;
             }
         }
         return true;
@@ -495,7 +455,6 @@ public final class Planner {
                 continue;
             }
             double top = Math.max(h, hb);
-            // both blocks beside the corner must be clear, or the player catches on it
             if (t.fits(n.x + dx + 0.5, top, n.z + 0.5) != 0 || t.fits(n.x + 0.5, top, n.z + dz + 0.5) != 0) {
                 continue;
             }
@@ -507,7 +466,6 @@ public final class Planner {
         }
     }
 
-    // ---- fall time ---------------------------------------------------------------------------------
 
     private static final double[] FALL = new double[600];
 
@@ -523,13 +481,11 @@ public final class Planner {
         }
     }
 
-    /** Ticks to fall {@code blocks} blocks from standing still. */
     public static double fallTicks(double blocks) {
         int i = (int) Math.ceil(blocks * 2);
         return FALL[Math.max(0, Math.min(i, FALL.length - 1))];
     }
 
-    // ---- binary heap on f ----------------------------------------------------------------------------
 
     private void push(Node n) {
         if (heapSize == heap.length) {

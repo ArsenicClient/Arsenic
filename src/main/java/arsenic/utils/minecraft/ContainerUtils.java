@@ -22,7 +22,6 @@ public class ContainerUtils {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    //Inv Manager Actions
 
     public static void click(int slot) {
         mc.playerController.windowClick(mc.thePlayer.inventoryContainer.windowId, slot, 0, 1, mc.thePlayer);
@@ -51,7 +50,6 @@ public class ContainerUtils {
                 .collect(Collectors.toList());
     }
 
-    //Get best items
     public static int getBestWeapon() {
         return getInventoryItems().stream()
                 .filter(s -> s.item.getItem() instanceof ItemSword)
@@ -114,7 +112,6 @@ public class ContainerUtils {
         ItemTool tool = (ItemTool) stack.getItem();
         float value = tool.getToolMaterial().getEfficiencyOnProperMaterial();
 
-        // Add enchantment bonus
         int efficiencyLevel = net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(
                 net.minecraft.enchantment.Enchantment.efficiency.effectId, stack);
         value += efficiencyLevel * 2;

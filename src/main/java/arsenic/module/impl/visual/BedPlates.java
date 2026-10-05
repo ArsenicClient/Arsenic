@@ -110,7 +110,6 @@ public class BedPlates extends Module {
         }
     };
 
-    // ── Scanning ────────────────────────────────────────────────────────
 
     private void removeBrokenBeds() {
         List<String> stale = new ArrayList<>();
@@ -253,7 +252,6 @@ public class BedPlates extends Module {
         return Math.max(1, ((int) 64 + 15) >> 4);
     }
 
-    // ── Rendering ───────────────────────────────────────────────────────
 
     private void renderLabel(BedRender br) {
         FontRenderer fr = mc.fontRendererObj;
@@ -289,7 +287,7 @@ public class BedPlates extends Module {
             GlStateManager.enableDepth();
             GlStateManager.depthMask(true);
             GlStateManager.enableTexture2D();
-            fr.drawString(text, -w, 0, 0xFFFFFFFF);
+            fr.drawString(text, -w, 1, 0xFFFFFFFF);
         } else {
             drawIcons(br.defenses);
         }
@@ -404,7 +402,6 @@ public class BedPlates extends Module {
         return Math.min(MAX_SCALE, s);
     }
 
-    // ── Math helpers ────────────────────────────────────────────────────
 
     private double distSq(BlockPos a, BlockPos b) {
         double cx = (a.getX() + b.getX()) / 2.0 + 0.5;
@@ -439,7 +436,6 @@ public class BedPlates extends Module {
         queuedChunks.clear();
     }
 
-    // ── Data classes ────────────────────────────────────────────────────
 
     private static class CachedBed {
         final BlockPos first, second;

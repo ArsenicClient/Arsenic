@@ -10,6 +10,7 @@ import arsenic.event.impl.EventUpdate;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.utils.lag.LagManager;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.settings.KeyBinding;
@@ -25,11 +26,11 @@ import java.util.Arrays;
 
 import static arsenic.utils.lag.LagManager.isHolding;
 
-@ModuleInfo(name = "InvMove", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "InvMove", category = ModuleCategory.MOVEMENT, tier = ModuleTier.DEV)
 public class InvMove extends Module {
 
     private boolean pendingFlush = false;
-    private boolean justFlushed = false;
+    private boolean flushing = false;
 
     private final ArrayList<Integer> keys = new ArrayList<>(Arrays.asList(
             mc.gameSettings.keyBindJump.getKeyCode(),
@@ -40,10 +41,6 @@ public class InvMove extends Module {
     ));
 
     private boolean shouldBuffer() {
-        // Only the player inventory with its 2x2 crafting grid. openContainer alone can't say that:
-        // it stays the player's ContainerPlayer behind every screen that isn't a container - chat,
-        // pause, the click GUI - so it's the screen itself that's checked. Creative uses its own
-        // GuiContainerCreative, so it's excluded here too.
         return mc.currentScreen instanceof GuiInventory
                 && mc.thePlayer != null
                 && mc.thePlayer.openContainer instanceof ContainerPlayer;
@@ -52,6 +49,17 @@ public class InvMove extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventLiving> eventGameLoopListener = event -> {
+        if (pendingFlush) {
+            pendingFlush = false;
+            flushing = true;
+        }
+        if (flushing) {
+            for (int keyCode : keys) {
+                KeyBinding.setKeyBindState(keyCode, false);
+            }
+            return;
+        }
+
         if (mc.currentScreen == null) return;
 
         if (shouldBuffer()) {
@@ -82,38 +90,22 @@ public class InvMove extends Module {
         }
     };
 
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventUpdate.Pre> onUpdatePre = event -> {
-        if (!pendingFlush)
-            return;
-        pendingFlush = false;
-        justFlushed = true;
-        for (int keyCode : keys) {
-            KeyBinding.setKeyBindState(keyCode, false);
-        }
-        // Send the held clicks and close now that the keys are up for this movement tick.
-        LagManager.release(getClass());
-    };
-
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Post> onUpdatePost = event -> {
-        if (!justFlushed)
+        if (!flushing)
             return;
-        // One-shot: left set, this re-read the raw keyboard every tick from then on, so typing
-        // W in chat walked you forward.
-        justFlushed = false;
+        flushing = false;
+        LagManager.release(getClass());
         for (int keyCode : keys) {
             KeyBinding.setKeyBindState(keyCode, Keyboard.isKeyDown(keyCode));
         }
     };
 
-
-
     @Override
     protected void onDisable() {
+        pendingFlush = false;
+        flushing = false;
         LagManager.release(getClass());
     }
 }

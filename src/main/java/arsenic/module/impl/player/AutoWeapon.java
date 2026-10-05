@@ -17,11 +17,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 
-/**
- * Holds the highest-damage sword or axe in the hotbar while KillAura has a target, and swaps an
- * empty hand to it even without one. AutoSoup takes
- * priority while it has the slot swapped to eat; once it swaps back this moves to the weapon again.
- */
 @ModuleInfo(name = "AutoWeapon", category = ModuleCategory.COMBAT)
 public class AutoWeapon extends Module {
 
@@ -30,7 +25,6 @@ public class AutoWeapon extends Module {
     public final Listener<EventTick> onTick = event -> {
         KillAura aura = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class);
         if (aura == null || !aura.isEnabled()) return;
-        // With no target, only fix an empty hand (e.g. after AutoSoup returns to a bare slot).
         if (aura.target == null && mc.thePlayer.inventory.getCurrentItem() != null) return;
 
         AutoSoup soup = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoSoup.class);
@@ -47,7 +41,7 @@ public class AutoWeapon extends Module {
                 damage += mod.getAmount();
             }
             damage += 1.25 * EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack);
-            if (stack.getItem() instanceof ItemSword) damage += 0.01; // swords win ties against axes
+            if (stack.getItem() instanceof ItemSword) damage += 0.01;
             if (damage > bestDamage) {
                 bestDamage = damage;
                 best = slot;

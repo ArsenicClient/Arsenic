@@ -42,7 +42,6 @@ public final class LagManager {
                 int newPing = playerInfo.getResponseTime();
                 long currentTime = System.currentTimeMillis();
                 if (newPing < 5) {
-                    //assume that the players ping cannot be < 10
                     return;
                 }
                 if (newPing != currentPing || currentTime - lastPingUpdate > 1000) {
@@ -123,7 +122,6 @@ public final class LagManager {
         flushUnheld();
     }
 
-    /** How many outgoing packets are currently parked in the holder buffer, across all holders. */
     public static int countBuffered() {
         synchronized (buffer) {
             return buffer.size();
@@ -167,22 +165,14 @@ public final class LagManager {
         }
     }
 
-    /**
-     * Register an incoming-packet delay under a holder key with a custom selector.
-     * Multiple holders may be interested in the same packet; when a packet arrives every
-     * matching holder is polled and the largest requested delay wins (the packet is tagged
-     * with that holder so it can be released independently).
-     */
     public static void delay(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> delayFunction) {
         incomingDelay.bind(holderKey, selector, delayFunction);
     }
 
-    /** Convenience: delay all packets that are instances of {@code packetClass}. */
     public static void delay(Class<?> holderKey, Class<?> packetClass, Function<Packet<?>, Long> delayFunction) {
         incomingDelay.bind(holderKey, packetClass::isInstance, delayFunction);
     }
 
-    /** Remove a holder's incoming delay binding. Does not release packets it already holds. */
     public static void undelay(Class<?> holderKey) {
         incomingDelay.unbind(holderKey);
     }
@@ -191,12 +181,10 @@ public final class LagManager {
         incomingDelay.releaseMatching(filter, LagManager::receivePacket);
     }
 
-    /** Release every delayed packet owned by {@code holderKey}. */
     public static void releaseDelayedFor(Class<?> holderKey) {
         incomingDelay.releaseOwned(holderKey, p -> true, LagManager::receivePacket);
     }
 
-    /** Release delayed packets owned by {@code holderKey} that also match {@code filter}. */
     public static void releaseDelayedFor(Class<?> holderKey, Predicate<Packet<?>> filter) {
         incomingDelay.releaseOwned(holderKey, filter, LagManager::receivePacket);
     }
@@ -273,7 +261,6 @@ public final class LagManager {
 
     private static final class PacketDelayChannel {
 
-        // holderKey -> its delay rule. Keyed by the module that owns the delay, not the packet type.
         private final Map<Class<?>, DelayRule> handlers = new ConcurrentHashMap<>();
         private final Queue<TimedPacket> queue = new ConcurrentLinkedQueue<>();
         private final Set<Packet<?>> skip = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -295,7 +282,6 @@ public final class LagManager {
             if (handlers.isEmpty())
                 return false;
 
-            // Poll every interested holder; the largest requested delay wins and owns the packet.
             long bestDelay = 0L;
             Class<?> winner = null;
             for (Map.Entry<Class<?>, DelayRule> entry : handlers.entrySet()) {

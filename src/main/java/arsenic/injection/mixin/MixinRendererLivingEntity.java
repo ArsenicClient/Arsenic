@@ -41,11 +41,6 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
             cir.setReturnValue(false);
     }
 
-    /**
-     * Chams. These two are the same injection points Forge exposes as RenderLivingEvent.Pre and
-     * .Post, so the depth offset wraps the whole entity render; the flat colour is applied around
-     * renderModel instead, which keeps it off nametags and the armour layers.
-     */
     @Inject(method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V", at = @At("HEAD"))
     private void chamsPre(T entity, double x, double y, double z, float entityYaw, float partialTicks,
                           CallbackInfo ci) {

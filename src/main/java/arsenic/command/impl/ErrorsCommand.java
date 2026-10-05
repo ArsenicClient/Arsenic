@@ -13,10 +13,6 @@ import java.util.List;
 
 import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
 
-/**
- * Reads back what the error overlay is showing, including the full stack trace of the first
- * occurrence - the one the JIT has not yet optimised the trace off.
- */
 @CommandInfo(name = "errors", args = { "list/trace/hud/clear", "module name" }, aliases = { "err" },
         help = "shows event listener errors and their stack traces")
 public class ErrorsCommand extends Command {
@@ -49,7 +45,6 @@ public class ErrorsCommand extends Command {
         }
     }
 
-    /** Errors are always collected; this only controls whether they are drawn over the game. */
     private void hud(String state) {
         switch (state) {
             case "enable":

@@ -7,6 +7,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.timer.MSTimer;
@@ -22,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AutoSoup extends Module {
 
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(0, 20, 7, 0.1));
@@ -34,9 +35,7 @@ public class AutoSoup extends Module {
     private boolean inInv;
     private List<Integer> sortedSlots = new ArrayList<>();
 
-    /** The use is assumed to have gone through; this long after it, the old slot comes back. */
     private static final long RETURN_DELAY_MS = 500;
-    /** Golden heads allow one eat per second. */
     private static final long EAT_COOLDOWN_MS = 1000;
 
     @RequiresPlayer
@@ -56,7 +55,6 @@ public class AutoSoup extends Module {
                 }
                 break;
             case SWITCHED:
-                // A tick after the switch, so the server already knows which item is held.
                 ItemStack held = mc.thePlayer.inventory.getCurrentItem();
                 if (held != null) {
                     mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held);
@@ -66,8 +64,6 @@ public class AutoSoup extends Module {
                 break;
             case CLICKED:
                 if (actionTimer.hasTimeElapsed(RETURN_DELAY_MS)) {
-                    // The client sees a potato as food, so the right click also starts it eating
-                    // locally. Release that before swapping back, so neither side is left mid-use.
                     if (mc.thePlayer.isUsingItem())
                         mc.playerController.onStoppedUsingItem(mc.thePlayer);
                     mc.thePlayer.inventory.currentItem = originalSlot;
@@ -92,7 +88,6 @@ public class AutoSoup extends Module {
         }
     };
 
-    /** True while the hotbar slot is swapped to an edible item; other modules must not touch the slot. */
     public boolean isSwapping() {
         return state == State.SWITCHED || state == State.CLICKED;
     }
@@ -114,7 +109,6 @@ public class AutoSoup extends Module {
     }
 
     private int getEdibleSlot() {
-        // A player head gives absorption, so it is only worth using while there is none.
         if (mc.thePlayer.getAbsorptionAmount() <= 0) {
             for (int slot = 0; slot <= 8; slot++) {
                 ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slot);
@@ -128,10 +122,6 @@ public class AutoSoup extends Module {
         return -1;
     }
 
-    /**
-     * Soup, a potato, a golden apple reskinned/renamed as a "Golden Head", or a chicken spawn egg -
-     * regen items that are all used with a single right click, like soup, rather than eaten.
-     */
     private static boolean isEdible(ItemStack stack) {
         if (stack.getItem() instanceof ItemSoup) return true;
         if (isPotato(stack)) return true;
@@ -142,15 +132,10 @@ public class AutoSoup extends Module {
         return false;
     }
 
-    /**
-     * A potato or baked potato. Vanilla treats these as food to hold and eat, but where they're a
-     * regen item one right click uses them up, so they go through the same single use as soup.
-     */
     private static boolean isPotato(ItemStack stack) {
         return stack.getItem() == Items.potato || stack.getItem() == Items.baked_potato;
     }
 
-    /** The Pit "Golden Head" perk item: a skull (or reskinned apple) named "Golden Head". */
     private static boolean isHead(ItemStack stack) {
         return (stack.getItem() instanceof ItemSkull || stack.getItem() instanceof ItemAppleGold)
                 && stack.getDisplayName().toLowerCase(Locale.ROOT).contains("golden head");

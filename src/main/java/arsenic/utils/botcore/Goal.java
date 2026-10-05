@@ -1,25 +1,16 @@
 package arsenic.utils.botcore;
 
-/** Where the bot is trying to get to. */
 public interface Goal {
-    /** Whether standing with feet at block (x, y, z), height {@code feet}, counts as arrived. */
     boolean reached(Terrain t, int x, int y, int z, double feet);
 
-    /** Estimated ticks still to go from there (lower is closer). */
     double heuristic(int x, int y, int z, double feet, Tuning tuning, double speed);
 
-    /** A point to show/aim at. */
     double[] centre();
 
-    /** Whether the player's actual eye position is good enough (default: no extra condition). */
     default boolean reachedFrom(Terrain t, double ex, double ey, double ez) {
         return true;
     }
 
-    /**
-     * Arrive within reach of a block (a chest) with a clear line of sight to it, so it can be
-     * opened from where the bot stops.
-     */
     final class NearBlock implements Goal {
         public final int bx, by, bz;
         public final double reach;
@@ -31,7 +22,6 @@ public interface Goal {
             this.reach = reach;
         }
 
-        /** The planner only stops where the chest is still in sight a little off the middle too. */
         private static final double[][] AROUND = {{0, 0}, {0.2, 0}, {-0.2, 0}, {0, 0.2}, {0, -0.2}};
 
         @Override
@@ -69,10 +59,6 @@ public interface Goal {
         }
     }
 
-    /**
-     * Arrive within reach of a point in the air (a player's body) with nothing in between, so
-     * whoever is standing there can be hit from where the bot stops.
-     */
     final class NearPoint implements Goal {
         public final double px, py, pz;
         public final double reach;
@@ -113,7 +99,6 @@ public interface Goal {
         }
     }
 
-    /** Stand in one exact block. */
     final class Block implements Goal {
         public final int gx, gy, gz;
 

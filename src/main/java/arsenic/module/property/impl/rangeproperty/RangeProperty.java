@@ -1,5 +1,6 @@
 package arsenic.module.property.impl.rangeproperty;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.ThemeManager;
@@ -57,7 +58,6 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
         return trim(value.getMin()) + " - " + trim(value.getMax()) + displayMode.getSuffix();
     }
 
-    /** Whole numbers print without a decimal tail; a "100.0 - 200.0" chip is just wider, not clearer. */
     private static String trim(double v) {
         return (v == Math.rint(v) && !Double.isInfinite(v))
                 ? String.valueOf((long) v)
@@ -142,7 +142,7 @@ public class RangeProperty extends SerializableProperty<RangeValue> {
             }
 
             private void applyFromMouse(int mouseX) {
-                float pct = Math.max(0f, Math.min(1f, (mouseX - dragX1) / dragWidth));
+                float pct = MathUtils.clamp01((mouseX - dragX1) / dragWidth);
                 helping.setValue(self, fromPercent(pct));
                 arsenic.utils.java.SoundUtils.slide(pct);
             }

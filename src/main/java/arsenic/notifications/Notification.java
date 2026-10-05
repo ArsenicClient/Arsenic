@@ -1,5 +1,6 @@
 package arsenic.notifications;
 
+import arsenic.utils.timer.MSTimer;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.Minecraft;
@@ -9,7 +10,7 @@ public class Notification {
     private final NotificationType type;
     private final String title;
     private final String message;
-    private final long start;
+    private final MSTimer timer = new MSTimer();
     public final long fadedIn;
     public final long fadeOut;
     public final long end;
@@ -22,8 +23,7 @@ public class Notification {
         this.message = message;
         fadedIn = 200L * length;
         fadeOut = fadedIn + 1500L * length;
-        end = fadeOut + 300L * length;
-        start = System.currentTimeMillis();
+        end = fadeOut + 300L * length;
     }
 
     public boolean isShown() {
@@ -31,7 +31,7 @@ public class Notification {
     }
 
     public long getTime() {
-        return System.currentTimeMillis() - start;
+        return timer.getTime();
     }
 
     public void render(int x, float y, float alpha) {

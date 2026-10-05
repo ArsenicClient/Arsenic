@@ -16,7 +16,6 @@ import net.minecraft.util.MathHelper;
 
 @ModuleInfo(name = "BowAimbot", category = ModuleCategory.COMBAT)
 public class BowAimbot extends Module {
-    /** Lead the target by its velocity. More hits, and a rotation the player never made. */
     public final BooleanProperty predict = new BooleanProperty("Predict", true);
 
 

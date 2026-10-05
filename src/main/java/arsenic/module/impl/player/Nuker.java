@@ -11,6 +11,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ButtonProperty;
@@ -32,42 +33,28 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import org.lwjgl.input.Mouse;
 
-/**
- * Like Fast Cake, but left click: breaks wheat - or any block you pick - around you.
- * <p>
- * Rotations are kept as small as possible. A block already under the current look ray is broken
- * with no turn at all; otherwise the target is whichever block needs the smallest turn, and the
- * aim goes to the point on it closest to where you're already looking, not its centre. The break
- * only goes out the tick after the rotation that actually points at the block has been sent, so
- * the server never sees a dig on a block we weren't facing.
- */
-@ModuleInfo(name = "Nuker", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Nuker", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class Nuker extends Module {
 
     public final EnumProperty<TargetBlock> targetBlock = new EnumProperty<>("Block", TargetBlock.Wheat);
 
-    /** Numeric block id to break in Custom mode - set it with the button below, or by hand. */
     @PropertyInfo(reliesOn = "Block", value = "Custom")
     public final DoubleProperty blockId = new DoubleProperty("Block ID", new DoubleValue(1, 255, 59, 1));
 
     @PropertyInfo(reliesOn = "Block", value = "Custom")
     public final ButtonProperty pickBlock = new ButtonProperty("Pick Block", "Use looked-at", this::pickLookedAtBlock);
 
-    /** Crops (wheat, carrots, potatoes) are only broken once fully grown, so nothing is wasted. */
     public final BooleanProperty onlyGrown = new BooleanProperty("Only Grown", true);
-    /** Only run while holding left click; off, it breaks whenever it's enabled. */
     public final BooleanProperty holdClick = new BooleanProperty("Hold Click", true);
     public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 6, 4.5, 0.1));
     @PropertyInfo(reliesOn = "Rotate", value = "true")
     public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 90, 1), SliderScale.LOG);
 
-    /** Below this many degrees of turn, a candidate is already being looked at. */
     private static final float ON_TARGET_DEG = 0.01f;
 
     private BlockPos target;
     private Vec3 aimPoint;
-    /** Set once the committed rotation is known to point at {@link #target}; broken next tick. */
     private BlockPos breakPos;
     private EnumFacing breakFace;
 
@@ -84,10 +71,6 @@ public class Nuker extends Module {
             mc.playerController.resetBlockRemoving();
     }
 
-    /**
-     * Picks the block and, if it needs one, the smallest turn onto it. A block being broken is kept
-     * until it's gone, so a slow block is never abandoned half-mined for a slightly closer one.
-     */
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> onRotation = event -> {
@@ -108,7 +91,6 @@ public class Nuker extends Module {
         if (target == null)
             return;
 
-        // Our own breaking replaces the vanilla left click, so the two never damage blocks at once.
         event.setBlockUserInput(true);
         if (!rotate.getValue())
             return;
@@ -122,7 +104,6 @@ public class Nuker extends Module {
         }
     };
 
-    /** Checks the rotation the manager actually committed: only a ray that lands on the target arms the break. */
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> onRotationPost = event -> {
@@ -143,7 +124,6 @@ public class Nuker extends Module {
         }
     };
 
-    /** Runs before this tick's player update - the rotation that armed the break has already been sent. */
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
@@ -157,7 +137,6 @@ public class Nuker extends Module {
         return mc.currentScreen == null && (!holdClick.getValue() || Mouse.isButtonDown(0));
     }
 
-    /** Takes the reachable target block needing the smallest turn from the current rotation. */
     private void pickTarget(float yaw, float pitch) {
         target = null;
         aimPoint = null;
@@ -185,12 +164,6 @@ public class Nuker extends Module {
         }
     }
 
-    /**
-     * The point on {@code pos} needing the smallest turn from ({@code yaw}, {@code pitch}) that is
-     * in reach and in plain sight, or null if there's none. Walks the current look ray and clamps
-     * each step into the block's box - where the ray already passes through the box this is a
-     * zero turn; otherwise it's the corner or edge nearest the ray.
-     */
     private Vec3 findAim(BlockPos pos, float yaw, float pitch) {
         Block block = mc.theWorld.getBlockState(pos).getBlock();
         block.setBlockBoundsBasedOnState(mc.theWorld, pos);
@@ -215,7 +188,6 @@ public class Nuker extends Module {
         }
         if (best != null && canSee(pos, eyes, best))
             return best;
-        // The nearest point is hidden (e.g. behind the block in front of it) - the centre may not be.
         Vec3 centre = new Vec3((box.minX + box.maxX) / 2, (box.minY + box.maxY) / 2, (box.minZ + box.maxZ) / 2);
         return canSee(pos, eyes, centre) ? centre : null;
     }
@@ -227,7 +199,6 @@ public class Nuker extends Module {
         return mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK && pos.equals(mop.getBlockPos());
     }
 
-    /** {@code point} pushed slightly further along the ray, so the trace enters the block rather than stopping on its face. */
     private static Vec3 extend(Vec3 eyes, Vec3 point) {
         Vec3 dir = point.subtract(eyes).normalize();
         return point.addVector(dir.xCoord * 0.1, dir.yCoord * 0.1, dir.zCoord * 0.1);
@@ -256,7 +227,6 @@ public class Nuker extends Module {
         return true;
     }
 
-    /** Sets the Custom block to whatever is under the crosshair. */
     private void pickLookedAtBlock() {
         if (mc.thePlayer == null || mc.objectMouseOver == null
                 || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK)

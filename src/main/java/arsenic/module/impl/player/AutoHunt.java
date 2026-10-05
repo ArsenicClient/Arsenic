@@ -8,6 +8,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.bot.BotDriver;
@@ -16,23 +17,14 @@ import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.entity.player.EntityPlayer;
 
-/**
- * Chases one named player, set with {@code .hunt <name>}, through the pathfinder (see
- * {@link Chaser}). When they leave render distance it heads to where they were last seen and
- * waits there for them to show up again. With Use KillAura on, KillAura is switched on and only
- * ever fights the hunted player while this runs. Like FightBot, it keeps running with the window
- * unfocused.
- */
-@ModuleInfo(name = "AutoHunt", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoHunt", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AutoHunt extends Module {
 
     public final BooleanProperty useKillAura = new BooleanProperty("Use KillAura", true);
 
-    /** Close enough for KillAura to hit; walking further in only gets in the way. */
     private static final double CHASE_STOP_DISTANCE = 2.5;
     private static final double LAST_SEEN_STOP_DISTANCE = 1.5;
 
-    /** Who to hunt, as typed. Kept across toggles so re-enabling resumes the same hunt. */
     private static String huntName;
 
     private final Chaser chaser = new Chaser();
@@ -50,10 +42,6 @@ public class AutoHunt extends Module {
         huntName = name;
     }
 
-    /**
-     * TargetManager hook: while hunting with KillAura, the hunted player is the only valid target,
-     * so the aura never stops to fight whoever happens to be in the way.
-     */
     public static boolean allowsTarget(EntityPlayer player) {
         AutoHunt hunt = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoHunt.class);
         if (hunt == null || !hunt.isEnabled() || !hunt.useKillAura.getValue() || huntName == null)

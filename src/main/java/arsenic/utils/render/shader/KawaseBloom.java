@@ -33,7 +33,6 @@ public class KawaseBloom {
         }
         framebufferList.clear();
 
-        //Have to make the framebuffer null so that it does not try to delete a framebuffer that has already been deleted
         framebufferList.add(framebuffer = ShaderUtil.createFrameBuffer(null, true));
 
 
@@ -64,12 +63,10 @@ public class KawaseBloom {
         GL11.glClearColor(0, 0, 0, 0);
         renderFBO(framebufferList.get(1), framebufferTexture, kawaseDown, offset);
 
-        //Downsample
         for (int i = 1; i < iterations; i++) {
             renderFBO(framebufferList.get(i + 1), framebufferList.get(i).framebufferTexture, kawaseDown, offset);
         }
 
-        //Upsample
         for (int i = iterations; i > 1; i--) {
             renderFBO(framebufferList.get(i - 1), framebufferList.get(i).framebufferTexture, kawaseUp, offset);
         }

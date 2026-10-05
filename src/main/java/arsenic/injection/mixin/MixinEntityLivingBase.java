@@ -34,10 +34,6 @@ public abstract class MixinEntityLivingBase extends Entity {
     @Shadow
     public abstract boolean isPotionActive(Potion potionIn);
 
-    /**
-     * @author CosmicSC
-     * @reason JumpFix
-     */
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
     protected void jump(CallbackInfo ci) {
         final EventJump e = new EventJump(this.rotationYaw, this.getJumpUpwardsMotion());

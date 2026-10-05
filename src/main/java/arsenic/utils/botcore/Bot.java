@@ -9,18 +9,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * The path-finding bot: give it a goal, call {@link #tick} once per game tick with the player and
- * world, and apply the {@link Controls} it returns.
- *
- * Movement rules: only W (plus jump/sneak/sprint) is ever pressed; the camera turns instantly, and
- * only while on the ground or climbing (except to aim a block placement).
- */
 public final class Bot {
     public final Tuning tun;
-    /** Hop while sprinting along straight open stretches. */
     public boolean sprintJump = false;
-    /** Search on a background thread, or inline on the calling one. */
     private final boolean async;
 
     private Goal goal;
@@ -32,7 +23,6 @@ public final class Bot {
     private volatile boolean pathComplete;
     private int idx;
     private volatile List<Step> nextPath;
-    /** The straight-line target chosen on the ground, kept while airborne. */
     private double[] airAim;
     private int centringTicks;
     private long airAimTick;
@@ -41,14 +31,11 @@ public final class Bot {
     private volatile boolean searching;
     private volatile int generation;
     private volatile Planner.Result lastResult;
-    /** Best route found so far by a search in progress (for drawing), or null. */
     public volatile List<Step> searchPreview;
 
-    /** Spots the bot got stuck at, with when to forget them; the planner routes around them. */
     private final Map<Long, Long> avoid = new ConcurrentHashMap<>();
     private long tickCount;
 
-    // watchdog
     private double anchorX, anchorY, anchorZ;
     private int watchTicks, stuckLevel, nudgeTicks, escapeTicks, offPathTicks;
     private float escapeYaw;
@@ -59,7 +46,6 @@ public final class Bot {
         this.async = async;
     }
 
-    // ---- public API ----------------------------------------------------------------------------------
 
     public void setGoal(Goal g) {
         generation++;
@@ -91,7 +77,6 @@ public final class Bot {
         return arrived;
     }
 
-    /** True when no path at all could be found from where the player is. */
     public boolean failed() {
         return failed;
     }
@@ -120,7 +105,6 @@ public final class Bot {
         return lastResult;
     }
 
-    // ---- tick ------------------------------------------------------------------------------------------
 
     public Controls tick(PlayerView p, BlockView view) {
         Controls c = new Controls();
@@ -146,8 +130,6 @@ public final class Bot {
                 arrived = true;
                 return c;
             }
-            // right block, but the target can't be seen from this edge of it: step into the middle
-            // (give up waiting after a second)
             walkTo(p, c, fx + 0.5, fz + 0.5, true);
             return c;
         }
@@ -172,13 +154,12 @@ public final class Bot {
                 cur = path;
             }
             if (cur == null) {
-                return c; // waiting for the first search
+                return c;
             }
         }
 
         advance(p, t, cur);
         if (idx >= cur.size()) {
-            // reached the end of this path
             List<Step> next = nextPath;
             Step last = cur.get(cur.size() - 1);
             if (next != null && next.get(0).same(last.x, last.y, last.z)) {
@@ -202,7 +183,6 @@ public final class Bot {
             }
         }
 
-        // plan the next stretch of a partial path before running out
         if (!pathComplete && !searching && nextPath == null && cur.size() - idx <= tun.planAheadSteps) {
             Step last = cur.get(cur.size() - 1);
             requestPlan(last.x, last.y, last.z, last.feet, true);
@@ -229,7 +209,6 @@ public final class Bot {
         return c;
     }
 
-    // ---- planning ---------------------------------------------------------------------------------------
 
     private void replan(PlayerView p, Terrain t) {
         int[] s = startNode(p, t);
@@ -260,7 +239,6 @@ public final class Bot {
         return Double.isNaN(h) ? y : h;
     }
 
-    /** The node the player is standing at: the block under the middle, or one the footprint rests on. */
     private int[] startNode(PlayerView p, Terrain t) {
         int fx = Terrain.floor(p.x), fy = Terrain.floor(p.y + 1e-3), fz = Terrain.floor(p.z);
         if (!p.onGround || !Double.isNaN(t.standHeight(fx, fy, fz))) {
@@ -309,17 +287,13 @@ public final class Bot {
         }
     }
 
-    /**
-     * Optional delay (off by default): hold plan results back this many ticks plus the search's own
-     * time, scaled by simTimeScale, like a slow background search.
-     */
     public int simLatency = 0;
     public double simTimeScale = 3;
     private Runnable delayed;
     private long delayedAt;
 
     private void deliver(final Planner.Result r, final int gen, final boolean ahead) {
-        if (!async && simLatency > 0) { // a newer result replaces one still held back
+        if (!async && simLatency > 0) {
             delayed = () -> apply(r, gen, ahead);
             delayedAt = tickCount + simLatency + (r == null ? 0 : (long) Math.ceil(r.millis * simTimeScale / 50.0));
             return;
@@ -354,17 +328,14 @@ public final class Bot {
         idx = 1;
     }
 
-    // ---- progress -------------------------------------------------------------------------------------
 
     private static boolean onClimbable(Terrain t, PlayerView p) {
         return t.climbable(Terrain.floor(p.x), Terrain.floor(p.y + 1e-3), Terrain.floor(p.z));
     }
 
-    /** Moves idx past every step the player has already reached. */
     private void advance(PlayerView p, Terrain t, List<Step> cur) {
         int fx = Terrain.floor(p.x), fy = Terrain.floor(p.y + 1e-3), fz = Terrain.floor(p.z);
         boolean settled = p.onGround || onClimbable(t, p);
-        // look as far ahead as smoothing can cut, plus a hop: a straight line or a sprint-jump can skip many steps
         int hi = Math.min(cur.size() - 1, idx + tun.smoothLookahead + 8);
         if (settled) {
             for (int j = hi; j >= Math.max(0, idx - 1); j--) {
@@ -375,8 +346,6 @@ public final class Bot {
                     return;
                 }
             }
-            // standing at a coming step's height with the footprint over its block (centre just past
-            // its edge, as after landing a jump on a one-wide ridge) counts as being there too
             for (int j = Math.min(cur.size() - 1, idx + 2); j >= idx; j--) {
                 Step s = cur.get(j);
                 if (Math.abs(p.x - (s.x + 0.5)) < 0.5 + Terrain.HW && Math.abs(p.z - (s.z + 0.5)) < 0.5 + Terrain.HW
@@ -386,7 +355,6 @@ public final class Bot {
                 }
             }
         } else {
-            // mid-hop over flat ground: the feet read a block high, so match the column only
             for (int j = idx; j <= hi; j++) {
                 Step s = cur.get(j);
                 if (!s.flat()) {
@@ -412,7 +380,6 @@ public final class Bot {
         return best > tun.offPathDistance;
     }
 
-    // ---- moving -----------------------------------------------------------------------------------------
 
     private void execute(PlayerView p, Terrain t, List<Step> cur, Controls c) {
         Step s = cur.get(idx);
@@ -423,9 +390,6 @@ public final class Bot {
         boolean grounded = p.onGround || onClimbable(t, p);
         if (!p.onGround && onClimbable(t, p) && (s.x != prev.x || s.z != prev.z)
                 && (t.climbable(s.x, s.y, s.z) || t.climbable(s.x, s.y - 1, s.z))) {
-            // across (or across and up) a vine/ladder wall to the next climbable column: push
-            // diagonally into the wall so we keep climbing and holding on while we move over,
-            // instead of letting go and falling off
             int wall = t.pushSide(s.x, t.climbable(s.x, s.y, s.z) ? s.y : s.y - 1, s.z);
             if (wall >= 0) {
                 lookYaw(c, p, s.x + 0.5 + Dir.DX[wall] * 0.9, s.z + 0.5 + Dir.DZ[wall] * 0.9);
@@ -438,11 +402,10 @@ public final class Bot {
             case Step.DIAGONAL: {
                 double[] aim = smoothTarget(p, t, cur);
                 if (p.onGround || tun.airControl) {
-                    // with air control the target is re-chosen every tick, mid-hop too, and steered for
                     airAim = aim;
                     airAimTick = tickCount;
                 } else if (airAim != null && tickCount - airAimTick <= 20) {
-                    aim = airAim; // mid-hop: keep heading for where we aimed on take-off, not a step we flew past
+                    aim = airAim;
                 }
                 walkTo(p, c, aim[0], aim[1], grounded);
                 c.sprint = true;
@@ -463,7 +426,7 @@ public final class Bot {
             case Step.DROP: {
                 if (p.onGround) {
                     walkTo(p, c, s.x + 0.5, s.z + 0.5, true);
-                    c.sprint = s.feet > p.y - 2; // don't sail past a narrow landing
+                    c.sprint = s.feet > p.y - 2;
                 } else {
                     airSteer(p, c, s);
                 }
@@ -471,8 +434,8 @@ public final class Bot {
             }
             case Step.PARKOUR: {
                 double jx = s.x - prev.x, jz = s.z - prev.z, jl = Math.sqrt(jx * jx + jz * jz);
-                double dx = jx / jl, dz = jz / jl; // any direction, not just the four compass ones
-                double edge = 0.5 / Math.max(Math.abs(dx), Math.abs(dz)); // centre to the block edge along the jump
+                double dx = jx / jl, dz = jz / jl;
+                double edge = 0.5 / Math.max(Math.abs(dx), Math.abs(dz));
                 if (!p.onGround) {
                     airSteer(p, c, s);
                     break;
@@ -482,8 +445,6 @@ public final class Bot {
                 double along = (p.x - (prev.x + 0.5)) * dx + (p.z - (prev.z + 0.5)) * dz;
                 int fx = Terrain.floor(p.x), fz = Terrain.floor(p.z);
                 boolean onTakeoff = fx == prev.x && fz == prev.z;
-                // try yaws around the target; for each, the landings between letting go of W at once
-                // and holding it all the way; pick the yaw whose landings pass closest to the middle
                 double tx = s.x + 0.5, tz = s.z + 0.5;
                 float base = c.yaw, bestYaw = base;
                 double bestErr = Double.MAX_VALUE, bestNear = 0;
@@ -493,13 +454,13 @@ public final class Bot {
                     double[] far = predictLanding(after, true, 99, s.feet, t);
                     double[] near = predictLanding(after, true, 1, s.feet, t);
                     if (far == null || near == null) {
-                        continue; // this jump would clip something
+                        continue;
                     }
                     double err = segmentDistance(tx, tz, near[0], near[1], far[0], far[1]);
                     if (err < bestErr - 1e-9 || (Math.abs(err - bestErr) < 1e-9 && Math.abs(k) < Math.abs((bestYaw - base) / 2))) {
                         bestErr = err;
                         bestYaw = yaw;
-                        bestNear = (near[0] - tx) * dx + (near[1] - tz) * dz; // >0: overshoots even letting go
+                        bestNear = (near[0] - tx) * dx + (near[1] - tz) * dz;
                     }
                 }
                 boolean mustGo = along >= edge + tun.parkourTakeoff - 0.5 || !onTakeoff;
@@ -507,11 +468,10 @@ public final class Bot {
                     c.yaw = bestYaw;
                     c.jump = true;
                 } else if (bestErr == Double.MAX_VALUE) {
-                    // every jump from here clips something: line up on the take-off block's centre line first
                     walkTo(p, c, prev.x + 0.5 + dx * 0.45, prev.z + 0.5 + dz * 0.45, true);
                     c.sprint = false;
                 } else if (bestNear > tun.parkourWindow) {
-                    c.forward = false; // too fast for a short gap: ease off
+                    c.forward = false;
                     c.sprint = false;
                 }
                 break;
@@ -519,8 +479,6 @@ public final class Bot {
             case Step.CLIMB_UP: {
                 int wall = wallDir(t, prev.x, prev.y, prev.z);
                 if (wall >= 0) {
-                    // push at a point just behind the middle of the wall face: square on, and it pulls
-                    // the player back to the middle if they have drifted along the wall
                     lookYaw(c, p, prev.x + 0.5 + Dir.DX[wall] * 0.9, prev.z + 0.5 + Dir.DZ[wall] * 0.9);
                 } else {
                     walkTo(p, c, s.x + 0.5, s.z + 0.5, true);
@@ -534,11 +492,10 @@ public final class Bot {
             case Step.MINE_DOWN: {
                 int mx = prev.x, my = prev.y - 1, mz = prev.z;
                 if (t.boxes(mx, my, mz).length > 0 && t.is(mx, my, mz, BlockView.OWN_BLOCK)) {
-                    // stand still in the middle and dig out the block under our feet
                     double cx = prev.x + 0.5 - p.x, cz = prev.z + 0.5 - p.z;
                     if (p.onGround && cx * cx + cz * cz > 0.04) {
                         walkTo(p, c, prev.x + 0.5, prev.z + 0.5, true);
-                        c.sneak = true; // don't step off an edge while centring
+                        c.sneak = true;
                         break;
                     }
                     c.mine = true;
@@ -554,7 +511,6 @@ public final class Bot {
                 break;
             }
             case Step.CLIMB_DOWN: {
-                // let go: gravity pulls down, the ladder caps the speed
                 break;
             }
             case Step.PILLAR: {
@@ -573,7 +529,7 @@ public final class Bot {
                     walkTo(p, c, s.x + 0.5, s.z + 0.5, grounded);
                     break;
                 }
-                c.sneak = true; // edge-safe while the block goes in
+                c.sneak = true;
                 walkTo(p, c, s.x + 0.5, s.z + 0.5, grounded);
                 c.sprint = false;
                 placeAgainst(c, p, t, s.px, s.py, s.pz);
@@ -584,7 +540,6 @@ public final class Bot {
         }
     }
 
-    // ---- jump prediction ---------------------------------------------------------------------------
 
     private static PlayerView withYaw(PlayerView p, float yaw) {
         PlayerView v = new PlayerView();
@@ -596,17 +551,11 @@ public final class Bot {
         v.motionZ = p.motionZ;
         v.yaw = yaw;
         v.onGround = p.onGround;
-        v.sprinting = true; // W and sprint are held up to the jump
+        v.sprinting = true;
         v.speed = p.speed;
         return v;
     }
 
-    /**
-     * Where (x, z) the player comes back down to height {@code landY}, holding W for the next
-     * {@code holdTicks} ticks and then letting go, jumping first if {@code jump}. Mirrors vanilla's
-     * movement maths (ground then air friction, sprint-jump boost, input acceleration). With a terrain,
-     * returns null if the player's box would hit anything on the way.
-     */
     public static double[] predictLanding(PlayerView p, boolean jump, int holdTicks, double landY, Terrain terrain) {
         double x = p.x, y = p.y, z = p.z, vx = p.motionX, vy = p.motionY, vz = p.motionZ;
         double rad = Math.toRadians(p.yaw);
@@ -626,7 +575,7 @@ public final class Bot {
             boolean w = t < holdTicks;
             double accel;
             if (ground) {
-                accel = base * (sprint ? 1.3 : 1.0); // 0.16277136 / 0.546^3 is 1
+                accel = base * (sprint ? 1.3 : 1.0);
             } else {
                 accel = sprint ? 0.026 : 0.02;
             }
@@ -639,7 +588,6 @@ public final class Bot {
             pz = z;
             py = y;
             if (terrain != null && vy > 0 && blocked(terrain, x, y + vy, z, landY)) {
-                // head hits a ceiling (a headhitter): the rise stops there, like vanilla
                 double lo = y, hi = y + vy;
                 for (int k = 0; k < 6; k++) {
                     double mid = (lo + hi) / 2;
@@ -657,7 +605,7 @@ public final class Bot {
                 z += vz;
             }
             if (terrain != null && blocked(terrain, x, y, z, landY)) {
-                return null; // would run into a wall on the way
+                return null;
             }
             double fr = ground ? 0.546 : 0.91;
             ground = false;
@@ -678,7 +626,6 @@ public final class Bot {
         return t.fitsBox(new Box(x - Terrain.HW, b, z - Terrain.HW, x + Terrain.HW, b + Terrain.HEIGHT - 0.01, z + Terrain.HW)) != 0;
     }
 
-    /** Distance from point (px, pz) to the segment a-b. */
     static double segmentDistance(double px, double pz, double ax, double az, double bx, double bz) {
         double vx = bx - ax, vz = bz - az;
         double len2 = vx * vx + vz * vz;
@@ -688,7 +635,6 @@ public final class Bot {
         return Math.sqrt(cx * cx + cz * cz);
     }
 
-    /** In the air: hold W only while it brings the landing closer to the middle of the target block. */
     private void airSteer(PlayerView p, Controls c, Step s) {
         double tx = s.x + 0.5, tz = s.z + 0.5;
         double[] coast = predictLanding(p, false, 0, s.feet, null);
@@ -700,9 +646,6 @@ public final class Bot {
             c.sprint = c.forward;
             return;
         }
-        // steer: try holding W facing each of a ring of yaws for the rest of the flight (vanilla air
-        // acceleration follows the yaw, and sprint keeps its boost whichever way we face), or
-        // letting go; take whichever comes down nearest the middle of the target. Re-decided every tick.
         double best = dc;
         float bestYaw = Float.NaN;
         PlayerView v = withYaw(p, p.yaw);
@@ -724,10 +667,6 @@ public final class Bot {
         }
     }
 
-    /**
-     * Face (x, z) and hold W. With air control the yaw turns in the air too (vanilla air
-     * acceleration follows the yaw, so this steers the flight); without it, only on the ground.
-     */
     private void walkTo(PlayerView p, Controls c, double x, double z, boolean grounded) {
         if (grounded || tun.airControl) {
             lookYaw(c, p, x, z);
@@ -750,21 +689,17 @@ public final class Bot {
         return Math.abs(d) < within;
     }
 
-    /** How far the player still is from the edge between prev and s, along the move. */
     private static double distToEdge(PlayerView p, Step prev, Step s) {
         int dx = Integer.signum(s.x - prev.x), dz = Integer.signum(s.z - prev.z);
         double along = (p.x - (prev.x + 0.5)) * dx + (p.z - (prev.z + 0.5)) * dz;
         return 0.5 - along;
     }
 
-    /** The side of a climbable block the player pushes against to go up: its wall, or the ladder itself. */
     private static int wallDir(Terrain t, int x, int y, int z) {
         return t.pushSide(x, y, z);
     }
 
-    // ---- placing and mining ------------------------------------------------------------------------
 
-    /** Aim at a face of a solid neighbour of (x, y, z) and ask for a block to be placed there. */
     private static void placeAgainst(Controls c, PlayerView p, Terrain t, int x, int y, int z) {
         double ex = p.x, ey = p.eyeY(), ez = p.z;
         double best = Double.MAX_VALUE;
@@ -802,7 +737,6 @@ public final class Bot {
         c.pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
     }
 
-    /** If one of the bot's own blocks is in the way of this step, mine it (and do nothing else). */
     private static boolean mineInTheWay(PlayerView p, Terrain t, Step prev, Step s, Controls c) {
         if (!p.pickaxe) return false;
         double top = Math.max(prev.feet, s.feet);
@@ -836,20 +770,13 @@ public final class Bot {
         return false;
     }
 
-    // ---- smoothing -------------------------------------------------------------------------------------
 
-    /**
-     * Furthest point along the coming flat steps that can be walked to in a straight line (a strip
-     * the width of the player with floor all the way), so open ground is crossed on long diagonals
-     * instead of along the block grid. Falls back to the next step's centre.
-     */
     private double[] smoothTarget(PlayerView p, Terrain t, List<Step> cur) {
         Step s = cur.get(idx);
         double[] fallback = {s.x + 0.5, s.z + 0.5};
         if (!p.onGround && !tun.airControl) {
             return fallback;
         }
-        // in the air, measure the straight line at the path's floor height, not the hop's
         int last = idx;
         for (int j = idx + 1; j < cur.size() && j <= idx + tun.smoothLookahead; j++) {
             Step a = cur.get(j);
@@ -865,7 +792,6 @@ public final class Bot {
         return fallback;
     }
 
-    /** Whether the player can walk straight from (ax, az) to (bx, bz) at about this height. */
     static boolean corridor(Terrain t, double ax, double az, double bx, double bz, double feet, double margin) {
         double dx = bx - ax, dz = bz - az;
         double len = Math.sqrt(dx * dx + dz * dz);
@@ -892,11 +818,6 @@ public final class Bot {
         return true;
     }
 
-    /**
-     * Safe to sprint-jump (7.1 blocks/s against 5.6 sprinting): the predicted hop hits nothing, comes
-     * down on floor at this height, stays on the clear straight line to where we are heading, and
-     * there is no jump, drop or block to place in the next few steps.
-     */
     private boolean hopSafe(PlayerView p, Terrain t, List<Step> cur, double[] aim, float yaw) {
         for (int j = idx; j < cur.size() && j < idx + tun.hopLookSteps; j++) {
             Step s = cur.get(j);
@@ -914,8 +835,6 @@ public final class Bot {
         double side = Math.abs(lx * az - lz * ax) / aimDist;
         if (along > aimDist + tun.hopOvershoot || side > tun.hopSideways) return false;
         int x = Terrain.floor(land[0]), z = Terrain.floor(land[1]), y = Terrain.floor(p.y + 1e-3);
-        // something under the actual landing footprint (thin floors like grates have holes), and
-        // a little short and long of it too, for safety
         for (double d = -tun.hopLandSlack; d <= tun.hopLandSlack + 1e-9; d += tun.hopLandSlack) {
             double px = land[0] + ax / aimDist * d, pz = land[1] + az / aimDist * d;
             if (!t.supportAt(px, p.y, pz)) return false;
@@ -923,7 +842,6 @@ public final class Bot {
         return !t.dangerBelow(x, y, z);
     }
 
-    // ---- stuck watchdog --------------------------------------------------------------------------------
 
     private void anchor(PlayerView p) {
         anchorX = p.x;
@@ -932,10 +850,6 @@ public final class Bot {
         watchTicks = 0;
     }
 
-    /**
-     * Every few seconds of following a path, checks the player actually moved. If not, escalates:
-     * hop forward, then re-plan around the spot, then run off in a random direction and re-plan.
-     */
     private void watchdog(PlayerView p, Terrain t, List<Step> cur) {
         if (++watchTicks < tun.stuckTicks) {
             return;
@@ -963,12 +877,10 @@ public final class Bot {
         }
     }
 
-    /** Must be called before tick() so searches can read the world. */
     public void setView(BlockView v) {
         viewForPlan = v;
     }
 
-    /** All steps (current and planned-ahead) for drawing. */
     public List<Step> allSteps() {
         List<Step> out = new ArrayList<>();
         List<Step> a = path, b = nextPath;

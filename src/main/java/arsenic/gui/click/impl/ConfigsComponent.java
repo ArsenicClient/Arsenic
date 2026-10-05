@@ -1,5 +1,7 @@
 package arsenic.gui.click.impl;
 
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.timer.TimeUtils;
 import arsenic.config.ConfigManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
@@ -60,9 +62,6 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private float inputBoxX, inputBoxY, inputBoxX2, inputBoxY2;
     private String currentConfigName = "";
     private String onlineStatus = "";
-    // Resolved on use, not here. A field initialiser that reads a theme colour ties this class's
-    // construction to the theme manager already being initialised, and when that ordering broke the
-    // resulting NPE surfaced as an unrelated NoClassDefFoundError from log4j. 0 means "unset".
     private int onlineStatusColor;
     private String searchQuery = "";
     private final List<OnlineConfig> onlineConfigs = new ArrayList<>();
@@ -303,7 +302,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         DrawUtils.drawRoundedRect(inputBoxX, inputBoxY, inputBoxX2, inputBoxY2, 6, inputBg);
         DrawUtils.drawRoundedOutline(inputBoxX, inputBoxY, inputBoxX2, inputBoxY2, 6, 1, inputBorder);
 
-        boolean showCursor = isNaming && (System.currentTimeMillis() % 1000 < 500);
+        boolean showCursor = isNaming && TimeUtils.blink(500);
         String displayText = newConfigName.length() == 0 ? "Config name..." : newConfigName.toString();
         int displayColor = newConfigName.length() == 0 ? ThemeManager.getTextMuted() : ThemeManager.getTextPrimary();
         ri.getFr().drawString(displayText, inputBoxX + 8, inputBoxY + inputH / 2f, displayColor, ri.getFr().CENTREY);
@@ -368,7 +367,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         DrawUtils.drawRoundedRect(inX, inY, inX + inW, inY + inH, 6, ThemeManager.getConfigsCard());
         DrawUtils.drawRoundedOutline(inX, inY, inX + inW, inY + inH, 6, 1, inBorder);
 
-        boolean showCursor = isUploadNaming && (System.currentTimeMillis() % 1000 < 500);
+        boolean showCursor = isUploadNaming && TimeUtils.blink(500);
         String displayText = uploadName.length() == 0 ? "Upload name..." : uploadName.toString();
         int displayColor = uploadName.length() == 0 ? ThemeManager.getTextMuted() : ThemeManager.getTextPrimary();
         ri.getFr().drawString(displayText, inX + 8, inY + inH / 2f, displayColor, ri.getFr().CENTREY);
@@ -533,8 +532,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     public void clickChildren(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton != 0) return;
 
-        if (currentTab == 0 && mouseX >= inputBoxX && mouseX <= inputBoxX2
-                && mouseY >= inputBoxY && mouseY <= inputBoxY2) {
+        if (currentTab == 0 && MathUtils.inside(mouseX, mouseY, inputBoxX, inputBoxY, inputBoxX2, inputBoxY2)) {
             isNaming = true;
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(this);
             return;

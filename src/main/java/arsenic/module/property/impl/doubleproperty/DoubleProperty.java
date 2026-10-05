@@ -1,5 +1,6 @@
 package arsenic.module.property.impl.doubleproperty;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.gui.themes.ThemeManager;
@@ -41,10 +42,6 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         value.setInput(obj.get("value").getAsDouble());
     }
 
-    /**
-     * Human-facing value. Doubles print as {@code 3.0} by default, which is noise for a setting
-     * that only ever moves in whole steps, so an integral value drops its decimal tail.
-     */
     public final @NotNull String getValueString() {
         double v = value.getInput();
         String num = (v == Math.rint(v) && !Double.isInfinite(v))
@@ -120,7 +117,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             }
 
             private void applyFromMouse(int mouseX) {
-                float pct = Math.max(0f, Math.min(1f, (mouseX - dragX1) / dragWidth));
+                float pct = MathUtils.clamp01((mouseX - dragX1) / dragWidth);
                 double min = getValue().getMinBound(), max = getValue().getMaxBound();
                 getValue().setInput(scale.fromPercent(pct, min, max));
                 onValueUpdate();

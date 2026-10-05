@@ -3,6 +3,10 @@ package arsenic.utils.render;
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.render.shader.ShaderUtil;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
 import java.awt.*;
 
@@ -15,12 +19,6 @@ public class DrawUtils extends UtilityClass {
     private static final ShaderUtil shadowShader = new ShaderUtil("roundedRectShadow");
     private static final ShaderUtil glassShader = new ShaderUtil("liquidGlass");
 
-    /**
-     * When > 0, rounded-rect corner masking uses this fixed scale factor instead
-     * of the live GUI scale. The ClickGUI renders at a constant scale (Normal),
-     * so it sets this while drawing to keep corner rounding identical on every
-     * GUI-scale setting. HUD elements leave it at -1 to use the real scale.
-     */
     public static float overrideScaleFactor = -1f;
 
     public static void drawRect(float x, float y, float x1, float y1, int color) {
@@ -37,6 +35,26 @@ public class DrawUtils extends UtilityClass {
         });
     }
 
+    /** A plain top to bottom argb gradient. */
+    public static void drawVerticalGradient(float x1, float y1, float x2, float y2, int top, int bottom) {
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.disableAlpha();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.shadeModel(7425);
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        wr.pos(x2, y1, 0).color(top >> 16 & 0xFF, top >> 8 & 0xFF, top & 0xFF, top >>> 24).endVertex();
+        wr.pos(x1, y1, 0).color(top >> 16 & 0xFF, top >> 8 & 0xFF, top & 0xFF, top >>> 24).endVertex();
+        wr.pos(x1, y2, 0).color(bottom >> 16 & 0xFF, bottom >> 8 & 0xFF, bottom & 0xFF, bottom >>> 24).endVertex();
+        wr.pos(x2, y2, 0).color(bottom >> 16 & 0xFF, bottom >> 8 & 0xFF, bottom & 0xFF, bottom >>> 24).endVertex();
+        tess.draw();
+        GlStateManager.shadeModel(7424);
+        GlStateManager.enableAlpha();
+        GlStateManager.enableTexture2D();
+    }
+
     public static void drawCustom(int color, Runnable v) {
         setup(color);
         glBegin(9);
@@ -45,7 +63,6 @@ public class DrawUtils extends UtilityClass {
     }
 
 
-    //no worke :(
     public static void drawCustomOutline(int color, float borderWidth, Runnable v) {
         setupOutline(color, borderWidth);
         v.run();
@@ -122,37 +139,17 @@ public class DrawUtils extends UtilityClass {
         Color tr = new Color((topRight >> 16) & 0xFF, (topRight >> 8) & 0xFF, topRight & 0xFF, (topRight >> 24) & 0xFF);
         drawGradientRound(x,y,x1-x,y1-y,radius,bl,tl,br,tr);
     }
-    /**
-     * Soft elevation shadow - the element reads as hovering slightly above
-     * whatever is behind it. Two feathered passes: a centred ambient halo that
-     * hugs every side (the "raised" cue) and a key shadow with a small fixed
-     * downward drop (soft overhead light). Larger {@code spread}/{@code alpha}
-     * = the element floats higher. Draw this BEFORE the element's own fill.
-     *
-     * @param radius corner radius of the element being shadowed
-     * @param spread elevation - how far (px) the shadow reaches / how high it floats
-     * @param alpha  darkness of the shadow's core (0-255)
-     */
     public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha) {
         drawShadow(x1, y1, x2, y2, radius, spread, alpha, 6);
     }
 
-    /** {@code layers} is kept for call-site compatibility; the shadow is now a
-     *  smooth single-pass feather, so it is ignored. */
     public static void drawShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha, int layers) {
         if (alpha <= 0 || spread <= 0f)
             return;
-        // ambient: tight centred halo on all sides - sells the hover
         drawBlurredShadow(x1, y1, x2, y2, radius, spread * 0.55f, (int) (alpha * 0.5f), 0f);
-        // key: soft overhead light - small fixed drop straight down, no sun smear
         drawBlurredShadow(x1, y1, x2, y2, radius, spread, (int) (alpha * 0.7f), spread * 0.35f);
     }
 
-    /**
-     * One feathered shadow pass via the roundedRectShadow shader: a single quad
-     * whose alpha falls off smoothly with SDF distance from the element edge.
-     * {@code dropY} shifts the whole shadow down (screen space, GUI units).
-     */
     public static void drawBlurredShadow(float x1, float y1, float x2, float y2, float radius, float spread, int alpha, float dropY) {
         if (alpha <= 0 || spread <= 0f)
             return;
@@ -162,13 +159,11 @@ public class DrawUtils extends UtilityClass {
         float qw = w + spread * 2f, qh = h + spread * 2f;
         RenderUtils.resetColor();
         RenderUtils.startBlend();
-        RenderUtils.applyGuiBlend(); // coverage-correct during the burn capture
+        RenderUtils.applyGuiBlend();
         RenderUtils.setAlphaLimit(0);
         shadowShader.init();
         shadowShader.setUniformf("quadSize", qw * sf, qh * sf);
         shadowShader.setUniformf("rectSize", w * sf, h * sf);
-        // radius deliberately unscaled - same convention as roundedRect.fsh, so
-        // the shadow's corners match the element exactly on every GUI scale
         shadowShader.setUniformf("radius", Math.max(0f, radius));
         shadowShader.setUniformf("spread", spread * sf);
         shadowShader.setUniformf("color", 0f, 0f, 0f, Math.min(255, alpha) / 255f);
@@ -177,35 +172,15 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.endBlend();
     }
 
-    /**
-     * Subtle light rim around a raised element - a faint "glass edge" that,
-     * together with the drop shadow beneath, sells the sense that the element
-     * sits above the layer behind it. Draw this AFTER the element's fill.
-     *
-     * @param color base RGB of the rim (alpha byte ignored)
-     * @param alpha rim opacity (0-255)
-     */
     public static void drawEdgeHighlight(float x1, float y1, float x2, float y2, float radius, int color, int alpha) {
         if (alpha <= 0)
             return;
-        // thicker, softer rim: a brighter inner line plus a fainter wider glow
         int inner = (Math.min(255, alpha) << 24) | (color & 0x00FFFFFF);
         int outer = (Math.min(255, alpha / 2) << 24) | (color & 0x00FFFFFF);
         drawRoundedOutline(x1, y1, x2, y2, radius, 3.0f, outer);
         drawRoundedOutline(x1, y1, x2, y2, radius, 1.5f, inner);
     }
 
-    /**
-     * Liquid-glass surface treatment - a translucent overlay drawn ON TOP of a
-     * panel's base fill. Adds a faint coloured film, vertical gloss, a slow
-     * moving specular sweep, a bright Fresnel edge rim and a soft top sheen so
-     * the panel reads like a floating pane of frosted glass. Draw AFTER the
-     * element's own rounded-rect fill, in place of (or alongside) drawEdgeHighlight.
-     *
-     * @param filmColor ARGB tint film laid over the panel (low alpha looks best)
-     * @param rimColor  RGB of the rim/specular highlights (alpha byte ignored)
-     * @param strength  highlight intensity, 0 = none .. 1 = full glass
-     */
     public static void drawGlassRect(float x, float y, float x1, float y1, float radius,
                                      int filmColor, int rimColor, float strength) {
         if (strength <= 0f)
@@ -230,7 +205,6 @@ public class DrawUtils extends UtilityClass {
     }
 
     public static void drawShaderRect(float x, float y, float width, float height, float radius, int c) {
-        //this is done to fix alpha issues with the rect. Don't chage it - cosmic
         Color color = new Color((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, (c >> 24) & 0xFF);
         RenderUtils.resetColor();
         RenderUtils.startBlend();
@@ -253,13 +227,9 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.startBlend();
         roundedGradientShader.init();
         setupRoundedRectUniforms(x, y, width, height, radius, roundedGradientShader);
-        //Top left
         roundedGradientShader.setUniformf("color1", topLeft.getRed() / 255f, topLeft.getGreen() / 255f, topLeft.getBlue() / 255f, topLeft.getAlpha() / 255f);
-        // Bottom Left
         roundedGradientShader.setUniformf("color2", bottomLeft.getRed() / 255f, bottomLeft.getGreen() / 255f, bottomLeft.getBlue() / 255f, bottomLeft.getAlpha() / 255f);
-        //Top Right
         roundedGradientShader.setUniformf("color3", topRight.getRed() / 255f, topRight.getGreen() / 255f, topRight.getBlue() / 255f, topRight.getAlpha() / 255f);
-        //Bottom Right
         roundedGradientShader.setUniformf("color4", bottomRight.getRed() / 255f, bottomRight.getGreen() / 255f, bottomRight.getBlue() / 255f, bottomRight.getAlpha() / 255f);
         ShaderUtil.drawQuads(x, y, width+0.6f, height+0.6f);
         roundedGradientShader.unload();
@@ -291,7 +261,6 @@ public class DrawUtils extends UtilityClass {
         drawRoundedRect(circleX1, circleY1, circleX2, circleY2, radius * 2, color);
     }
 
-    //draws a perfect triangle when height == width
     public static void drawTriangle(float x1, float y1, float width, float height, int colour) {
         final float realY1 = y1 * 2;
         final float realX1 = x1 * 2;

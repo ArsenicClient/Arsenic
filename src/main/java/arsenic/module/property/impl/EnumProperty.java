@@ -57,7 +57,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         value = modes[(value.ordinal() == 0 ? modes.length : value.ordinal()) - 1];
     }
 
-    // selects a mode by its name (case-insensitive); returns false if no such mode exists
     public boolean setByName(String name) {
         for (T opt : modes) {
             if (opt.name().equalsIgnoreCase(name)) {
@@ -82,15 +81,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         return new EnumComponent(this);
     }
 
-    /**
-     * A dropdown, drawn as a field plus a floating menu.
-     * <p>
-     * The menu is rendered through the screen's render-last list so it paints over the properties
-     * below it instead of being clipped by them, and its hit-testing runs through
-     * {@link IAlwaysClickable} so a click outside the list still reaches the rest of the GUI. The
-     * selected row carries a tick and an accent wash - with more than three or four modes, colour
-     * alone is not enough to find the current one at a glance.
-     */
     private class EnumComponent extends PropertyComponent<EnumProperty<?>> implements IAlwaysClickable {
 
         private boolean open;
@@ -105,8 +95,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
         @Override
         protected float draw(RenderInfo ri) {
-            // A three-mode menu and a ten-mode menu should drop at the same speed, not in the same
-            // time. The menu's height is known up front, so the duration follows directly from it.
             openTimer.setMaxMs(UITheme.expandDuration(modes.length * height * 0.62f));
             float openPct = openTimer.getPercent();
             float hover = hoverPct();
@@ -121,7 +109,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             float menuHeight = openPct * (modes.length * rowHeight + pad);
 
             Runnable render = () -> {
-                // Field
                 UITheme.surface(fieldX1, fieldY1, x2, fieldY2, radius, ThemeManager.getEnumBackground(),
                         UITheme.Elevation.FLAT);
                 DrawUtils.drawRoundedOutline(fieldX1, fieldY1, x2, fieldY2, radius, 1f,
@@ -135,7 +122,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         UITheme.alpha(UITheme.textMuted(), (int) (170 + 85 * Math.max(hover, openPct))),
                         openPct);
 
-                // Menu
                 if (openPct > 0.01f) {
                     float menuY1 = fieldY2 + pad * 0.35f;
                     float menuY2 = menuY1 + menuHeight;
@@ -172,7 +158,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                 }
             };
 
-            // Draw the menu above everything else that comes after this row.
             if (openPct > 0.01f)
                 Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList(render);
             else
@@ -210,7 +195,6 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             if (mouseX < fieldX1 || mouseX > x2)
                 return false;
 
-            // Clicking the field again closes the menu.
             if (mouseY >= fieldY1 && mouseY <= fieldY2) {
                 setOpen(false);
                 arsenic.utils.java.SoundUtils.chordEnum();

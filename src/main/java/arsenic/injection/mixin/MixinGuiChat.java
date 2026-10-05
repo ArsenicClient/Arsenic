@@ -21,10 +21,6 @@ public class MixinGuiChat extends GuiScreen {
     private String lastArg;
     private Boolean isLastArgValidArg;
 
-    /**
-     * @author kv
-     * @reason because green
-     */
     @Inject(method = "keyTyped", at = @At("RETURN"))
     public void keyTypedReturn(char typedChar, int keyCode, CallbackInfo ci) {
         if (inputField.getText().startsWith(".")) {

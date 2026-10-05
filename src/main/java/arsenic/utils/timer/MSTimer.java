@@ -4,6 +4,13 @@ public class MSTimer {
 
     public long lastMS = System.currentTimeMillis();
 
+    /** A timer that already counts as long elapsed, for "last happened at" fields that start unset. */
+    public static MSTimer expired() {
+        MSTimer t = new MSTimer();
+        t.lastMS = 0;
+        return t;
+    }
+
     public void reset() {
         lastMS = System.currentTimeMillis();
     }

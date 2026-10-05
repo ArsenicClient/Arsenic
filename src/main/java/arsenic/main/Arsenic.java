@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "1.0")
+@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "2.0", useMetadata = true)
 public class Arsenic {
 
     private final String clientName = "Arsenic";
@@ -60,10 +60,6 @@ public class Arsenic {
 
         logger.info("Loaded {} configs...", String.valueOf(configManager.initialize()));
 
-        // Built last, and the order matters: the component tree needs the module list to exist, and
-        // some components resolve theme colours while constructing, so the theme manager must
-        // already have a current theme. This used to happen inside config loading, via the ClickGui
-        // module's postApplyConfig callback; that module is gone, so the wiring is explicit now.
         clickGuiScreen.init();
         logger.info("Built ClickGUI.");
 

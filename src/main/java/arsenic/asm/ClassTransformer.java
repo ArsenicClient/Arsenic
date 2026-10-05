@@ -19,9 +19,6 @@ public class ClassTransformer implements IClassTransformer {
                     @Override
                     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
                         if(descriptor.equals("Larsenic/asm/RequiresPlayer;")) {
-                            //injects
-                            //if(isPlayerNotLoaded)
-                            // return;
                             this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/minecraft/PlayerUtils", "isPlayerNotLoaded", "()Z", false);
                             Label l0 = new Label();
                             this.visitJumpInsn(IFEQ, l0);
