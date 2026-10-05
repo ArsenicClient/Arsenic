@@ -38,6 +38,13 @@ public final class ScaffoldCore {
         public boolean laneDiagonals = false;
         public float laneWindow = 4f;
         public float sideWindow = 4f;
+        public boolean laneSnap = false;
+        public boolean yawSteer = false;
+        public double steerGain = 30;
+        public double steerMax = 10;
+        public float steerLimit = 25;
+        public boolean steerOnly = false;
+        public double steerDead = 0;
 
         public static Tuning legacy() {
             return new Tuning();
@@ -57,6 +64,7 @@ public final class ScaffoldCore {
             t.laneOffset = 0.15f;
             t.laneWindow = 15f;
             t.sideWindow = 22.5f;
+            t.laneSnap = true;
             t.pressCycle = true;
             t.needWorst = true;
             t.predictSneak = true;
@@ -192,6 +200,26 @@ public final class ScaffoldCore {
 
 
     public Rotation rotate(Input in, ScaffoldWorld w) {
+        Rotation r = rotateAim(in, w);
+        steer(in, r);
+        return r;
+    }
+
+    private void steer(Input in, Rotation r) {
+        if (!tun.yawSteer || !lane.tracking || !in.onGround) return;
+        float f = (in.keyForward ? 1 : 0) - (in.keyBack ? 1 : 0), s = (in.keyLeft ? 1 : 0) - (in.keyRight ? 1 : 0);
+        if (f == 0 && s == 0) return;
+        float yaw = lane.steerYaw(f, s, in.cameraYaw, r.yaw, tun.steerGain, tun.steerMax, tun.steerDead, tun.steerLimit);
+        if (Float.isNaN(yaw)) return;
+        if (aimed && target != null) {
+            double[] band = pitchBand(in.posX, in.posY + in.eyeHeight, in.posZ, yaw, target.x, target.y, target.z, target.face, 0.02);
+            if (band == null || r.pitch < band[0] || r.pitch > band[1]) return;
+        }
+        r.yaw = yaw;
+        if (tun.steerOnly) nudge = null;
+    }
+
+    private Rotation rotateAim(Input in, ScaffoldWorld w) {
         sided = tun.autoSide && gridHeading(in);
         if (sided) in.yawBias = side * 45f;
         computeNudge(in);
@@ -349,6 +377,7 @@ public final class ScaffoldCore {
         lane.diagonalOffset = tun.laneOffset;
         lane.diagonals = tun.laneDiagonals;
         lane.window = tun.laneWindow;
+        lane.snap = tun.laneSnap;
         nudge = lane.compute(f, s, in.cameraYaw, in.posX, in.posZ, in.onGround, tun.laneDead);
     }
 

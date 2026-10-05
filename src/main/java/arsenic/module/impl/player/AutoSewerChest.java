@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ModuleInfo(name = "AutoSewerChest", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "AutoSewerChest", category = ModuleCategory.PLAYER, tier = ModuleTier.DEV)
 public class AutoSewerChest extends Module {
 
 

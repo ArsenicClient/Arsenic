@@ -63,8 +63,17 @@ public final class ArsenicSplash {
             {"Ocean", 0x3B82F6, 0x000000}
     };
 
+    /** The menu style is chosen in the click GUI (Appearance > Menu Style); it is read from the config like the theme. Element 33 is the default. */
+    private static boolean element;
+
     private static void loadTheme() {
-        int main = 0x3B82F6, back = 0x000000;
+        element = true;
+        try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
+            com.google.gson.JsonObject style = new com.google.gson.JsonParser().parse(r).getAsJsonObject().getAsJsonObject("GuiStyle");
+            String chosen = style.has("screenStyle") ? style.get("screenStyle").getAsString() : style.get("loadingScreen").getAsString();
+            element = !"Ocean".equals(chosen);          // anything but Ocean (including the old Toxic) is Element 33
+        } catch (Throwable ignored) { }
+        int main = 0xDD425E, back = 0x494949;      // Classic, the default theme
         try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
             String name = new com.google.gson.JsonParser().parse(r).getAsJsonObject()
                     .getAsJsonObject("themeManager").get("currentTheme").getAsString();
@@ -88,6 +97,197 @@ public final class ArsenicSplash {
         }
     }
 
+
+    // ---- the Element 33 loading screen ------------------------------------------------------------
+    // A crystal lattice igniting from the bottom up: hexagonal cells light row by row in the theme
+    // colour, brightest at the growth front and cooling behind it. Sparks pop off the front, vapour
+    // rises from the lit cells, and an electron circles the percentage on a thin orbit.
+
+    private static final int E_PARTS = 110;
+    private static final float[] epX = new float[E_PARTS], epY = new float[E_PARTS], epVX = new float[E_PARTS],
+            epVY = new float[E_PARTS], epLife = new float[E_PARTS], epMax = new float[E_PARTS];
+    private static final boolean[] epVapour = new boolean[E_PARTS];
+    private static int epNext;
+
+    private static float cellHash(int a, int b) {
+        int n = a * 374761393 + b * 668265263;
+        n = (n ^ (n >> 13)) * 1274126177;
+        n ^= n >> 16;
+        return (n & 0xFFFF) / 65535f;
+    }
+
+    private static void emitPart(float x, float y, float vx, float vy, float life, boolean vapour) {
+        int i = epNext++ % E_PARTS;
+        epX[i] = x;
+        epY[i] = y;
+        epVX[i] = vx;
+        epVY[i] = vy;
+        epLife[i] = epMax[i] = life;
+        epVapour[i] = vapour;
+    }
+
+    /** One stepped line of small squares; call between glBegin(GL_QUADS) and glEnd. */
+    private static void pixLine(float x0, float y0, float x1, float y1, float size) {
+        float dx = x1 - x0, dy = y1 - y0;
+        int steps = (int) Math.max(1, Math.max(Math.abs(dx), Math.abs(dy)) / (size * 1.5f));
+        for (int i = 0; i <= steps; i++) {
+            float k = i / (float) steps;
+            float px = x0 + dx * k - size / 2f, py = y0 + dy * k - size / 2f;
+            glVertex2f(px, py);
+            glVertex2f(px + size, py);
+            glVertex2f(px + size, py + size);
+            glVertex2f(px, py + size);
+        }
+    }
+
+    /** A flat-topped hexagon filled with horizontal runs, so the edge is stepped like pixel art. */
+    private static void hexFill(float cx, float cy, float r, float rowStep) {
+        float hh = r * 0.866f;
+        for (float dy = -hh; dy < hh; dy += rowStep) {
+            float mid = Math.abs(dy + rowStep / 2f);
+            float half = r - mid / 1.732f;
+            glVertex2f(cx - half, cy + dy);
+            glVertex2f(cx + half, cy + dy);
+            glVertex2f(cx + half, cy + dy + rowStep);
+            glVertex2f(cx - half, cy + dy + rowStep);
+        }
+    }
+
+    private static void drawElementLoad(int w, int h, float progress, float u, float t, float fade) {
+        float R = 26f * u, colW = R * 1.5f, rowH = R * 1.732f;
+        float level = Math.max(0f, Math.min(1f, progress));
+        int cols = (int) (w / colW) + 3;
+        int rows = (int) (h / rowH) + 3;
+        float front = level * (rows + 2);                   // how many rows have lit, counting from the bottom
+        float frontY = h - level * h * 0.985f;
+
+        // the faint lattice, drifting slowly, over the whole screen
+        float dx = (t * 6f * u) % (colW * 2f), dy = (t * 3f * u) % rowH;
+        glBegin(GL_QUADS);
+        glColor4f(accent[0], accent[1], accent[2], 0.075f * fade);
+        for (int c = -2; c < cols; c++) {
+            for (int r = -1; r < rows; r++) {
+                float cx = c * colW - dx, cy = r * rowH - dy + ((c & 1) != 0 ? rowH / 2f : 0f);
+                float hh = R * 0.866f;
+                pixLine(cx - R / 2, cy - hh, cx + R / 2, cy - hh, 2f * u);
+                pixLine(cx - R, cy, cx - R / 2, cy - hh, 2f * u);
+                pixLine(cx + R, cy, cx + R / 2, cy - hh, 2f * u);
+            }
+        }
+        glEnd();
+
+        // the block holding the logo, percentage and status: cells behind it are dimmed so the text keeps its contrast
+        float lhLogo = 420f * u * logoH / logoW;
+        float tl = w / 2f - 250f * u - R, tr = w / 2f + 250f * u + R;
+        float tt = h * 0.40f - lhLogo / 2f - R, tb = h * 0.40f + lhLogo / 2f + 130f * u + R;
+
+        // the lit cells: dim and dark behind the front, bright and saturated at it
+        glBegin(GL_QUADS);
+        for (int c = 0; c < cols; c++) {
+            for (int r = 0; r < rows; r++) {
+                float jitter = (cellHash(c, r) - 0.5f) * 1.6f;          // a ragged front, like crystal growth
+                float rr = r + ((c & 1) != 0 ? 0.5f : 0f) + jitter;
+                float age = front - rr;
+                if (age <= 0f) continue;
+                float cx = c * colW + R * 0.2f, cy = h - (r * rowH + ((c & 1) != 0 ? rowH / 2f : 0f)) + rowH * 0.1f;
+                float heat = (float) Math.exp(-age / 1.7f);              // 1 at the front, fading behind
+                float grow = Math.min(1f, age * 1.4f);
+                float a = (0.07f + 0.58f * heat) * fade;
+                if (cx > tl && cx < tr && cy > tt && cy < tb) a *= 0.2f;
+                float mixK = heat;
+                glColor4f(accent[0] + (accentEnd[0] - accent[0]) * mixK,
+                        accent[1] + (accentEnd[1] - accent[1]) * mixK,
+                        accent[2] + (accentEnd[2] - accent[2]) * mixK, a);
+                hexFill(cx, cy, R * 0.9f * grow, 3f * u);
+            }
+        }
+        glEnd();
+
+        // the growth front: a soft band of light with a thin bright line in the middle
+        if (level > 0.002f && level < 0.999f) {
+            glBegin(GL_QUADS);
+            glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], 0f);
+            glVertex2f(0, frontY - 26f * u);
+            glVertex2f(w, frontY - 26f * u);
+            glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], 0.26f * fade);
+            glVertex2f(w, frontY);
+            glVertex2f(0, frontY);
+            glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], 0.26f * fade);
+            glVertex2f(0, frontY);
+            glVertex2f(w, frontY);
+            glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], 0f);
+            glVertex2f(w, frontY + 22f * u);
+            glVertex2f(0, frontY + 22f * u);
+            glEnd();
+            // the line is cut into dashes that flicker, so it reads as crystal edges, not a ruler
+            glBegin(GL_QUADS);
+            for (int c = 0; c < cols; c++) {
+                float flick = 0.45f + 0.55f * cellHash(c, (int) (t * 7f));
+                glColor4f(1f, 1f, 1f, 0.55f * flick * fade);
+                float x = c * colW - 4f;
+                glVertex2f(x, frontY - 1.2f * u);
+                glVertex2f(x + colW * 0.8f, frontY - 1.2f * u);
+                glVertex2f(x + colW * 0.8f, frontY + 1.2f * u);
+                glVertex2f(x, frontY + 1.2f * u);
+            }
+            glEnd();
+
+            // sparks pop off the front, vapour rises from the lit cells
+            for (int k = 0; k < 2; k++)
+                emitPart((float) (Math.random() * w), frontY, (float) (Math.random() - 0.5) * 50f * u,
+                        -(40f + (float) Math.random() * 80f) * u, 0.7f + (float) Math.random() * 0.6f, false);
+            if (Math.random() < 0.7)
+                emitPart((float) (Math.random() * w), frontY + (float) Math.random() * (h - frontY),
+                        (float) (Math.random() - 0.5) * 8f * u, -(16f + (float) Math.random() * 14f) * u,
+                        2f + (float) Math.random() * 1.8f, true);
+        }
+
+        glBegin(GL_QUADS);
+        for (int i = 0; i < E_PARTS; i++) {
+            if (epLife[i] <= 0f) continue;
+            epLife[i] -= 0.016f;
+            epX[i] += epVX[i] * 0.016f;
+            epY[i] += epVY[i] * 0.016f;
+            if (!epVapour[i]) epVY[i] += 70f * u * 0.016f;
+            float k = Math.max(0f, epLife[i] / epMax[i]);
+            float s = (epVapour[i] ? 4.5f + (1f - k) * 6f : 2.2f) * u;
+            if (epVapour[i]) glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], k * 0.16f * fade);
+            else glColor4f(1f, 1f, 1f, k * 0.95f * fade);
+            glVertex2f(epX[i], epY[i]);
+            glVertex2f(epX[i] + s, epY[i]);
+            glVertex2f(epX[i] + s, epY[i] + s);
+            glVertex2f(epX[i], epY[i] + s);
+        }
+        glEnd();
+    }
+
+    /** A thin orbit around the percentage with one electron and a short fading trail. */
+    private static void drawOrbitRing(float cx, float cy, float rx, float ry, float u, float t, float fade) {
+        glBegin(GL_QUADS);
+        glColor4f(ink[0], ink[1], ink[2], 0.30f * fade);
+        int dots = 84;
+        for (int i = 0; i < dots; i++) {
+            double a = i * Math.PI * 2 / dots;
+            float x = cx + (float) Math.cos(a) * rx - u, y = cy + (float) Math.sin(a) * ry - u;
+            glVertex2f(x, y);
+            glVertex2f(x + 2f * u, y);
+            glVertex2f(x + 2f * u, y + 2f * u);
+            glVertex2f(x, y + 2f * u);
+        }
+        glEnd();
+        glBegin(GL_QUADS);
+        for (int k = 7; k >= 0; k--) {
+            double a = t * 2.2 - k * 0.11;
+            float s = (k == 0 ? 6f : 4.2f - k * 0.3f) * u;
+            float x = cx + (float) Math.cos(a) * rx - s / 2f, y = cy + (float) Math.sin(a) * ry - s / 2f;
+            glColor4f(accentEnd[0], accentEnd[1], accentEnd[2], (k == 0 ? 1f : 0.55f - k * 0.06f) * fade);
+            glVertex2f(x, y);
+            glVertex2f(x + s, y);
+            glVertex2f(x + s, y + s);
+            glVertex2f(x, y + s);
+        }
+        glEnd();
+    }
     private static float[] rgb(int c) {
         return new float[]{(c >> 16 & 0xFF) / 255f, (c >> 8 & 0xFF) / 255f, (c & 0xFF) / 255f};
     }
@@ -249,7 +449,8 @@ public final class ArsenicSplash {
         float cy = h * 0.40f;
         float t = (System.currentTimeMillis() % 100000L) / 1000f;
 
-        drawOcean(w, h, progress, u, t, fade);
+        if (element) drawElementLoad(w, h, progress, u, t, fade);
+        else drawOcean(w, h, progress, u, t, fade);
 
         float lw = 420f * u, lh = lw * logoH / logoW;
         glEnable(GL_TEXTURE_2D);
@@ -267,6 +468,10 @@ public final class ArsenicSplash {
         String shown = fit(status, bw, textSize);
         glColor4f(ink[0], ink[1], ink[2], 0.7f * fade);
         drawText(shown, cx - textWidth(shown, textSize) / 2f, cy + lh / 2 + 26f * u + pctSize + 8f * u, textSize);
+        if (element) {
+            float ringRx = Math.max(textWidth(pct, pctSize) / 2f + 28f * u, 50f * u);
+            drawOrbitRing(cx, cy + lh / 2 + 26f * u + pctSize * 0.5f, ringRx, pctSize * 0.62f, u, t, fade);
+        }
 
         glColor4f(1f, 1f, 1f, 1f);
     }

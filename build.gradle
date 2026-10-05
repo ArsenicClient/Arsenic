@@ -90,8 +90,8 @@ mixin {
     add sourceSets.main, "mixins.arsenic.refmap.json"
 }
 
-jar {
-    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+def configureArsenicJar = { Jar task ->
+    task.from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude "META-INF/MANIFEST.MF"
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
@@ -102,7 +102,7 @@ jar {
         exclude "dummyThing"
     }
 
-    manifest.attributes(
+    task.manifest.attributes(
             "MixinConfigs"               : "mixins.arsenic.json",
             "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
             "TweakOrder"                 : 0,
@@ -112,6 +112,34 @@ jar {
             "ModSide"                    : "CLIENT"
     )
 }
+
+jar {
+    configureArsenicJar(delegate)
+}
+
+// Second jar built alongside the normal one on every `gradle build`.
+// Same contents, plus a devmode.properties (devmode=true) and a "DevMode" manifest attribute.
+task devJar(type: Jar) {
+    classifier = "dev"
+    from sourceSets.main.output
+    from(file("$buildDir/devmode")) {
+        include "devmode.properties"
+    }
+    configureArsenicJar(delegate)
+    manifest.attributes("DevMode": true)
+
+    doFirst {
+        def dir = file("$buildDir/devmode")
+        dir.mkdirs()
+        new File(dir, "devmode.properties").text = "devmode=true\n"
+    }
+}
+
+// Obfuscate the dev jar the same way as the main one, then hook it into `build`.
+reobf {
+    devJar { mappingType = "SEARGE" }
+}
+build.dependsOn devJar
 
 idea {
     module {
