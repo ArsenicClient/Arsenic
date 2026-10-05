@@ -14,6 +14,11 @@ public class MathUtils extends UtilityClass {
         return v < lo ? lo : v > hi ? hi : v;
     }
 
+    /** Length of the (dx, dz) offset. */
+    public static double horizontalDistance(double dx, double dz) {
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
     public static float clamp01(float v) {
         return clamp(v, 0f, 1f);
     }

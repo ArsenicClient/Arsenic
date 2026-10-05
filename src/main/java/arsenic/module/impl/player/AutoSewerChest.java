@@ -264,7 +264,7 @@ public class AutoSewerChest extends Module {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(false);
         GL11.glLineWidth(2f);
-        GL11.glColor4f((color >> 16 & 0xFF) / 255f, (color >> 8 & 0xFF) / 255f, (color & 0xFF) / 255f, 0.9f);
+        RenderUtils.color2(color, 0.9f);
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (Step s : copy) {
             GL11.glVertex3d(s.x + 0.5 - vx, s.feet + 0.1 - vy, s.z + 0.5 - vz);

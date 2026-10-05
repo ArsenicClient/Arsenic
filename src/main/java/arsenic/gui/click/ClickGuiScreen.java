@@ -1,5 +1,6 @@
 package arsenic.gui.click;
 
+import arsenic.utils.render.RenderUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.impl.ModuleCategoryComponent;
 import arsenic.gui.click.impl.ModuleComponent;
@@ -195,7 +196,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         mc.getTextureManager().bindTexture(logoPath);
         int tempExpand = (int) (x * 0.1f);
         int logoCol = ThemeManager.getMainColor();
-        GlStateManager.color(((logoCol >> 16) & 0xFF) / 255f, ((logoCol >> 8) & 0xFF) / 255f, (logoCol & 0xFF) / 255f, 1f);
+        RenderUtils.color2(logoCol, 1f);
         Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
         GlStateManager.color(1f, 1f, 1f, 1f);
 

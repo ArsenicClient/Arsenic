@@ -103,8 +103,7 @@ refreshListing();
         float iconX = x1 + (width / 7f) + expandX - iconSize;
         float iconY = midPointY - iconSize / 2f;
         Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
-        GlStateManager.color(((foreground >> 16) & 0xFF) / 255f, ((foreground >> 8) & 0xFF) / 255f,
-                (foreground & 0xFF) / 255f, 1f);
+        RenderUtils.color2(foreground, 1f);
         Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
 
         GlStateManager.color(1f, 1f, 1f, 1f);

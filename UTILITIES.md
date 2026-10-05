@@ -29,9 +29,9 @@ Use `MSTimer`, `Timer`, `AnimationTimer`, `HoverAnimation` or `FrameClock`.
 
 | Class | Contents |
 |---|---|
-| `MathUtils` | `clamp(int/float/double, lo, hi)`, `clamp01`, `lerp(a, b, t)`, `inside(mx, my, x1, y1, x2, y2)` (mouse/point-in-rect, inclusive), `insideSized(mx, my, x, y, w, h)` (exclusive on the far edge, vanilla `GuiButton` semantics). |
+| `MathUtils` | `clamp(int/float/double, lo, hi)`, `clamp01`, `lerp(a, b, t)`, `inside(mx, my, x1, y1, x2, y2)` (mouse/point-in-rect, inclusive), `insideSized(mx, my, x, y, w, h)` (exclusive on the far edge, vanilla `GuiButton` semantics). `horizontalDistance(dx, dz)`. |
 | `ColorUtils` | `withAlpha(rgb, a)`, `alpha(argb, 0..1)`, `mixRgb(a, b, t)` (24-bit result), `mixArgb(a, b, t)` (alpha mixed too), `luminance(rgb)`, `getColor`/`setColor` channel access, `getThemeRainbowColor`, `getRainbow`. |
-| `JavaUtils` | `concat` arrays, `getRandom(min, max)`, `limit(v, min, max)` (double clamp; prefer `MathUtils.clamp`), `autoCompleteHelper` for command tab-complete. |
+| `JavaUtils` | `concat` arrays, `getRandom(min, max)`, `autoCompleteHelper` for command tab-complete. |
 | `SoundUtils` | UI/feedback sounds: `playSound`, `chordEnable/Disable/Click/...`, `hitConfirm`, `slide`, `tick`. |
 | `FileUtils` | `getArsenicFolderDirAsFile/String`, `readInputStream`. |
 | `PlayerInfo` | Data holder: last reported yaw/pitch/sprint state. |
@@ -46,7 +46,7 @@ animation durations `DUR_HOVER/PRESS/TOGGLE/EXPAND`), `gui/themes/ThemeManager` 
 | Class | Use it for |
 |---|---|
 | `DrawUtils` | All 2D drawing: `drawRect`, `drawRoundedRect`, `drawRoundedOutline`, `drawBorderedRoundedRect`, gradients, `drawShadow`, `drawBlurredShadow`, `drawGlassRect`, circles, triangle. **`drawVerticalGradient(x1,y1,x2,y2,top,bottom)`** for plain top→bottom ARGB gradients. |
-| `RenderUtils` | GL state (`setColor`, `resetColor`, `startBlend/endBlend`), 3D boxes/blocks/faces/circles, textures (`getResourcePath`), colour interpolation, `interpolate`. |
+| `RenderUtils` | GL state (`setColor`, `resetColor`, `startBlend/endBlend`), **`color2(rgb, alpha)`** to set the GL colour from an int (don't unpack channels by hand), 3D boxes/blocks/faces/circles, textures (`getResourcePath`), colour interpolation, `interpolate`. |
 | `ScissorUtils` | Nested scissor stack: `subScissor`, `endSubScissor`, `resetScissor`. Use for clipped scroll areas. |
 | `GlowRenderer`, `ChamsRenderer` | Entity glow / chams passes. |
 | `shader/ShaderUtil` | Load/cache fragment shaders, uniforms, `drawQuads`, framebuffers, `renderFullscreen`. |
@@ -63,7 +63,7 @@ animation durations `DUR_HOVER/PRESS/TOGGLE/EXPAND`), `gui/themes/ThemeManager` 
 
 | Class | Contents |
 |---|---|
-| `PlayerUtils` | Chat messages (`addWaterMarkedMessageToChat`), held-item checks, `click()`, nearby players/entities, FOV checks, team checks, `getTool`. |
+| `PlayerUtils` | Chat messages (`addWaterMarkedMessageToChat`), held-item checks (`isHolding(Class)`, `isPlayerHoldingBow/Blocks/Sword/Weapon`), `click()`, nearby players/entities, FOV checks, team checks, `getTool`. |
 | `MoveUtil` | `isMoving`, `strafe`, `getDirection`, `getBaseSpeed`, `getSpeed`, `stop`, speed constants. |
 | `ContainerUtils` | Inventory clicks/drops/swaps, "best weapon/tool/armour/blocks" slot finders, item scoring. |
 | `ScaffoldUtil` | Block lookup, fall prediction, scaffold input builder, block slot. |
@@ -72,7 +72,7 @@ animation durations `DUR_HOVER/PRESS/TOGGLE/EXPAND`), `gui/themes/ThemeManager` 
 
 ## Rotations and aim — `utils/rotations`, `utils/aimcore`
 
-`RotationUtils` (rotations to entity/vec/block, GCD patching, yaw/pitch diffs, `updateRotation`),
+`RotationUtils` (rotations to entity/vec/block, **`yawTo(dx,dz)`, `pitchTo(dx,dy,dz)`, `rotationsTo(from,to)`** for facing an offset, GCD patching, yaw/pitch diffs, `updateRotation`),
 `SilentRotationManager`, `AimController`, `aimcore/AimCore`, `aimcore/TargetPicker`.
 
 ## Packets and lag — `utils/lag`
@@ -108,6 +108,10 @@ Measure before changing them. These must stay free of Minecraft types (they are 
 | private `mix(int,int,float)` / `mixArgb` | `ColorUtils.mixRgb` / `mixArgb` |
 | `(alpha<<24) \| (rgb & 0xFFFFFF)` | `ColorUtils.withAlpha` |
 | `mouseX >= x && mouseX <= x2 && mouseY >= y && mouseY <= y2` | `MathUtils.inside` |
+| `Math.atan2(dz, dx)` yaw/pitch maths | `RotationUtils.yawTo/pitchTo/rotationsTo` |
+| `Math.sqrt(dx*dx + dz*dz)` | `MathUtils.horizontalDistance` |
+| `getHeldItem() != null && ... instanceof X` | `PlayerUtils.isHolding(X.class)` |
+| unpacking an int colour into `glColor4f` | `RenderUtils.color2(rgb, alpha)` |
 | a Tessellator quad for a vertical gradient | `DrawUtils.drawVerticalGradient` |
 
 ## Known intentional exceptions

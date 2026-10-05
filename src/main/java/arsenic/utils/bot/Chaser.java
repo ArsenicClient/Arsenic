@@ -1,5 +1,6 @@
 package arsenic.utils.bot;
 
+import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.botcore.Goal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -90,7 +91,7 @@ public final class Chaser {
             BotDriver.stop();
         goalPoint = null;
         EntityPlayerSP p = mc.thePlayer;
-        p.rotationYaw = (float) (MathHelper.atan2(z - p.posZ, x - p.posX) * 180.0 / Math.PI) - 90.0f;
+        p.rotationYaw = RotationUtils.yawTo(x - p.posX, z - p.posZ);
         p.rotationPitch = 0;
         GameSettings gs = mc.gameSettings;
         KeyBinding.setKeyBindState(gs.keyBindForward.getKeyCode(), true);

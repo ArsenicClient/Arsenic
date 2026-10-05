@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -94,7 +95,7 @@ public class BridgeAssist extends Module {
             setSneak(false);
             return;
         }
-        bridging = mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemBlock;
+        bridging = PlayerUtils.isPlayerHoldingBlocks();
 
         float forward = (mc.gameSettings.keyBindForward.isKeyDown() ? 1 : 0) - (mc.gameSettings.keyBindBack.isKeyDown() ? 1 : 0);
         float strafe = (mc.gameSettings.keyBindLeft.isKeyDown() ? 1 : 0) - (mc.gameSettings.keyBindRight.isKeyDown() ? 1 : 0);

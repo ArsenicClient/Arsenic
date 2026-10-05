@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -115,8 +116,7 @@ public class BlockHit extends Module {
     }
 
     public boolean isPlayerHoldingSword() {
-        return (mc.thePlayer.getCurrentEquippedItem() != null)
-                && (mc.thePlayer.getCurrentEquippedItem().getItem() instanceof ItemSword);
+        return PlayerUtils.isPlayerHoldingSword();
     }
 
     private void release() {

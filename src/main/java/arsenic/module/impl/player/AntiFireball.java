@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -45,12 +46,9 @@ public class AntiFireball extends Module {
 
         Vec3 targetVec = new Vec3(target.posX, target.posY + target.height / 2, target.posZ);
         Vec3 eyePos = mc.thePlayer.getPositionEyes(1f);
-        double dx = targetVec.xCoord - eyePos.xCoord;
-        double dy = targetVec.yCoord - eyePos.yCoord;
-        double dz = targetVec.zCoord - eyePos.zCoord;
-        double dist = MathHelper.sqrt_double(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90);
-        float pitch = (float) (-Math.toDegrees(Math.atan2(dy, dist)));
+        float[] rots = RotationUtils.rotationsTo(eyePos, targetVec);
+        float yaw = rots[0];
+        float pitch = rots[1];
 
         event.setYaw(yaw);
         event.setPitch(pitch);
@@ -90,7 +88,7 @@ public class AntiFireball extends Module {
     private void drawFireballIndicator(Entity fireball, ScaledResolution sr) {
         double dx = fireball.posX - mc.thePlayer.posX;
         double dz = fireball.posZ - mc.thePlayer.posZ;
-        float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
+        float yaw = RotationUtils.yawTo(dx, dz);
         float angle = MathHelper.wrapAngleTo180_float(yaw - mc.thePlayer.rotationYaw);
 
         double radians = Math.toRadians(angle + 90);
@@ -147,7 +145,7 @@ public class AntiFireball extends Module {
         for (Entity fb : fireballs) {
             double dx = fb.posX - mc.thePlayer.posX;
             double dz = fb.posZ - mc.thePlayer.posZ;
-            double horizontalDist = Math.sqrt(dx * dx + dz * dz);
+            double horizontalDist = MathUtils.horizontalDistance(dx, dz);
             if (horizontalDist < 0.1)
                 return fb;
 

@@ -423,17 +423,6 @@ public class AutoBlockIn extends Module {
         return new Vec3((double) (f1 * f2), (double) f3, (double) (f * f2));
     }
     
-    private static float[] rotationsTo(Vec3 eyes, Vec3 p) {
-        double dx = p.xCoord - eyes.xCoord;
-        double dy = p.yCoord - eyes.yCoord;
-        double dz = p.zCoord - eyes.zCoord;
-        double dist = MathHelper.sqrt_double(dx * dx + dz * dz);
-        return new float[]{
-            (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0),
-            (float) (-Math.toDegrees(Math.atan2(dy, dist)))
-        };
-    }
-    
     private static double angularDist(float y1, float p1, float y2, float p2) {
         Vec3 a = lookVector(y1, p1);
         Vec3 b = lookVector(y2, p2);
@@ -547,13 +536,13 @@ public class AutoBlockIn extends Module {
             double[][] points = { {pc.cc[0], pc.cc[1]}, centroid(pc.poly) };
             for (double[] uv : points) {
                 Vec3 w = f.toWorld(uv[0], uv[1]);
-                float[] rots = rotationsTo(eyes, w);
+                float[] rots = RotationUtils.rotationsTo(eyes, w);
                 MovingObjectPosition mop = rotationRayTrace(eyes, rots[0], rots[1], virtualSolids);
                 if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) continue;
                 if (!mop.getBlockPos().equals(neighbor) || mop.sideHit != facing) continue;
                 double[] nb = nearestBoundary(pc.poly, uv[0], uv[1]);
                 Vec3 wb = f.toWorld(nb[1], nb[2]);
-                float[] rotsB = rotationsTo(eyes, wb);
+                float[] rotsB = RotationUtils.rotationsTo(eyes, wb);
                 double clearance = angularDist(rots[0], rots[1], rotsB[0], rotsB[1]);
                 return new FaceTarget(neighbor, facing, rots[0], rots[1], mop.hitVec, clearance);
             }
