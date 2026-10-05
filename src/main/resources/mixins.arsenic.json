@@ -19,7 +19,6 @@
     "mixin.MixinGuiChat",
     "mixin.MixinGuiContainer",
     "mixin.MixinGuiIngame",
-    "mixin.MixinGuiInventory",
     "mixin.MixinGuiButton",
     "mixin.MixinGuiOptionSlider",
     "mixin.MixinGuiSlot",
