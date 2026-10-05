@@ -3,6 +3,7 @@ package arsenic.module.impl.player;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -14,35 +15,33 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.bot.BotDriver;
 import arsenic.utils.bot.Chaser;
+import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.play.server.S07PacketRespawn;
+import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 
-/**
- * Remembers where it was enabled, turns KillAura on, chases the nearest target (within Chase
- * Range), and walks back to the starting spot when there is none. Getting there goes through the
- * pathfinder, so walls, drops and gaps no longer stop it (see {@link Chaser}). Keeps running with
- * the window unfocused: the vanilla "pause on lost focus" (which opens the pause menu) is
- * switched off while enabled.
- */
 @ModuleInfo(name = "FightBot", category = ModuleCategory.PLAYER)
 public class FightBot extends Module {
 
-    /** Targets further than this are ignored and the bot heads home instead. */
     public final DoubleProperty chaseRange = new DoubleProperty("Chase Range", new DoubleValue(1, 30, 7, 0.5));
 
-    /** Close enough to the target that KillAura can hit; walking further in only gets in the way. */
     private static final double CHASE_STOP_DISTANCE = 2.5;
-    /** Close enough to the start spot to stop walking. */
     private static final double HOME_STOP_DISTANCE = 1.0;
+    /** A server teleport moving us further than this (blocks) ends the session: we're not where we were fighting. */
+    private static final double MAX_TELEPORT = 5.0;
 
     private final Chaser chaser = new Chaser();
     private double homeX, homeY, homeZ;
     private boolean savedPause;
     private boolean pauseSaved;
     private boolean enabledKillAura;
+    /** Set from the network thread when we were teleported away or respawned; acted on next tick. */
+    private volatile boolean stopRequested;
 
     @Override
     protected void onEnable() {
+        stopRequested = false;
         if (mc.thePlayer != null) {
             homeX = mc.thePlayer.posX;
             homeY = mc.thePlayer.posY;
@@ -69,12 +68,16 @@ public class FightBot extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
+        // Killed, or teleported/respawned away from the fight: stop rather than walk back or fight on.
+        if (stopRequested || mc.thePlayer.isDead || mc.thePlayer.getHealth() <= 0
+                || mc.currentScreen instanceof GuiGameOver) {
+            setEnabled(false);
+            return;
+        }
         mc.gameSettings.pauseOnLostFocus = false;
         if (mc.currentScreen instanceof GuiIngameMenu) mc.displayGuiScreen(null);
 
         setKillAura(true);
-        // KillAura only picks targets inside its own short aim range, so look for one out to
-        // Chase Range here; once we're close, KillAura's pick is the one being hit.
         KillAura aura = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class);
         EntityPlayer target = aura != null && aura.target != null ? aura.target : nearestTarget();
 
@@ -82,6 +85,25 @@ public class FightBot extends Module {
             chaser.chase(target, CHASE_STOP_DISTANCE);
         else
             chaser.goTo(homeX, homeY, homeZ, HOME_STOP_DISTANCE);
+    };
+
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventPacket.Incoming.Pre> onPacket = event -> {
+        if (event.getPacket() instanceof S07PacketRespawn) {
+            // a respawn (after dying, or a world change) puts us somewhere else entirely
+            stopRequested = true;
+        } else if (event.getPacket() instanceof S08PacketPlayerPosLook) {
+            S08PacketPlayerPosLook tp = (S08PacketPlayerPosLook) event.getPacket();
+            // coordinates flagged relative are offsets from where we are now
+            double x = tp.getX(), y = tp.getY(), z = tp.getZ();
+            if (tp.func_179834_f().contains(S08PacketPlayerPosLook.EnumFlags.X)) x += mc.thePlayer.posX;
+            if (tp.func_179834_f().contains(S08PacketPlayerPosLook.EnumFlags.Y)) y += mc.thePlayer.posY;
+            if (tp.func_179834_f().contains(S08PacketPlayerPosLook.EnumFlags.Z)) z += mc.thePlayer.posZ;
+            double dx = x - mc.thePlayer.posX, dy = y - mc.thePlayer.posY, dz = z - mc.thePlayer.posZ;
+            if (dx * dx + dy * dy + dz * dz > MAX_TELEPORT * MAX_TELEPORT)
+                stopRequested = true;
+        }
     };
 
     private EntityPlayer nearestTarget() {

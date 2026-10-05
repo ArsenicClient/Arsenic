@@ -20,13 +20,10 @@ public class ShaderUtil {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private final int programID;
 
-    // ----- fullscreen shader registry (uses this same class, no duplication) -----
 
-    /** Blend factor constants (some LWJGL builds don't expose these in GL14). */
     private static final int GL_CONSTANT_ALPHA_ = 0x8003;
     private static final int GL_ONE_MINUS_CONSTANT_ALPHA_ = 0x8004;
 
-    /** Selectable background shaders (see {@code GuiStyle.BgShader}). */
     public static final String[] BACKGROUNDS = {
             "aurora", "starfield", "synthwave", "liquidChrome",
             "fireStorm", "oceanCaustics", "nebula", "zippyZaps"
@@ -38,7 +35,6 @@ public class ShaderUtil {
 
     private static final Map<String, ShaderUtil> FULLSCREEN_CACHE = new LinkedHashMap<>();
 
-    /** Lazily compiles and caches a fullscreen shader by name. */
     public static ShaderUtil getCached(String name) {
         ShaderUtil s = FULLSCREEN_CACHE.get(name);
         if (s == null) {
@@ -56,18 +52,6 @@ public class ShaderUtil {
         renderFullscreen(name, alpha, speed, blend, 0, 0f);
     }
 
-    /**
-     * Draws the named shader across the whole framebuffer, independent of GUI scale,
-     * restoring GL state through {@link GlStateManager} so GUI colours are untouched.
-     * <p>
-     * When {@code tintStrength > 0} the result is pulled toward {@code tintColor}
-     * (an ARGB int, alpha ignored) so the background can be made to match the GUI's
-     * theme colour. The same colour is also handed to the shader as a
-     * {@code themeColor} uniform (harmlessly ignored by shaders that don't use it).
-     *
-     * @param tintColor    ARGB colour to tint toward - pass {@code ThemeManager.getMainColor()}
-     * @param tintStrength 0 = untouched shader, 1 = fully washed to the theme colour
-     */
     public static void renderFullscreen(String name, float alpha, float speed, BlendMode blend, int tintColor, float tintStrength) {
         if (alpha <= 0.001f)
             return;
@@ -80,7 +64,6 @@ public class ShaderUtil {
         int w = mc.displayWidth;
         int h = mc.displayHeight;
 
-        // scale-independent fullscreen projection (actual pixels)
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();
@@ -113,19 +96,14 @@ public class ShaderUtil {
         drawQuads(0, 0, w, h);
         shader.unload();
 
-        // Wash the shader toward the theme colour so the background matches the GUI.
         if (tintStrength > 0f) {
             org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
             GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            // during burn capture this wash must accumulate true coverage, or the
-            // backdrop's FBO alpha lands well below its on-screen opacity and the
-            // burn composite over-reveals the world behind it
             arsenic.utils.render.RenderUtils.applyGuiBlend();
             GlStateManager.color(tr, tg, tb, Math.min(1f, tintStrength) * alpha);
             drawQuads(0, 0, w, h);
         }
 
-        // restore
         org.lwjgl.opengl.GL14.glBlendColor(0f, 0f, 0f, 0f);
         GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.enableTexture2D();
@@ -138,18 +116,6 @@ public class ShaderUtil {
         glPopMatrix();
     }
 
-    /**
-     * Draws the "paperBurn" dissolve, masked to the main GUI box. Burnt-through
-     * fragments are discarded (fading to transparent, no black char) and the
-     * burning edge glows in the theme colour.
-     *
-     * @param progress    0 = fully gone, 1 = fully present
-     * @param tintColor   ARGB theme colour used for the ember/burn edge
-     * @param style       transition style (GuiStyle.Transition ordinal):
-     *                    0 = paper burn, 1 = dissolve, 2 = glitch, 3 = fade
-     * @param bx1,by1,bx2,by2 main box rect in top-down pixels
-     * @param bradius     box corner radius in pixels
-     */
     public static void renderBurnComposite(int guiTexture, float progress, int tintColor, int style,
                                            float bx1, float by1, float bx2, float by2, float bradius) {
         ShaderUtil shader = getCached("paperBurn");
@@ -170,8 +136,6 @@ public class ShaderUtil {
         GlStateManager.disableAlpha();
         GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();
-        // premultiplied-alpha blend: the captured GUI is premultiplied, so intact
-        // pixels reproduce it exactly (fully opaque) instead of washing out
         GlStateManager.blendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.color(1f, 1f, 1f, 1f);
 
@@ -198,13 +162,6 @@ public class ShaderUtil {
         glPopMatrix();
     }
 
-    /**
-     * Multiplies the currently-bound framebuffer's contents by the burn
-     * transition's per-pixel "keep" factor (dst *= keep), so post-processing
-     * masks (blur / bloom stencils) vanish exactly where the ClickGUI has
-     * transitioned away instead of lingering at full strength. Call with the
-     * mask FBO bound; the box rect is in top-down real pixels.
-     */
     public static void renderBurnMaskFade(float progress, int style,
                                           float bx1, float by1, float bx2, float by2, float bradius) {
         ShaderUtil shader = getCached("burnMaskFade");
@@ -222,12 +179,10 @@ public class ShaderUtil {
         GlStateManager.disableAlpha();
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL_ZERO, GL_SRC_ALPHA); // dst *= src alpha ("keep")
+        GlStateManager.blendFunc(GL_ZERO, GL_SRC_ALPHA);
         GlStateManager.color(1f, 1f, 1f, 1f);
 
         shader.init();
-        // NOTE: must match renderBurnComposite's time formula so the mask's
-        // noise field lines up with the composite's within the same frame
         shader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
         shader.setUniformf("resolution", w, h);
         shader.setUniformf("progress", progress);

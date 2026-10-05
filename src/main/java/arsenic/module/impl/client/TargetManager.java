@@ -1,6 +1,9 @@
 package arsenic.module.impl.client;
 
+import arsenic.config.FriendManager;
+import arsenic.event.impl.EventMouse;
 import arsenic.event.impl.EventPacket;
+import net.minecraft.util.MovingObjectPosition;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.impl.player.AutoHunt;
@@ -44,8 +47,6 @@ public class TargetManager extends Module {
     private static final Map<Integer, Long> attackSentTime = new HashMap<>();
     private static Map<EntityPlayer, Float> lastSortValues = new HashMap<>();
 
-    // Intentionally always-on: this hidden SETTINGS module backs the aura/target logic,
-    // so the incoming 'enabled' flag is deliberately ignored.
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(true);
@@ -64,11 +65,6 @@ public class TargetManager extends Module {
 
     @EventLink
     public Listener<EventPacket.OutGoing> eventPacketListener = e -> {
-        // Outgoing packets fire on the netty thread and can arrive before, during and after a world
-        // swap, so the world is read once into a local rather than re-checked between uses - it can
-        // become null between the guard and the last line. Every other hop here is nullable too:
-        // the packet itself, the action enum on a server-constructed packet, and the entity lookup,
-        // which returns null whenever the target has already been despawned client side.
         WorldClient world = mc.theWorld;
         if (world == null)
             return;
@@ -84,9 +80,26 @@ public class TargetManager extends Module {
                 .ifPresent(player -> attackSentTime.put(player.getEntityId(), world.getTotalWorldTime()));
     };
 
+    @EventLink
+    public Listener<EventMouse.Down> middleClickFriendListener = e -> {
+        if (e.button != 2 || mc.currentScreen != null || mc.objectMouseOver == null
+                || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY
+                || !(mc.objectMouseOver.entityHit instanceof EntityPlayer))
+            return;
+
+        String name = mc.objectMouseOver.entityHit.getName();
+        FriendManager friends = Arsenic.getArsenic().getFriendManager();
+        if (friends.isFriend(name)) {
+            friends.remove(name);
+            PlayerUtils.addWaterMarkedMessageToChat("§c" + name + "§r is no longer a friend");
+        } else {
+            friends.add(name);
+            PlayerUtils.addWaterMarkedMessageToChat("§a" + name + "§r is now a friend");
+        }
+        Arsenic.getArsenic().getConfigManager().saveClientConfig();
+    };
+
     public static float getTimeSinceLastClientSidedHit(EntityPlayer player) {
-        // attackSentTime stores world-tick timestamps, so this must be measured in world ticks too
-        // (the old version subtracted world ticks from System.currentTimeMillis(), which was garbage).
         WorldClient world = mc.theWorld;
         if (world == null || player == null)
             return Float.MAX_VALUE;
@@ -99,8 +112,6 @@ public class TargetManager extends Module {
     }
 
     public static float getServerHurtTimeOnPacketArrival(EntityPlayer player) {
-        // read once: this runs off the netty thread via the outgoing packet listener, so the world
-        // can go null between the guard below and any later use of it
         WorldClient world = mc.theWorld;
         if (world == null || player == null)
             return Float.MAX_VALUE;
@@ -148,14 +159,10 @@ public class TargetManager extends Module {
         return en.isEmpty() ? null : en.get(0);
     }
 
-    /** Every valid target within {@link #distance}, best first by the current {@link #sortMode}. */
     public static List<EntityPlayer> getTargets() {
         List<EntityPlayer> en = PlayerUtils.getPlayersWithin(distance.getValue().getInput() + 1);
         en.removeIf(player -> !isValidTarget(player));
         en.removeIf(player -> !(RotationUtils.getDistanceToEntityBox(player) < distance.getValue().getInput()));
-        // Each value is worked out once: SmartSwitch's has side effects (a second call for the same
-        // player can answer differently), and a comparator that changes its mind mid-sort can
-        // throw "Comparison method violates its general contract".
         Map<EntityPlayer, Float> values = new HashMap<>();
         for (EntityPlayer player : en)
             values.put(player, sortMode.getValue().sv.value(player));
@@ -164,13 +171,11 @@ public class TargetManager extends Module {
         return en;
     }
 
-    /** {@code player}'s value under the current sort mode (lower is better), as the last {@link #getTargets()} sorted it. */
     public static float sortValue(EntityPlayer player) {
         Float v = lastSortValues.get(player);
         return v != null ? v : sortMode.getValue().sv.value(player);
     }
 
-    /** Whether {@code ep} may be targeted at all, before any distance limit. */
     public static boolean isValidTarget(EntityPlayer ep) {
         return (ep != mc.thePlayer)
                 && !Arsenic.getArsenic().getFriendManager().isFriend(ep)
@@ -194,23 +199,9 @@ public class TargetManager extends Module {
         }
     }
 
-    /**
-     * Health mode used to sort on raw {@code getHealth()}, which picks the target with the fewest
-     * hit points shown on the health bar - not the one actually easiest to kill. A target on
-     * 6 hearts wearing full diamond with Resistance II soaks far more damage per hit than one on
-     * 6 hearts with no armour, so raw health steered the aura at the tankier player. This weights
-     * health by how much of it is real: armour and Resistance both cut incoming damage, so a
-     * target carrying either needs more actual hits to drop, which is what should determine sort
-     * priority instead of the number on their bar.
-     */
     private static float getEffectiveHealth(EntityPlayer player) {
-        // Vanilla's armour formula converts armour points to a damage reduction that caps at 80%
-        // (20 points, the max obtainable) - 4% per point is that curve without needing the
-        // toughness/enchant terms, which only matter for reduction beyond what plain armour gives.
         float armourReduction = Math.min(0.8f, player.getTotalArmorValue() * 0.04f);
 
-        // Each level of Resistance cuts damage by another 20%, capped short of full immunity so a
-        // maxed-out target still sorts as killable rather than being excluded outright.
         float resistanceReduction = 0f;
         PotionEffect resistance = player.getActivePotionEffect(Potion.resistance);
         if (resistance != null)

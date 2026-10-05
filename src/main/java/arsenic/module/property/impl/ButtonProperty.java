@@ -7,14 +7,6 @@ import arsenic.module.property.Property;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 
-/**
- * A property that performs an action instead of holding a setting - "Reset", "Reload", "Clear".
- * <p>
- * This used to be an empty placeholder that drew nothing and did nothing. It is now an actual
- * button: pass a label and the {@link Runnable} to fire. The action is invoked on click and any
- * exception it throws is swallowed at this boundary, because a settings button misbehaving should
- * not tear down the render loop that is drawing it.
- */
 public class ButtonProperty extends Property<String> {
 
     private final Runnable action;
@@ -28,11 +20,6 @@ public class ButtonProperty extends Property<String> {
         this(name, name, action);
     }
 
-    /**
-     * @param name   the row label on the left
-     * @param label  the text inside the button itself
-     * @param action what to run on click; may be null for a decorative button
-     */
     public ButtonProperty(String name, String label, Runnable action) {
         super(name);
         this.label = label;
@@ -69,8 +56,6 @@ public class ButtonProperty extends Property<String> {
                 float textWidth = ri.getFr().getWidth(label);
                 buttonX1 = Math.min(controlX1(), x2 - textWidth - padding * 2f);
 
-                // Sinks slightly under the press instead of just changing colour - the shortest
-                // path to a control that feels like it was actually pushed.
                 float sink = press * bh * 0.06f;
 
                 UITheme.surface(buttonX1, by1 + sink, x2, by2 + sink, radius,

@@ -1,5 +1,6 @@
 package arsenic.event.bus;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 
@@ -9,19 +10,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Collects exceptions thrown by event listeners so the client can show which module is at fault
- * instead of silently swallowing it into the console.
- *
- * <p>A listener that throws usually throws every single tick, so errors are folded together by
- * owner + event + throw site, counted, and dropped again a few seconds after they stop happening.
- */
 public final class EventErrors {
 
-    /** How long an error stays on screen after the last time it happened. */
     private static final long LIFETIME = 8_000L;
 
-    /** Most errors shown at once; anything past this is counted but not drawn. */
     private static final int MAX_SHOWN = 5;
 
     private static final Map<String, Entry> ENTRIES = new LinkedHashMap<>();
@@ -37,9 +29,6 @@ public final class EventErrors {
         String eventName = event == null ? "?" : event.getClass().getSimpleName();
         String site = siteOf(throwable);
 
-        // deliberately NOT keyed on the site: the same fault reports a real site until the JIT
-        // starts eliding traces and a placeholder afterwards, and keying on it would split one
-        // fault into two entries - the counted one being the half that never captured a trace
         String key = ownerName + "|" + eventName + "|" + throwable.getClass().getName();
 
         boolean firstOccurrence;
@@ -55,9 +44,6 @@ public final class EventErrors {
             entry.captureTrace(throwable);
         }
 
-        // Log the first occurrence only. A listener that throws on every packet produces thousands
-        // of identical lines a minute, which buries the rest of the log and is the reason the trace
-        // is kept on the entry instead - see .errors trace.
         if (!firstOccurrence)
             return;
 
@@ -69,7 +55,6 @@ public final class EventErrors {
         }
     }
 
-    /** Live errors, newest last, with expired ones pruned. */
     public static List<Entry> getActive() {
         long now = System.currentTimeMillis();
         List<Entry> active = new ArrayList<>();
@@ -96,7 +81,6 @@ public final class EventErrors {
         }
     }
 
-    // -----------------------------------------------------------------
 
     private static String nameOf(Object owner) {
         if (owner == null)
@@ -112,22 +96,12 @@ public final class EventErrors {
         if (message == null || message.isEmpty())
             return type;
 
-        // some exceptions (compiler internal errors especially) carry enormous multi-line messages,
-        // and this string ends up drawn on the HUD and printed to chat
         message = message.replace('\n', ' ').replace('\r', ' ').trim();
         if (message.length() > 160)
             message = message.substring(0, 160) + "...";
         return type + ": " + message;
     }
 
-    /**
-     * First stack frame that is not part of the event bus itself.
-     *
-     * <p>A listener that throws every tick hits HotSpot's fast-throw optimisation within seconds:
-     * the JVM starts reusing one preallocated exception with an empty stack trace, which is why a
-     * long running error shows up as a bare "NullPointerException" with nowhere attached. When that
-     * happens fall back to the dispatch site and say how to turn the optimisation off.
-     */
     private static String siteOf(Throwable throwable) {
         String site = firstUsefulFrame(throwable.getStackTrace());
         if (site != null)
@@ -192,14 +166,6 @@ public final class EventErrors {
             return count;
         }
 
-        /**
-         * The stack trace from the first time this error had one.
-         *
-         * <p>HotSpot only swaps in the trace-less shared exception once a throw site is hot, so the
-         * first few occurrences carry a real trace. Keeping it means the throw site is still
-         * recoverable later, without restarting the game under
-         * {@code -XX:-OmitStackTraceInFastThrow}.
-         */
         public List<String> getTrace() {
             return trace == null ? java.util.Collections.emptyList() : java.util.Collections.unmodifiableList(trace);
         }
@@ -218,8 +184,6 @@ public final class EventErrors {
                     break;
             }
 
-            // if the entry was opened by an already-elided throw, this is the first time the real
-            // throw site is known, so replace the placeholder
             String real = firstUsefulFrame(elements);
             if (real != null)
                 site = real;
@@ -229,10 +193,9 @@ public final class EventErrors {
             return lastSeen;
         }
 
-        /** 1 while the error is fresh, fading to 0 as it expires. */
         public float getFade() {
             float remaining = (LIFETIME - (System.currentTimeMillis() - lastSeen)) / (float) LIFETIME;
-            return Math.max(0f, Math.min(1f, remaining * 4f));
+            return MathUtils.clamp01(remaining * 4f);
         }
     }
 }

@@ -1,10 +1,5 @@
 package arsenic.utils.botcore;
 
-/**
- * Axis-aligned box with the same semantics as Minecraft 1.8.9's AxisAlignedBB (open intervals for
- * intersection, the calculate*Offset sweep helpers used by Entity.moveEntity), Minecraft-free for
- * the bot core.
- */
 public final class Box {
     public final double minX, minY, minZ, maxX, maxY, maxZ;
 
@@ -17,12 +12,10 @@ public final class Box {
         this.maxZ = Math.max(minZ, maxZ);
     }
 
-    /** A box given in block-local 0..1 coordinates, placed at block (x, y, z). */
     public static Box local(int x, int y, int z, double x0, double y0, double z0, double x1, double y1, double z1) {
         return new Box(x + x0, y + y0, z + z0, x + x1, y + y1, z + z1);
     }
 
-    /** The player's collision box with feet centred at (x, y, z). */
     public static Box player(double x, double y, double z) {
         return new Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3);
     }
@@ -31,7 +24,6 @@ public final class Box {
         return new Box(minX + x, minY + y, minZ + z, maxX + x, maxY + y, maxZ + z);
     }
 
-    /** Stretches the box in the direction of a movement (AxisAlignedBB.addCoord). */
     public Box addCoord(double x, double y, double z) {
         double a = minX, b = minY, c = minZ, d = maxX, e = maxY, f = maxZ;
         if (x < 0) a += x; else if (x > 0) d += x;
@@ -87,10 +79,6 @@ public final class Box {
         return dz;
     }
 
-    /**
-     * Where the segment from (ax,ay,az) to (bx,by,bz) first enters this box, as a fraction 0..1 of
-     * the way along, or -1 if it misses. {@code faceOut[0]} gets the face hit (Dir index).
-     */
     public double clip(double ax, double ay, double az, double bx, double by, double bz, int[] faceOut) {
         double dx = bx - ax, dy = by - ay, dz = bz - az;
         double tMin = 0, tMax = 1;
@@ -103,7 +91,6 @@ public final class Box {
             }
             double t1 = (lo[i] - o[i]) / d[i], t2 = (hi[i] - o[i]) / d[i];
             int f1, f2;
-            // face index: 0 down,1 up,2 north,3 south,4 west,5 east (Minecraft EnumFacing order)
             if (i == 0) { f1 = Dir.WEST; f2 = Dir.EAST; }
             else if (i == 1) { f1 = Dir.DOWN; f2 = Dir.UP; }
             else { f1 = Dir.NORTH; f2 = Dir.SOUTH; }

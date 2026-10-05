@@ -12,36 +12,18 @@ import net.minecraft.util.Vec3;
 
 import java.util.function.Supplier;
 
-/**
- * Gets the player to a moving entity or a fixed spot, for FightBot and AutoHunt.
- * <p>
- * Far away or out of sight, it goes through the pathfinder ({@link BotDriver}). The goal is only
- * re-set once the target has wandered {@link #REGOAL_DISTANCE} from where the current path was
- * aimed - every re-set throws the path away and starts a fresh search, so doing it every tick
- * would mean never moving at all. Up close with a clear line, it walks straight at them instead:
- * a planner a few ticks behind a strafing player only ever runs to where they used to be.
- */
 public final class Chaser {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    /** How far the target can move from the current path's goal before it's re-aimed. */
     private static final double REGOAL_DISTANCE = 3.0;
-    /** Within this (flat) distance and in plain sight, walk straight at the target. */
     private static final double DIRECT_RANGE = 6.0;
-    /** Height difference past which straight walking is not trusted (stairs, ledges, pits). */
     private static final double DIRECT_MAX_DY = 1.2;
-    /** Ticks to wait before searching again after the pathfinder found nothing. */
     private static final int FAIL_COOLDOWN_TICKS = 20;
 
     private double[] goalPoint;
     private int failCooldown;
     private boolean keysHeld;
 
-    /**
-     * Moves toward {@code target} until within {@code stopAt} of its body, in sight.
-     *
-     * @return whether it's close enough and has stopped
-     */
     public boolean chase(Entity target, double stopAt) {
         double tx = target.posX, ty = target.posY + target.height / 2, tz = target.posZ;
         EntityPlayerSP p = mc.thePlayer;
@@ -61,11 +43,6 @@ public final class Chaser {
         return false;
     }
 
-    /**
-     * Walks back to a fixed spot (feet position).
-     *
-     * @return whether it's there and has stopped
-     */
     public boolean goTo(double x, double y, double z, double stopAt) {
         EntityPlayerSP p = mc.thePlayer;
         double flat = Math.hypot(x - p.posX, z - p.posZ);
@@ -78,7 +55,6 @@ public final class Chaser {
         return false;
     }
 
-    /** Lets go of everything: the pathfinder and any keys held for straight walking. */
     public void stop() {
         if (BotDriver.isActive())
             BotDriver.stop();
@@ -88,8 +64,6 @@ public final class Chaser {
     }
 
     private void pathTo(double x, double y, double z, Supplier<Goal> goal, double fallbackX, double fallbackZ) {
-        // No route from here: head straight for it for a moment, then search again. (Stopping
-        // clears the failed flag, so this triggers once per failure.)
         if (BotDriver.bot.failed()) {
             BotDriver.stop();
             goalPoint = null;

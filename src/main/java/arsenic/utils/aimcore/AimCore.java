@@ -2,97 +2,39 @@ package arsenic.utils.aimcore;
 
 import java.util.Random;
 
-/**
- * The aim maths shared by KillAura/AimAssist (through AimController), kept free of Minecraft
- * classes.
- *
- * Per tick: where on the target to look (a point inside its box, led by its predicted movement,
- * drifting around the chest while we move) and how far to turn towards it this tick (Lazy: a
- * minimum-jerk flick for big errors, a loose follow for small ones). Every behaviour change sits
- * behind a {@link Tuning} switch; legacy() is the original.
- */
 public final class AimCore {
 
-    /** Knobs. best() is the tuned aim; legacy() is the original aim. */
     public static final class Tuning {
-        /** Ticks of target movement to lead the aim by. */
         public float predictionTicks = 3f;
-        /**
-         * Lead by a smoothed estimate of the target's velocity instead of its last tick's movement
-         * (0 = raw last tick). Other players' positions arrive every other tick in 1/32-block steps,
-         * only once they've moved 1/8 of a block, and are eased in over 3 ticks, so the per-tick
-         * movement is lumpy, and leading by 3x that lump throws the aim around.
-         */
         public float velocitySmoothing = 0f;
-        /** Use our own motion for the relative movement (pos - lastTickPos is always 0 at aim time). */
         public boolean selfFromMotion = false;
-        /**
-         * Aim height: 0 = the box point nearest our eyes (original), 1 = the drift point on the body.
-         * Blended in by this much on top of the moving/standing blend.
-         */
         public float bodyHeight = 0f;
-        /**
-         * Horizontal aim: pull the nearest point this much towards the box's centre line. Up close
-         * the nearest point is a few cm away, so the pitch to it swings wildly with every step.
-         */
         public float centrePull = 0f;
-        /** Ease the aim point towards its new position each tick (0 = none). */
         public float aimPointEasing = 0f;
-        /** Follow gain changes slowly instead of being re-rolled every tick. */
         public boolean smoothGain = false;
-        /** Error (degrees) past which a turn is a flick rather than tracking. */
         public float flickThreshold = 12f;
-        /** Pitch follow gain relative to yaw. */
         public float pitchGainScale = 1f;
-        /** Pitch errors under this many degrees are left alone. */
         public float pitchDeadzone = 0f;
-        /** Yaw errors under this many degrees are left alone. */
         public float yawDeadzone = 0f;
-        /** Never pitch further than this from level towards a target (degrees); 90 = no limit. */
         public float pitchLimit = 90f;
-        /**
-         * Pitch from the horizontal distance to the box's centre line (at least this far, 0 = off)
-         * instead of to the aim point. The aim point can be centimetres away up close, and the pitch
-         * to it then swings towards straight down with every step either player takes.
-         */
         public float pitchCentreDist = 0f;
-        /** Keep the aim height this far inside the box's top and bottom (blocks). */
         public float aimYMargin = 0f;
-        /** Low-pass our own eye height for picking the aim height (0 = off): jumps and knockback don't drag the aim around. */
         public float eyeSmoothing = 0f;
-        /** Decide flicks on the yaw error only; pitch errors (mostly from jumping) are tracked, not flicked. */
         public boolean flickOnYawOnly = false;
-        /** Cap on pitch change per tick while tracking (degrees, 0 = only the speed cap). */
         public float maxPitchStep = 0f;
-        /** Cap on pitch change per tick, flicks included (degrees, 0 = only the speed cap). */
         public float pitchSpeedCap = 0f;
-        /**
-         * Turn speed carries over between ticks while tracking (0 = none): the step eases towards
-         * the wanted one instead of jumping to it, so a sudden change (a jump starting, landing,
-         * knockback) bends the aim instead of kinking it.
-         */
         public float pitchInertia = 0f;
         public float yawInertia = 0f;
-        /**
-         * Keep-on-box aiming: instead of a point on the target, aim wherever the crosshair already
-         * is, clamped into the (shrunk) box as seen from our eyes, so the view only moves when the
-         * box would slide out from under it - like a player keeping their crosshair on someone.
-         */
         public boolean keepOnBox = false;
-        /** How far inside the box's sides / top and bottom the crosshair is kept (blocks). */
         public float keepMarginH = 0.1f, keepMarginV = 0.3f;
-        /** Pull towards the middle of the box each tick (0 = none, 1 = always the middle). */
         public float keepCentreBias = 0f;
-        /** Pull towards the middle when the box is far off the crosshair (a flick onto it), so it lands well inside. */
         public float keepFarBias = 0f;
-        /** Never lead the target by more than this many blocks (0 = no cap). */
         public float maxLead = 0f;
 
         public static Tuning legacy() {
             return new Tuning();
         }
 
-        /** The tuned aim: smoothest without losing hits. */
         public static Tuning best() {
             Tuning t = new Tuning();
             t.keepOnBox = true;
@@ -132,38 +74,28 @@ public final class AimCore {
         }
     }
 
-    /** One tick's view of us and the target. */
     public static final class Input {
-        /** Our eye position; our movement this tick (pos - lastTickPos) and our motion. */
         public double eyeX, eyeY, eyeZ, selfDX, selfDZ, selfMotionX, selfMotionZ;
-        /** The target's box, and how far it moved this tick on our client (pos - lastTickPos). */
         public double minX, minY, minZ, maxX, maxY, maxZ;
         public double targetDX, targetDZ;
-        /** Identifies the target, to notice switches. */
         public int targetId;
-        /** The rotation currently being sent. */
         public float curYaw, curPitch;
-        /** Hard cap on degrees per tick, and Lazy's flick deadline in ticks (0 = speed cap decides). */
         public float maxSpeed, budgetTicks;
     }
 
     public final Tuning tun;
     private final Random rnd;
 
-    // aim point drift, as fractions of the box (0 = min edge, 1 = max edge)
     private float driftX = 0.5f, driftY = 0.65f, driftZ = 0.5f;
     private float driftGoalX = 0.5f, driftGoalY = 0.65f, driftGoalZ = 0.5f;
     private int driftTicksLeft = 0;
-    /** 0 = aim at the nearest point of the box, 1 = aim at the drift point. Eased, never snapped. */
     private float driftBlend = 0f;
 
-    // flick state
     private boolean flicking = false;
     private int flickTick, flickDuration;
     private float overshootYaw, overshootPitch;
     private int flickTarget = Integer.MIN_VALUE;
 
-    // smoothing state
     private int velTarget = Integer.MIN_VALUE;
     private double velX, velZ;
     private int aimTarget = Integer.MIN_VALUE;
@@ -185,12 +117,10 @@ public final class AimCore {
         velTarget = Integer.MIN_VALUE;
     }
 
-    /** Whether a flick is in progress. */
     public boolean isFlicking() {
         return flicking;
     }
 
-    /** Drops any flick in progress, e.g. when the target is lost. */
     public void cancelFlick() {
         flicking = false;
         flickTarget = Integer.MIN_VALUE;
@@ -200,11 +130,6 @@ public final class AimCore {
         return min + rnd.nextFloat() * (max - min);
     }
 
-    /**
-     * Moves the drift point once per tick. While we're moving, the aim eases onto a point that
-     * wanders slowly around the target's chest; standing still, it eases back to the nearest point
-     * of the box. The blend is eased both ways, so switching never snaps the aim.
-     */
     public void updateDrift(Input self) {
         double mx = tun.selfFromMotion ? self.selfMotionX : self.selfDX;
         double mz = tun.selfFromMotion ? self.selfMotionZ : self.selfDZ;
@@ -223,7 +148,6 @@ public final class AimCore {
         else eyeAvg += (self.eyeY - eyeAvg) * (1 - tun.eyeSmoothing);
     }
 
-    /** Feeds this tick's target movement into the velocity estimate. Once per tick, before aiming. */
     public void observe(Input in) {
         if (in.targetId != velTarget || tun.velocitySmoothing <= 0) {
             velTarget = in.targetId;
@@ -236,7 +160,6 @@ public final class AimCore {
         }
     }
 
-    /** Horizontal offset of the target's box {@code ticks} ahead, relative to our own movement. */
     public double[] predictOffset(Input in, float ticks) {
         if (ticks <= 0) return new double[]{0, 0};
         double sx = tun.selfFromMotion ? in.selfMotionX : in.selfDX;
@@ -252,7 +175,6 @@ public final class AimCore {
         return new double[]{ox, oz};
     }
 
-    /** The aim point on the target's box led by {@code ticks}, before easing. */
     private double[] aimPoint(Input in, float ticks) {
         double[] o = predictOffset(in, ticks);
         double minX = in.minX + o[0], maxX = in.maxX + o[0], minZ = in.minZ + o[1], maxZ = in.maxZ + o[1];
@@ -265,12 +187,10 @@ public final class AimCore {
         return new double[]{x, y, z, minX, maxX, minZ, maxZ};
     }
 
-    /** Yaw/pitch to aim at this tick (stateful: eases the aim point). Call once per tick. */
     public float[] aimRotations(Input in) {
         return aimRotations(in, tun.predictionTicks);
     }
 
-    /** {@link #aimRotations(Input)} leading the target by {@code ticks} instead of the tuned amount. */
     public float[] aimRotations(Input in, float ticks) {
         if (tun.keepOnBox) {
             aimTarget = in.targetId;
@@ -296,7 +216,6 @@ public final class AimCore {
         return rotationsTo(in, aimX, aimY, aimZ, (p[3] + p[4]) * 0.5, (p[5] + p[6]) * 0.5);
     }
 
-    /** Yaw/pitch to the aim point led by {@code ticks}, without touching any state. */
     public float[] peekRotations(Input in, float ticks) {
         if (tun.keepOnBox) return keepOnBox(in, ticks, in.curYaw, in.curPitch, tun.keepCentreBias);
         double[] p = aimPoint(in, ticks);
@@ -316,7 +235,6 @@ public final class AimCore {
         return new float[]{yaw, pitch};
     }
 
-    /** The rotation nearest (fromYaw, fromPitch) that still points into the shrunk, led box. */
     private float[] keepOnBox(Input in, float ticks, float fromYaw, float fromPitch, float bias) {
         double[] o = predictOffset(in, ticks);
         double minX = in.minX + o[0], maxX = in.maxX + o[0], minZ = in.minZ + o[1], maxZ = in.maxZ + o[1];
@@ -362,12 +280,6 @@ public final class AimCore {
         return nearest + (wander - nearest) * blend;
     }
 
-    /**
-     * Lazy: the rotation to send this tick, turning from (in.curYaw, in.curPitch) towards {@code rots}.
-     * A big error starts a flick along a minimum-jerk curve timed to land by the budget (larger ones
-     * sometimes overshoot a little); otherwise the aim follows loosely, which also corrects overshoot.
-     * The caller applies the result as-is (no extra smoothing).
-     */
     public float[] lazyStep(Input in, float[] rots) {
         float yawErr = wrap(rots[0] - in.curYaw);
         float pitchErr = rots[1] - in.curPitch;
@@ -386,8 +298,6 @@ public final class AimCore {
         if (flicking) {
             float done = minJerk(flickTick / (float) flickDuration);
             float next = minJerk(Math.min(1f, (flickTick + 1) / (float) flickDuration));
-            // share of what's left to cover this tick, re-applied to the live error every tick so
-            // the flick bends to follow a moving target
             float frac = (next - done) / (1f - done);
             stepYaw = (yawErr + overshootYaw) * frac;
             stepPitch = (pitchErr + overshootPitch) * frac;
@@ -421,7 +331,6 @@ public final class AimCore {
     }
 
     private void startFlick(float yawErr, float pitchErr, float err, float maxSpeed, float budgetTicks) {
-        // minimum-jerk peaks at 1.875x its average speed: never plan a flick the speed cap would cut
         float minBySpeed = 1.875f * err / Math.max(1f, maxSpeed);
         float ticks = Math.max(budgetTicks, minBySpeed) * random(0.9f, 1.15f);
         flickDuration = Math.max(2, Math.min(12, Math.round(ticks)));
@@ -436,7 +345,6 @@ public final class AimCore {
         }
     }
 
-    /** Minimum-jerk position profile: 0 at s=0, 1 at s=1, zero velocity and acceleration at both ends. */
     private static float minJerk(float s) {
         return s * s * s * (10f + s * (-15f + 6f * s));
     }

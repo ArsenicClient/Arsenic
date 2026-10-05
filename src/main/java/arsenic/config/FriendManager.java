@@ -13,24 +13,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Players KillAura (and everything else that targets through TargetManager) leaves alone, and
- * that ESP draws in the friend colour. Kept in the client config rather than a module config, so
- * the list survives switching configs.
- * <p>
- * Names match case-insensitively but are stored as typed, so the list reads the way you wrote it.
- */
 public class FriendManager implements ISerializable {
 
-    /** Lower-cased name -> name as added. */
     private final Map<String, String> friends = new LinkedHashMap<>();
 
-    /** @return false if they were already a friend */
     public boolean add(String name) {
         return friends.putIfAbsent(key(name), name) == null;
     }
 
-    /** @return false if they weren't a friend */
     public boolean remove(String name) {
         return friends.remove(key(name)) != null;
     }

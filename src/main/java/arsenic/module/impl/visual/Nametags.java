@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -10,6 +11,8 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -34,6 +37,11 @@ import java.util.List;
 @ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
 public class Nametags extends Module {
 
+    public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));
+    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(8, 128, 64, 1));
+
+    private static final float BASE_SCALE = 0.02666667F;
+    private static final int PAD = 2;
     private static final float ICON_SIZE = 12f;
     private static final float ICON_SPACING = 14f;
 
@@ -47,6 +55,7 @@ public class Nametags extends Module {
             if (player == mc.thePlayer) continue;
             if (AntiBot.isBot(player)) continue;
             if (player.isDead) continue;
+            if (mc.thePlayer.getDistanceToEntity(player) > range.getValue().getInput()) continue;
 
             double x = (player.lastTickPosX + (player.posX - player.lastTickPosX) * event.partialTicks)
                     - mc.getRenderManager().viewerPosX;
@@ -64,14 +73,14 @@ public class Nametags extends Module {
                     : "";
             String text = name + healthText + distText;
 
-            // Fixed world-space scale: the tag naturally shrinks with distance, same as the vanilla
-            // nametag.
-            float scale = 0.02666667F;
-            int textWidth = (int) fr.getWidth(text);
-            int textHeight = (int) fr.getHeight(text);
-            float halfWidth = textWidth / 2f;
+            float scale = BASE_SCALE * (float) tagScale.getValue().getInput();
 
-            float healthPercent = player.getHealth() / player.getMaxHealth();
+            int textWidth = (int) Math.ceil(fr.getWidth(text));
+            int textHeight = (int) Math.ceil(fr.getHeight(text));
+            int left = -(textWidth / 2);
+            int right = left + textWidth;
+
+            float healthPercent = MathUtils.clamp01(player.getHealth() / player.getMaxHealth());
             int healthColor = healthPercent > 0.5f ? 0xFF2ECC71
                     : healthPercent > 0.25f ? 0xFFFFFF00
                     : 0xFFFF0000;
@@ -80,35 +89,35 @@ public class Nametags extends Module {
             GL11.glTranslated(x, y + player.height + 0.6, z);
             GL11.glNormal3f(0.0F, 1.0F, 0.0F);
             GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+            GlStateManager.rotate((mc.gameSettings.thirdPersonView == 2 ? -1 : 1)
+                    * mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
             GlStateManager.scale(-scale, -scale, scale);
+            GlStateManager.disableLighting();
             GlStateManager.disableDepth();
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GlStateManager.enableBlend();
+            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
             drawGear(fr, collectGear(player));
 
-            Gui.drawRect((int) (-halfWidth - 2), -2, (int) (halfWidth + 2), textHeight + 2,
-                    new Color(0, 0, 0, 100).getRGB());
+            Gui.drawRect(left - PAD, -PAD, right + PAD, textHeight + PAD, new Color(0, 0, 0, 110).getRGB());
+            int barRight = left - PAD + Math.round((textWidth + PAD * 2) * healthPercent);
+            Gui.drawRect(left - PAD, textHeight + PAD, barRight, textHeight + PAD + 1, healthColor);
 
-            fr.drawString(text, (int) (-halfWidth), 0, 0xFFFFFFFF);
+            GlStateManager.enableTexture2D();
+            fr.drawString(text, left, textHeight / 2f, 0xFFFFFFFF, fr.CENTREY);
 
-            Gui.drawRect((int) (-halfWidth - 2), textHeight + 2,
-                    (int) (-halfWidth - 2 + (textWidth + 4) * healthPercent), textHeight + 3,
-                    healthColor);
-
-            GL11.glDisable(GL11.GL_BLEND);
+            GlStateManager.color(1f, 1f, 1f, 1f);
+            GlStateManager.disableBlend();
             GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
     };
 
-    /** Held item + the four armour pieces, in a stable left-to-right order, nulls skipped. */
     private List<ItemStack> collectGear(EntityPlayer player) {
         List<ItemStack> gear = new ArrayList<>();
         ItemStack held = player.getHeldItem();
         if (held != null) gear.add(held);
-        for (int i = 3; i >= 0; i--) { // helmet -> boots
+        for (int i = 3; i >= 0; i--) {
             ItemStack armor = player.getCurrentArmor(i);
             if (armor != null) gear.add(armor);
         }
@@ -122,7 +131,6 @@ public class Nametags extends Module {
         float totalW = count * ICON_SPACING;
         float startX = -totalW / 2f;
 
-        // enchant text sits between the icon row and the name; leave room above the name for it.
         float enchScale = 0.55f;
         int enchLineH = (int) (fr.getHeight("A") * enchScale) + 1;
         int maxEnchLines = 0;
@@ -134,10 +142,9 @@ public class Nametags extends Module {
         }
 
         float enchBlockH = maxEnchLines * enchLineH;
-        float iconBottom = -6 - enchBlockH;      // above the name / enchant block
+        float iconBottom = -6 - enchBlockH;
         float iconTop = iconBottom - ICON_SIZE;
 
-        // Icons.
         GlStateManager.pushMatrix();
         mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
         GlStateManager.enableTexture2D();
@@ -155,7 +162,6 @@ public class Nametags extends Module {
         GlStateManager.color(1, 1, 1, 1);
         GlStateManager.popMatrix();
 
-        // Enchant abbreviations, centred under each icon column.
         if (maxEnchLines > 0) {
             for (int i = 0; i < count; i++) {
                 List<String> lines = enchLists.get(i);
@@ -173,7 +179,6 @@ public class Nametags extends Module {
         }
     }
 
-    /** One "AbbrevLevel" token per enchantment, e.g. "P4", "U3". */
     private List<String> enchantLines(ItemStack stack) {
         List<String> out = new ArrayList<>();
         if (stack == null || !stack.isItemEnchanted()) return out;
@@ -189,29 +194,29 @@ public class Nametags extends Module {
 
     private String abbreviate(int id) {
         switch (id) {
-            case 0:  return "§bProt";  // Protection
-            case 1:  return "§6FP";    // Fire Protection
-            case 2:  return "§fFF";    // Feather Falling
-            case 3:  return "§8BP";    // Blast Protection
-            case 4:  return "§ePP";    // Projectile Protection
-            case 5:  return "§3Resp";  // Respiration
-            case 6:  return "§3AA";    // Aqua Affinity
-            case 7:  return "§2Thn";   // Thorns
-            case 8:  return "§3DS";    // Depth Strider
-            case 16: return "§cSharp"; // Sharpness
+            case 0:  return "§bProt";
+            case 1:  return "§6FP";
+            case 2:  return "§fFF";
+            case 3:  return "§8BP";
+            case 4:  return "§ePP";
+            case 5:  return "§3Resp";
+            case 6:  return "§3AA";
+            case 7:  return "§2Thn";
+            case 8:  return "§3DS";
+            case 16: return "§cSharp";
             case 17: return "§cSmite";
             case 18: return "§cBane";
-            case 19: return "§7KB";    // Knockback
-            case 20: return "§6Fire";  // Fire Aspect
-            case 21: return "§aLoot";  // Looting
-            case 32: return "§aEff";   // Efficiency
-            case 33: return "§7Silk";  // Silk Touch
-            case 34: return "§7Unb";   // Unbreaking
-            case 35: return "§aFort";  // Fortune
-            case 48: return "§cPow";   // Power
-            case 49: return "§7Pun";   // Punch
+            case 19: return "§7KB";
+            case 20: return "§6Fire";
+            case 21: return "§aLoot";
+            case 32: return "§aEff";
+            case 33: return "§7Silk";
+            case 34: return "§7Unb";
+            case 35: return "§aFort";
+            case 48: return "§cPow";
+            case 49: return "§7Pun";
             case 50: return "§6Flame";
-            case 51: return "§eInf";   // Infinity
+            case 51: return "§eInf";
             default:
                 Enchantment ench = Enchantment.getEnchantmentById(id);
                 if (ench != null) {

@@ -1,5 +1,6 @@
 package arsenic.utils.bot;
 
+import arsenic.utils.timer.MSTimer;
 import arsenic.utils.botcore.Bot;
 import arsenic.utils.botcore.Controls;
 import arsenic.utils.botcore.Goal;
@@ -26,22 +27,15 @@ import net.minecraft.util.Vec3;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Runs the bot core ({@link Bot}) against the real game: builds the
- * player snapshot each tick, and applies what the bot asks for: movement keys, jump, sneak and
- * sprint; the camera is set directly; blocks are placed and mined through the
- * player controller, so it all works with the window unfocused.
- */
 public final class BotDriver {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static final Bot bot = new Bot(new Tuning(), true);
 
-    /** Blocks the bot placed itself (the only ones it may mine). */
     private static final Set<Long> ownBlocks = ConcurrentHashMap.newKeySet();
 
     private static boolean keysHeld;
-    private static long lastPlace;
+    private static final MSTimer lastPlace = MSTimer.expired();
     private static BlockPos mining;
 
     private BotDriver() {
@@ -61,12 +55,10 @@ public final class BotDriver {
         releaseKeys();
     }
 
-    /** Forget which blocks the bot placed (e.g. when the module is turned off). */
     public static void forgetOwnBlocks() {
         ownBlocks.clear();
     }
 
-    /** Call once per client tick while a goal is being followed. */
     public static void onTick() {
         EntityPlayerSP p = mc.thePlayer;
         if (p == null || mc.theWorld == null) {
@@ -106,7 +98,6 @@ public final class BotDriver {
         return v;
     }
 
-    /** Movement speed relative to normal: speed effect and gear attributes, without the sprint boost. */
     private static double speedOf(EntityPlayerSP p) {
         IAttributeInstance attr = p.getEntityAttribute(SharedMonsterAttributes.movementSpeed);
         double value = attr.getAttributeValue();
@@ -153,10 +144,9 @@ public final class BotDriver {
         keysHeld = false;
     }
 
-    // ---- placing and mining ---------------------------------------------------------------------------
 
     private static void place(EntityPlayerSP p, Controls c) {
-        if (System.currentTimeMillis() - lastPlace < 200) return; // like holding right click
+        if (!lastPlace.finished(200)) return;
         int slot = blockSlot(p);
         if (slot == -1) return;
         p.inventory.currentItem = slot;
@@ -165,7 +155,7 @@ public final class BotDriver {
         Vec3 hit = new Vec3(c.hitX, c.hitY, c.hitZ);
         if (mc.playerController.onPlayerRightClick(p, mc.theWorld, p.getHeldItem(), against, face, hit)) {
             p.swingItem();
-            lastPlace = System.currentTimeMillis();
+            lastPlace.reset();
             ownBlocks.add(Terrain.key(c.placeX, c.placeY, c.placeZ));
         }
     }
@@ -189,9 +179,7 @@ public final class BotDriver {
         }
     }
 
-    // ---- inventory ----------------------------------------------------------------------------------
 
-    /** The only block the bot builds with: dark prismarine. */
     public static boolean isDarkPrismarine(ItemStack stack) {
         return stack != null && stack.stackSize > 0
                 && stack.getItem() == Item.getItemFromBlock(Blocks.prismarine)
@@ -201,13 +189,12 @@ public final class BotDriver {
     static boolean isOwnBlock(int x, int y, int z, IBlockState st) {
         if (!ownBlocks.contains(Terrain.key(x, y, z))) return false;
         if (st.getBlock() != Blocks.prismarine || st.getValue(BlockPrismarine.VARIANT) != BlockPrismarine.EnumType.DARK) {
-            ownBlocks.remove(Terrain.key(x, y, z)); // something else is there now
+            ownBlocks.remove(Terrain.key(x, y, z));
             return false;
         }
         return true;
     }
 
-    /** Hotbar slot to build from: the held one if it is dark prismarine, else the biggest stack. */
     private static int blockSlot(EntityPlayerSP p) {
         ItemStack[] inv = p.inventory.mainInventory;
         if (isDarkPrismarine(inv[p.inventory.currentItem])) return p.inventory.currentItem;

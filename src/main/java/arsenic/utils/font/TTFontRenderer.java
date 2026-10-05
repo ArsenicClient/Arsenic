@@ -137,7 +137,6 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     private void setup(char character) {
-        // Width & Height must be >= 1
         BufferedImage utilityImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         Graphics2D utilityGraphics = (Graphics2D) utilityImage.getGraphics();
         utilityGraphics.setFont(font);
@@ -148,11 +147,9 @@ public class TTFontRenderer implements IFontRenderer {
                 (int) StrictMath.ceil(characterBounds.getHeight()), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = (Graphics2D) characterImage.getGraphics();
         graphics.setFont(font);
-        // Fill background with clear rect
         graphics.setColor(new Color(255, 255, 255, 0));
         graphics.fillRect(0, 0, characterImage.getWidth(), characterImage.getHeight());
         graphics.setColor(Color.WHITE);
-        // Setup rendering hints - push AWT toward the highest-quality glyph raster
         if (antiAlias)
             graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
@@ -187,11 +184,6 @@ public class TTFontRenderer implements IFontRenderer {
                 buffer.put((byte) ((pixel >> 8) & 0xFF));
                 buffer.put((byte) (pixel & 0xFF));
 
-                // Sharpen coverage instead of binarizing: anything at ~55%+ coverage
-                // becomes fully opaque (solid interior, no background bleed-through),
-                // anything under ~10% is dropped, and the narrow band between ramps
-                // linearly. After the 0.5x downscale that leaves roughly a 1px smooth
-                // edge - text reads as one solid color but stays crisp, not jagged.
                 int alpha = (pixel >> 24) & 0xFF;
                 if (alpha <= 24)
                     alpha = 0;
@@ -206,16 +198,10 @@ public class TTFontRenderer implements IFontRenderer {
         buffer.flip();
 
         glBindTexture(GL_TEXTURE_2D, textureId);
-        // Clamp to edge so linear filtering never bleeds the opposite side of the glyph
         glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
-        // LINEAR filtering: the glyph is rasterized at 2x and drawn at 0.5x, so
-        // linear minification is a clean supersample. NEAREST here skips every other
-        // texel and shreds the edges. No mipmaps - level 1 would box-filter glyph
-        // texels against transparent ones and wash the whole string out.
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        // Upload texture
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
                 buffer);
     }
@@ -226,24 +212,15 @@ public class TTFontRenderer implements IFontRenderer {
 
         glPushMatrix();
 
-        // Snapshot every piece of GL state we touch. Minecraft 1.8.9 GUIs leave
-        // texture/alpha-test/blend/lighting state in unpredictable configurations
-        // depending on what was drawn before us (which is why the font only looked
-        // right on some backgrounds). Restoring via glPopAttrib also keeps the real
-        // GL state in sync with GlStateManager's cache afterwards.
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT
                 | GL11.GL_TEXTURE_BIT | GL11.GL_LINE_BIT);
 
         glEnable(GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_CULL_FACE);
-        // Alpha test (commonly left on as GREATER 0.1 by vanilla) clips the
-        // antialiased edge pixels and makes text look thin and jagged.
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        // Make sure the glyph texture is combined with glColor the way we expect,
-        // even if something set a different texture env mode earlier.
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
 
         if ((color & 0xFC000000) == 0) { color |= 0xFF000000; }
@@ -325,7 +302,6 @@ public class TTFontRenderer implements IFontRenderer {
             }
         }
 
-        // Restores blend/alpha-test/texture/lighting/color exactly as we found them.
         GL11.glPopAttrib();
         glPopMatrix();
     }

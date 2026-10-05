@@ -10,12 +10,10 @@ public class EventMouse implements Event {
         this.button = button;
     }
 
-    //pressed
     public static class Down extends EventMouse {
         public Down(int button) {super(button);}
     }
 
-    //released
     public static class Up extends EventMouse {
         public Up(int button) {super(button);}
     }

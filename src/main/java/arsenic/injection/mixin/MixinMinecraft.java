@@ -10,6 +10,7 @@ import arsenic.module.impl.ghost.Clicker;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
+import arsenic.module.impl.world.BridgeAssist;
 import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.Minecraft;
@@ -72,26 +73,14 @@ public abstract class MixinMinecraft {
 
 
 
-    /**
-     * Swallows the player's own attack/use presses while a silent rotation asked for input to be
-     * blocked. The original {@code isPressed()} is still called so the queued press count is
-     * drained — otherwise every press held back would fire in a burst once blocking ends.
-     * Other keybinds (inventory, drop, chat, ...) pass through untouched, and direct client-side
-     * calls to {@code clickMouse()}/{@code rightClickMouse()} are unaffected.
-     */
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isPressed()Z"))
     public boolean redirectIsPressed(KeyBinding keyBinding) {
         if (!shouldBlockInput(keyBinding))
             return keyBinding.isPressed();
-        // drain the whole queue, not just one press
         while (keyBinding.isPressed()) { }
         return false;
     }
 
-    /**
-     * Same as {@link #redirectIsPressed(KeyBinding)} but for the held-down reads — continuous block
-     * breaking ({@code sendClickBlockToController}) and item-use repeat.
-     */
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isKeyDown()Z"))
     public boolean redirectIsKeyDown(KeyBinding keyBinding) {
         return keyBinding.isKeyDown() && !shouldBlockInput(keyBinding);
@@ -103,11 +92,17 @@ public abstract class MixinMinecraft {
         return Arsenic.getArsenic().getSilentRotationManager().isBlockingUserInput();
     }
 
+    @Inject(method = "displayGuiScreen", at = @At(value = "HEAD"))
+    public void arsenic$captureForTransition(GuiScreen guiScreenIn, CallbackInfo ci) {
+        Minecraft self = (Minecraft) (Object) this;
+        if (guiScreenIn != self.currentScreen)
+            arsenic.module.impl.visual.custommainmenu.ScreenTransition.capture(self);
+    }
+
     @Inject(method = "displayGuiScreen", at = @At(value = "RETURN"))
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo ci) {
-        CustomMenu customMenu = Arsenic.getArsenic().getModuleManager().getModuleByClass(CustomMenu.class);
-        if(guiScreenIn instanceof GuiMainMenu && customMenu.isEnabled()) {
-            customMenu.display();
+        if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()) {
+            CustomMenu.display();
         }
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
         Arsenic.getArsenic().getEventManager().post(event);
@@ -120,6 +115,12 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMouse(CallbackInfo ci) {
+        BridgeAssist bridgeAssist = Arsenic.getArsenic().getModuleManager().getModuleByClass(BridgeAssist.class);
+        if (bridgeAssist != null && bridgeAssist.isEnabled()) bridgeAssist.onPlace();
+        if (bridgeAssist != null && bridgeAssist.isEnabled() && bridgeAssist.isBridging()) {
+            rightClickDelayTimer = bridgeAssist.getPlaceDelay();
+            return;
+        }
         FastPlace fastPlace = Arsenic.getArsenic().getModuleManager().getModuleByClass(FastPlace.class);
          if(!fastPlace.isEnabled() ) return;
 
@@ -128,7 +129,7 @@ public abstract class MixinMinecraft {
     }
 
     @Inject(method = "clickMouse", at = @At("HEAD"))
-    public void clickMoose(CallbackInfo ci) { //better hitreg.
+    public void clickMoose(CallbackInfo ci) {
         if(Arsenic.getArsenic().getModuleManager().getModuleByClass(NoHitDelay.class).isEnabled() || Arsenic.getArsenic().getModuleManager().getModuleByClass(Clicker.class).isEnabled())
             this.leftClickCounter = 0;
     }
@@ -141,8 +142,6 @@ public abstract class MixinMinecraft {
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) return;
         Entity target = mc.objectMouseOver.entityHit;
         if (hitflick.shouldFlick() && hitflick.armFlick(target)) {
-            // Only swallow the real hit once the flick actually armed - Void mode can decline
-            // (no angle empties into the void), and the attack must go through normally then.
             mc.objectMouseOver.typeOfHit = MovingObjectPosition.MovingObjectType.MISS;
         }
     }

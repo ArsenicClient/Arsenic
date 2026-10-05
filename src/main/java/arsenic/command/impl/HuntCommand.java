@@ -29,7 +29,7 @@ public class HuntCommand extends Command {
         if (hunt.isEnabled())
             PlayerUtils.addWaterMarkedMessageToChat("Now hunting §c" + args[0]);
         else
-            hunt.setEnabled(true); // announces the target itself
+            hunt.setEnabled(true);
     }
 
     @Override

@@ -80,7 +80,6 @@ public class FriendCommand extends Command {
         return new ArrayList<>();
     }
 
-    /** Everyone in the tab list, not just players in render distance. */
     private static List<String> onlinePlayers() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.getNetHandler() == null)

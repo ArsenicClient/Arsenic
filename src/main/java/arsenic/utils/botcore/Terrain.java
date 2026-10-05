@@ -3,18 +3,11 @@ package arsenic.utils.botcore;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Cached geometric questions about a {@link BlockView}: where a player can stand, whether the player's
- * box fits somewhere, and line of sight. Everything is worked out from collision boxes.
- * Not thread-safe; make one per search (and a fresh one per tick for the follower).
- */
 public final class Terrain {
     public static final double EPS = 1e-6;
-    /** Half the player's width. */
     public static final double HW = 0.3;
     public static final double HEIGHT = 1.8;
     public static final double EYE = 1.62;
-    /** Highest ledge the player walks up without jumping (Entity.stepHeight). */
     public static final double STEP = 0.6;
 
     private static final Box[] NONE = new Box[0];
@@ -26,7 +19,6 @@ public final class Terrain {
     }
 
     public final BlockView view;
-    /** Treat the bot's own blocks as minable (a pickaxe is at hand). */
     public boolean mineOwn;
     private final LongMap<Cell> cache = new LongMap<>(4096);
     private final List<Box> scratch = new ArrayList<>();
@@ -40,17 +32,15 @@ public final class Terrain {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
     }
 
-    /** Blocks the plan being explored has already put down (keys), or null. They count as full solid blocks. */
     private long[] virtual;
 
-    /** Set while expanding a search node, so its planned placements are taken into account. */
     public void setVirtual(long[] placed) {
         virtual = placed;
     }
 
     private Cell virtualCell(int x, int y, int z) {
         Cell c = new Cell();
-        c.flags = BlockView.PLACE_AGAINST; // not OWN_BLOCK: a planned block is not something to plan mining
+        c.flags = BlockView.PLACE_AGAINST;
         c.boxes = new Box[]{Box.local(x, y, z, 0, 0, 0, 1, 1, 1)};
         c.ray = c.boxes;
         return c;
@@ -98,11 +88,6 @@ public final class Terrain {
         return is(x, y, z, BlockView.CLIMBABLE);
     }
 
-    /**
-     * Whether a box fits: no collision box overlaps it and it touches no dangerous, liquid or
-     * unloaded block. With {@link #mineOwn}, the bot's own blocks are ignored. Returns the number of
-     * own blocks that would have to be mined, or -1 if it does not fit.
-     */
     public int fitsBox(Box b) {
         int x0 = floor(b.minX + EPS), x1 = floor(b.maxX - EPS);
         int y0 = floor(b.minY + EPS), y1 = floor(b.maxY - EPS);
@@ -110,7 +95,6 @@ public final class Terrain {
         int own = 0;
         for (int x = x0; x <= x1; x++) {
             for (int z = z0; z <= z1; z++) {
-                // one lower too: a fence-like box can reach up out of the block below
                 for (int y = y0 - 1; y <= y1; y++) {
                     Cell c = cell(x, y, z);
                     if (y >= y0 && (c.flags & (BlockView.DANGER | BlockView.LIQUID | BlockView.UNLOADED)) != 0) {
@@ -135,10 +119,7 @@ public final class Terrain {
         return own;
     }
 
-    /** Own blocks to mine for the player to stand with feet at (px, py, pz), or -1 if it can't. */
     public int fits(double px, double py, double pz) {
-        // the planner mostly asks about the middle of a block at a whole or half height: cache those
-        // (not while a plan branch has virtual placed blocks, which change the answer)
         double fx = px - 0.5, fz = pz - 0.5, y2 = py * 2;
         boolean cacheable = virtual == null && fx == Math.floor(fx) && fz == Math.floor(fz) && y2 == Math.floor(y2);
         long k = 0;
@@ -154,18 +135,13 @@ public final class Terrain {
 
     private final LongMap<Integer> fitCache = new LongMap<>(4096);
 
-    /**
-     * Height the player's feet rest at when standing centred in column (x, z) with feet in block y:
-     * the top of the highest collision box under the footprint, which may be part-way up block y
-     * (slab, bottom of a stair) but no more than a step. NaN when there is nothing to stand on.
-     */
     public double floorAt(int x, int y, int z) {
         double best = Double.NEGATIVE_INFINITY;
         double fx0 = x + 0.5 - HW, fx1 = x + 0.5 + HW, fz0 = z + 0.5 - HW, fz1 = z + 0.5 + HW;
         for (int yy = y - 1; yy <= y; yy++) {
             Cell c = cell(x, yy, z);
             if (mineOwn && (c.flags & BlockView.OWN_BLOCK) != 0 && yy == y) {
-                continue; // will be mined out of the way
+                continue;
             }
             for (Box b : c.boxes) {
                 if (b.maxX > fx0 && b.minX < fx1 && b.maxZ > fz0 && b.minZ < fz1 && b.maxY <= y + 0.5 + EPS && b.maxY > best) {
@@ -179,11 +155,6 @@ public final class Terrain {
         return best;
     }
 
-    /**
-     * Whether something holds the player up with feet at (px, feet, pz) exactly there, not just
-     * somewhere in the block: a collision box under the actual footprint, near foot height. Matters
-     * on thin floors like iron-bar grates, where much of each block is a hole.
-     */
     public boolean supportAt(double px, double feet, double pz) {
         double x0 = px - HW, x1 = px + HW, z0 = pz - HW, z1 = pz + HW;
         int y = floor(feet + EPS);
@@ -202,11 +173,6 @@ public final class Terrain {
         return false;
     }
 
-    /**
-     * The side of a ladder/vine block the player can push against to climb it (vanilla only climbs
-     * while pushing into something): the face the ladder's own thin box is on, or a solid
-     * neighbouring block (the wall behind a vine). -1 for vines hanging free, which can't be climbed.
-     */
     public int pushSide(int x, int y, int z) {
         for (int d = 2; d < 6; d++) {
             for (Box b : boxes(x, y, z)) {
@@ -227,15 +193,10 @@ public final class Terrain {
         return -1;
     }
 
-    /** Whether lava or fire is directly under where a player would stand. */
     public boolean dangerBelow(int x, int y, int z) {
         return is(x, y - 1, z, BlockView.DANGER);
     }
 
-    /**
-     * Feet height for a node at (x, y, z): standing on a floor, or holding on to a ladder/vine
-     * (in one, or just above the top of one). NaN if the player can't be there.
-     */
     public double standHeight(int x, int y, int z) {
         double h = floorAt(x, y, z);
         if (Double.isNaN(h)) {
@@ -251,12 +212,10 @@ public final class Terrain {
         return h;
     }
 
-    /** Whether there is a real floor (not just a ladder to hold) at this node. */
     public boolean solidFloor(int x, int y, int z) {
         return !Double.isNaN(floorAt(x, y, z));
     }
 
-    // ---- line of sight ---------------------------------------------------------------------------
 
     private Box[] rayBoxes(int x, int y, int z) {
         Cell c = cell(x, y, z);
@@ -268,10 +227,6 @@ public final class Terrain {
         return c.ray;
     }
 
-    /**
-     * The first block a ray from a to b hits, packed with {@link #key}, or Long.MIN_VALUE if it hits
-     * nothing. {@code faceOut[0]} gets the face hit. Voxel walk, like World.rayTraceBlocks.
-     */
     public long rayTrace(double ax, double ay, double az, double bx, double by, double bz, int[] faceOut) {
         int x = floor(ax), y = floor(ay), z = floor(az);
         int ex = floor(bx), ey = floor(by), ez = floor(bz);

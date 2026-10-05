@@ -20,17 +20,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * A nested group of properties, collapsed behind one header row.
- */
 public class FolderProperty extends SerializableProperty<List<Property<?>>> {
 
-    /* example of how this property should be used:
-    private final BooleanProperty booleanProp =  new BooleanProperty("Coolbeans", false);
-    @PropertyInfo(reliesOn = "Coolbeans", value = "true")
-    private final EnumProperty<TestModule.testEnum> enumProp =  new EnumProperty<TestModule.testEnum>("Range Mode:", TestModule.testEnum.Close);
-    public final FolderProperty folderProperty = new FolderProperty("folder prop", booleanProp, enumProp);
-    */
 
     public FolderProperty(String name, Property<?>... values) {
         super(name, Arrays.asList(values));
@@ -58,12 +49,6 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
         return obj;
     }
 
-    /**
-     * The group is drawn as a tinted well with a vertical guide down its left edge rather than a
-     * floating bar, so nested rows read as belonging to the header above them. The header keeps a
-     * chevron and a count, because a collapsed folder that shows nothing about its contents is just
-     * a row you have to click to find out what it hides.
-     */
     private class FolderComponent extends PropertyComponent<FolderProperty> implements IContainer<PropertyComponent<?>> {
 
         private boolean open;
@@ -78,9 +63,6 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
 
         @Override
         protected float draw(RenderInfo ri) {
-            // Time the expansion by how far it has to travel, so a folder of two settings and a
-            // folder of ten open at the same speed rather than in the same number of milliseconds.
-            // lastHeight is zero until the first open, hence the row-count estimate.
             openTimer.setMaxMs(UITheme.expandDuration(
                     lastHeight > 0 ? lastHeight : components.size() * height * 1.06f));
             float openPct = openTimer.getPercent();
@@ -98,7 +80,6 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
                     ThemeManager.getFolderBackground(), UITheme.Elevation.FLAT);
             UITheme.hoverWash(wellX1, y1, wellX2, y2, radius, hover * (1f - openPct * 0.5f));
 
-            // Guide rail: full height when open, just the header's worth when closed.
             float railW = Math.max(1f, height * 0.06f);
             DrawUtils.drawRoundedRect(wellX1, y1 + pad * 0.4f, wellX1 + railW, y2 + expandY - pad * 0.4f,
                     railW / 2f, UITheme.alpha(UITheme.accent(), (int) (110 + 110 * openPct)));

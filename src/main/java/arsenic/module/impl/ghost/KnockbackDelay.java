@@ -1,6 +1,7 @@
 package arsenic.module.impl.ghost;
 
 import arsenic.module.property.impl.SliderScale;
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
 import arsenic.event.bus.annotations.EventLink;
@@ -19,20 +20,23 @@ import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
-import ibxm.Player;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S00PacketKeepAlive;
+import net.minecraft.network.play.server.S01PacketJoinGame;
+import net.minecraft.network.play.server.S07PacketRespawn;
+import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.network.play.server.S40PacketDisconnect;
 
 @ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT)
 public class KnockbackDelay extends Module {
 
     public enum DelayMode {Normal, AntiCombo}
 
-    public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 500, 200, 300, 10));
+    public final RangeProperty delay = new RangeProperty("Delay (ms)", new RangeValue(0, 300, 80, 150, 10));
     public final EnumProperty<DelayMode> mode = new EnumProperty<>("Mode", DelayMode.AntiCombo);
-    /** Minimum gap after a delay ends before another may be triggered. */
-    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 2000, 500, 10), SliderScale.LOG);
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 3000, 800, 10), SliderScale.LOG);
     private final MSTimer releaseTimer = new MSTimer();
     private final MSTimer cdTimer = new MSTimer();
     private long lag = 0;
@@ -48,8 +52,6 @@ public class KnockbackDelay extends Module {
 
     @EventLink
     public Listener<EventUpdate.Pre> preListener = event -> {
-        // Only act while we're actually holding packets, otherwise the lag==0 initial state
-        // makes releaseTimer.finished() perpetually true and drains other modules' queues.
         if(lagging && releaseTimer.finished(lag))  {
             LagManager.releaseDelayedFor(KnockbackDelay.class);
             LagManager.undelay(KnockbackDelay.class);
@@ -58,20 +60,27 @@ public class KnockbackDelay extends Module {
         }
     };
 
+    private static boolean isHoldable(Packet<?> p) {
+        return !(p instanceof S08PacketPlayerPosLook || p instanceof S00PacketKeepAlive
+                || p instanceof S01PacketJoinGame || p instanceof S07PacketRespawn
+                || p instanceof S40PacketDisconnect);
+    }
+
+    @RequiresPlayer
     @EventLink(Priorities.HIGH)
     public Listener<EventPacket.Incoming.Pre> listener = event -> {
        if(event.getPacket() instanceof S12PacketEntityVelocity) {
            S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
-           if(p.getMotionX() != 0 && p.getMotionZ() != 0 && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
-               if(Math.random() > 100/100f)
-                   return;
+           if (p.getEntityID() != mc.thePlayer.getEntityId())
+               return;
+           if((p.getMotionX() != 0 || p.getMotionZ() != 0) && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
                EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
                if(mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000)  && RotationUtils.getDistanceToEntityBox(target) <= 3)
                    return;
                lagging = true;
                lag = (long) delay.getValue().getRandomInRange();
                releaseTimer.reset();
-               LagManager.delay(KnockbackDelay.class, Packet.class, pk -> lag);
+               LagManager.delay(KnockbackDelay.class, KnockbackDelay::isHoldable, pk -> lag);
            }
        }
     };

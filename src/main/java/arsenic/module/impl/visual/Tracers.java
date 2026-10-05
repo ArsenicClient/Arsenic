@@ -9,6 +9,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.client.AntiBot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -20,7 +21,7 @@ import java.awt.*;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, tier = ModuleTier.EXTRA, hidden = true)
 public class Tracers extends Module {
 
     private final FloatBuffer modelView = BufferUtils.createFloatBuffer(16);
@@ -70,7 +71,6 @@ public class Tracers extends Module {
         }
     };
 
-    /** Projects a viewer-relative point to the screen and checks whether it lands inside the viewport. */
     private boolean isOnScreen(double x, double y, double z) {
         screenCoords.clear();
         if (!project((float) x, (float) y, (float) z, modelView, projection, viewport, screenCoords))
@@ -78,7 +78,7 @@ public class Tracers extends Module {
         float winX = screenCoords.get(0);
         float winY = screenCoords.get(1);
         float winZ = screenCoords.get(2);
-        if (winZ < 0f || winZ > 1f) return false; // behind the camera
+        if (winZ < 0f || winZ > 1f) return false;
         int vx = viewport.get(0);
         int vy = viewport.get(1);
         int vw = viewport.get(2);
@@ -99,21 +99,16 @@ public class Tracers extends Module {
         return ThemeManager.getMainColor();
     }
 
-    /**
-     * Projects an object-space point to window coordinates. Drop-in replacement for
-     * GLU.gluProject (from the lwjgl_util library, which LabyMod does not ship on the
-     * classpath) using identical math, so behaviour is unchanged.
-     */
     private static boolean project(float objX, float objY, float objZ,
                                    FloatBuffer model, FloatBuffer proj, IntBuffer view,
                                    FloatBuffer winPos) {
         float[] in = {objX, objY, objZ, 1.0f};
         float[] out = new float[4];
-        multMatrixVec(model, in, out); // -> eye space
-        multMatrixVec(proj, out, in);  // -> clip space
+        multMatrixVec(model, in, out);
+        multMatrixVec(proj, out, in);
         if (in[3] == 0.0f) return false;
         in[3] = (1.0f / in[3]) * 0.5f;
-        in[0] = in[0] * in[3] + 0.5f;  // -> normalized device coords in [0,1]
+        in[0] = in[0] * in[3] + 0.5f;
         in[1] = in[1] * in[3] + 0.5f;
         in[2] = in[2] * in[3] + 0.5f;
         winPos.put(0, in[0] * view.get(2) + view.get(0));
@@ -122,7 +117,6 @@ public class Tracers extends Module {
         return true;
     }
 
-    /** Column-major 4x4 matrix times a 4-vector: out = m * in. */
     private static void multMatrixVec(FloatBuffer m, float[] in, float[] out) {
         for (int i = 0; i < 4; i++) {
             out[i] = in[0] * m.get(i)

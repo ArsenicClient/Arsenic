@@ -8,6 +8,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -16,20 +17,12 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MathHelper;
 
-/**
- * Walks to the middle of the map (0, 0) and turns KillAura on once the player is below the
- * configured height. Keeps running with the window unfocused: the vanilla "pause on lost focus"
- * (which opens the pause menu) is switched off while enabled.
- */
-@ModuleInfo(name = "AutoGrinder", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoGrinder", category = ModuleCategory.PLAYER, tier = ModuleTier.DEV)
 public class AutoGrinder extends Module {
 
-    /** Below this Y the player counts as being in the fight area and KillAura is turned on. */
     public final DoubleProperty fightHeight = new DoubleProperty("Fight Height", new DoubleValue(0, 256, 80, 1));
-    /** Horizontal distance from (0, 0) at which the player stops walking. */
     public final DoubleProperty radius = new DoubleProperty("Radius", new DoubleValue(0, 20, 3, 0.5));
 
-    /** Close enough to the target that KillAura can hit; walking further in only gets in the way. */
     private static final double CHASE_STOP_DISTANCE = 2.5;
 
     private boolean savedPause;
@@ -58,14 +51,12 @@ public class AutoGrinder extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        // Something else (or a focus loss before this module was enabled) may have flipped it back.
         mc.gameSettings.pauseOnLostFocus = false;
         if (mc.currentScreen instanceof GuiIngameMenu) mc.displayGuiScreen(null);
 
         boolean fighting = mc.thePlayer.posY < fightHeight.getValue().getInput();
         setKillAura(fighting);
 
-        // Chase the aura's target when it has one, otherwise head for the middle.
         KillAura aura = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class);
         EntityPlayer target = fighting && aura != null ? aura.target : null;
 

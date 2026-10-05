@@ -15,9 +15,6 @@ import arsenic.utils.render.*;
 
 @ModuleInfo(name = "PostProcessing",category = ModuleCategory.GUI, hidden = true)
 public class PostProcessing extends Module {
-    // Kawase iteration counts and sample offsets are not a matter of taste - below these the
-    // effect bands visibly, above them it costs frames for no visual difference. The module is
-    // reached from the GUI pane as a single "Blur & Bloom" switch, so both passes run together.
     private static final int BLUR_ITERATIONS = 2;
     private static final int BLUR_OFFSET = 1;
     private static final int BLOOM_ITERATIONS = 2;
@@ -61,15 +58,6 @@ public class PostProcessing extends Module {
         }
     }
 
-    /**
-     * While the ClickGUI's open/close transition is mid-flight, multiplies the
-     * currently-bound mask FBO by the transition's per-pixel "keep" factor so
-     * blur and bloom vanish exactly where the GUI has burnt/dissolved away
-     * (they render outside the burn capture and would otherwise stay at full
-     * strength, then pop off). Note: this fades the whole mask, so any other
-     * listeners' shapes fade with the GUI during the transition - acceptable,
-     * since the transition only runs while the ClickGUI owns the screen.
-     */
     private void applyBurnMaskFade() {
         arsenic.gui.click.ClickGuiScreen screen = Arsenic.getArsenic().getClickGuiScreen();
         if (screen == null || mc.currentScreen != screen || !screen.isBurnActive())

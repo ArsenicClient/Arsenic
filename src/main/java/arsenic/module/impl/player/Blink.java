@@ -42,7 +42,6 @@ public class Blink extends Module {
         RenderUtils.drawBoundingBox(startPos, new Color(255, 255, 255));
     };
 
-    /** Ticks currently held, against the cap - the one number that matters while blinking. */
     @Override
     public String getHudInfo() {
         return ticksElapsed + "/" + (int) doubleProperty.getValue().getInput() + "t";

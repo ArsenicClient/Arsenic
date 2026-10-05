@@ -7,6 +7,7 @@ import arsenic.event.impl.*;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -20,16 +21,11 @@ import java.awt.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
 public class AntiFireball extends Module {
 
-    /** Reach used both to pick a fireball and to decide it is close enough to hit. */
     private static final double RANGE = 4.5;
 
-    /**
-     * Fireballs younger than this are ignored. A fireball is at its spawn point for the first few
-     * ticks, so swinging immediately hits nothing and just looks like a random swing at the air.
-     */
     private static final int MIN_FIREBALL_AGE_TICKS = 10;
 
     private Entity target;
@@ -73,8 +69,6 @@ public class AntiFireball extends Module {
         if (!attackTimer.hasTimeElapsed(150))
             return;
 
-        // Always a real swing: a bare animation packet without the client-side arm movement is
-        // both easier to spot and pointless here, since the swing is visible anyway.
         mc.thePlayer.swingItem();
         mc.playerController.attackEntity(mc.thePlayer, target);
         attackTimer.reset();

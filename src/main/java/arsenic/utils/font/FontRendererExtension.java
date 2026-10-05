@@ -8,6 +8,8 @@ import java.util.function.BiConsumer;
 
 public class FontRendererExtension<T extends IFontRenderer>{
 
+    private static final float OPTICAL_CENTRE_Y = 0.8f;
+
     float scale = 1f;
     float scaleReciprocal = 1f;
     float tempScale = 1f;
@@ -22,9 +24,9 @@ public class FontRendererExtension<T extends IFontRenderer>{
         setScale(1f);
     }
     public float getWidth(String text) {
-        return fontRenderer.getWidth(text);
+        return fontRenderer.getWidth(text) * scale;
     }
-    public float getHeight(String text) {return fontRenderer.getHeight(text);}
+    public float getHeight(String text) {return fontRenderer.getHeight(text) * scale;}
 
     public void scale(float scale) {
         setScale(this.scale * scale);
@@ -45,8 +47,8 @@ public class FontRendererExtension<T extends IFontRenderer>{
     }
 
     public final BiConsumer<PosInfo, String> CENTREX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)/2f) * scale);
-    public final BiConsumer<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY(- (fontRenderer.getHeight(string)/2f) * scale);
-    public final BiConsumer<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)));
+    public final BiConsumer<PosInfo, String> CENTREY = (posInfo, string) -> posInfo.moveY((OPTICAL_CENTRE_Y - fontRenderer.getHeight(string)/2f) * scale);
+    public final BiConsumer<PosInfo, String> LEFTSHIFTX = (posInfo, string) -> posInfo.moveX(- (fontRenderer.getWidth(string)) * scale);
     private final BiConsumer<PosInfo, String> SCALE = (posInfo, string) -> {
         posInfo.setX(posInfo.getX() * scaleReciprocal);
         posInfo.setY(posInfo.getY() * scaleReciprocal);
@@ -66,7 +68,6 @@ public class FontRendererExtension<T extends IFontRenderer>{
         finsh();
     }
 
-    //issues with y values btw
     public void drawWrappingString(String unSplitText, float x, float y, int color, BiConsumer<PosInfo, String> ... modifiers) {
         for(String text : unSplitText.split("\n")) {
             drawString(text, x, y, color, modifiers);

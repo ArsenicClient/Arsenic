@@ -14,7 +14,6 @@ public class RotationUtils extends UtilityClass {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    //dont bloat this method again. Let it be the way it was when i first made it
     public static float[] getRotationsToEntity(EntityLivingBase e) {
         if (e == null) return null;
         final Vec3 targetVec = getBestHitVec(e);
@@ -93,7 +92,6 @@ public class RotationUtils extends UtilityClass {
         return (float) (yaw * -1.0D);
     }
 
-    // old arsenic
     public static float[] getRotations(Vec3 from, Vec3 to) {
         final float diffY = (float) (from.yCoord - to.yCoord);
         final float diffX = (float) (from.xCoord - to.xCoord);
@@ -118,7 +116,6 @@ public class RotationUtils extends UtilityClass {
         return mc.thePlayer.getPositionVector().distanceTo(new Vec3(blockPos));
     }
 
-    //haven't tested if this works
     public static float[] getPlayerRotationsToBlock(BlockPos pos, EnumFacing face) {
         return getPlayerRotationsToVec(getVec3FromBlockPosAndEnumFacing(pos, face));
     }

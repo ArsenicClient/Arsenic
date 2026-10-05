@@ -27,11 +27,6 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The bot core's view of the Minecraft world. Stairs, slabs and ladders are worked out from their
- * block state (the 1.8.9 shapes) rather than through Block's collision
- * methods, which change shared block bounds and are read from the planning thread.
- */
 public final class McWorldView implements BlockView {
     private final World world;
 
@@ -66,7 +61,6 @@ public final class McWorldView implements BlockView {
                 default: out.add(Box.local(x, y, z, 0, 0, 0, f, 1, 1)); break;
             }
         } else if (b instanceof BlockVine || b.getMaterial().isLiquid()) {
-            // no collision
         } else if (b.isFullCube()) {
             out.add(Box.local(x, y, z, 0, 0, 0, 1, 1, 1));
         } else if (b instanceof BlockPane) {
@@ -82,9 +76,6 @@ public final class McWorldView implements BlockView {
                         : Box.local(x, y, z, 0.375, 0, 0, 0.625, 1.5, 1));
             }
         } else if (!Minecraft.getMinecraft().isCallingFromMinecraftThread()) {
-            // Block's collision methods rewrite the block's shared bounds; doing that from the
-            // planning thread can make the player bump into phantom boxes on the main thread
-            // (losing sprint). Off the main thread, only read the bounds it already has.
             if (b.getMaterial().blocksMovement()) {
                 out.add(Box.local(x, y, z, b.getBlockBoundsMinX(), b.getBlockBoundsMinY(), b.getBlockBoundsMinZ(),
                         b.getBlockBoundsMaxX(), b.getBlockBoundsMaxY(), b.getBlockBoundsMaxZ()));
@@ -95,7 +86,6 @@ public final class McWorldView implements BlockView {
             try {
                 b.addCollisionBoxesToList(world, pos, st, mask, list, null);
             } catch (RuntimeException ignored) {
-                // some blocks expect an entity; treat them as full
                 out.add(Box.local(x, y, z, 0, 0, 0, 1, 1, 1));
                 return;
             }
@@ -127,9 +117,7 @@ public final class McWorldView implements BlockView {
         return f;
     }
 
-    // ---- panes, fences, walls (their addCollisionBoxesToList, without touching shared bounds) ----
 
-    /** BlockPane.canPaneConnectTo. */
     private boolean paneConnects(BlockPos pos, EnumFacing side, Block self) {
         BlockPos off = pos.offset(side);
         Block b = world.getBlockState(off).getBlock();
@@ -156,7 +144,6 @@ public final class McWorldView implements BlockView {
         }
     }
 
-    /** BlockFence.canConnectTo / BlockWall.canConnectTo. */
     private boolean postConnects(BlockPos p, Block self, boolean wall) {
         Block b = world.getBlockState(p).getBlock();
         if (b == Blocks.barrier) return false;
@@ -188,7 +175,6 @@ public final class McWorldView implements BlockView {
         out.add(Box.local(x, y, z, x0, 0, z0, x1, 1.5, z1));
     }
 
-    // ---- stairs (BlockStairs.addCollisionBoxesToList, read from block states) ----
 
     private IBlockState stair(BlockPos p) {
         IBlockState s = world.getBlockState(p);

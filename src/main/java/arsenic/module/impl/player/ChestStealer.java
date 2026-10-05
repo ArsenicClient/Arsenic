@@ -1,10 +1,13 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.timer.MSTimer;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventDisplayGuiScreen;
+import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -14,10 +17,14 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.Timer;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockChest;
+import net.minecraft.block.BlockEnderChest;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.inventory.ContainerChest;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -28,11 +35,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @ModuleInfo(name = "ChestStealer", category = ModuleCategory.PLAYER)
 public class ChestStealer extends Module {
-    /** Gap between inventory clicks. Lower empties a chest faster and less plausibly. */
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
 
 
+    private static final long CHEST_CLICK_WINDOW_MS = 3000;
+
     private boolean inChest;
+    private final MSTimer chestClick = MSTimer.expired();
     private ArrayList<Slot> path = new ArrayList<>();
     private int totalSlots;
     private float percentStolen;
@@ -64,9 +73,25 @@ public class ChestStealer extends Module {
     };
 
 
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventPacket.OutGoing> chestClickListener = event -> {
+        if (!(event.getPacket() instanceof C08PacketPlayerBlockPlacement))
+            return;
+        C08PacketPlayerBlockPlacement placement = (C08PacketPlayerBlockPlacement) event.getPacket();
+        if (placement.getPlacedBlockDirection() == 255 || placement.getPosition() == null)
+            return;
+        Block block = mc.theWorld.getBlockState(placement.getPosition()).getBlock();
+        if (block instanceof BlockChest || block instanceof BlockEnderChest)
+            chestClick.reset();
+    };
+
+    @RequiresPlayer
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
-        inChest = (event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest);
+        inChest = event.getGuiScreen() instanceof GuiChest && mc.thePlayer.openContainer instanceof ContainerChest
+                && chestClick.getTime() <= CHEST_CLICK_WINDOW_MS;
+        chestClick.setTime(0);
         if (!inChest)
             return;
         chest = (ContainerChest) mc.thePlayer.openContainer;
@@ -94,7 +119,6 @@ public class ChestStealer extends Module {
         inChest = false;
     }
 
-    //below is copied from raven b++ i will review this later
     public ArrayList<Slot> generatePath(ContainerChest chest) {
         ArrayList<Slot> slots = new ArrayList<Slot>();
         for (int i = 0; i < chest.getLowerChestInventory().getSizeInventory(); i++) {

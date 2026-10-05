@@ -22,55 +22,24 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S2DPacketOpenWindow;
 import net.minecraft.network.play.server.S2EPacketCloseWindow;
 
-/**
- * provides information about player's state(s) on server side
- */
 public class ServerInfo {
     private final Minecraft mc = Minecraft.getMinecraft();
     public int onGroundTicks,offGroundTicks;
     public float yaw,pitch;
     public boolean blocking,sprinting;
 
-    /**
-     * Whether the server thinks a window is open: the player inventory (opening it sends
-     * OPEN_INVENTORY_ACHIEVEMENT, clicking in it a click-window packet) or a container the server
-     * opened. A close-window packet either way, a respawn or a new world closes it. Written from
-     * the network threads, hence volatile.
-     */
     private volatile boolean windowOpen;
-    /** Until when a chat packet we sent counts as a screen being open (System.currentTimeMillis). */
     private volatile long chatUntil;
-    /**
-     * A chat message (or command) can only be typed with the chat screen open, so the tick one
-     * goes out the server knows a screen was up. Covers that tick and the next.
-     */
     private static final long CHAT_GRACE_MS = 100;
 
-    /**
-     * Whether the server thinks the player is in a screen right now - an inventory/container
-     * window, or just sent a chat packet. Attacking or turning then is something a real client
-     * can't do.
-     */
     public boolean isInGuiServerSide() {
         return windowOpen || System.currentTimeMillis() < chatUntil;
     }
 
-    /** The rotation the server last received, and whether there has been one yet. */
     private volatile float sentYaw, sentPitch;
     private volatile boolean hasSentRotation;
-    /**
-     * The server set our rotation (a teleport/look packet): the client's confirming reply carries
-     * the rotation the server chose, so it goes out even in a screen and becomes the frozen one.
-     */
     private volatile boolean serverSetRotation;
 
-    /**
-     * While the server thinks we're in a screen, the movement packet carries the rotation it
-     * already has. Runs after every other listener (the silent rotation manager included), so
-     * nothing can turn it back. Vanilla only adds a rotation to the packet when it differs from the
-     * last one it reported, which this is exactly, so it sends position-only packets and its own
-     * idea of the last reported rotation stays right.
-     */
     @EventLink(Priorities.VERY_LOW)
     public final Listener<EventUpdate.Pre> freezeRotationListener = e -> {
         if (hasSentRotation && isInGuiServerSide()) {
@@ -79,10 +48,6 @@ public class ServerInfo {
         }
     };
 
-    /**
-     * What actually reaches the server: runs after every other listener, and skips packets they
-     * cancelled (held by LagManager, say) - those count when they are finally sent.
-     */
     @EventLink(Priorities.VERY_LOW)
     public final Listener<EventPacket.OutGoing> windowOutListener = e -> {
         if (e.isCancelled())
@@ -97,7 +62,6 @@ public class ServerInfo {
                 hasSentRotation = true;
             } else if (hasSentRotation && isInGuiServerSide()
                     && (c03.getYaw() != sentYaw || c03.getPitch() != sentPitch)) {
-                // Something sent a turn of its own while in a screen: keep the position, drop the look.
                 e.setPacket(c03.isMoving()
                         ? new C03PacketPlayer.C04PacketPlayerPosition(c03.getPositionX(), c03.getPositionY(), c03.getPositionZ(), c03.isOnGround())
                         : new C03PacketPlayer(c03.isOnGround()));
@@ -120,10 +84,6 @@ public class ServerInfo {
         }
     };
 
-    /**
-     * Windows the server opens or closes. Taken as they arrive, cancelled or not: a packet that is
-     * being delayed was still sent, so the server already thinks the window is open (or shut).
-     */
     @EventLink(Priorities.VERY_LOW)
     public final Listener<EventPacket.Incoming.Pre> windowInListener = e -> {
         Packet<?> p = e.getPacket();

@@ -16,19 +16,8 @@ import java.awt.Color;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Draws whatever is currently throwing on the event bus in the top left corner, so a broken module
- * announces itself instead of quietly spamming the console.
- *
- * <p>Each line names the module, the event it died on, and where it threw. Errors fade out a few
- * seconds after they stop happening, so this is invisible unless something is actually wrong.
- */
 public class ErrorOverlay implements ISerializable {
 
-    /**
-     * Off by default - errors are always collected and readable through {@code .errors}, this only
-     * controls whether they are painted over the game. Toggle with {@code .errors hud enable}.
-     */
     private static boolean enabled;
 
     public static boolean isEnabled() {
@@ -39,7 +28,6 @@ public class ErrorOverlay implements ISerializable {
         enabled = value;
     }
 
-    /** Sits below the default watermark position so the two do not overlap. */
     private static final int X = 4;
     private static final int Y = 18;
 
@@ -55,8 +43,6 @@ public class ErrorOverlay implements ISerializable {
         if (errors.isEmpty())
             return;
 
-        // an overlay that reports errors must never be the thing that throws, so every hop to the
-        // font renderer is treated as optional
         FontRendererExtension<?> fr = Optional.ofNullable(Arsenic.getArsenic())
                 .map(Arsenic::getClickGuiScreen)
                 .map(ClickGuiScreen::getFontRenderer)
@@ -80,25 +66,21 @@ public class ErrorOverlay implements ISerializable {
 
             int backdrop = (int) (0x99 * fade) << 24;
             Gui.drawRect(X - PADDING, (int) y - PADDING, X + width + PADDING,
-                    (int) y + LINE_HEIGHT * 3 - 1, backdrop);
+                    (int) y + LINE_HEIGHT * 3 + PADDING, backdrop);
 
             int colour = RenderUtils.alpha(Color.WHITE, (int) (255 * fade));
-            fr.drawStringWithShadow(title, X, y, colour);
-            fr.drawStringWithShadow(detail, X, y + LINE_HEIGHT, colour);
-            fr.drawStringWithShadow(site, X, y + LINE_HEIGHT * 2, colour);
+            fr.drawStringWithShadow(title, X, y + LINE_HEIGHT * 0.5f, colour, fr.CENTREY);
+            fr.drawStringWithShadow(detail, X, y + LINE_HEIGHT * 1.5f, colour, fr.CENTREY);
+            fr.drawStringWithShadow(site, X, y + LINE_HEIGHT * 2.5f, colour, fr.CENTREY);
 
-            y += LINE_HEIGHT * 3 + PADDING * 2;
+            y += LINE_HEIGHT * 3 + PADDING * 2 + 1;
         }
     };
 
-    /** Width measuring should not count the colour codes. */
     private static String stripColour(String text) {
         return text.replaceAll("§.", "");
     }
 
-    // -----------------------------------------------------------------
-    //  persisted with the client config so the toggle survives a restart
-    // -----------------------------------------------------------------
 
     @Override
     public void loadFromJson(JsonObject obj) {

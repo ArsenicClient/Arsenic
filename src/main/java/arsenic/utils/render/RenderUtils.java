@@ -27,7 +27,6 @@ import static org.lwjgl.opengl.GL11.*;
 
 import arsenic.main.Arsenic;
 
-import static net.minecraft.client.renderer.GlStateManager.color;
 import static org.lwjgl.opengl.GL11.glColor4f;
 
 public class RenderUtils extends UtilityClass {
@@ -57,23 +56,10 @@ public class RenderUtils extends UtilityClass {
         GlStateManager.enableAlpha();
         GlStateManager.alphaFunc(GL_GREATER,  alphaLimit * 0.01f);
     }
-    /**
-     * True while the ClickGUI is being captured into the burn-transition FBO.
-     * With plain (SRC_ALPHA, 1-SRC_ALPHA) blending the src factor also applies
-     * to the alpha channel, so an empty FBO accumulates srcA^2 instead of srcA
-     * - the capture reads too transparent and the burn composite lets the world
-     * bleed through, then "snaps" opaque when the burn ends. While this flag is
-     * set, GUI draws use separate alpha factors (ONE, 1-SRC_ALPHA) so FBO alpha
-     * is true coverage and the composite reproduces on-screen opacity exactly.
-     */
     public static boolean captureCoverage = false;
 
-    /** Standard GUI transparency blend; coverage-correct during burn capture. */
     public static void applyGuiBlend() {
         if (captureCoverage) {
-            // sync GlStateManager's cache, then force the real GL state with a
-            // raw call - the cache is often stale here because of the raw
-            // glBlendFunc calls sprinkled through the render helpers
             GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
             OpenGlHelper.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         } else {
@@ -183,7 +169,6 @@ public class RenderUtils extends UtilityClass {
 
         GL11.glColor4f(r, g, b, a);
 
-        // Build a razor-thin BB on the correct face
         AxisAlignedBB faceBB;
         switch (facing) {
             case UP:
@@ -464,7 +449,6 @@ public class RenderUtils extends UtilityClass {
         GlStateManager.color(r, g, b, alpha);
     }
 
-    /** {@link #color2} without going through GlStateManager - for use inside a glPushAttrib block. */
     private static void rawColor(int color, float alpha) {
         glColor4f((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, alpha);
     }
@@ -477,10 +461,6 @@ public class RenderUtils extends UtilityClass {
 
         lastFrame = System.currentTimeMillis();
 
-        // Everything this touches is saved here and restored by glPopAttrib, and nothing below goes
-        // through GlStateManager. Mixing the two is what leaked: raw calls changed the real GL state
-        // behind GlStateManager's cache (blend left on, blend func and colour changed), so later
-        // vanilla rendering skipped state changes it thought were already in place.
         glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_LINE_BIT
                 | GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_HINT_BIT);
         glPushMatrix();
@@ -499,7 +479,6 @@ public class RenderUtils extends UtilityClass {
 
         glBegin(GL_TRIANGLE_STRIP);
 
-        // <= so the last pair lands back on the first and the band closes without a gap
         for (int seg = 0; seg <= 64; seg++) {
             final double i = seg * (Math.PI * 2) / 64.0;
             final double vecX = x + rad * Math.cos(i);
