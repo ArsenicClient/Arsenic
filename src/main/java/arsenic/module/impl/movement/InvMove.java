@@ -31,13 +31,16 @@ public class InvMove extends Module {
     private boolean pendingFlush = false;
     private boolean justFlushed = false;
 
-    private final List<KeyMapping> keys = Arrays.asList(
+    // built on demand: modules are constructed before Minecraft has created its options
+    private List<KeyMapping> keys() {
+        return Arrays.asList(
             mc.options.keyJump,
             mc.options.keyUp,
             mc.options.keyDown,
             mc.options.keyLeft,
             mc.options.keyRight
-    );
+        );
+    }
 
     private boolean shouldBuffer() {
         // Only the player inventory with its 2x2 crafting grid. openContainer alone can't say that:
@@ -55,7 +58,7 @@ public class InvMove extends Module {
         if (mc.gui.screen() == null) return;
 
         if (shouldBuffer()) {
-            for (KeyMapping key : keys) {
+            for (KeyMapping key : keys()) {
                 key.setDown(Keys.isPhysicallyDown(key));
             }
 
@@ -90,7 +93,7 @@ public class InvMove extends Module {
             return;
         pendingFlush = false;
         justFlushed = true;
-        for (KeyMapping key : keys) {
+        for (KeyMapping key : keys()) {
             key.setDown(false);
         }
         // Send the held clicks and close now that the keys are up for this movement tick.
@@ -105,7 +108,7 @@ public class InvMove extends Module {
         // One-shot: left set, this re-read the raw keyboard every tick from then on, so typing
         // W in chat walked you forward.
         justFlushed = false;
-        for (KeyMapping key : keys) {
+        for (KeyMapping key : keys()) {
             key.setDown(Keys.isPhysicallyDown(key));
         }
     };

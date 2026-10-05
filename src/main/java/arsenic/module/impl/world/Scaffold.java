@@ -19,8 +19,8 @@ import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.RenderHelper;
+import arsenic.utils.render.QuadBatch;
+import arsenic.utils.render.RenderContext;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -30,14 +30,18 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.world.level.block.Block;
-import net.minecraft.block.BlockAir;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.item.BlockItem;
-import net.minecraft.util.*;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import arsenic.utils.io.Keys;
 import com.mojang.blaze3d.platform.InputConstants;
 
@@ -79,7 +83,6 @@ public class Scaffold extends Module {
     private int placementHead = 0;
     private int placementCount = 0;
     private float blockFlashIntensity = 0f;
-    private static final BlockItem placeholderBlock = new BlockItem(Blocks.TNT);
 
 
     @Override
@@ -192,13 +195,13 @@ public class Scaffold extends Module {
         Item item = keyBlock();
         if (item instanceof BlockItem && blockData != null) {
             BlockItem itemBlock = (BlockItem) item;
-            HitResult movingObjectPosition = event.getRayTrace();
+            BlockHitResult movingObjectPosition = event.getRayTrace();
             if (movingObjectPosition != null
                     && movingObjectPosition.getType() == HitResult.Type.BLOCK
-                    && (movingObjectPosition.sideHit != Direction.DOWN)
-                    && (!false || movingObjectPosition.sideHit != Direction.UP)
-                    && itemBlock.canPlaceBlockOnSide(mc.level, movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit, mc.player, mc.player.getMainHandItem())) {
-                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.sideHit);
+                    && (movingObjectPosition.getDirection() != Direction.DOWN)
+                    && (!false || movingObjectPosition.getDirection() != Direction.UP)
+                    && arsenic.utils.minecraft.ScaffoldUtil.canPlaceOnSide(movingObjectPosition.getBlockPos(), movingObjectPosition.getDirection())) {
+                blockData = new BlockData(movingObjectPosition.getBlockPos(), movingObjectPosition.getDirection());
                 placePost(event);
                 placed = true;
             }
@@ -236,35 +239,6 @@ public class Scaffold extends Module {
         drawBlockCounter();
     };
 
-    @EventLink
-    public final Listener<EventShader.Blur> blurListener = event -> {
-        if (animatedScale <= 0.01f) return;
-
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) return;
-
-        int blockCount = getBlockCount();
-        String text = String.valueOf(blockCount);
-        int iconSize = 16;
-        int padding = 4;
-        int textWidth = (int) fr.getWidth(text);
-        int bw = iconSize + padding + textWidth + padding * 2;
-        int bh = iconSize + padding * 2;
-
-        ScaledResolution sr = new ScaledResolution(mc);
-        int x = blockCounterX;
-        int y = blockCounterY;
-        if (x == -1) x = (sr.getScaledWidth() - bw) / 2;
-        if (y == -1) y = sr.getScaledHeight() - 40 - bh;
-
-        GL11.glTranslated(x + bw / 2.0, y + bh / 2.0, 0);
-        GL11.glScalef(animatedScale, animatedScale, 1.0f);
-        GL11.glTranslated(-(x + bw / 2.0), -(y + bh / 2.0), 0);
-
-        DrawUtils.drawRect(x, y, x + bw, y + bh, -1);
-
-    };
-
     private int getBlockCount() {
         if (mc.player == null) return 0;
         int count = 0;
@@ -295,6 +269,7 @@ public class Scaffold extends Module {
         animatedRingFill = maxBlockCount > 0 ? displayCount / maxBlockCount : 0f;
 
         applyScaleTransform(d.cx, d.cy);
+        try {
 
         float flashI = blockFlashIntensity;
         int bgBase = 26;
@@ -357,10 +332,13 @@ public class Scaffold extends Module {
         int textColor = ((int)(alpha * 0xFF) << 24) | 0xFFFFFF;
         if (flashI > 0.01f) {
             float popScale = 1f + flashI * 0.20f;
-            GL11.glTranslatef(ringCX, ringCY, 0f);
-            GL11.glScalef(popScale, popScale, 1f);
-            GL11.glTranslatef(-ringCX, -ringCY, 0f);
+            var pose = RenderContext.graphics().pose();
+            pose.pushMatrix();
+            pose.translate(ringCX, ringCY);
+            pose.scale(popScale, popScale);
+            pose.translate(-ringCX, -ringCY);
             fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
+            pose.popMatrix();
         } else {
             fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
         }
@@ -412,6 +390,9 @@ public class Scaffold extends Module {
         String pctStr = Math.round(fill * 100f) + "%";
         fr.drawStringWithShadow(pctStr, textX + barW - (float) fr.getWidth(pctStr),
                 barY + barH + 4f, labelColor);
+        } finally {
+            RenderContext.graphics().pose().popMatrix();
+        }
 
     }
 
@@ -462,33 +443,34 @@ public class Scaffold extends Module {
         return d;
     }
 
+    /** Pushes a pose that scales the counter about its centre; the caller pops it. */
     private void applyScaleTransform(float cx, float cy) {
-        GL11.glTranslated(cx, cy, 0);
-        GL11.glScalef(animatedScale, animatedScale, 1.0f);
-        GL11.glTranslated(-cx, -cy, 0);
+        var pose = RenderContext.graphics().pose();
+        pose.pushMatrix();
+        pose.translate(cx, cy);
+        pose.scale(animatedScale, animatedScale);
+        pose.translate(-cx, -cy);
     }
 
     private static void drawArc(float cx, float cy, float radius,
                                 float lineWidth, float startFraction, float endFraction,
                                 int color) {
-        float a = ((color >> 24) & 0xFF) / 255f;
-        float r = ((color >> 16) & 0xFF) / 255f;
-        float g = ((color >> 8)  & 0xFF) / 255f;
-        float b = ( color        & 0xFF) / 255f;
-
-        GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
-
+        // a ring segment per step, as quads between an inner and outer radius
         int segments = 64;
         int start = (int)(startFraction * segments);
         int end   = (int)(endFraction   * segments);
+        float inner = radius - lineWidth / 2f, outer = radius + lineWidth / 2f;
 
-        GL11.glBegin(GL11.GL_LINE_STRIP);
-        for (int i = start; i <= end; i++) {
-            double angle = -Math.PI / 2.0 + (i / (double) segments) * 2.0 * Math.PI;
-            GL11.glVertex2f(cx + (float)(Math.cos(angle) * radius),
-                    cy + (float)(Math.sin(angle) * radius));
+        QuadBatch batch = new QuadBatch();
+        for (int i = start; i < end; i++) {
+            double a0 = -Math.PI / 2.0 + (i / (double) segments) * 2.0 * Math.PI;
+            double a1 = -Math.PI / 2.0 + ((i + 1) / (double) segments) * 2.0 * Math.PI;
+            float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0);
+            float c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+            batch.quad(cx + c0 * outer, cy + s0 * outer, cx + c0 * inner, cy + s0 * inner,
+                    cx + c1 * inner, cy + s1 * inner, cx + c1 * outer, cy + s1 * outer, color);
         }
-        GL11.glEnd();
+        batch.submit();
 
 
     }
@@ -532,8 +514,8 @@ public class Scaffold extends Module {
     public BlockData findBestPlacement() {
         LocalPlayer player = mc.player;
         float baseYaw = getBaseYaw();
-        BlockPos playerPos = new BlockPos(player);
-        BlockPos scanY = playerPos.down();
+        BlockPos playerPos = player.blockPosition();
+        BlockPos scanY = playerPos.below();
 
         BlockData best = null;
         double bestScore = Double.MAX_VALUE;
@@ -558,14 +540,14 @@ public class Scaffold extends Module {
         int lowestLayer = tower ? -1 : 0;
 
         for (int layer = 0; layer >= lowestLayer; layer--) {
-            BlockPos layerPos = scanY.add(0, layer, 0);
+            BlockPos layerPos = scanY.offset(0, layer, 0);
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
-                BlockPos pos = layerPos.add(x, 0, z);
-                IBlockState state = mc.level.getBlockState(pos);
+                BlockPos pos = layerPos.offset(x, 0, z);
+                BlockState state = mc.level.getBlockState(pos);
 
                 if (state.getBlock() == Blocks.AIR) continue;
-                if (!state.getBlock().isFullCube()) continue;
+                if (!state.isSolidRender()) continue;
 
                 // This block already exists on the support layer. Record how well it fills the
                 // target cell so we can compare any new placement against what's already there.
@@ -576,7 +558,7 @@ public class Scaffold extends Module {
                 if (exScore < existingScore)
                     existingScore = exScore;
 
-                List<Direction> facings = new ArrayList<>(Arrays.asList(Direction.HORIZONTALS));
+                List<Direction> facings = new ArrayList<>(Direction.Plane.HORIZONTAL.stream().toList());
                 // Allow towering whenever airborne with KeepY off — whether rising or falling — so a
                 // block under the player's feet is a valid candidate. The listener's wilLFall check
                 // still governs WHEN a block is actually spent.
@@ -585,11 +567,11 @@ public class Scaffold extends Module {
                 }
 
                 for (Direction facing : facings) {
-                    if (!placeholderBlock.canPlaceBlockOnSide(mc.level, pos, facing, mc.player, mc.player.getMainHandItem()))
+                    if (!arsenic.utils.minecraft.ScaffoldUtil.canPlaceOnSide(pos, facing))
                         continue;
 
                     BlockPos neighbor = pos.relative(facing);
-                    IBlockState neighborState = mc.level.getBlockState(neighbor);
+                    BlockState neighborState = mc.level.getBlockState(neighbor);
 
                     if (neighborState.getBlock() != Blocks.AIR)
                         continue;
@@ -622,11 +604,11 @@ public class Scaffold extends Module {
                             lookDir.y * 4.5,
                             lookDir.z * 4.5
                     );
-                    HitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
+                    net.minecraft.world.phys.BlockHitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
 
                     if (hit == null || hit.getType() != HitResult.Type.BLOCK) continue;
                     if (!hit.getBlockPos().equals(pos)) continue;
-                    if (hit.sideHit != facing) continue;
+                    if (hit.getDirection() != facing) continue;
 
                     bestScore = score;
                     best = new BlockData(pos, facing);
@@ -664,17 +646,14 @@ public class Scaffold extends Module {
             return;
         }
 
-        HitResult objectOver = event.getRayTrace();
+        BlockHitResult objectOver = event.getRayTrace();
         BlockPos blockpos = objectOver.getBlockPos();
         if (objectOver.getType() != HitResult.Type.BLOCK
                 || mc.level.getBlockState(blockpos).getBlock().defaultBlockState().isAir()) {
             return;
         }
 
-        mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, mc.player.getMainHandItem(),
-                blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData)
-        );
+        arsenic.utils.minecraft.ScaffoldUtil.placeBlock(blockData.position, blockData.facing, ScaffoldUtil.getNewVector(blockData));
 
         PlayerUtils.swingItem();
         recordPlacement();
@@ -793,9 +772,9 @@ public class Scaffold extends Module {
         double eyeY = player.getY() + player.getEyeHeight();
         double eyeZ = player.getZ();
 
-        double faceCX = blockPos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
-        double faceCY = blockPos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
-        double faceCZ = blockPos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
+        double faceCX = blockPos.getX() + 0.5 + facing.getStepX() * 0.5;
+        double faceCY = blockPos.getY() + 0.5 + facing.getStepY() * 0.5;
+        double faceCZ = blockPos.getZ() + 0.5 + facing.getStepZ() * 0.5;
 
         double dx = faceCX - eyeX;
         double dy = faceCY - eyeY;

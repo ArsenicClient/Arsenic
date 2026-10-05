@@ -1,113 +1,110 @@
 package arsenic.module.impl.visual;
 
-import arsenic.utils.render.DrawUtils;
-import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.event.impl.EventRender2D;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import arsenic.utils.font.FontRendererExtension;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.resources.model.IBakedModel;
-import net.minecraft.enchantment.Enchantment;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.WorldToScreen;
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.StringUtils;
+import net.minecraft.world.item.enchantment.Enchantment;
+import org.joml.Matrix3x2fStack;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Player nametags with health and gear.
+ * <p>
+ * 1.8 drew these as billboards in the world with raw GL. Here each tag is projected onto the
+ * screen and drawn as part of the HUD, scaled with distance like a world-space tag would be, which
+ * lets the gear row use the game's real item rendering instead of hand-drawn texture sprites.
+ */
 @ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
 public class Nametags extends Module {
 
-    private static final float ICON_SIZE = 12f;
-    private static final float ICON_SPACING = 14f;
+    private static final float ICON_SIZE = 16f;
+    private static final float ICON_SPACING = 18f;
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventRenderWorldLast> renderListener = event -> {
+    public final Listener<EventRender2D> renderListener = event -> {
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
         if (fr == null) return;
 
-        for (Player player : Minecraft.getInstance().level.playerEntities) {
+        // far tags first, so nearer ones draw on top
+        List<Player> players = new ArrayList<>(mc.level.players());
+        players.sort(Comparator.comparingDouble(p -> -mc.player.distanceToSqr(p)));
+
+        for (Player player : players) {
             if (player == mc.player) continue;
             if (AntiBot.isBot(player)) continue;
             if (player.isRemoved()) continue;
 
-            double x = (player.xo + (player.getX() - player.xo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosX;
-            double y = (player.yo + (player.getY() - player.yo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosY;
-            double z = (player.zo + (player.getZ() - player.zo) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosZ;
+            WorldToScreen.Point point = WorldToScreen.project(
+                    RenderUtils.interpolatedPosition(player).add(0, player.getBbHeight() + 0.6, 0));
+            if (point == null) continue;
 
-            String name = net.minecraft.ChatFormatting.stripFormatting(player.getName().getString());
-            String healthText = true
-                    ? String.format(" §7%.1f", player.getHealth())
-                    : "";
-            String distText = false
-                    ? String.format(" §7[%.0f]", mc.player.distanceTo(player))
-                    : "";
-            String text = name + healthText + distText;
-
-            // Fixed world-space scale: the tag naturally shrinks with distance, same as the vanilla
-            // nametag.
-            float scale = 0.02666667F;
-            int textWidth = (int) fr.getWidth(text);
-            int textHeight = (int) fr.getHeight(text);
-            float halfWidth = textWidth / 2f;
-
-            float healthPercent = player.getHealth() / player.getMaxHealth();
-            int healthColor = healthPercent > 0.5f ? 0xFF2ECC71
-                    : healthPercent > 0.25f ? 0xFFFFFF00
-                    : 0xFFFF0000;
-
-            GL11.glTranslated(x, y + player.height + 0.6, z);
-            GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(-mc.gameRenderer.mainCamera().yRot(), 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(mc.gameRenderer.mainCamera().xRot(), 1.0F, 0.0F, 0.0F);
-            GlStateManager.scale(-scale, -scale, scale);
-
-            drawGear(fr, collectGear(player));
-
-            DrawUtils.drawRect((int) (-halfWidth - 2), -2, (int) (halfWidth + 2), textHeight + 2,
-                    new Color(0, 0, 0, 100).getRGB());
-
-            fr.drawString(text, (int) (-halfWidth), 0, 0xFFFFFFFF);
-
-            DrawUtils.drawRect((int) (-halfWidth - 2), textHeight + 2,
-                    (int) (-halfWidth - 2 + (textWidth + 4) * healthPercent), textHeight + 3,
-                    healthColor);
-
+            // the same apparent size a world-space tag of fixed height would have
+            float scale = (float) Math.max(0.4, Math.min(2.0, 7.0 / point.depth()));
+            Matrix3x2fStack pose = event.getGraphics().pose();
+            pose.pushMatrix();
+            pose.translate(point.x(), point.y());
+            pose.scale(scale, scale);
+            try {
+                drawTag(fr, player);
+            } finally {
+                pose.popMatrix();
+            }
         }
     };
 
-    /** Held item + the four armour pieces, in a stable left-to-right order, nulls skipped. */
+    private void drawTag(FontRendererExtension<?> fr, Player player) {
+        String name = net.minecraft.ChatFormatting.stripFormatting(player.getName().getString());
+        String text = name + String.format(" §7%.1f", player.getHealth());
+
+        int textWidth = (int) fr.getWidth(text);
+        int textHeight = (int) fr.getHeight(text);
+        float halfWidth = textWidth / 2f;
+
+        float healthPercent = Math.min(1f, player.getHealth() / player.getMaxHealth());
+        int healthColor = healthPercent > 0.5f ? 0xFF2ECC71
+                : healthPercent > 0.25f ? 0xFFFFFF00
+                : 0xFFFF0000;
+
+        drawGear(fr, collectGear(player), textHeight);
+
+        DrawUtils.drawRect(-halfWidth - 2, -2, halfWidth + 2, textHeight + 2, new Color(0, 0, 0, 100).getRGB());
+        fr.drawString(text, -halfWidth, 0, 0xFFFFFFFF);
+        DrawUtils.drawRect(-halfWidth - 2, textHeight + 2, -halfWidth - 2 + (textWidth + 4) * healthPercent, textHeight + 3, healthColor);
+    }
+
+    /** Held item + the four armour pieces, in a stable left-to-right order, empty slots skipped. */
     private List<ItemStack> collectGear(Player player) {
         List<ItemStack> gear = new ArrayList<>();
         ItemStack held = player.getMainHandItem();
-        if (held != null) gear.add(held);
-        for (int i = 3; i >= 0; i--) { // helmet -> boots
-            ItemStack armor = player.getCurrentArmor(i);
-            if (armor != null) gear.add(armor);
+        if (!held.isEmpty()) gear.add(held);
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+            ItemStack armor = player.getItemBySlot(slot);
+            if (!armor.isEmpty()) gear.add(armor);
         }
         return gear;
     }
 
-    private void drawGear(FontRendererExtension<?> fr, List<ItemStack> gear) {
+    private void drawGear(FontRendererExtension<?> fr, List<ItemStack> gear, int textHeight) {
         if (gear.isEmpty()) return;
 
         int count = gear.size();
@@ -116,122 +113,82 @@ public class Nametags extends Module {
 
         // enchant text sits between the icon row and the name; leave room above the name for it.
         float enchScale = 0.55f;
-        int enchLineH = (int) (fr.getHeight("A") * enchScale) + 1;
+        int enchLineH = (int) (textHeight * enchScale) + 1;
         int maxEnchLines = 0;
         List<List<String>> enchLists = new ArrayList<>();
         for (ItemStack stack : gear) {
-            List<String> lines = true ? enchantLines(stack) : new ArrayList<>();
+            List<String> lines = enchantLines(stack);
             enchLists.add(lines);
             maxEnchLines = Math.max(maxEnchLines, lines.size());
         }
 
         float enchBlockH = maxEnchLines * enchLineH;
-        float iconBottom = -6 - enchBlockH;      // above the name / enchant block
+        float iconBottom = -6 - enchBlockH;
         float iconTop = iconBottom - ICON_SIZE;
 
-        // Icons.
-        mc.getTextureManager().getTexture(TextureMap.locationBlocksTexture);
-        GlStateManager.color(1, 1, 1, 1);
-
+        var graphics = arsenic.utils.render.RenderContext.graphics();
         for (int i = 0; i < count; i++) {
-            TextureAtlasSprite sprite = resolveSprite(gear.get(i));
-            if (sprite == null) continue;
             float left = startX + i * ICON_SPACING + (ICON_SPACING - ICON_SIZE) / 2f;
-            drawSprite(sprite, left, iconTop, ICON_SIZE);
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(left, iconTop);
+            graphics.item(gear.get(i), 0, 0);
+            graphics.itemDecorations(mc.font, gear.get(i), 0, 0);
+            graphics.pose().popMatrix();
         }
-        GlStateManager.color(1, 1, 1, 1);
 
         // Enchant abbreviations, centred under each icon column.
-        if (maxEnchLines > 0) {
-            for (int i = 0; i < count; i++) {
-                List<String> lines = enchLists.get(i);
-                float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;
-                for (int l = 0; l < lines.size(); l++) {
-                    String line = lines.get(l);
-                    float ty = iconBottom + l * enchLineH;
-                    GlStateManager.translate(colCenter, ty, 0);
-                    GlStateManager.scale(enchScale, enchScale, 1f);
-                    fr.drawString(line, (int) (-fr.getWidth(line) / 2f), 0, 0xFFFFFFFF);
-                }
+        for (int i = 0; i < count; i++) {
+            List<String> lines = enchLists.get(i);
+            float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;
+            for (int l = 0; l < lines.size(); l++) {
+                String line = lines.get(l);
+                float ty = iconBottom + l * enchLineH;
+                graphics.pose().pushMatrix();
+                graphics.pose().translate(colCenter, ty);
+                graphics.pose().scale(enchScale, enchScale);
+                fr.drawString(line, -fr.getWidth(line) / 2f, 0, 0xFFFFFFFF);
+                graphics.pose().popMatrix();
             }
         }
     }
 
-    /** One "AbbrevLevel" token per enchantment, e.g. "P4", "U3". */
+    /** One "AbbrevLevel" token per enchantment, e.g. "Prot4", "Unb3". */
     private List<String> enchantLines(ItemStack stack) {
         List<String> out = new ArrayList<>();
-        if (stack == null || !stack.isItemEnchanted()) return out;
-        NBTTagList list = stack.getEnchantmentTagList();
-        if (list == null) return out;
-        for (int i = 0; i < list.tagCount(); i++) {
-            int id = list.getCompoundTagAt(i).getShort("id");
-            int lvl = list.getCompoundTagAt(i).getShort("lvl");
-            out.add(abbreviate(id) + lvl);
-        }
+        for (Map.Entry<Holder<Enchantment>, Integer> entry : stack.getEnchantments().entrySet())
+            out.add(abbreviate(entry.getKey()) + entry.getValue());
         return out;
     }
 
-    private String abbreviate(int id) {
+    private String abbreviate(Holder<Enchantment> enchantment) {
+        String id = enchantment.unwrapKey().map(key -> key.identifier().getPath()).orElse("");
         switch (id) {
-            case 0:  return "§bProt";  // Protection
-            case 1:  return "§6FP";    // Fire Protection
-            case 2:  return "§fFF";    // Feather Falling
-            case 3:  return "§8BP";    // Blast Protection
-            case 4:  return "§ePP";    // Projectile Protection
-            case 5:  return "§3Resp";  // Respiration
-            case 6:  return "§3AA";    // Aqua Affinity
-            case 7:  return "§2Thn";   // Thorns
-            case 8:  return "§3DS";    // Depth Strider
-            case 16: return "§cSharp"; // Sharpness
-            case 17: return "§cSmite";
-            case 18: return "§cBane";
-            case 19: return "§7KB";    // Knockback
-            case 20: return "§6Fire";  // Fire Aspect
-            case 21: return "§aLoot";  // Looting
-            case 32: return "§aEff";   // Efficiency
-            case 33: return "§7Silk";  // Silk Touch
-            case 34: return "§7Unb";   // Unbreaking
-            case 35: return "§aFort";  // Fortune
-            case 48: return "§cPow";   // Power
-            case 49: return "§7Pun";   // Punch
-            case 50: return "§6Flame";
-            case 51: return "§eInf";   // Infinity
+            case "protection": return "§bProt";
+            case "fire_protection": return "§6FP";
+            case "feather_falling": return "§fFF";
+            case "blast_protection": return "§8BP";
+            case "projectile_protection": return "§ePP";
+            case "respiration": return "§3Resp";
+            case "aqua_affinity": return "§3AA";
+            case "thorns": return "§2Thn";
+            case "depth_strider": return "§3DS";
+            case "sharpness": return "§cSharp";
+            case "smite": return "§cSmite";
+            case "bane_of_arthropods": return "§cBane";
+            case "knockback": return "§7KB";
+            case "fire_aspect": return "§6Fire";
+            case "looting": return "§aLoot";
+            case "efficiency": return "§aEff";
+            case "silk_touch": return "§7Silk";
+            case "unbreaking": return "§7Unb";
+            case "fortune": return "§aFort";
+            case "power": return "§cPow";
+            case "punch": return "§7Pun";
+            case "flame": return "§6Flame";
+            case "infinity": return "§eInf";
             default:
-                Enchantment ench = Enchantment.getEnchantmentById(id);
-                if (ench != null) {
-                    String n = net.minecraft.ChatFormatting.stripFormatting(net.minecraft.client.resources.I18n.format(ench.getName()));
-                    return n.length() > 3 ? n.substring(0, 3) : n;
-                }
-                return "?";
+                String n = net.minecraft.ChatFormatting.stripFormatting(enchantment.value().description().getString());
+                return n.length() > 3 ? n.substring(0, 3) : n;
         }
-    }
-
-    private TextureAtlasSprite resolveSprite(ItemStack stack) {
-        try {
-            IBakedModel model = mc.getRenderItem().getItemModelMesher().getItemModel(stack);
-            if (model != null) {
-                TextureAtlasSprite sprite = model.getParticleTexture();
-                if (sprite != null) return sprite;
-            }
-        } catch (Exception ignored) {}
-        return null;
-    }
-
-    private void drawSprite(TextureAtlasSprite sprite, float left, float top, float size) {
-        float minU = sprite.getMinU();
-        float maxU = sprite.getMaxU();
-        float minV = sprite.getMinV();
-        float maxV = sprite.getMaxV();
-        float right = left + size;
-        float bottom = top + size;
-
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        wr.pos(left, bottom, 0).tex(minU, maxV).endVertex();
-        wr.pos(right, bottom, 0).tex(maxU, maxV).endVertex();
-        wr.pos(right, top, 0).tex(maxU, minV).endVertex();
-        wr.pos(left, top, 0).tex(minU, minV).endVertex();
-        tess.draw();
     }
 }

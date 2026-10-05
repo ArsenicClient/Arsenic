@@ -16,12 +16,11 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.world.Scaffold.BlockData;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Item;
-import net.minecraft.item.BlockItem;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
@@ -42,7 +41,6 @@ public class Clutch extends Module {
     // How many block layers below the feet to also scan for a catch (0 = feet layer only). Higher
     // catches are still preferred; lower layers are a fallback when nothing is reachable up top.
 
-    private static final BlockItem placeholderBlock = new BlockItem(Blocks.TNT);
     private static final double REACH = 4.5;
 
     private BlockData blockData;      // placement found THIS tick (null on ticks with nothing to place)
@@ -134,25 +132,22 @@ public class Clutch extends Module {
             return;
         BlockItem itemBlock = (BlockItem) item;
 
-        HitResult mop = event.getRayTraceEntity();
+        net.minecraft.world.phys.BlockHitResult mop = event.getRayTraceEntity() instanceof net.minecraft.world.phys.BlockHitResult bhr ? bhr : null;
         if (mop == null || mop.getType() != HitResult.Type.BLOCK)
             return;
         // Never cap a block from below; allow towering (UP) only when the player has clearance above
         // it, otherwise keep the catch at the player's current level (KeepY).
-        if (mop.sideHit == Direction.DOWN)
+        if (mop.getDirection() == Direction.DOWN)
             return;
-        if (mop.sideHit == Direction.UP && !canPlaceUpOn(mop.getBlockPos()))
+        if (mop.getDirection() == Direction.UP && !canPlaceUpOn(mop.getBlockPos()))
             return;
         if (mc.level.getBlockState(mop.getBlockPos()).getBlock().defaultBlockState().isAir())
             return;
-        if (!itemBlock.canPlaceBlockOnSide(mc.level, mop.getBlockPos(), mop.sideHit, mc.player, mc.player.getMainHandItem()))
+        if (!arsenic.utils.minecraft.ScaffoldUtil.canPlaceOnSide(mop.getBlockPos(), mop.getDirection()))
             return;
 
-        blockData = new BlockData(mop.getBlockPos(), mop.sideHit);
-        mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, mc.player.getMainHandItem(),
-                blockData.getPosition(), blockData.getFacing(), ScaffoldUtil.getNewVector(blockData)
-        );
+        blockData = new BlockData(mop.getBlockPos(), mop.getDirection());
+        arsenic.utils.minecraft.ScaffoldUtil.placeBlock(blockData.getPosition(), blockData.getFacing(), ScaffoldUtil.getNewVector(blockData));
         PlayerUtils.swingItem();
         lastPlaceTime = System.currentTimeMillis();
         lastClutchTime = lastPlaceTime;
@@ -184,9 +179,9 @@ public class Clutch extends Module {
         if (mc.player == null || !(event.getPacket() instanceof ClientboundSetEntityMotionPacket))
             return;
         ClientboundSetEntityMotionPacket p = (ClientboundSetEntityMotionPacket) event.getPacket();
-        if (p.getEntityID() != mc.player.getId())
+        if (p.id() != mc.player.getId())
             return;
-        if (p.getMotionX() != 0 || p.getMotionY() != 0 || p.getMotionZ() != 0)
+        if (p.movement().x != 0 || p.movement().y != 0 || p.movement().z != 0)
             lastKnockbackTime = System.currentTimeMillis();
     };
 
@@ -228,7 +223,7 @@ public class Clutch extends Module {
         AABB box = player.getBoundingBox();
         double bottom = Math.max(0, box.minY - 20);
         AABB column = new AABB(box.minX, bottom, box.minZ, box.maxX, box.minY, box.maxZ);
-        return mc.level.getCollidingBoundingBoxes(player, column).isEmpty();
+        return mc.level.noCollision(player, column);
     }
 
     private boolean isScaffoldActive() {
@@ -263,7 +258,7 @@ public class Clutch extends Module {
      */
     private BlockData findCatchPlacement(float lockedYaw) {
         LocalPlayer player = mc.player;
-        BlockPos topLayer = new BlockPos(player).down();
+        BlockPos topLayer = player.blockPosition().below();
 
         AABB predicted = ScaffoldUtil.getPredictedBoundingBox(1.0);
         double targetX = (predicted.minX + predicted.maxX) * 0.5;
@@ -280,19 +275,19 @@ public class Clutch extends Module {
 
         int depth = (int) 5;
         for (int down = 0; down <= depth; down++) {
-            BlockPos layer = topLayer.down(down);
+            BlockPos layer = topLayer.below(down);
             if (layer.getY() < 0) break;
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
-                    BlockPos pos = layer.add(x, 0, z);
-                    IBlockState state = mc.level.getBlockState(pos);
+                    BlockPos pos = layer.offset(x, 0, z);
+                    BlockState state = mc.level.getBlockState(pos);
                     if (state.getBlock() == Blocks.AIR) continue;
-                    if (!state.getBlock().isFullCube()) continue;
+                    if (!state.isSolidRender()) continue;
 
                     // Existing catch: a solid block under the landing footprint with air above is
                     // something the player will simply land on. Record how good that catch is.
                     if (overlapsFootprint(pos, predicted)
-                            && mc.level.getBlockState(pos.up()).getBlock() == Blocks.AIR) {
+                            && mc.level.getBlockState(pos.above()).getBlock() == Blocks.AIR) {
                         double ex = cellScore(pos, targetX, targetY, targetZ);
                         if (ex < existingScore) existingScore = ex;
                     }
@@ -303,7 +298,7 @@ public class Clutch extends Module {
                         if (facing == Direction.DOWN) continue;
                         if (facing == Direction.UP && !canPlaceUpOn(pos)) continue;
 
-                        if (!placeholderBlock.canPlaceBlockOnSide(mc.level, pos, facing, player, player.getMainHandItem()))
+                        if (!arsenic.utils.minecraft.ScaffoldUtil.canPlaceOnSide(pos, facing))
                             continue;
 
                         BlockPos neighbor = pos.relative(facing);
@@ -317,9 +312,9 @@ public class Clutch extends Module {
 
                         // Reach cull: the aim point is the centre of the face we'd click. Anything
                         // past the 4.5-block reach can't be placed, so skip it before any ray work.
-                        double fcx = pos.getX() + 0.5 + facing.getFrontOffsetX() * 0.5;
-                        double fcy = pos.getY() + 0.5 + facing.getFrontOffsetY() * 0.5;
-                        double fcz = pos.getZ() + 0.5 + facing.getFrontOffsetZ() * 0.5;
+                        double fcx = pos.getX() + 0.5 + facing.getStepX() * 0.5;
+                        double fcy = pos.getY() + 0.5 + facing.getStepY() * 0.5;
+                        double fcz = pos.getZ() + 0.5 + facing.getStepZ() * 0.5;
                         double edx = fcx - eyeVec.x, edy = fcy - eyeVec.y, edz = fcz - eyeVec.z;
                         if (edx * edx + edy * edy + edz * edz > REACH * REACH)
                             continue;
@@ -334,11 +329,11 @@ public class Clutch extends Module {
 
                         Vec3 lookDir = net.minecraft.world.entity.Entity.calculateViewVector(rots[1], rots[0]);
                         Vec3 traceEnd = eyeVec.add(lookDir.x * REACH, lookDir.y * REACH, lookDir.z * REACH);
-                        HitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
+                        net.minecraft.world.phys.BlockHitResult hit = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyeVec, traceEnd);
 
                         if (hit == null || hit.getType() != HitResult.Type.BLOCK) continue;
                         if (!hit.getBlockPos().equals(pos)) continue;
-                        if (hit.sideHit != facing) continue;
+                        if (hit.getDirection() != facing) continue;
 
                         bestScore = score;
                         best = new BlockData(pos, facing);

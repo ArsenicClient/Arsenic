@@ -93,6 +93,14 @@ public class Arsenic implements ClientModInitializer {
 
             CapeHandler.getInstance().init();
             logger.info("Loaded cape handler.");
+
+            // Dev aid: mixins only apply when their target class loads, so a broken injection
+            // point can hide until some rarely-used screen opens. -Darsenic.auditMixins=true
+            // forces every mixin to apply at startup instead.
+            if (Boolean.getBoolean("arsenic.auditMixins")) {
+                org.spongepowered.asm.mixin.MixinEnvironment.getCurrentEnvironment().audit();
+                logger.info("Mixin audit passed.");
+            }
         });
 
         logger.info("Loaded {}.", clientName);

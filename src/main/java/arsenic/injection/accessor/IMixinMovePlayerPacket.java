@@ -10,13 +10,13 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface IMixinMovePlayerPacket {
 
     @Accessor("hasRot")
-    boolean isRotating();
+    boolean getHasRotField();
 
     @Accessor("hasPos")
-    boolean isMoving();
+    boolean getHasPosField();
 
     @Accessor("onGround")
-    boolean isOnGround();
+    boolean getOnGroundField();
 
     @Mutable
     @Accessor("onGround")

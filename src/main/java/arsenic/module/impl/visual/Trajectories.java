@@ -1,188 +1,137 @@
 package arsenic.module.impl.visual;
 
-import arsenic.utils.minecraft.PlayerUtils;
-import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.utils.minecraft.WorldUtils;
 import arsenic.utils.render.RenderUtils;
+import net.minecraft.core.Direction;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.EggItem;
+import net.minecraft.world.item.EnderpearlItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SnowballItem;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.util.Mth;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-import java.awt.Color;
+import java.util.Optional;
 
+/**
+ * Draws where the held bow or throwable will land: the flight path, and a marker on whatever it
+ * hits first. The path turns red when it ends on an entity.
+ */
 @ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true)
 public class Trajectories extends Module {
 
+    private static final int MAX_STEPS = 200;
+    private static final double DRAG = 0.99;
+
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (mc.player.getMainHandItem() == null || !(mc.player.getMainHandItem().getItem() instanceof BowItem)) {
+        ItemStack held = mc.player.getMainHandItem();
+        boolean bow = held.getItem() instanceof BowItem;
+        boolean throwable = held.getItem() instanceof SnowballItem || held.getItem() instanceof EggItem
+                || held.getItem() instanceof EnderpearlItem;
+        if (!bow && !throwable)
             return;
+
+        float speed;
+        double gravity;
+        if (bow) {
+            if (!mc.player.isUsingItem())
+                return;
+            float power = BowItem.getPowerForTime(mc.player.getTicksUsingItem());
+            if (power < 0.1f)
+                return;
+            speed = power * 3.0f;
+            gravity = 0.05;
+        } else {
+            speed = 1.5f;
+            gravity = 0.03;
         }
 
-        ItemStack heldItem = mc.player.getMainHandItem();
-        if (!(heldItem.getItem() instanceof BowItem) && !(heldItem.getItem() instanceof SnowballItem) && !(heldItem.getItem() instanceof EggItem) && !(heldItem.getItem() instanceof EnderpearlItem)) {
-            return;
-        }
-        if (heldItem.getItem() instanceof BowItem && !mc.player.isUsingItem()) {
-            return;
-        }
-        boolean bow = false;
-        if (heldItem.getItem() instanceof BowItem) {
-            bow = true;
-        }
+        float yaw = mc.player.getYRot(event.partialTicks);
+        float pitch = mc.player.getXRot(event.partialTicks);
+        Vec3 pos = mc.player.getEyePosition(event.partialTicks)
+                .add(-Mth.cos(yaw * Mth.DEG_TO_RAD) * 0.16, -0.1, -Mth.sin(yaw * Mth.DEG_TO_RAD) * 0.16);
+        Vec3 motion = Vec3.directionFromRotation(pitch, yaw).scale(speed);
 
-        float playerYaw = mc.player.getYRot();
-        float playerPitch = mc.player.getXRot();
+        int color = 0xFF000000 | ThemeManager.getMainColor();
+        HitResult hit = null;
+        Vec3 previous = pos;
+        for (int step = 0; step < MAX_STEPS && hit == null; step++) {
+            Vec3 next = pos.add(motion);
 
-        double posX = mc.getRenderManager().viewerPosX - (double) (Mth.cos(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
-        double posY = mc.getRenderManager().viewerPosY + (double) mc.player.getEyeHeight() - (double) 0.1f;
-        double posZ = mc.getRenderManager().viewerPosZ - (double) (Mth.sin(playerYaw / 180.0f * (float) Math.PI) * 0.16f);
-
-        double motionX = (double) (-Mth.sin(playerYaw / 180.0f * (float) Math.PI) * Mth.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
-        double motionY = (double) (-Mth.sin(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
-        double motionZ = (double) (Mth.cos(playerYaw / 180.0f * (float) Math.PI) * Mth.cos(playerPitch / 180.0f * (float) Math.PI)) * (bow ? 1.0 : 0.4);
-        int itemInUse = 40;
-        if (mc.player.getUseItemRemainingTicks() > 0 && bow) {
-            itemInUse = mc.player.getUseItemRemainingTicks();
-        }
-        int n10 = 72000 - itemInUse;
-        float f10 = (float) n10 / 20.0f;
-        if ((double) (f10 = (f10 * f10 + f10 * 2.0f) / 3.0f) < 0.1) {
-            return;
-        }
-        if (f10 > 1.0f) {
-            f10 = 1.0f;
-        }
-        RenderUtils.setColor(ThemeManager.getMainColor());
-        boolean bl3 = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
-        boolean bl4 = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
-        boolean bl5 = GL11.glIsEnabled(GL11.GL_BLEND);
-        if (bl3) {
-        }
-        if (bl4) {
-        }
-        if (!bl5) {
-        }
-        float f11 = (float) Math.sqrt(motionX * motionX + motionY * motionY + motionZ * motionZ);
-        motionX /= f11;
-        motionY /= f11;
-        motionZ /= f11;
-        motionX *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
-        motionY *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
-        motionZ *= (double) (bow ? f10 * 2.0f : 1.0f) * 1.5;
-        GL11.glBegin(3);
-        boolean ground = false;
-        HitResult target = null;
-        boolean highlight = false;
-        double[] transform = new double[]{posX, posY, posZ, motionX, motionY, motionZ};
-        for (int k = 0; k <= 100 && !ground; ++k) {
-            Vec3 start = new Vec3(transform[0], transform[1], transform[2]);
-            Vec3 predicted = new Vec3(transform[0] + transform[3], transform[1] + transform[4], transform[2] + transform[5]);
-            HitResult rayTraced = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(start, predicted);
-            if (rayTraced == null) {
-                rayTraced = getEntityHit(start, predicted);
-                if (rayTraced != null) {
-                    highlight = true;
-                    break;
-                }
-                float f14 = 0.99f;
-                transform[4] *= f14;
-                transform[0] += (transform[3] *= f14);
-                transform[1] += (transform[4] -= bow ? 0.05 : 0.03);
-                transform[2] += (transform[5] *= f14);
-            }
-        }
-
-        for (int k = 0; k <= 100 && !ground; ++k) {
-            Vec3 start = new Vec3(posX, posY, posZ);
-            Vec3 predicted = new Vec3(posX + motionX, posY + motionY, posZ + motionZ);
-            HitResult rayTraced = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(start, predicted);
-            if (rayTraced != null) {
-                ground = true;
-                target = rayTraced;
-            } else {
-                HitResult entityHit = getEntityHit(start, predicted);
-                if (entityHit != null) {
-                    target = entityHit;
-                    ground = true;
-                }
-            }
-            if (highlight) {
-                RenderUtils.setColor(ThemeManager.getError());
+            HitResult entityHit = getEntityHit(pos, next);
+            BlockHitResult blockHit = PlayerUtils.rayTraceBlocks(pos, next);
+            if (entityHit != null) {
+                hit = entityHit;
+                next = entityHit.getLocation();
+                color = 0xFF000000 | ThemeManager.getError();
+            } else if (blockHit.getType() == HitResult.Type.BLOCK) {
+                hit = blockHit;
+                next = blockHit.getLocation();
             }
 
-            float f14 = 0.99f;
-            motionY *= f14;
-            GL11.glVertex3d((posX += (motionX *= f14)) - mc.getRenderManager().viewerPosX, (posY += (motionY -= bow ? 0.05 : 0.03)) - mc.getRenderManager().viewerPosY, (posZ += (motionZ *= f14)) - mc.getRenderManager().viewerPosZ);
+            RenderUtils.drawLine(previous, next, color, 2f);
+            previous = next;
+            pos = next;
+            motion = motion.scale(DRAG).subtract(0, gravity, 0);
+            if (pos.y < mc.level.getMinY())
+                break;
         }
-        GL11.glEnd();
-        GL11.glTranslated(posX - mc.getRenderManager().viewerPosX, posY - mc.getRenderManager().viewerPosY, posZ - mc.getRenderManager().viewerPosZ);
-        if (target != null && target.sideHit != null) {
-            switch (target.getType() == HitResult.Type.BLOCK ? target.sideHit.getIndex() : target.sideHit.getIndex()) {
-                case 2:
-                case 3: {
-                    GL11.glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-                    break;
-                }
-                case 4:
-                case 5: {
-                    GL11.glRotatef(90.0f, 0.0f, 0.0f, 1.0f);
-                    break;
-                }
-            }
-        }
-        double distance = Math.max(mc.player.getDistance(posX + motionX, posY + motionY, posZ + motionZ) * 0.042830285, 1);
-        GL11.glScaled(distance, distance, distance);
-        this.drawX();
-        if (bl3) {
-        }
-        if (bl4) {
-        }
-        if (!bl5) {
-        }
+
+        if (hit != null)
+            drawImpactMarker(hit, color);
     };
 
+    /** A flat square on the face that was hit, or a box around the entity. */
+    private void drawImpactMarker(HitResult hit, int color) {
+        if (hit instanceof BlockHitResult blockHit) {
+            Direction face = blockHit.getDirection();
+            Vec3 at = blockHit.getLocation();
+            double s = 0.25;
+            Vec3 a = at.add(face.getAxis() == Direction.Axis.X ? 0 : -s, face.getAxis() == Direction.Axis.Y ? 0 : -s, face.getAxis() == Direction.Axis.Z ? 0 : -s);
+            Vec3 b = at.add(face.getAxis() == Direction.Axis.X ? 0 : s, face.getAxis() == Direction.Axis.Y ? 0 : s, face.getAxis() == Direction.Axis.Z ? 0 : s);
+            Gizmos.rect(a, b, face, GizmoStyle.strokeAndFill(color, 2f, RenderUtils.withAlpha(color, 70))).setAlwaysOnTop();
+        } else {
+            Vec3 at = hit.getLocation();
+            RenderUtils.drawBoundingBox(new AABB(at, at).inflate(0.15), color);
+        }
+    }
+
     public HitResult getEntityHit(Vec3 origin, Vec3 destination) {
-        for (Entity e : mc.level.entitiesForRendering()) {
-            if (!(e instanceof LivingEntity)) {
+        HitResult closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (Entity e : WorldUtils.entities()) {
+            if (!(e instanceof LivingEntity) || e == mc.player)
                 continue;
-            }
-            if (e instanceof Player && AntiBot.isBot(e)) {
+            if (e instanceof Player && AntiBot.isBot(e))
                 continue;
-            }
-            if (e != mc.player) {
-                float expand = 0.3f;
-                AABB boundingBox = e.getBoundingBox().inflate(expand, expand, expand);
-                HitResult possibleHit = boundingBox.calculateIntercept(origin, destination);
-                if (possibleHit != null) {
-                    return possibleHit;
+            AABB boundingBox = e.getBoundingBox().inflate(0.3);
+            Optional<Vec3> intercept = boundingBox.clip(origin, destination);
+            if (intercept.isPresent()) {
+                double dist = origin.distanceToSqr(intercept.get());
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = new net.minecraft.world.phys.EntityHitResult(e, intercept.get());
                 }
             }
         }
-        return null;
-    }
-
-    public void drawX() {
-        GL11.glBegin(1);
-        GL11.glVertex3d(-0.25, 0.0, 0.0);
-        GL11.glVertex3d(0.0, 0.0, 0.0);
-        GL11.glVertex3d(0.0, 0.0, -0.25);
-        GL11.glVertex3d(0.0, 0.0, 0.0);
-        GL11.glVertex3d(0.25, 0.0, 0.0);
-        GL11.glVertex3d(0.0, 0.0, 0.0);
-        GL11.glVertex3d(0.0, 0.0, 0.25);
-        GL11.glVertex3d(0.0, 0.0, 0.0);
-        GL11.glEnd();
+        return closest;
     }
 }

@@ -18,13 +18,18 @@ import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.rotations.SilentRotationManager;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.block.BlockAir;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.item.BlockItem;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.util.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import java.util.*;
 @ModuleInfo(name = "AutoBlockIn", category = ModuleCategory.PLAYER)
 public class AutoBlockIn extends Module {
@@ -182,7 +187,7 @@ public class AutoBlockIn extends Module {
         int px = lockedPos.getX(), py = lockedPos.getY(), pz = lockedPos.getZ();
         BlockPos under = new BlockPos(px, py - 1, pz);
         Block underBlock = mc.level.getBlockState(under).getBlock();
-        if (underBlock instanceof BlockAir || underBlock.getMaterial().isReplaceable()) {
+        if (underBlock.defaultBlockState().canBeReplaced()) {
             PlayerUtils.addWaterMarkedMessageToChat("§c[AutoBlockIn] No ground beneath player.");
             return false;
         }
@@ -305,10 +310,10 @@ public class AutoBlockIn extends Module {
             for (int dy = -expand; dy <= expand; dy++) {
                 for (int dz = -expand; dz <= expand; dz++) {
                     if (dx == 0 && dy == 0 && dz == 0) continue;
-                    BlockPos pos = target.add(dx, dy, dz);
+                    BlockPos pos = target.offset(dx, dy, dz);
                     if (eyes.y < target.getY() && pos.getY() < target.getY()) continue;
                     if (virtualState.contains(pos)) continue;
-                    if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.up()))) continue;
+                    if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.above()))) continue;
                     if (!isAirOrReplaceable(pos)) continue;
                     if (intersectsAnyEntity(pos)) continue;
                     if (minDistSqToBlock(eyes, pos) > PLACE_REACH_SQ) continue;
@@ -326,7 +331,7 @@ public class AutoBlockIn extends Module {
                     double score = (fillsTargetNeighbor ? 1_000_000.0 : 0.0)
                         - manh * 1_000.0
                         + towardEye
-                        - Math.sqrt(pos.distanceSq(eyes.x, eyes.y, eyes.z));
+                        - Math.sqrt(pos.distToLowCornerSqr(eyes.x, eyes.y, eyes.z));
                     scored.add(new ScoredPos(pos, score, adjTarget));
                 }
             }
@@ -363,9 +368,9 @@ public class AutoBlockIn extends Module {
             lockedPos.getX() + 7, lockedPos.getY() + 5, lockedPos.getZ() + 7
         );
         @SuppressWarnings("unchecked")
-        List<Entity> entities = mc.level.getEntitiesWithinAABB(Entity.class, area);
+        List<Entity> entities = mc.level.getEntities((Entity) null, area);
         for (Entity e : entities) {
-            if (e == null || e == mc.player || !e.canBeCollidedWith()) continue;
+            if (e == null || e == mc.player || !e.blocksBuilding) continue;
             cachedEntityBoxes.add(e.getBoundingBox());
         }
     }
@@ -376,9 +381,9 @@ public class AutoBlockIn extends Module {
             for (int y = lockedPos.getY() - 2; y <= lockedPos.getY() + 4; y++) {
                 for (int z = lockedPos.getZ() - 6; z <= lockedPos.getZ() + 6; z++) {
                     BlockPos pos = new BlockPos(x, y, z);
-                    if (pos.equals(lockedPos) || pos.equals(lockedPos.up())) continue;
+                    if (pos.equals(lockedPos) || pos.equals(lockedPos.above())) continue;
                     Block b = mc.level.getBlockState(pos).getBlock();
-                    if (!(b instanceof BlockAir) && !b.getMaterial().isReplaceable())
+                    if (!b.defaultBlockState().canBeReplaced())
                         cachedSolids.add(pos);
                 }
             }
@@ -387,25 +392,25 @@ public class AutoBlockIn extends Module {
     private boolean intersectsAnyEntity(BlockPos pos) {
         AABB blockBB = new AABB(pos.getX(), pos.getY(), pos.getZ(),
                                                    pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1);
-        if (mc.player.getBoundingBox().intersectsWith(blockBB)) return true;
+        if (mc.player.getBoundingBox().intersects(blockBB)) return true;
         if (cachedEntityBoxes != null) {
             for (AABB bb : cachedEntityBoxes) {
-                if (bb.intersectsWith(blockBB)) return true;
+                if (bb.intersects(blockBB)) return true;
             }
             return false;
         }
         @SuppressWarnings("unchecked")
-        List<Entity> entities = mc.level.getEntitiesWithinAABBExcludingEntity(
+        List<Entity> entities = mc.level.getEntities(
             mc.player, blockBB.inflate(0.05, 0.05, 0.05));
         for (Entity e : entities) {
-            if (e != null && e.canBeCollidedWith()) return true;
+            if (e != null && e.blocksBuilding) return true;
         }
         return false;
     }
     private boolean isRealSolid(BlockPos pos) {
-        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.up()))) return false;
+        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.above()))) return false;
         Block b = mc.level.getBlockState(pos).getBlock();
-        return !(b instanceof BlockAir) && !b.getMaterial().isReplaceable();
+        return !b.defaultBlockState().canBeReplaced();
     }
     private Vec3 actualEye() {
         return mc.player.getEyePosition(1f);
@@ -463,7 +468,7 @@ public class AutoBlockIn extends Module {
         return Math.acos(Mth.clamp(dot, -1.0, 1.0));
     }
     
-    private HitResult rotationRayTrace(Vec3 eyes, float yaw, float pitch, Set<BlockPos> virtualSolids) {
+    private BlockHitResult rotationRayTrace(Vec3 eyes, float yaw, float pitch, Set<BlockPos> virtualSolids) {
         Vec3 dir = lookVector(yaw, pitch);
         Vec3 end = eyes.add(dir.x * PLACE_REACH, dir.y * PLACE_REACH, dir.z * PLACE_REACH);
         if (virtualSolids == null || virtualSolids.isEmpty()) {
@@ -570,9 +575,9 @@ public class AutoBlockIn extends Module {
             for (double[] uv : points) {
                 Vec3 w = f.toWorld(uv[0], uv[1]);
                 float[] rots = rotationsTo(eyes, w);
-                HitResult mop = rotationRayTrace(eyes, rots[0], rots[1], virtualSolids);
+                BlockHitResult mop = rotationRayTrace(eyes, rots[0], rots[1], virtualSolids);
                 if (mop == null || mop.getType() != HitResult.Type.BLOCK) continue;
-                if (!mop.getBlockPos().equals(neighbor) || mop.sideHit != facing) continue;
+                if (!mop.getBlockPos().equals(neighbor) || mop.getDirection() != facing) continue;
                 double[] nb = nearestBoundary(pc.poly, uv[0], uv[1]);
                 Vec3 wb = f.toWorld(nb[1], nb[2]);
                 float[] rotsB = rotationsTo(eyes, wb);
@@ -593,22 +598,23 @@ public class AutoBlockIn extends Module {
     }
     
     private List<AABB> collisionBoxesAt(BlockPos pos, Set<BlockPos> virtualSolids, AABB mask) {
-        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.up())))
+        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.above())))
             return Collections.emptyList();
         if (virtualSolids != null && virtualSolids.contains(pos)) {
             return Collections.singletonList(new AABB(
                 pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1));
         }
-        IBlockState state = mc.level.getBlockState(pos);
+        BlockState state = mc.level.getBlockState(pos);
         Block block = state.getBlock();
-        if (block == null || block instanceof BlockAir || block.getMaterial().isReplaceable())
+        if (block == null || block.defaultBlockState().canBeReplaced())
             return Collections.emptyList();
-        if (!block.canCollideCheck(state, false)) return Collections.emptyList();
         try {
-            if (block.getCollisionBoundingBox(mc.level, pos, state) == null)
-                return Collections.emptyList();
             List<AABB> list = new ArrayList<>();
-            block.addCollisionBoxesToList(mc.level, pos, state, mask, list, mc.player);
+            for (AABB box : state.getCollisionShape(mc.level, pos).toAabbs()) {
+                AABB moved = box.move(pos);
+                if (mask == null || moved.intersects(mask))
+                    list.add(moved);
+            }
             return list;
         } catch (Exception e) {
             return Collections.emptyList();
@@ -796,7 +802,7 @@ public class AutoBlockIn extends Module {
         }
         return new double[]{best, fu, fv};
     }
-    private HitResult rayTraceVirtual(Vec3 from, Vec3 to, Set<BlockPos> virtualSolids) {
+    private BlockHitResult rayTraceVirtual(Vec3 from, Vec3 to, Set<BlockPos> virtualSolids) {
         if (from.equals(to) || mc.level == null) return null;
         int x = Mth.floor(from.x);
         int y = Mth.floor(from.y);
@@ -805,7 +811,7 @@ public class AutoBlockIn extends Module {
         int endY = Mth.floor(to.y);
         int endZ = Mth.floor(to.z);
         for (int budget = STATE_SIZE + 8; budget-- > 0; ) {
-            HitResult hit = traceCell(from, to, x, y, z, virtualSolids);
+            BlockHitResult hit = traceCell(from, to, x, y, z, virtualSolids);
             if (hit != null) return hit;
             if (x == endX && y == endY && z == endZ) return null;
             double dx = to.x - from.x;
@@ -833,29 +839,27 @@ public class AutoBlockIn extends Module {
         if (delta < 0 && origin == boundary) boundary -= 1;
         return (boundary - origin) / delta;
     }
-    private HitResult traceCell(Vec3 from, Vec3 to, int x, int y, int z, Set<BlockPos> virtualSolids) {
+    private BlockHitResult traceCell(Vec3 from, Vec3 to, int x, int y, int z, Set<BlockPos> virtualSolids) {
         BlockPos pos = new BlockPos(x, y, z);
-        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.up()))) return null;
+        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.above()))) return null;
         if (virtualSolids.contains(pos)) {
             AABB bb = new AABB(x, y, z, x + 1, y + 1, z + 1);
-            return bb.calculateIntercept(from, to) == null ? null : mopFromIntercept(bb, from, to, pos);
+            return mopFromIntercept(bb, from, to, pos);
         }
-        IBlockState state = mc.level.getBlockState(pos);
+        BlockState state = mc.level.getBlockState(pos);
         Block block = state.getBlock();
-        if (block == null || block instanceof BlockAir || block.getMaterial().isReplaceable()) return null;
-        if (!block.canCollideCheck(state, false)) return null;
-        return block.collisionRayTrace(mc.level, pos, from, to);
+        if (block == null || block.defaultBlockState().canBeReplaced()) return null;
+        BlockHitResult hit = state.getShape(mc.level, pos).clip(from, to, pos);
+        return hit == null || hit.getType() == HitResult.Type.MISS ? null : hit;
     }
-    private HitResult mopFromIntercept(AABB bb, Vec3 from, Vec3 to, BlockPos pos) {
-        HitResult intercept = bb.calculateIntercept(from, to);
-        if (intercept == null) return null;
-        return new HitResult(intercept.getLocation(), intercept.sideHit, pos);
+    private BlockHitResult mopFromIntercept(AABB bb, Vec3 from, Vec3 to, BlockPos pos) {
+        return AABB.clip(java.util.List.of(bb), from, to, pos);
     }
     private boolean isSolid(BlockPos pos, Set<BlockPos> virtualSolids) {
-        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.up()))) return false;
+        if (lockedPos != null && (pos.equals(lockedPos) || pos.equals(lockedPos.above()))) return false;
         if (virtualSolids != null && virtualSolids.contains(pos)) return true;
         Block b = mc.level.getBlockState(pos).getBlock();
-        return !(b instanceof BlockAir) && !b.getMaterial().isReplaceable();
+        return !b.defaultBlockState().canBeReplaced();
     }
     private double minDistSqToBlock(Vec3 eyes, BlockPos pos) {
         double cx = Mth.clamp(eyes.x, pos.getX(), pos.getX() + 1);
@@ -870,10 +874,10 @@ public class AutoBlockIn extends Module {
         if (b == Blocks.SPONGE) return 70;
         if (b == Blocks.OBSIDIAN) return 60;
         if (b == Blocks.END_STONE) return 50;
-        if (b == Blocks.GLASS || b == Blocks.STAINED_GLASS) return 40;
-        if (b == Blocks.PLANKS || b == Blocks.LOG || b == Blocks.LOG2) return 30;
-        if (b == Blocks.HARDENED_CLAY || b == Blocks.STAINED_HARDENED_CLAY) return 20;
-        if (b == Blocks.WOOL) return 10;
+        if (b == Blocks.GLASS || b instanceof net.minecraft.world.level.block.StainedGlassBlock) return 40;
+        if (b.defaultBlockState().is(net.minecraft.tags.BlockTags.PLANKS) || b.defaultBlockState().is(net.minecraft.tags.BlockTags.LOGS)) return 30;
+        if (b.defaultBlockState().is(net.minecraft.tags.BlockTags.TERRACOTTA)) return 20;
+        if (b.defaultBlockState().is(net.minecraft.tags.BlockTags.WOOL)) return 10;
         return 0;
     }
     private static boolean isPlaceableBlockItem(ItemStack s) {
@@ -1025,11 +1029,11 @@ public class AutoBlockIn extends Module {
         return ft;
     }
     
-    private boolean mopHitsTarget(HitResult mop) {
+    private boolean mopHitsTarget(BlockHitResult mop) {
         return mop != null
             && mop.getType() == HitResult.Type.BLOCK
             && currentTarget != null
-            && mop.getBlockPos().relative(mop.sideHit).equals(currentTarget);
+            && mop.getBlockPos().relative(mop.getDirection()).equals(currentTarget);
     }
     
     private void onLiveRayMiss(float settledYaw, float settledPitch) {
@@ -1059,7 +1063,7 @@ public class AutoBlockIn extends Module {
     }
     private boolean isAirOrReplaceable(BlockPos pos) {
         Block b = mc.level.getBlockState(pos).getBlock();
-        return b instanceof BlockAir || b.getMaterial().isReplaceable();
+        return b.defaultBlockState().canBeReplaced();
     }
     private boolean isAirOrReplaceable(BlockPos pos, Set<BlockPos> virtualSolids) {
         if (virtualSolids.contains(pos)) return false;
@@ -1198,14 +1202,14 @@ public class AutoBlockIn extends Module {
         return true;
     }
     
-    private void doPlace(HitResult mop) {
+    private void doPlace(BlockHitResult mop) {
         if (currentTarget == null || mop == null) return;
         if (!mopHitsTarget(mop)) return;
         if (plan != null && planIndex < plan.size()) {
             if (!ensureSlotForCurrentStep(plan.get(planIndex))) return;
         }
         BlockPos neighbor = mop.getBlockPos();
-        Direction facing = mop.sideHit;
+        Direction facing = mop.getDirection();
         Vec3 hit = mop.getLocation();
         ItemStack held = mc.player.getMainHandItem();
         if (held == null || !(held.getItem() instanceof BlockItem) || held.getCount() <= 0) {
@@ -1216,10 +1220,8 @@ public class AutoBlockIn extends Module {
             }
             if (held == null || !(held.getItem() instanceof BlockItem) || held.getCount() <= 0) return;
         }
-        if (!((BlockItem) held.getItem()).canPlaceBlockOnSide(
-                mc.level, neighbor, facing, mc.player, held)) return;
-        if (mc.gameMode.onPlayerRightClick(
-                mc.player, mc.level, held, neighbor, facing, hit)) {
+        if (!arsenic.utils.minecraft.ScaffoldUtil.canPlaceOnSide(neighbor, facing)) return;
+        if (arsenic.utils.minecraft.ScaffoldUtil.placeBlock(neighbor, facing, hit)) {
             PlayerUtils.swingItem();
             verifyPos = currentTarget;
             verifyTicks = 0;
@@ -1272,7 +1274,7 @@ public class AutoBlockIn extends Module {
     public final Listener<EventSilentRotation.Post> silentPostListener = event -> {
         // if (mode.getValue() != AutoBlockInMode.SILENT) return;
         if (currentTarget == null || currentAim == null) return;
-        HitResult mop = event.getRayTrace();
+        BlockHitResult mop = event.getRayTrace();
         if (!mopHitsTarget(mop)) {
             onLiveRayMiss(event.getYaw(), event.getPitch());
             return;
@@ -1303,7 +1305,7 @@ public class AutoBlockIn extends Module {
     //     Vec3 eyes = mc.player.getEyePosition(1);
     //     Vec3 look = lookVector(mc.player.getYRot(), mc.player.getXRot());
     //     Vec3 traceEnd = eyes.add(look.x * PLACE_REACH, look.y * PLACE_REACH, look.z * PLACE_REACH);
-    //     HitResult mop = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyes, traceEnd);
+    //     net.minecraft.world.phys.BlockHitResult mop = arsenic.utils.minecraft.PlayerUtils.rayTraceBlocks(eyes, traceEnd);
     //     if (!mopHitsTarget(mop)) {
     //         onLiveRayMiss(mc.player.getYRot(), mc.player.getXRot());
     //         return;
@@ -1388,7 +1390,7 @@ public class AutoBlockIn extends Module {
             this.facing = f;
             this.yaw = yaw;
             this.pitch = pitch;
-            this.getLocation() = hitVec;
+            this.hitVec = hitVec;
             this.clearanceRad = clearanceRad;
         }
     }

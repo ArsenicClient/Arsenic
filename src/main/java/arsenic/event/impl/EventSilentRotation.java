@@ -140,7 +140,7 @@ public class EventSilentRotation implements Event {
         public float getSpeed() { return speed; }
 
         /** Block the committed rotation is looking at, within vanilla reach. */
-        public HitResult getRayTrace() {
+        public net.minecraft.world.phys.BlockHitResult getRayTrace() {
             Vec3 eyes = mc.player.getEyePosition(1);
             Vec3 end = eyes.add(Entity.calculateViewVector(pitch, yaw).scale(4.5));
             return mc.level.clip(new ClipContext(eyes, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, mc.player));

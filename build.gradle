@@ -65,3 +65,12 @@ jar {
         rename { "${it}_${project.archives_base_name}" }
     }
 }
+
+loom {
+    runs {
+        client {
+            // forces every mixin to apply at startup, see Arsenic#onInitializeClient
+            vmArg "-Darsenic.auditMixins=true"
+        }
+    }
+}

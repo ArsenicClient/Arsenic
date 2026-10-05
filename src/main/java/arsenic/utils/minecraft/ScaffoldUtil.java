@@ -132,6 +132,21 @@ public class ScaffoldUtil extends UtilityClass {
         };
     }
 
+    /**
+     * Whether a block can go on {@code side} of {@code pos} - 1.8's ItemBlock#canPlaceBlockOnSide,
+     * which only ever asked whether the target space could be replaced.
+     */
+    public static boolean canPlaceOnSide(BlockPos pos, Direction side) {
+        BlockPos target = pos.relative(side);
+        return mc.level.isInWorldBounds(target) && mc.level.getBlockState(target).canBeReplaced();
+    }
+
+    /** Right-clicks {@code side} of {@code pos} with the held item at {@code hitVec}, like a player placing a block. */
+    public static boolean placeBlock(BlockPos pos, Direction side, Vec3 hitVec) {
+        return mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                new net.minecraft.world.phys.BlockHitResult(hitVec, side, pos, false)).consumesAction();
+    }
+
     public static int getBlockSlot() {
         for (int i = 0; i < 9; i++) {
             final ItemStack itemStack = mc.player.getInventory().getItem(i);

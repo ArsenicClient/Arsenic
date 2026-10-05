@@ -3,27 +3,25 @@ package arsenic.module.impl.visual;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.block.BlockBed;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.resources.model.IBakedModel;
-import net.minecraft.world.level.block.Blocks;
+import arsenic.event.impl.EventRender2D;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.WorldToScreen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.block.AbstractBedBlock;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3x2fStack;
 
 import java.util.*;
 
@@ -33,8 +31,6 @@ public class BedPlates extends Module {
 
     private static final int FALLBACK_INTERVAL = 240;
     private static final int CHUNKS_PER_TICK = 2;
-    private static final float BASE_SCALE = 0.026F;
-    private static final float MAX_SCALE = 0.30F;
 
     private final Map<String, CachedBed> bedCache = new HashMap<>();
     private final Map<Long, Set<String>> chunkBeds = new HashMap<>();
@@ -65,14 +61,14 @@ public class BedPlates extends Module {
         removeBrokenBeds();
 
         int chunkRadius = getChunkRadius();
-        int playerCX = mc.player.getPosition().getX() >> 4;
-        int playerCZ = mc.player.getPosition().getZ() >> 4;
+        int playerCX = mc.player.getBlockX() >> 4;
+        int playerCZ = mc.player.getBlockZ() >> 4;
 
         for (int cx = playerCX - chunkRadius; cx <= playerCX + chunkRadius; cx++) {
             for (int cz = playerCZ - chunkRadius; cz <= playerCZ + chunkRadius; cz++) {
                 long ck = chunkKey(cx, cz);
                 if (scannedChunks.contains(ck)) continue;
-                if (!mc.level.getChunkProvider().chunkExists(cx, cz)) continue;
+                if (mc.level.getChunkSource().getChunkNow(cx, cz) == null) continue;
                 scanChunk(cx, cz);
             }
         }
@@ -88,7 +84,7 @@ public class BedPlates extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventRenderWorldLast> onRender = event -> {
+    public final Listener<EventRender2D> onRender = event -> {
         if (bedCache.isEmpty()) return;
 
         double maxDistSq = 64 * 64;
@@ -101,10 +97,11 @@ public class BedPlates extends Module {
             }
         }
 
-        list.sort(Comparator.comparingDouble(a -> a.distanceSq));
+        // far first, so nearer labels draw on top
+        list.sort(Comparator.comparingDouble(a -> -a.distanceSq));
 
         for (BedRender br : list) {
-            renderLabel(br);
+            renderLabel(br, event);
         }
     };
 
@@ -132,8 +129,8 @@ public class BedPlates extends Module {
 
     private void queueNearbyChunks(boolean resetScanned) {
         int r = getChunkRadius();
-        int pcx = mc.player.getPosition().getX() >> 4;
-        int pcz = mc.player.getPosition().getZ() >> 4;
+        int pcx = mc.player.getBlockX() >> 4;
+        int pcz = mc.player.getBlockZ() >> 4;
         for (int cx = pcx - r; cx <= pcx + r; cx++) {
             for (int cz = pcz - r; cz <= pcz + r; cz++) {
                 long ck = chunkKey(cx, cz);
@@ -152,7 +149,7 @@ public class BedPlates extends Module {
             queuedChunks.remove(ck);
             int cx = (int) (ck >> 32);
             int cz = (int) (long) ck;
-            if (mc.level.getChunkProvider().chunkExists(cx, cz)) {
+            if (mc.level.getChunkSource().getChunkNow(cx, cz) != null) {
                 scanChunk(cx, cz);
             } else {
                 scannedChunks.remove(ck);
@@ -163,29 +160,34 @@ public class BedPlates extends Module {
     }
 
     private void scanChunk(int chunkX, int chunkZ) {
-        if (!mc.level.getChunkProvider().chunkExists(chunkX, chunkZ)) return;
+        LevelChunk chunk = mc.level.getChunkSource().getChunkNow(chunkX, chunkZ);
+        if (chunk == null) return;
 
-        Chunk chunk = mc.level.getChunkFromChunkCoords(chunkX, chunkZ);
         long ck = chunkKey(chunkX, chunkZ);
         Set<String> found = new HashSet<>();
 
-        int sx = chunkX << 4;
-        int sz = chunkZ << 4;
+        // Only sections whose palette can contain a bed are walked, so the world's full height
+        // (no longer 0..255) costs next to nothing.
+        LevelChunkSection[] sections = chunk.getSections();
+        for (int s = 0; s < sections.length; s++) {
+            LevelChunkSection section = sections[s];
+            if (section.hasOnlyAir() || !section.maybeHas(state -> state.getBlock() instanceof AbstractBedBlock)) continue;
+            int baseY = SectionPos.sectionToBlockCoord(chunk.getSectionYFromSectionIndex(s));
+            for (int lx = 0; lx < 16; lx++) {
+                for (int ly = 0; ly < 16; ly++) {
+                    for (int lz = 0; lz < 16; lz++) {
+                        if (!(section.getBlockState(lx, ly, lz).getBlock() instanceof AbstractBedBlock)) continue;
+                        BlockPos pos = new BlockPos((chunkX << 4) + lx, baseY + ly, (chunkZ << 4) + lz);
 
-        for (int lx = 0; lx < 16; lx++) {
-            for (int lz = 0; lz < 16; lz++) {
-                for (int y = 0; y < 256; y++) {
-                    BlockPos pos = new BlockPos(sx + lx, y, sz + lz);
-                    if (!(chunk.getBlock(pos) instanceof BlockBed)) continue;
+                        BlockPos[] pair = resolveBedPair(pos);
+                        if (pair == null) continue;
+                        if (chunkKey(pair[0].getX() >> 4, pair[0].getZ() >> 4) != ck) continue;
 
-                    BlockPos[] pair = resolveBedPair(pos);
-                    if (pair == null) continue;
-                    if (chunkKey(pair[0].getX() >> 4, pair[0].getZ() >> 4) != ck) continue;
+                        String key = bedKey(pair[0], pair[1]);
+                        if (!found.add(key)) continue;
 
-                    String key = bedKey(pair[0], pair[1]);
-                    if (!found.add(key)) continue;
-
-                    bedCache.put(key, new CachedBed(pair[0], pair[1], collectBlocks(pair[0], pair[1])));
+                        bedCache.put(key, new CachedBed(pair[0], pair[1], collectBlocks(pair[0], pair[1])));
+                    }
                 }
             }
         }
@@ -201,11 +203,10 @@ public class BedPlates extends Module {
     }
 
     private BlockPos[] resolveBedPair(BlockPos pos) {
-        BlockPos other = null;
-        for (BlockPos n : new BlockPos[]{pos.north(), pos.south(), pos.east(), pos.west()}) {
-            if (isBed(n)) { other = n; break; }
-        }
-        if (other == null) return null;
+        BlockState state = mc.level.getBlockState(pos);
+        if (!(state.getBlock() instanceof AbstractBedBlock)) return null;
+        BlockPos other = pos.relative(AbstractBedBlock.getConnectedDirection(state));
+        if (!isBed(other)) return null;
         if (comparePos(pos, other) <= 0) {
             return new BlockPos[]{pos, other};
         }
@@ -213,38 +214,36 @@ public class BedPlates extends Module {
     }
 
     private List<ItemStack> collectBlocks(BlockPos first, BlockPos second) {
-        Set<String> seen = new LinkedHashSet<>();
+        Set<Item> seen = new LinkedHashSet<>();
         List<ItemStack> stacks = new ArrayList<>();
-        int r = (int) 2;
+        int r = 2;
 
         for (int dx = -r; dx <= r; dx++) {
             for (int dy = 0; dy <= r; dy++) {
                 for (int dz = -r; dz <= r; dz++) {
-                    addBlock(first.add(dx, dy, dz), seen, stacks);
-                    addBlock(second.add(dx, dy, dz), seen, stacks);
+                    addBlock(first.offset(dx, dy, dz), seen, stacks);
+                    addBlock(second.offset(dx, dy, dz), seen, stacks);
                 }
             }
         }
         return stacks;
     }
 
-    private void addBlock(BlockPos pos, Set<String> seen, List<ItemStack> stacks) {
-        IBlockState state = mc.level.getBlockState(pos);
+    private void addBlock(BlockPos pos, Set<Item> seen, List<ItemStack> stacks) {
+        BlockState state = mc.level.getBlockState(pos);
         Block block = state.getBlock();
-        if (block == null || block == Blocks.AIR || block instanceof BlockBed || block.defaultBlockState().isAir()) return;
+        if (state.isAir() || block instanceof AbstractBedBlock) return;
 
-        Item item = Item.getItemFromBlock(block);
-        if (item == null) return;
+        Item item = block.asItem();
+        if (item == Items.AIR) return;
 
-        int meta = block.damageDropped(state);
-        String key = Item.itemRegistry.getNameForObject(item) + ":" + meta;
-        if (seen.add(key)) {
-            stacks.add(new ItemStack(item, 1, meta));
+        if (seen.add(item)) {
+            stacks.add(new ItemStack(item));
         }
     }
 
     private boolean isBed(BlockPos pos) {
-        return mc.level.getBlockState(pos).getBlock() instanceof BlockBed;
+        return mc.level.getBlockState(pos).getBlock() instanceof AbstractBedBlock;
     }
 
     private int getChunkRadius() {
@@ -253,123 +252,60 @@ public class BedPlates extends Module {
 
     // ── Rendering ───────────────────────────────────────────────────────
 
-    private void renderLabel(BedRender br) {
-        FontRenderer fr = mc.font;
-        if (fr == null) return;
+    /**
+     * The label floats over the bed. 1.8 drew it as a world-space billboard; here the point is
+     * projected onto the screen and drawn with the HUD, which lets the defence row use the game's
+     * real item rendering.
+     */
+    private void renderLabel(BedRender br, EventRender2D event) {
+        double x = (br.first.getX() + br.second.getX()) / 2.0 + 0.5;
+        double y = Math.max(br.first.getY(), br.second.getY()) + 1.35;
+        double z = (br.first.getZ() + br.second.getZ()) / 2.0 + 0.5;
 
-        double vx = mc.getRenderManager().viewerPosX;
-        double vy = mc.getRenderManager().viewerPosY;
-        double vz = mc.getRenderManager().viewerPosZ;
-
-        double x = (br.first.getX() + br.second.getX()) / 2.0 + 0.5 - vx;
-        double y = Math.max(br.first.getY(), br.second.getY()) + 1.35 - vy;
-        double z = (br.first.getZ() + br.second.getZ()) / 2.0 + 0.5 - vz;
+        WorldToScreen.Point point = WorldToScreen.project(new Vec3(x, y, z));
+        if (point == null) return;
 
         float scale = labelScale(br.distanceSq);
-
-        GlStateManager.translate(x, y, z);
-        GL11.glNormal3f(0, 1, 0);
-        GlStateManager.rotate(-mc.gameRenderer.mainCamera().yRot(), 0, 1, 0);
-        GlStateManager.rotate(mc.gameRenderer.mainCamera().xRot(), 1, 0, 0);
-        GlStateManager.scale(-scale, -scale, scale);
-
-        if (br.defenses.isEmpty()) {
-
-            String text = "Uncovered";
-            int w = fr.getStringWidth(text) / 2;
-            drawBackground(w, fr.FONT_HEIGHT);
-            fr.drawString(text, -w, 0, 0xFFFFFFFF);
-        } else {
-            drawIcons(br.defenses);
+        Matrix3x2fStack pose = event.getGraphics().pose();
+        pose.pushMatrix();
+        pose.translate(point.x(), point.y());
+        pose.scale(scale, scale);
+        try {
+            if (br.defenses.isEmpty()) {
+                String text = "Uncovered";
+                int w = mc.font.width(text) / 2;
+                DrawUtils.drawRect(-w - 2, -2, w + 2, mc.font.lineHeight + 2, 0x73000000);
+                event.getGraphics().text(mc.font, text, -w, 0, 0xFFFFFFFF, false);
+            } else {
+                drawIcons(br.defenses, event);
+            }
+        } finally {
+            pose.popMatrix();
         }
-
-        GlStateManager.color(1, 1, 1, 1);
     }
 
-    private void drawIcons(List<ItemStack> stacks) {
+    private void drawIcons(List<ItemStack> stacks, EventRender2D event) {
         float iconSize = 16;
         float spacing = 18;
         int count = stacks.size();
         float totalW = count * spacing;
         float startX = -totalW / 2;
 
-        GlStateManager.color(1, 1, 1, 1);
-
-        drawBackground(startX - 2, -iconSize - 2, startX + totalW + 2, 2);
-
-        if (count > 0) {
-        }
-
-        mc.getTextureManager().getTexture(TextureMap.locationBlocksTexture);
+        DrawUtils.drawRect(startX - 2, -iconSize - 2, startX + totalW + 2, 2, 0x73000000);
 
         for (int i = 0; i < count; i++) {
-            ItemStack stack = stacks.get(i);
-            TextureAtlasSprite sprite = resolveSprite(stack);
-            if (sprite == null) continue;
-
             float left = startX + i * spacing + (spacing - iconSize) / 2;
-            float top = -iconSize;
-            drawSprite(sprite, left, top, iconSize);
+            event.getGraphics().pose().pushMatrix();
+            event.getGraphics().pose().translate(left, -iconSize);
+            event.getGraphics().item(stacks.get(i), 0, 0);
+            event.getGraphics().pose().popMatrix();
         }
-
-        GlStateManager.color(1, 1, 1, 1);
     }
 
-    private TextureAtlasSprite resolveSprite(ItemStack stack) {
-        try {
-            IBakedModel model = mc.getRenderItem().getItemModelMesher().getItemModel(stack);
-            if (model != null) {
-                TextureAtlasSprite sprite = model.getParticleTexture();
-                if (sprite != null) return sprite;
-            }
-        } catch (Exception ignored) {}
-        return null;
-    }
-
-    private void drawSprite(TextureAtlasSprite sprite, float left, float top, float size) {
-        float minU = sprite.getMinU();
-        float maxU = sprite.getMaxU();
-        float minV = sprite.getMinV();
-        float maxV = sprite.getMaxV();
-        float right = left + size;
-        float bottom = top + size;
-
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        wr.pos(left, bottom, 0).tex(minU, maxV).endVertex();
-        wr.pos(right, bottom, 0).tex(maxU, maxV).endVertex();
-        wr.pos(right, top, 0).tex(maxU, minV).endVertex();
-        wr.pos(left, top, 0).tex(minU, minV).endVertex();
-        tess.draw();
-    }
-
-    private void drawBackground(int halfW, int textH) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(-halfW - 2, -2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(-halfW - 2, textH + 2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(halfW + 2, textH + 2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(halfW + 2, -2, 0).color(0, 0, 0, 0.45f).endVertex();
-        tess.draw();
-    }
-
-    private void drawBackground(float minX, float minY, float maxX, float maxY) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(minX, minY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(minX, maxY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(maxX, maxY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(maxX, minY, 0).color(0, 0, 0, 0.45f).endVertex();
-        tess.draw();
-    }
-
+    /** Labels shrink with distance like a world-space label would, but never below readable. */
     private float labelScale(double distSq) {
         float dist = (float) Math.sqrt(distSq);
-        float s = BASE_SCALE * Math.max(1, (dist / 32) * 6);
-        return Math.min(MAX_SCALE, s);
+        return Math.max(0.5f, Math.min(1.5f, 12f / Math.max(1f, dist)));
     }
 
     // ── Math helpers ────────────────────────────────────────────────────
