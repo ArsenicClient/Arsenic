@@ -237,14 +237,7 @@ public class Nuker extends Module {
     }
 
     private float[] rotationsTo(Vec3 point) {
-        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
-        double dx = point.xCoord - eyes.xCoord;
-        double dy = point.yCoord - eyes.yCoord;
-        double dz = point.zCoord - eyes.zCoord;
-        double dist = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
-        return new float[]{yaw, pitch};
+        return RotationUtils.rotationsTo(mc.thePlayer.getPositionEyes(1f), point);
     }
 
     private static float angleBetween(float yawA, float pitchA, float yawB, float pitchB) {

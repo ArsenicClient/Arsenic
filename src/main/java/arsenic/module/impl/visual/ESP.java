@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.java.MathUtils;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
@@ -151,7 +152,7 @@ public class ESP extends Module {
     private void drawHealthEsp(EntityPlayer entity, double x, double y, double z) {
         if (!(entity instanceof EntityLivingBase)) return;
         EntityLivingBase en = (EntityLivingBase) entity;
-        double r = JavaUtils.limit(en.getHealth() / en.getMaxHealth(), 0, 1);
+        double r = MathUtils.clamp(en.getHealth() / en.getMaxHealth(), 0.0, 1.0);
         int b = (int) (74.0D * r);
         int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
 

@@ -1,5 +1,7 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.rotations.RotationUtils;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -71,12 +73,12 @@ public class AutoGrinder extends Module {
             stopAt = radius.getValue().getInput();
         }
 
-        if (Math.sqrt(dx * dx + dz * dz) <= stopAt) {
+        if (MathUtils.horizontalDistance(dx, dz) <= stopAt) {
             releaseKeys();
             return;
         }
 
-        mc.thePlayer.rotationYaw = (float) (MathHelper.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
+        mc.thePlayer.rotationYaw = RotationUtils.yawTo(dx, dz);
         mc.thePlayer.rotationPitch = 0;
         setKey(mc.gameSettings.keyBindForward, true);
         setKey(mc.gameSettings.keyBindSprint, true);

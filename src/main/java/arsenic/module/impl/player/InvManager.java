@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.event.bus.Listener;
@@ -24,7 +25,7 @@ import java.util.List;
 @ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYER)
 public class InvManager extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
-
+    public final BooleanProperty dropItems = new BooleanProperty("Drop Items", true);
 
 
     private Timer timer = new Timer();
@@ -44,7 +45,7 @@ public class InvManager extends Module {
         if(!path.isEmpty()) {
             Action action = path.remove(0);
 
-            if(!true && action.type == ActionType.DROP) {
+            if(!dropItems.getValue() && action.type == ActionType.DROP) {
                 getExecuteAction().run();
                 return;
             }

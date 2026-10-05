@@ -182,8 +182,8 @@ public class KillAura extends Module {
             AxisAlignedBB box = p.getEntityBoundingBox();
             double dx = (box.minX + box.maxX) / 2 - eyes.xCoord, dz = (box.minZ + box.maxZ) / 2 - eyes.zCoord;
             double dy = MathHelper.clamp_double(eyes.yCoord, box.minY, box.maxY) - eyes.yCoord;
-            float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
-            float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+            float yaw = RotationUtils.yawTo(dx, dz);
+            float pitch = RotationUtils.pitchTo(dx, dy, dz);
             float angle = Math.max(Math.abs(MathHelper.wrapAngleTo180_float(yaw - srm.yaw)), Math.abs(pitch - srm.pitch));
             list.add(new TargetPicker.Candidate(p.getEntityId(), TargetManager.sortValue(p),
                     RotationUtils.getDistanceToEntityBox(p), angle));

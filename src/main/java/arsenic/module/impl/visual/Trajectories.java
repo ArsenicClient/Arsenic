@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -26,7 +27,7 @@ public class Trajectories extends Module {
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        if (mc.thePlayer.getHeldItem() == null || !(mc.thePlayer.getHeldItem().getItem() instanceof ItemBow)) {
+        if (!PlayerUtils.isPlayerHoldingBow()) {
             return;
         }
 

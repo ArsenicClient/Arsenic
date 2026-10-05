@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual.custommainmenu;
 
+import arsenic.utils.render.RenderUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.font.FontRendererExtension;
@@ -94,8 +95,7 @@ public class Screen extends GuiScreen {
         mc.getTextureManager().bindTexture(LOGO);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        int ic = ink(255);
-        GlStateManager.color((ic >> 16 & 0xFF) / 255f, (ic >> 8 & 0xFF) / 255f, (ic & 0xFF) / 255f, fade);
+        RenderUtils.color2(ink(255), fade);
         Gui.drawModalRectWithCustomSizedTexture((int) lx, (int) ly, 0, 0, (int) lw, (int) lh, lw, lh);
         GlStateManager.color(1f, 1f, 1f, 1f);
 

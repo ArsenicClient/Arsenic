@@ -449,10 +449,6 @@ public class RenderUtils extends UtilityClass {
         GlStateManager.color(r, g, b, alpha);
     }
 
-    private static void rawColor(int color, float alpha) {
-        glColor4f((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, alpha);
-    }
-
     public static double ticks = 0;
     public static long lastFrame = 0;
 
@@ -484,11 +480,11 @@ public class RenderUtils extends UtilityClass {
             final double vecX = x + rad * Math.cos(i);
             final double vecZ = z + rad * Math.sin(i);
 
-            rawColor(colored, 0);
+            color2(colored, 0);
 
             glVertex3d(vecX, y - Math.sin(ticks + 1) / 2.7f, vecZ);
 
-            rawColor(colored, .52f * alpha);
+            color2(colored, .52f * alpha);
 
 
             glVertex3d(vecX, y, vecZ);
@@ -501,7 +497,7 @@ public class RenderUtils extends UtilityClass {
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
         glLineWidth(1.5f);
         glBegin(GL_LINE_STRIP);
-        rawColor(colored, .5f * alpha);
+        color2(colored, .5f * alpha);
         for (int i = 0; i <= 180; i++) {
             glVertex3d(x - Math.sin(i * PI2 / 90) * rad, y, z + Math.cos(i * PI2 / 90) * rad);
         }

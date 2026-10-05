@@ -4,6 +4,7 @@ import arsenic.event.impl.EventMovementInput;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.world.Scaffold;
 import arsenic.utils.botcore.Box;
+import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.scaffoldcore.ScaffoldCore;
@@ -101,49 +102,23 @@ public class ScaffoldUtil extends UtilityClass {
         }
         BlockPos pos = lastblockdata.getPosition();
         EnumFacing facing = lastblockdata.getFacing();
-        Vec3 vec3 = new Vec3(pos);
-
-        double amount1 = 0.45 + Math.random() * 0.1;
-        double amount2 = 0.45 + Math.random() * 0.1;
-
-        if (facing == EnumFacing.UP) {
-            vec3 = vec3.addVector(amount1, 1, amount2);
-        } else if (facing == EnumFacing.DOWN) {
-            vec3 = vec3.addVector(amount1, 0, amount2);
-        } else if (facing == EnumFacing.EAST) {
-            vec3 = vec3.addVector(1, amount1, amount2);
-        } else if (facing == EnumFacing.WEST) {
-            vec3 = vec3.addVector(0, amount1, amount2);
-        } else if (facing == EnumFacing.NORTH) {
-            vec3 = vec3.addVector(amount1, amount2, 0);
-        } else if (facing == EnumFacing.SOUTH) {
-            vec3 = vec3.addVector(amount1, amount2, 1);
-        }
-
-        return vec3;
+        return getNewVector(pos, facing);
     }
 
+    /** A point on the given face of the block, jittered around the centre of the face. */
     public static Vec3 getNewVector(BlockPos pos, EnumFacing facing) {
-        Vec3 vec3 = new Vec3(pos);
-
-        double amount1 = 0.45 + Math.random() * 0.1;
-        double amount2 = 0.45 + Math.random() * 0.1;
-
-        if (facing == EnumFacing.UP) {
-            vec3 = vec3.addVector(amount1, 1, amount2);
-        } else if (facing == EnumFacing.DOWN) {
-            vec3 = vec3.addVector(amount1, 0, amount2);
-        } else if (facing == EnumFacing.EAST) {
-            vec3 = vec3.addVector(1, amount1, amount2);
-        } else if (facing == EnumFacing.WEST) {
-            vec3 = vec3.addVector(0, amount1, amount2);
-        } else if (facing == EnumFacing.NORTH) {
-            vec3 = vec3.addVector(amount1, amount2, 0);
-        } else if (facing == EnumFacing.SOUTH) {
-            vec3 = vec3.addVector(amount1, amount2, 1);
+        double a = JavaUtils.getRandom(0.45, 0.55);
+        double b = JavaUtils.getRandom(0.45, 0.55);
+        Vec3 base = new Vec3(pos);
+        switch (facing) {
+            case UP:    return base.addVector(a, 1, b);
+            case DOWN:  return base.addVector(a, 0, b);
+            case EAST:  return base.addVector(1, a, b);
+            case WEST:  return base.addVector(0, a, b);
+            case NORTH: return base.addVector(a, b, 0);
+            case SOUTH: return base.addVector(a, b, 1);
+            default:    return base;
         }
-
-        return vec3;
     }
 
     public static int getBlockSlot() {

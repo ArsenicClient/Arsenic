@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.utils.rotations.RotationUtils;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -128,13 +129,7 @@ public class FastCake extends Module {
         double cz = cake.getZ() + (block.getBlockBoundsMinZ() + block.getBlockBoundsMaxZ()) / 2.0;
 
         Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
-        double dx = cx - eyes.xCoord;
-        double dy = cy - eyes.yCoord;
-        double dz = cz - eyes.zCoord;
-        double dist = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
-        return new float[]{yaw, pitch};
+        return RotationUtils.rotationsTo(eyes, new Vec3(cx, cy, cz));
     }
 
     private BlockPos findNearestCake() {
