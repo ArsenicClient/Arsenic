@@ -51,7 +51,7 @@ refreshListing();
     private int listedSignature;
 
     private static int tierSignature() {
-        return (GuiStyle.get().isShowBlatant() ? 1 : 0) | (GuiStyle.get().isShowMoreModules() ? 2 : 0);
+        return (GuiStyle.get().isShowBlatant() ? 1 : 0);
     }
 
     protected boolean followsMoreToggle() {

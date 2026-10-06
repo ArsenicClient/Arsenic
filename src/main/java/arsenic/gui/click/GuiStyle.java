@@ -107,7 +107,6 @@ public final class GuiStyle implements ISerializable {
     private Preset preset = Preset.GLASS;
     private boolean customFont = true;
     private boolean sounds = true;
-    private boolean showMoreModules = false;
     private boolean showBlatant = true;
     /** The whole menu look: "Element" (default) or "Ocean". The loading screen reads it straight from the config file at start-up. */
     private String screenStyle = "Element";
@@ -141,32 +140,23 @@ public final class GuiStyle implements ISerializable {
 
 
 
-    public boolean isShowMoreModules() { return showMoreModules; }
-
-    public void setShowMoreModules(boolean showMoreModules) { this.showMoreModules = showMoreModules; }
-
     public boolean isShowBlatant() { return showBlatant; }
 
     public void setShowBlatant(boolean showBlatant) { this.showBlatant = showBlatant; }
 
-    /** Legit is always on; Blatant and Extra (and Dev, with Extra) follow their ClickGUI toggles. */
+    /** Only Blatant has a ClickGUI toggle; every other tier is always listed. */
     public boolean isTierShown(arsenic.module.ModuleTier tier) {
         switch (tier) {
             case BLATANT: return showBlatant;
-            case EXTRA:
-            case DEV: return showMoreModules;
             default: return true;
         }
     }
 
     /** Flip a tier toggle. Turning one off also switches off that tier's modules so none keep running unseen. */
     public void toggleTier(arsenic.module.ModuleTier tier) {
-        if (tier == arsenic.module.ModuleTier.LEGIT)
+        if (tier != arsenic.module.ModuleTier.BLATANT)
             return;
-        if (tier == arsenic.module.ModuleTier.BLATANT)
-            showBlatant = !showBlatant;
-        else
-            showMoreModules = !showMoreModules;
+        showBlatant = !showBlatant;
         if (isTierShown(tier))
             return;
         for (arsenic.module.Module m : new java.util.ArrayList<>(Arsenic.getArsenic().getModuleManager().getModules()))
@@ -244,7 +234,6 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("preset", preset.name());
         obj.addProperty("customFont", customFont);
         obj.addProperty("sounds", sounds);
-        obj.addProperty("showMoreModules", showMoreModules);
         obj.addProperty("showBlatant", showBlatant);
         obj.addProperty("screenStyle", screenStyle);
         return obj;
@@ -267,8 +256,6 @@ public final class GuiStyle implements ISerializable {
                 setScreenStyle(obj.get("screenStyle").getAsString());
             if (obj.has("showBlatant"))
                 showBlatant = obj.get("showBlatant").getAsBoolean();
-            if (obj.has("showMoreModules"))
-                showMoreModules = obj.get("showMoreModules").getAsBoolean();
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

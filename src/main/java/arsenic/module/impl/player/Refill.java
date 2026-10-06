@@ -16,7 +16,7 @@ import net.minecraft.item.ItemPotion;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C16PacketClientStatus;
 
-@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER)
 public class Refill extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 80, 10));
 

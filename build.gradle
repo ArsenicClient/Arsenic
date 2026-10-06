@@ -108,8 +108,55 @@ task generateAddonMappings {
 }
 
 
+// API.md: the public surface addons can call, scanned from the sources (tools/apidump/ApiDump.java) so it cannot
+// drift from the code. Written to build/generated/addon-api and bundled into the jar next to the addons.
+def addonApiDir = file("$buildDir/generated/addon-api")
+task generateAddonApi {
+    def apiEntries = [
+            "arsenic/module/Module.java", "arsenic/module/ModuleInfo.java", "arsenic/module/ModuleCategory.java",
+            "arsenic/module/ModuleTier.java", "arsenic/module/property",
+            "arsenic/event/types", "arsenic/event/impl", "arsenic/event/bus/Listener.java",
+            "arsenic/event/bus/annotations", "arsenic/event/bus/Priorities.java",
+            "arsenic/asm/RequiresPlayer.java", "arsenic/command/Command.java", "arsenic/command/CommandInfo.java",
+            "arsenic/main/Arsenic.java", "arsenic/gui/hud/HudElement.java", "arsenic/injection/accessor",
+            "arsenic/utils/rotations", "arsenic/utils/timer", "arsenic/utils/java", "arsenic/utils/minecraft",
+            "arsenic/utils/render/DrawUtils.java", "arsenic/utils/render/RenderUtils.java",
+            "arsenic/utils/lag/LagManager.java"
+    ]
+    inputs.dir "src/main/java"
+    inputs.file "tools/apidump/ApiDump.java"
+    outputs.dir addonApiDir
+    outputs.file "ADDONS.md"
+
+    doLast {
+        def classes = file("$buildDir/tmp/apidump")
+        classes.mkdirs()
+        ant.javac(srcdir: file("tools/apidump"), destdir: classes, includeantruntime: false, source: "1.8", target: "1.8")
+        addonApiDir.mkdirs()
+        javaexec {
+            classpath classes
+            main = "ApiDump"
+            args([file("src/main/java").absolutePath, new File(addonApiDir, "API.md").absolutePath] + apiEntries)
+        }
+        // embed the dump at the bottom of ADDONS.md between its markers
+        def doc = file("ADDONS.md")
+        def api = new File(addonApiDir, "API.md").getText("UTF-8")
+                .replaceFirst(/(?s)^.*?\n(?=## )/, "")
+                .replaceAll(/(?m)^## /, "### ")
+        def text = doc.getText("UTF-8")
+        def begin = "<!-- API:BEGIN -->", end = "<!-- API:END -->"
+        int b = text.indexOf(begin), e = text.indexOf(end)
+        if (b >= 0 && e > b) {
+            def updated = text.substring(0, b + begin.length()) + "\n" + api.trim() + "\n" + text.substring(e)
+            if (updated != text) doc.write(updated, "UTF-8")
+        }
+    }
+}
+
 processResources {
     dependsOn generateAddonMappings
+    dependsOn generateAddonApi
+    from(addonApiDir) { into "assets/arsenic/addons" }
     from("src/addons") {
         include "addons.json"
         include "java/*.java"

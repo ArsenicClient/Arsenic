@@ -41,10 +41,23 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.StringUtils;
 import net.minecraft.util.Vec3;
+import net.minecraft.util.MovingObjectPosition;
+import arsenic.utils.bot.McWorldView;
+import arsenic.utils.botcore.BlockView;
+import arsenic.utils.botcore.Goal;
+import arsenic.utils.botcore.Planner;
+import arsenic.utils.botcore.Step;
+import arsenic.utils.botcore.Tuning;
 
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
-import java.awt.image.BufferedImage;
+import java.awt.Color;
+import java.awt.GraphicsEnvironment;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,8 +90,10 @@ public class AutoUber extends Module {
     public final BooleanProperty doMove = new BooleanProperty("Move To Crowd", true);
     public final BooleanProperty avoidSlimes = new BooleanProperty("Avoid Slimes", true);
     public final BooleanProperty friendDiamond = new BooleanProperty("Friend Diamond Chest", true);
-    public final BooleanProperty notifyChat = new BooleanProperty("Notify Chat", true);
+    public final BooleanProperty notifyChat = new BooleanProperty("Chat Window", true);
     public final BooleanProperty mentionsOnly = new BooleanProperty("Only Mentions", false);
+    public final BooleanProperty pathCheck = new BooleanProperty("Path Check", true);
+    public final DoubleProperty maxDetour = new DoubleProperty("Max Detour", new DoubleValue(1, 4, 1.8, 0.1));
     public final BooleanProperty pitOnly = new BooleanProperty("Pit Only", true);
     public final BooleanProperty pickupMystics = new BooleanProperty("Pick Up Mystics", true);
     public final BooleanProperty notifyEvents = new BooleanProperty("Notify Death/Stall", true);
@@ -90,6 +105,9 @@ public class AutoUber extends Module {
     private static final double STOP_DISTANCE = 2.2;
     private static final double CROWD_STOP = 3.0;
     private static final int[] OFFSETS = {0, 20, -20, 40, -40, 60, -60, 80, -80, 100, -100, 125, -125, 150, -150, 180};
+
+    private final ConcurrentHashMap<Integer, double[]> verdicts = new ConcurrentHashMap<>();
+    private final java.util.Set<Integer> probing = ConcurrentHashMap.newKeySet();
 
     private final ConcurrentLinkedQueue<String> pendingChat = new ConcurrentLinkedQueue<>();
     private volatile boolean respawnPacket;
@@ -136,14 +154,16 @@ public class AutoUber extends Module {
     private boolean savedPause, pauseSaved, enabledKillAura;
     private String status = "idle";
 
-    // desktop notifications
-    private TrayIcon trayIcon;
-    private boolean trayFailed;
+    // chat window
+    private JFrame frame;
+    private JTextPane pane;
+    private boolean windowFailed;
     private long lastNotify;
     private String lastNotifyText = "";
 
     @Override
     protected void onEnable() {
+        if (notifyChat.getValue() || notifyEvents.getValue()) notifyDesktop("AutoUber: started", "chat window ready");
         pendingChat.clear();
         respawnPacket = false;
         coState = 0;
@@ -164,7 +184,7 @@ public class AutoUber extends Module {
         pauseSaved = false;
         releaseKeys();
         setKillAura(false);
-        removeTray();
+        closeWindow();
     }
 
     @EventLink
@@ -322,6 +342,62 @@ public class AutoUber extends Module {
 
     // ---------------------------------------------------------------- mystic drops
 
+    // ---------------------------------------------------------------- path probe
+    // The pathfinder is only asked "is there a short, plain path?" so we ignore targets behind walls. Its path is
+    // never followed; movement stays our own sprint jump steering.
+
+    private boolean canSee(double tx, double ty, double tz) {
+        MovingObjectPosition mop = mc.theWorld.rayTraceBlocks(mc.thePlayer.getPositionEyes(1f), new Vec3(tx, ty, tz), false, true, false);
+        return mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK;
+    }
+
+    /** Worth going for: in plain sight and close, or the planner finds a short path without parkour, climbing or pillaring. */
+    private boolean worthwhile(Entity e, double ty) {
+        if (!pathCheck.getValue()) return true;
+        boolean visible = canSee(e.posX, ty, e.posZ);
+        double flat = Math.hypot(e.posX - mc.thePlayer.posX, e.posZ - mc.thePlayer.posZ);
+        if (visible && flat <= 3) return true;
+        int key = e.getEntityId();
+        long now = System.currentTimeMillis();
+        double[] v = verdicts.get(key);
+        boolean fresh = v != null && now - v[1] < 3000 && Math.hypot(v[2] - e.posX, v[3] - e.posZ) < 3;
+        if (!fresh && probing.size() < 2 && probing.add(key)) startProbe(key, e.posX, ty, e.posZ, flat);
+        if (v == null) return visible; // no verdict yet: trust what we can see
+        return v[0] > 0;
+    }
+
+    private void startProbe(final int key, final double tx, final double ty, final double tz, final double flat) {
+        final int sx = MathHelper.floor_double(mc.thePlayer.posX), sy = MathHelper.floor_double(mc.thePlayer.posY + 1e-3),
+                sz = MathHelper.floor_double(mc.thePlayer.posZ);
+        final double feet = mc.thePlayer.posY;
+        final BlockView view = new McWorldView(mc.theWorld);
+        final double detour = maxDetour.getValue().getInput();
+        Thread t = new Thread(() -> {
+            boolean ok = false;
+            try {
+                Tuning tun = new Tuning();
+                tun.searchMillis = 150;
+                tun.maxNodes = 8000;
+                Planner.Caps caps = new Planner.Caps();
+                caps.hop = true;
+                Planner.Result r = Planner.plan(view, sx, sy, sz, feet, new Goal.NearPoint(tx, ty, tz, 2.5), tun, caps,
+                        new java.util.HashSet<Long>(), null);
+                ok = r != null && r.complete && r.steps.size() - 1 <= flat * detour + 4;
+                if (ok)
+                    for (Step s : r.steps)
+                        if (s.type == Step.PARKOUR || s.type == Step.CLIMB_UP || s.type == Step.CLIMB_DOWN
+                                || s.type == Step.PILLAR || s.type == Step.BRIDGE || s.type == Step.MINE_DOWN) ok = false;
+            } catch (Throwable ignored) {
+            }
+            long now = System.currentTimeMillis();
+            verdicts.put(key, new double[]{ok ? 1 : 0, now, tx, tz});
+            verdicts.values().removeIf(v -> now - v[1] > 30000);
+            probing.remove(key);
+        }, "AutoUber-probe");
+        t.setDaemon(true);
+        t.start();
+    }
+
     /** Nearest dropped gold sword / bow / leather pants. The chat broadcast only happens for drops that are not ours. */
     private EntityItem findMystic() {
         EntityItem best = null;
@@ -335,7 +411,7 @@ public class AutoUber extends Module {
             net.minecraft.item.Item it = s.getItem();
             if (it != Items.golden_sword && it != Items.bow && it != Items.leather_leggings) continue;
             double d = e.getDistanceToEntity(mc.thePlayer);
-            if (d < bestDist) {
+            if (d < bestDist && worthwhile(e, e.posY + 0.3)) {
                 bestDist = d;
                 best = (EntityItem) e;
             }
@@ -494,13 +570,15 @@ public class AutoUber extends Module {
         }
 
         float desired = RotationUtils.yawTo(dx, dz);
-        if (slimeInside) {
-            Entity slime = nearestSlime();
-            if (slime != null) desired = RotationUtils.yawTo(mc.thePlayer.posX - slime.posX, mc.thePlayer.posZ - slime.posZ);
-        }
         if (ticks < unstickUntil) desired += 90 * unstickSign;
 
-        Float heading = pickHeading(desired);
+        Float heading = slimeInside ? pickOutward(desired) : pickHeading(desired, false);
+        if (heading == null && avoidSlimes.getValue()) {
+            // inside a slime zone (or boxed in by them): the zone check can never pass, so just get out the way we are facing away
+            Entity slime = nearestSlime();
+            float away = slime == null ? desired : RotationUtils.yawTo(mc.thePlayer.posX - slime.posX, mc.thePlayer.posZ - slime.posZ);
+            heading = pickHeading(away, true);
+        }
         if (heading == null) {
             status = "blocked";
             releaseKeys();
@@ -509,22 +587,44 @@ public class AutoUber extends Module {
         hold(heading);
     }
 
-    private Float pickHeading(float desired) {
+    /** Inside a slime zone: the heading closest to the goal (the players) that does not move us closer to any slime. */
+    private Float pickOutward(float desired) {
+        double now = minSlimeDistance(mc.thePlayer.posX, mc.thePlayer.posZ);
         int sign = unstickSign;
         for (int off : OFFSETS) {
-            float yaw = desired + off * (off == 0 ? 1 : sign);
-            if (headingClear(yaw)) return yaw;
-            if (off != 0 && off != 180 && headingClear(desired - off * sign)) return desired - off * sign;
+            for (int s = 0; s < (off == 0 || off == 180 ? 1 : 2); s++) {
+                float yaw = desired + off * (s == 0 ? sign : -sign);
+                double rad = Math.toRadians(yaw);
+                double x = mc.thePlayer.posX - Math.sin(rad) * 1.6, z = mc.thePlayer.posZ + Math.cos(rad) * 1.6;
+                if (minSlimeDistance(x, z) >= now && hasGround(x, z) && headingClear(yaw, true)) return yaw;
+            }
         }
         return null;
     }
 
-    private boolean headingClear(float yaw) {
+    private double minSlimeDistance(double x, double z) {
+        double best = 1e9;
+        for (Entity e : mc.theWorld.loadedEntityList)
+            if (e instanceof EntitySlime) best = Math.min(best, Math.hypot(e.posX - x, e.posZ - z));
+        return best;
+    }
+
+    private Float pickHeading(float desired, boolean ignoreZones) {
+        int sign = unstickSign;
+        for (int off : OFFSETS) {
+            float yaw = desired + off * (off == 0 ? 1 : sign);
+            if (headingClear(yaw, ignoreZones)) return yaw;
+            if (off != 0 && off != 180 && headingClear(desired - off * sign, ignoreZones)) return desired - off * sign;
+        }
+        return null;
+    }
+
+    private boolean headingClear(float yaw, boolean ignoreZones) {
         double rad = Math.toRadians(yaw);
         double sx = -Math.sin(rad), sz = Math.cos(rad);
         for (double d = 0.8; d <= 3.2; d += 0.8) {
             double x = mc.thePlayer.posX + sx * d, z = mc.thePlayer.posZ + sz * d;
-            if (avoidSlimes.getValue() && hitsAvoidZone(x, z)) return false;
+            if (!ignoreZones && avoidSlimes.getValue() && hitsAvoidZone(x, z)) return false;
             if (d == 1.6 || d == 3.2) if (!hasGround(x, z)) return false;
         }
         return true;
@@ -574,7 +674,7 @@ public class AutoUber extends Module {
         for (EntityPlayer p : mc.theWorld.playerEntities) {
             if (p == mc.thePlayer || p.isDead || p.getHealth() <= 0) continue;
             double d = mc.thePlayer.getDistanceToEntity(p);
-            if (d <= bestDist && TargetManager.isValidTarget(p)) {
+            if (d <= bestDist && TargetManager.isValidTarget(p) && worthwhile(p, p.posY + p.height / 2)) {
                 bestDist = d;
                 best = p;
             }
@@ -597,6 +697,7 @@ public class AutoUber extends Module {
         int bestCount = 0;
         double bestOrigin = 1e18;
         for (EntityPlayer a : pool) {
+            if (!worthwhile(a, a.posY + a.height / 2)) continue;
             int count = 0;
             for (EntityPlayer b : pool) {
                 double dx = a.posX - b.posX, dz = a.posZ - b.posZ;
@@ -692,42 +793,71 @@ public class AutoUber extends Module {
         if (now - lastNotify < 300 && key.equals(lastNotifyText)) return;
         lastNotify = now;
         lastNotifyText = key;
-        Thread t = new Thread(() -> {
+        final boolean event = title.startsWith("AutoUber");
+        final boolean mention = !event && mc.thePlayer != null
+                && text.toLowerCase().contains(mc.thePlayer.getName().toLowerCase());
+        final String stamp = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
+        SwingUtilities.invokeLater(() -> {
             try {
-                synchronized (AutoUber.this) {
-                    if (trayFailed) return;
-                    if (trayIcon == null) {
-                        if (!SystemTray.isSupported()) {
-                            trayFailed = true;
-                            return;
-                        }
-                        BufferedImage img = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-                        java.awt.Graphics2D g = img.createGraphics();
-                        g.setColor(new java.awt.Color(170, 0, 0));
-                        g.fillRect(0, 0, 16, 16);
-                        g.dispose();
-                        trayIcon = new TrayIcon(img, "AutoUber");
-                        SystemTray.getSystemTray().add(trayIcon);
-                    }
-                    trayIcon.displayMessage(title, text, TrayIcon.MessageType.INFO);
+                if (GraphicsEnvironment.isHeadless() && !windowFailed)
+                    PlayerUtils.addWaterMarkedMessageToChat("Chat window unavailable: Java is running headless");
+                if (windowFailed || GraphicsEnvironment.isHeadless()) {
+                    windowFailed = true;
+                    return;
                 }
+                if (frame == null) buildWindow();
+                if (!frame.isVisible()) frame.setVisible(true);
+                StyledDocument doc = pane.getStyledDocument();
+                doc.insertString(doc.getLength(), stamp + " ", styleOf(new Color(120, 120, 130), false));
+                if (event) {
+                    doc.insertString(doc.getLength(), title.replace("AutoUber: ", "") + " - " + text + "\n", styleOf(new Color(255, 85, 85), true));
+                } else {
+                    doc.insertString(doc.getLength(), title + ": ", styleOf(new Color(85, 255, 255), true));
+                    doc.insertString(doc.getLength(), text + "\n", styleOf(mention ? new Color(255, 170, 0) : new Color(230, 230, 235), mention));
+                }
+                if (doc.getLength() > 60000) doc.remove(0, doc.getLength() - 40000);
+                pane.setCaretPosition(doc.getLength());
             } catch (Throwable e) {
-                trayFailed = true;
+                windowFailed = true;
+                PlayerUtils.addWaterMarkedMessageToChat("Chat window failed: " + e);
             }
-        }, "AutoUber-notify");
-        t.setDaemon(true);
-        t.start();
+        });
     }
 
-    private synchronized void removeTray() {
-        if (trayIcon != null) {
-            try {
-                SystemTray.getSystemTray().remove(trayIcon);
-            } catch (Throwable ignored) {
-            }
-            trayIcon = null;
-        }
+    private SimpleAttributeSet styleOf(Color c, boolean bold) {
+        SimpleAttributeSet a = new SimpleAttributeSet();
+        StyleConstants.setForeground(a, c);
+        StyleConstants.setBold(a, bold);
+        StyleConstants.setFontFamily(a, "Consolas");
+        StyleConstants.setFontSize(a, 14);
+        return a;
     }
+
+    /** Ordinary chat window (own taskbar entry) that does not grab focus when it opens. */
+    private void buildWindow() {
+        frame = new JFrame("AutoUber chat");
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        frame.setAutoRequestFocus(false);
+        pane = new JTextPane();
+        pane.setEditable(false);
+        pane.setBackground(new Color(24, 24, 28));
+        JScrollPane scroll = new JScrollPane(pane);
+        scroll.setBorder(null);
+        frame.add(scroll);
+        frame.setSize(460, 520);
+        frame.setLocationByPlatform(true);
+    }
+
+    private void closeWindow() {
+        SwingUtilities.invokeLater(() -> {
+            if (frame != null) {
+                frame.dispose();
+                frame = null;
+                pane = null;
+            }
+        });
+    }
+
 
     @Override
     public String getHudInfo() {
