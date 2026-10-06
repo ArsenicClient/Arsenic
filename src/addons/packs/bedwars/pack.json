@@ -1,0 +1,11 @@
+{
+  "id": "bedwars",
+  "name": "BedWars",
+  "description": "Everything for BedWars: shoot down fireballs and break beds. Installed and enabled by default.",
+  "icon": "textures/items/bed.png",
+  "autoInstall": true,
+  "addons": {
+    "AntiFireball": "BedWars: silently aims at fireballs that come within reach and punches them away before they hit you. Ignores brand new fireballs for a moment so it never swings at your own.",
+    "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode."
+  }
+}

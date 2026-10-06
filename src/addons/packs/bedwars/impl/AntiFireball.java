@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.utils.java.MathUtils;
 import arsenic.asm.RequiresPlayer;

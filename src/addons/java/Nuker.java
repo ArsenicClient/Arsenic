@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;

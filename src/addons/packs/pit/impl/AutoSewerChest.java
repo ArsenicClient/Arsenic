@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -40,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ModuleInfo(name = "AutoSewerChest", category = ModuleCategory.PLAYER, tier = ModuleTier.DEV)
+@ModuleInfo(name = "AutoSewerChest", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class AutoSewerChest extends Module {
 
 

@@ -138,6 +138,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             UITheme.divider(x1 + pad, y2, x2 - pad, openPct);
             ScissorUtils.subScissor((int) x1, (int) y2, (int) (x2 + expandX * 2), (int) (y2 + expandY), 2);
             pi.moveY(pad * 0.4f);
+            float tagH = height * 0.4f;
+            int tierColor = tierColour(self.getTier());
+            UITheme.chip(ri.getFr(), self.getTier().getDisplayName(), x2 - pad, pi.getY() + tagH / 2f, tagH,
+                    UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
+            pi.moveY(tagH + pad * 0.3f);
             for (PropertyComponent<?> child : contents)
                 pi.moveY(child.updateComponent(pi, ri) * 1.06f);
             pi.moveY(pad * 0.6f);
@@ -173,6 +178,15 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             return;
         }
         buttonComponent.handleClick(mouseX, mouseY, mouseButton);
+    }
+
+    private static int tierColour(arsenic.module.ModuleTier tier) {
+        switch (tier) {
+            case BLATANT: return 0xFFFF5555;
+            case EXTRA: return 0xFF55AAFF;
+            case DEV: return 0xFFFFAA00;
+            default: return 0xFF55FF55;
+        }
     }
 
     private static int chipBacking(float emphasis, float accentPct) {

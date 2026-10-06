@@ -29,7 +29,7 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S40PacketDisconnect;
 
-@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
 public class KnockbackDelay extends Module {
 
     public enum DelayMode {Normal, AntiCombo}

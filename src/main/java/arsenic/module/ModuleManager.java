@@ -37,6 +37,9 @@ public class ModuleManager {
             });
         }
 
+        Arsenic.getInstance().getAddonManager().installDefaults();
+        Arsenic.getInstance().getAddonManager().load(this);
+
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
     }
@@ -89,6 +92,25 @@ public class ModuleManager {
 
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
     };
+
+    /** Registers a module that did not come from the client jar (an addon). @return why it was rejected, or null. */
+    public String registerExternal(Module module) {
+        if (getModuleByName(module.getName()) != null)
+            return "a module named " + module.getName() + " already exists";
+        try {
+            module.registerProperties();
+        } catch (Exception e) {
+            return "could not register properties: " + e;
+        }
+        modules.put(module.getClass(), module);
+        module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::add);
+        return null;
+    }
+
+    public void unregisterExternal(Module module) {
+        modules.remove(module.getClass());
+        module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::remove);
+    }
 
     private void addModule(Class<? extends Module> moduleClass) {
         try {

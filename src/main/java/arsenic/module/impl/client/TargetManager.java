@@ -6,7 +6,6 @@ import arsenic.event.impl.EventPacket;
 import net.minecraft.util.MovingObjectPosition;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.player.AutoHunt;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.player.EntityPlayer;
@@ -176,10 +175,18 @@ public class TargetManager extends Module {
         return v != null ? v : sortMode.getValue().sv.value(player);
     }
 
+    /** Modules (e.g. addons) may restrict who can be targeted while they are enabled. */
+    private static boolean allowedByModules(EntityPlayer ep) {
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
+            if (m.isEnabled() && !m.allowsTarget(ep))
+                return false;
+        return true;
+    }
+
     public static boolean isValidTarget(EntityPlayer ep) {
         return (ep != mc.thePlayer)
                 && !Arsenic.getArsenic().getFriendManager().isFriend(ep)
-                && AutoHunt.allowsTarget(ep)
+                && allowedByModules(ep)
                 && (bots.getValue()      || !AntiBot.isBot(ep))
                 && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
                 && (invis.getValue()      || !ep.isInvisible())

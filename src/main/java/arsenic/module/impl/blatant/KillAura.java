@@ -15,7 +15,11 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.injection.accessor.IMixinEntity;
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.utils.minecraft.AutoBlocker;
+import arsenic.utils.minecraft.BadPacketsManager;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -38,7 +42,7 @@ import net.minecraft.util.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "KillAura", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "KillAura", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
 public class KillAura extends Module {
 
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
@@ -46,9 +50,15 @@ public class KillAura extends Module {
     public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 8, 12, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
+    @PropertyInfo(reliesOn = "Auto Block", value = "Hypixel")
+    public final BooleanProperty blockOnRightClickOnly = new BooleanProperty("Only On Right Click", true);
     public EntityPlayer target = null;
     private boolean hadTarget = false;
     private boolean wasUsingItem;
+    private final AutoBlocker blocker = new AutoBlocker();
+    private AutoBlocker.Mode lastBlockMode = AutoBlocker.Mode.None;
+    private boolean blockAttackOk = true;
     private final MSTimer attackTimer = new MSTimer();
     private final MSTimer onTargetTimer = new MSTimer();
     private boolean everOnTarget = false;
@@ -77,12 +87,42 @@ public class KillAura extends Module {
         hadTarget = false;
         everOnTarget = false;
         aim.reset();
+        blocker.reset();
+    }
+
+    @Override
+    protected void onDisable() {
+        blocker.reset();
+        if (lastBlockMode == AutoBlocker.Mode.Legit && mc.thePlayer != null)
+            blocker.tickLegit(null, false);
+        lastBlockMode = AutoBlocker.Mode.None;
+        blockAttackOk = true;
+    }
+
+    /** Runs the selected autoblock for this tick; the result gates the attack in the post listener. */
+    private void autoBlockTick() {
+        AutoBlocker.Mode mode = autoBlock.getValue();
+        if (mode != AutoBlocker.Mode.Hypixel && blocker.isCycling())
+            blocker.tickHypixel(false);
+        if (mode != AutoBlocker.Mode.Legit && lastBlockMode == AutoBlocker.Mode.Legit)
+            blocker.tickLegit(null, false);
+        lastBlockMode = mode;
+        blockAttackOk = true;
+
+        boolean active = target != null && PlayerUtils.isPlayerHoldingSword();
+        if (mode == AutoBlocker.Mode.Hypixel) {
+            boolean rightClick = mc.currentScreen == null && mc.gameSettings.keyBindUseItem.isKeyDown();
+            blockAttackOk = blocker.tickHypixel(active && (!blockOnRightClickOnly.getValue() || rightClick));
+        } else if (mode == AutoBlocker.Mode.Legit) {
+            blocker.tickLegit(target, active);
+        }
     }
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
         target = pickTarget();
+        autoBlockTick();
         aim.updateDrift();
         if (target != null && hitflick().ownsRotation()) {
             hadTarget = true;
@@ -128,8 +168,9 @@ public class KillAura extends Module {
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && attackTimer.getTime() >= currentAttackDelay
-                && !usingItem
-                && !wasUsingItem) {
+                && (blocker.isCycling() ? blockAttackOk
+                    : !usingItem && !wasUsingItem
+                        && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false)))) {
             if (hitPlayer != null) {
                 if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();

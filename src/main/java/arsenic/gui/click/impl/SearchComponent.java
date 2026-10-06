@@ -27,7 +27,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
 
     final ClickGuiScreen gui = Arsenic.getArsenic().getClickGuiScreen();
     private final StringBuilder inp = new StringBuilder();
-    private final AnimationTimer activateTimer = new AnimationTimer(200, () -> gui.getCmcc() == this, TickMode.SINE);
+    private final AnimationTimer activateTimer = new AnimationTimer(200, () -> gui.isSearchActive(), TickMode.SINE);
 
     private boolean selected;
 
@@ -53,12 +53,18 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        x = (int) (ri.getGuiScreen().width / (3 + (1 * activateTimer.getPercent())));
+        if (gui.isAddonMode()) {
+            // the addon manager keeps the left of the header for its buttons, so the box sits on the right
+            x = (int) (ri.getGuiScreen().width * 0.58f);
+            x1 = ri.getGuiScreen().width * 0.855f;
+        } else {
+            x = (int) (ri.getGuiScreen().width / (3 + (1 * activateTimer.getPercent())));
+            x1 = ri.getGuiScreen().width - x;
+        }
         y = ri.getGuiScreen().height / 10;
-        x1 = ri.getGuiScreen().width - x;
         y1 = ri.getGuiScreen().height - y;
 
-        String imlosingmymind = inp.length() == 0 ? gui.getCmcc() == this ? "Search" : "Press \"/\" to toggle search" : inp.toString();
+        String imlosingmymind = inp.length() == 0 ? gui.isSearchActive() ? "Search" : "Press \"/\" to toggle search" : inp.toString();
         int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
 
         DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
@@ -94,7 +100,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
             return false;
         }
 
-        if (gui.getCmcc() != this) return false;
+        if (!gui.isSearchActive()) return false;
         char keyName = Keyboard.getEventCharacter();
         boolean isCtrlDown =  (Minecraft.isRunningOnMac ? Keyboard.isKeyDown(219) || Keyboard.isKeyDown(220) : Keyboard.isKeyDown(29) || Keyboard.isKeyDown(157));
         switch (key){
@@ -142,7 +148,22 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     public void clickChildren(int mouseX, int mouseY, int mouseButton) {
         this.contents.stream().filter(m -> m.getName().toLowerCase().contains(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
     }
+    /** What is typed in the box right now (the addon manager filters by it). */
+    public String getQuery() {
+        return inp.toString();
+    }
+
+    public void setQuery(String query) {
+        inp.setLength(0);
+        inp.append(query);
+        selected = false;
+    }
+
     private void toggleSearch(){
+        if (gui.isAddonMode()) {
+            gui.toggleAddonSearch();
+            return;
+        }
         if (gui.getCmcc() != this) {
             gui.setCmcc(this);
         } else {

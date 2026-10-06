@@ -7,6 +7,7 @@ import arsenic.event.impl.EventAttack;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
+import arsenic.gui.hud.HudElement;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -34,6 +35,8 @@ import java.util.Map;
 
 @ModuleInfo(name = "TargetHUD", category = ModuleCategory.RENDER, hidden = true)
 public class TargetHUD extends Module {
+
+    private final HudElement hud = hudElement("TargetHUD", 100, 100, 152, 52);
 
     public final EnumProperty<TargetHUDMode> mode = new EnumProperty<>("Mode", TargetHUDMode.Face);
     public final DoubleProperty fadeTime = new DoubleProperty("Fade Time (s)", new DoubleValue(1, 10, 3, 0.5));
@@ -140,8 +143,8 @@ public class TargetHUD extends Module {
 
     private void drawFaceMode(AbstractClientPlayer target, float scale) {
         float alpha = Math.min(1f, scale);
-        int x = HUD.targetHUDX;
-        int y = HUD.targetHUDY;
+        int x = hud.x;
+        int y = hud.y;
         int hudWidth = 150;
         int hudHeight = 50;
 
@@ -212,8 +215,8 @@ public class TargetHUD extends Module {
 
     private void drawSimpleMode(AbstractClientPlayer target, float scale) {
         float alpha = Math.min(1f, scale);
-        int x = HUD.targetHUDX;
-        int y = HUD.targetHUDY;
+        int x = hud.x;
+        int y = hud.y;
         int hudWidth = 130;
         int hudHeight = 32;
 
@@ -284,10 +287,10 @@ public class TargetHUD extends Module {
         GlStateManager.scale(-s, -s, s);
         GlStateManager.translate(35, -15, 0);
 
-        int origX = HUD.targetHUDX;
-        int origY = HUD.targetHUDY;
-        HUD.targetHUDX = 0;
-        HUD.targetHUDY = 0;
+        int origX = hud.x;
+        int origY = hud.y;
+        hud.x = 0;
+        hud.y = 0;
 
         switch (mode.getValue()) {
             case Simple:
@@ -298,8 +301,8 @@ public class TargetHUD extends Module {
                 break;
         }
 
-        HUD.targetHUDX = origX;
-        HUD.targetHUDY = origY;
+        hud.x = origX;
+        hud.y = origY;
         GlStateManager.enableDepth();
         GlStateManager.popMatrix();
     }

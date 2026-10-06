@@ -26,6 +26,7 @@ import java.util.List;
 public class InvManager extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
     public final BooleanProperty dropItems = new BooleanProperty("Drop Items", true);
+    public final BooleanProperty autoClose = new BooleanProperty("Auto Close", true);
 
 
     private Timer timer = new Timer();
@@ -35,10 +36,11 @@ public class InvManager extends Module {
     private Runnable nextAction;
 
     private final Runnable closeAction = () -> {
-        if(true) {
+        if(autoClose.getValue()) {
             mc.thePlayer.closeScreen();
             mc.currentScreen = null;
         }
+        shouldSteal = false;
     };
 
     private final Runnable executeAction = () -> {

@@ -27,8 +27,8 @@ public class AutoWeapon extends Module {
         if (aura == null || !aura.isEnabled()) return;
         if (aura.target == null && mc.thePlayer.inventory.getCurrentItem() != null) return;
 
-        AutoSoup soup = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoSoup.class);
-        if (soup != null && soup.isEnabled() && soup.isSwapping()) return;
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
+            if (m.isEnabled() && m.isSwappingHotbar()) return;
         if (mc.thePlayer.isUsingItem()) return;
 
         int best = -1;

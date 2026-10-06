@@ -40,6 +40,19 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private int vLineX, hLineY, x1, y1;
 
     private float hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2;
+    /** While true the main card shows the addon manager instead of the selected module category. */
+    private boolean addonMode;
+    /** Whether typing goes to the search box while the addon manager is open. */
+    private boolean addonSearchOn;
+    private final arsenic.gui.click.impl.AddonPageComponent addonPage = new arsenic.gui.click.impl.AddonPageComponent(
+            () -> searchComponent == null ? "" : ((SearchComponent) searchComponent).getQuery(),
+            () -> { if (searchComponent != null) ((SearchComponent) searchComponent).setQuery(""); });
+
+    private float addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2;
+    private boolean addonBtnHovered;
+    private final arsenic.utils.timer.AnimationTimer addonBtnTimer =
+            new arsenic.utils.timer.AnimationTimer(160, () -> addonBtnHovered,
+                    arsenic.utils.timer.TickMode.SINE);
     private boolean hudBtnHovered;
     private final arsenic.utils.timer.AnimationTimer hudBtnTimer =
             new arsenic.utils.timer.AnimationTimer(160, () -> hudBtnHovered,
@@ -183,47 +196,69 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float expandMax = catWidth / 40f;
         float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
         float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
-        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
-        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
-        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
-        if (GuiStyle.glassEnabled())
-            DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
+        // The addon manager drops the logo and the category column and uses the whole card.
+        if (!addonMode) {
+            DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
+            DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
+            DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
+            if (GuiStyle.glassEnabled())
+                DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
+                        ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
 
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
+            DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
+        }
         DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
 
-        mc.getTextureManager().bindTexture(logoPath);
-        int tempExpand = (int) (x * 0.1f);
-        int logoCol = ThemeManager.getMainColor();
-        RenderUtils.color2(logoCol, 1f);
-        Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
-        GlStateManager.color(1f, 1f, 1f, 1f);
+        if (!addonMode) {
+            mc.getTextureManager().bindTexture(logoPath);
+            int tempExpand = (int) (x * 0.1f);
+            int logoCol = ThemeManager.getMainColor();
+            RenderUtils.color2(logoCol, 1f);
+            Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
+            GlStateManager.color(1f, 1f, 1f, 1f);
 
-        PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
-        components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+            PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
+            components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+        } else {
+            addonPage.drawTabs(x + width * 0.015f, y, hLineY, width * 0.575f, ri);
+        }
 
         searchComponent.updateComponent(new PosInfo((vLineX + 5), (float) ((y + hLineY) / 2.05)), ri);
 
-        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
+        int contentLeft = addonMode ? x : vLineX;
+        ScissorUtils.subScissor(contentLeft + 1, hLineY, x1, y1, 2);
 
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
-        cmcc.drawLeft(piL, ri);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
-        cmcc.drawRight(piR, ri);
-        cmcc.subtractFromMaxScrollHeight(y1 - hLineY);
+        if (addonMode) {
+            piL = new PosInfo(x + width * 0.0125f, hLineY);
+            piR = new PosInfo(x + (x1 - x) / 2f, hLineY);
+            addonPage.drawLeft(piL, ri);
+            addonPage.drawRight(piR, ri);
+            addonPage.subtractFromMaxScrollHeight(y1 - hLineY);
+        } else {
+            cmcc.drawLeft(piL, ri);
+            cmcc.drawRight(piR, ri);
+            cmcc.subtractFromMaxScrollHeight(y1 - hLineY);
+        }
 
         renderLastList.forEach(Runnable::run);
         renderLastList.clear();
 
         ScissorUtils.endSubScissor();
-        cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
+        if (addonMode)
+            addonPage.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
+        else
+            cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
         ScissorUtils.resetScissor();
 
         GlStateManager.popMatrix();
 
-        drawHudEditorButton(mouseX, mouseY);
-        drawMoreModulesToggle(mouseX, mouseY);
+        if (!addonMode)
+            drawHudEditorButton(mouseX, mouseY);
+        drawAddonManagerButton(mouseX, mouseY);
+        if (!addonMode)
+            drawTierToggles(mouseX, mouseY);
 
         getFontRenderer().resetScale();
 
@@ -254,8 +289,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float margin = height / 100f * 2.5f;
 
         hudBtnX1 = margin;
-        // sits one pill-height above the bottom edge: the "More modules" pill takes the corner below it
-        hudBtnY1 = height - margin - h - h * 1.3f;
+        // sits above the three tier pills (Legit / Blatant / Extra) that take the corner below it
+        hudBtnY1 = height - margin - h - 3 * h * 1.3f;
         hudBtnX2 = margin + w;
         hudBtnY2 = hudBtnY1 + h;
 
@@ -276,56 +311,111 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderUtils.resetColorText();
     }
 
-    private float moreX1, moreY1, moreX2, moreY2;
-    private boolean moreHovered;
-    private final arsenic.utils.timer.AnimationTimer moreHoverTimer =
-            new arsenic.utils.timer.AnimationTimer(160, () -> moreHovered,
-                    arsenic.utils.timer.TickMode.SINE);
-    private final arsenic.utils.timer.AnimationTimer moreTickTimer =
-            new arsenic.utils.timer.AnimationTimer(180, () -> GuiStyle.get().isShowMoreModules(),
-                    arsenic.utils.timer.TickMode.SINE);
+    /** Bottom right corner: opens the addon manager. */
+    private void drawAddonManagerButton(int mouseX, int mouseY) {
+        String label = addonMode ? "ClickGUI" : "Addon Manager";
+        float pad = height / 100f * 1.6f;
+        float h = height / 100f * 4.2f;
+        float w = getFontRenderer().getWidth(label) + pad * 3f;
+        float margin = height / 100f * 2.5f;
 
-    private void drawMoreModulesToggle(int mouseX, int mouseY) {
-        String label = "More modules";
+        addonBtnX2 = width - margin;
+        addonBtnX1 = addonBtnX2 - w;
+        addonBtnY2 = height - margin;
+        addonBtnY1 = addonBtnY2 - h;
+
+        addonBtnHovered = MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2);
+        float hover = addonBtnTimer.getPercent();
+        float radius = h / 2f;
+
+        DrawUtils.drawShadow(addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2, radius,
+                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
+        DrawUtils.drawRoundedRect(addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2, radius,
+                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        DrawUtils.drawRoundedOutline(addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2, radius, 1f,
+                ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+
+        getFontRenderer().drawString(label, (addonBtnX1 + addonBtnX2) / 2f, (addonBtnY1 + addonBtnY2) / 2f,
+                RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(), hover),
+                getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+        RenderUtils.resetColorText();
+    }
+
+    private static final arsenic.module.ModuleTier[] TIER_TOGGLES = {
+            arsenic.module.ModuleTier.LEGIT, arsenic.module.ModuleTier.BLATANT, arsenic.module.ModuleTier.EXTRA};
+    private final float[][] tierRects = new float[TIER_TOGGLES.length][4];
+    private final boolean[] tierHovered = new boolean[TIER_TOGGLES.length];
+    private final arsenic.utils.timer.AnimationTimer[] tierHoverTimers = new arsenic.utils.timer.AnimationTimer[TIER_TOGGLES.length];
+    private final arsenic.utils.timer.AnimationTimer[] tierTickTimers = new arsenic.utils.timer.AnimationTimer[TIER_TOGGLES.length];
+
+    {
+        for (int i = 0; i < TIER_TOGGLES.length; i++) {
+            final int idx = i;
+            tierHoverTimers[i] = new arsenic.utils.timer.AnimationTimer(160, () -> tierHovered[idx],
+                    arsenic.utils.timer.TickMode.SINE);
+            tierTickTimers[i] = new arsenic.utils.timer.AnimationTimer(180,
+                    () -> GuiStyle.get().isTierShown(TIER_TOGGLES[idx]), arsenic.utils.timer.TickMode.SINE);
+        }
+    }
+
+    /** Legit / Blatant / Extra: stacked pills in the bottom-left corner, Legit is always on. */
+    private void drawTierToggles(int mouseX, int mouseY) {
         float pad = height / 100f * 1.6f;
         float h = height / 100f * 4.2f;
         float box = h * 0.5f;
-        float w = pad * 1.4f + box + pad + getFontRenderer().getWidth(label) + pad * 1.4f;
-
-        moreX1 = hudBtnX1;
-        moreX2 = moreX1 + w;
-        moreY1 = hudBtnY2 + h * 0.3f;
-        moreY2 = moreY1 + h;
-
-        moreHovered = MathUtils.inside(mouseX, mouseY, moreX1, moreY1, moreX2, moreY2);
-        float hover = moreHoverTimer.getPercent();
-        float tick = moreTickTimer.getPercent();
+        float margin = height / 100f * 2.5f;
+        float step = h * 1.3f;
         float radius = h / 2f;
 
-        DrawUtils.drawShadow(moreX1, moreY1, moreX2, moreY2, radius,
-                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
-        DrawUtils.drawRoundedRect(moreX1, moreY1, moreX2, moreY2, radius,
-                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
-        DrawUtils.drawRoundedOutline(moreX1, moreY1, moreX2, moreY2, radius, 1f,
-                ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+        float w = 0;
+        for (arsenic.module.ModuleTier tier : TIER_TOGGLES)
+            w = Math.max(w, pad * 1.4f + box + pad + getFontRenderer().getWidth(tier.getDisplayName()) + pad * 1.4f);
 
-        float midY = (moreY1 + moreY2) / 2f;
-        float bx1 = moreX1 + pad * 1.4f, bx2 = bx1 + box;
-        float by1 = midY - box / 2f, by2 = midY + box / 2f;
-        float boxRadius = Math.max(2f, box * 0.28f);
-        DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, boxRadius,
-                UITheme.alpha(UITheme.accent(), (int) (235 * tick)));
-        DrawUtils.drawRoundedOutline(bx1, by1, bx2, by2, boxRadius, 1f,
-                UITheme.mix(UITheme.alpha(ThemeManager.getTextMuted(), 200), UITheme.accent(), Math.max(tick, hover * 0.6f)));
-        if (tick > 0.02f)
-            UITheme.check((bx1 + bx2) / 2f, midY, box * 0.7f, Math.max(1f, box * 0.14f),
-                    UITheme.alpha(UITheme.readableOn(UITheme.accent()), (int) (255 * tick)));
+        for (int i = 0; i < TIER_TOGGLES.length; i++) {
+            arsenic.module.ModuleTier tier = TIER_TOGGLES[i];
+            boolean locked = tier == arsenic.module.ModuleTier.LEGIT;
+            float x1 = hudBtnX1, x2 = x1 + w;
+            float y1 = height - margin - h - (TIER_TOGGLES.length - 1 - i) * step, y2 = y1 + h;
+            tierRects[i][0] = x1;
+            tierRects[i][1] = y1;
+            tierRects[i][2] = x2;
+            tierRects[i][3] = y2;
 
-        getFontRenderer().drawString(label, bx2 + pad, midY,
-                RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(),
-                        Math.max(hover, tick)),
-                getFontRenderer().CENTREY);
-        RenderUtils.resetColorText();
+            tierHovered[i] = !locked && MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2);
+            float hover = tierHoverTimers[i].getPercent();
+            float tick = tierTickTimers[i].getPercent();
+
+            DrawUtils.drawShadow(x1, y1, x2, y2, radius,
+                    GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+            DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+
+            float midY = (y1 + y2) / 2f;
+            if (locked) {
+                // always on, so no checkbox: just the label, centred on the same backing
+                getFontRenderer().drawString(tier.getDisplayName(), (x1 + x2) / 2f, midY, ThemeManager.getWhite(),
+                        getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+                RenderUtils.resetColorText();
+                continue;
+            }
+            float bx1 = x1 + pad * 1.4f, bx2 = bx1 + box;
+            float by1 = midY - box / 2f, by2 = midY + box / 2f;
+            float boxRadius = Math.max(2f, box * 0.28f);
+            DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, boxRadius,
+                    UITheme.alpha(UITheme.accent(), (int) (235 * tick)));
+            DrawUtils.drawRoundedOutline(bx1, by1, bx2, by2, boxRadius, 1f,
+                    UITheme.mix(UITheme.alpha(ThemeManager.getTextMuted(), 200), UITheme.accent(), Math.max(tick, hover * 0.6f)));
+            if (tick > 0.02f)
+                UITheme.check((bx1 + bx2) / 2f, midY, box * 0.7f, Math.max(1f, box * 0.14f),
+                        UITheme.alpha(UITheme.readableOn(UITheme.accent()), (int) (255 * tick)));
+
+            getFontRenderer().drawString(tier.getDisplayName(), bx2 + pad, midY,
+                    RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(),
+                            Math.max(hover, tick)),
+                    getFontRenderer().CENTREY);
+            RenderUtils.resetColorText();
+        }
     }
 
     private void drawShaderBackdrop() {
@@ -359,27 +449,90 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2)) {
+            arsenic.utils.java.SoundUtils.chordOpen();
+            setAddonMode(!addonMode);
+            return;
+        }
+        if (!addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
             mc.displayGuiScreen(new arsenic.gui.hud.HudEditorScreen());
             return;
         }
-        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, moreX1, moreY1, moreX2, moreY2)) {
-            GuiStyle.get().setShowMoreModules(!GuiStyle.get().isShowMoreModules());
-            Arsenic.getArsenic().getConfigManager().saveConfig();
-            arsenic.utils.java.SoundUtils.chordEnum();
-            return;
+        for (int i = 0; i < TIER_TOGGLES.length; i++) {
+            if (!addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, tierRects[i][0], tierRects[i][1], tierRects[i][2], tierRects[i][3])) {
+                if (TIER_TOGGLES[i] == arsenic.module.ModuleTier.LEGIT)
+                    return;
+                GuiStyle.get().toggleTier(TIER_TOGGLES[i]);
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+                arsenic.utils.java.SoundUtils.chordEnum();
+                return;
+            }
         }
         if(alwaysClickedComponent != null) {
             if(alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton)) return;
         }
         searchComponent.handleClick(mouseX, mouseY, mouseButton);
+        if (addonMode) {
+            if (addonPage.clickTabs(mouseX, mouseY, mouseButton))
+                return;
+            // the category column is not shown, so only the addon page takes clicks
+            if (mouseX > width / 8 && mouseX < x1 && mouseY > hLineY && mouseY < y1)
+                addonPage.clickChildren(mouseX, mouseY, mouseButton);
+            return;
+        }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
         if(mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
             cmcc.clickChildren(mouseX, mouseY, mouseButton);
     }
 
+    public boolean isAddonMode() {
+        return addonMode;
+    }
+
+    /** Switches the main card between the selected module category and the addon manager. */
+    public void setAddonMode(boolean on) {
+        if (addonMode == on)
+            return;
+        addonMode = on;
+        if (searchComponent != null)
+            ((SearchComponent) searchComponent).setQuery("");
+        if (on) {
+            cmcc.setCurrentCategory(false);
+            addonSearchOn = true;
+            addonPage.refresh();
+            addonPage.reset();
+        } else {
+            addonSearchOn = false;
+            cmcc.setCurrentCategory(true);
+        }
+    }
+
+    /** True while typing goes to the search box (module search, or addon search in the addon manager). */
+    public boolean isSearchActive() {
+        return addonMode ? addonSearchOn : cmcc == searchComponent;
+    }
+
+    public void toggleAddonSearch() {
+        addonSearchOn = !addonSearchOn;
+        if (!addonSearchOn && searchComponent != null)
+            ((SearchComponent) searchComponent).setQuery("");
+    }
+
+    /** Rebuilds the GUI after addons were loaded or unloaded, keeping what was typed in the search box. */
+    public void onAddonsReloaded() {
+        String typed = searchComponent == null ? "" : ((SearchComponent) searchComponent).getQuery();
+        init();
+        ((SearchComponent) searchComponent).setQuery(typed);
+        if (addonMode) {
+            cmcc.setCurrentCategory(false);
+            addonPage.refresh();
+        }
+    }
+
     public void setCmcc(ModuleCategoryComponent mcc) {
+        if (addonMode)
+            setAddonMode(false);
         if (cmcc != mcc) {
             prevCmcc = cmcc;
             cmcc.setCurrentCategory(false);
@@ -424,7 +577,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        cmcc.scroll(i * 30);
+        if (addonMode)
+            addonPage.scroll(i * 30);
+        else
+            cmcc.scroll(i * 30);
     }
 
     @Override

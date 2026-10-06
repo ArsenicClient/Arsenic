@@ -29,7 +29,7 @@ import net.minecraft.util.Vec3;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-@ModuleInfo(name = "Clutch", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Clutch", category = ModuleCategory.MOVEMENT, tier = arsenic.module.ModuleTier.BLATANT)
 public class Clutch extends Module {
     public final DoubleProperty rotationSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(10, 360, 200, 1), SliderScale.LOG);
 

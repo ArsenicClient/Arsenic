@@ -1,5 +1,6 @@
 package arsenic.main;
 
+import arsenic.addon.AddonManager;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.config.FriendManager;
@@ -30,6 +31,7 @@ public class Arsenic {
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
+    private final AddonManager addonManager = new AddonManager();
     private final Fonts fonts = new Fonts();
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
@@ -50,6 +52,8 @@ public class Arsenic {
         getEventManager().subscribe(serverInfo);
         getEventManager().subscribe(notificationManager);
         getEventManager().subscribe(new LagManager());
+        getEventManager().subscribe(new arsenic.utils.lag.PingTracker());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BadPacketsManager());
         getEventManager().subscribe(errorOverlay);
 
         logger.info("Subscribed managers");
@@ -95,6 +99,8 @@ public class Arsenic {
     public final EventManager getEventManager() { return eventManager; }
 
     public final ModuleManager getModuleManager() { return moduleManager; }
+
+    public final AddonManager getAddonManager() { return addonManager; }
 
     public final ErrorOverlay getErrorOverlay() { return errorOverlay; }
 

@@ -15,6 +15,7 @@ import static org.reflections.scanners.Scanners.SubTypes;
 public class CommandManager {
 
     private final ArrayList<Command> commands;
+    private boolean initialized;
     private List<String> autoCompletions;
     public CommandManager() {
         commands = new ArrayList<>();
@@ -23,12 +24,13 @@ public class CommandManager {
 
     @SuppressWarnings("unchecked")
     public final int initialize() {
-        if (!commands.isEmpty())
+        if (initialized)
             throw new RuntimeException("Double initialization of Command Manager.");
 
         Reflections reflections = new Reflections("arsenic.command");
         reflections.get(SubTypes.of(Command.class).asClass()).forEach(command -> addCommand((Class<? extends Command>) command));
 
+        initialized = true;
         return commands.size();
     }
 
@@ -88,6 +90,10 @@ public class CommandManager {
 
         Arsenic.getArsenic().getConfigManager().saveConfig();
         return true;
+    }
+
+    public void remove(Command command) {
+        commands.remove(command);
     }
 
     public void add(Command command) {

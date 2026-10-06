@@ -184,7 +184,8 @@ public class BridgeAssist extends Module {
 
     private void setSneak(boolean wanted) {
         int key = mc.gameSettings.keyBindSneak.getKeyCode();
-        KeyBinding.setKeyBindState(key, wanted || Keyboard.isKeyDown(key));
+        // with a screen open the physical shift key must not turn into sneaking (shift-clicking in inventories)
+        KeyBinding.setKeyBindState(key, wanted || (mc.currentScreen == null && Keyboard.isKeyDown(key)));
     }
 
     @Override
