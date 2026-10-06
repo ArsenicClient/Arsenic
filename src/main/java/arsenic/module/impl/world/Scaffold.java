@@ -134,7 +134,7 @@ public class Scaffold extends Module {
 
     private void setShift(boolean shift) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(),
-                shift || Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode()));
+                shift || (mc.currentScreen == null && Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.getKeyCode())));
     }
 
     private void place(ScaffoldCore.Action action) {
@@ -209,9 +209,8 @@ public class Scaffold extends Module {
 
     private boolean haveBlocks() {
         long now = System.currentTimeMillis();
-        net.minecraft.client.network.NetworkPlayerInfo info = mc.getNetHandler() == null ? null
-                : mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
-        long window = (info != null ? Math.max(0, info.getResponseTime()) : 100) + 60;
+        int ping = arsenic.utils.lag.LagManager.getPing();
+        long window = (ping > 0 ? ping : 100) + 60;
         while (!recentPlacements.isEmpty() && now - recentPlacements.peekFirst() > window)
             recentPlacements.pollFirst();
         return getBlockCount() - recentPlacements.size() > 0;

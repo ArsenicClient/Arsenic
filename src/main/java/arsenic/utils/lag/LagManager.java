@@ -6,7 +6,6 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.Packet;
 import net.minecraft.network.ThreadQuickExitException;
 import net.minecraft.network.play.INetHandlerPlayClient;
@@ -28,39 +27,12 @@ public final class LagManager {
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static int currentPing = 0;
-    private static long lastPingUpdate;
-
-    public static void updatePing() {
-        if (mc.thePlayer == null || mc.theWorld == null) {
-            return;
-        }
-
-        try {
-            NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
-            if (playerInfo != null) {
-                int newPing = playerInfo.getResponseTime();
-                long currentTime = System.currentTimeMillis();
-                if (newPing < 5) {
-                    return;
-                }
-                if (newPing != currentPing || currentTime - lastPingUpdate > 1000) {
-                    currentPing = newPing;
-                    lastPingUpdate = currentTime;
-                }
-            }
-        } catch (Exception e) {
-        }
-    }
-
     public static int getPing() {
-        updatePing();
-        return currentPing;
+        return PingTracker.getPing();
     }
 
     public static int getPingAsTicks() {
-        updatePing();
-        return currentPing / 50;
+        return PingTracker.getPing() / 50;
     }
 
     @RequiresPlayer

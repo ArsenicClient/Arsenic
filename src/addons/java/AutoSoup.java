@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -88,7 +87,8 @@ public class AutoSoup extends Module {
         }
     };
 
-    public boolean isSwapping() {
+    @Override
+    public boolean isSwappingHotbar() {
         return state == State.SWITCHED || state == State.CLICKED;
     }
 

@@ -14,11 +14,13 @@ import java.util.stream.Collectors;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventMouse;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventShader;
 import arsenic.event.impl.EventTick;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.hud.HudEditorScreen;
+import arsenic.gui.hud.HudElement;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -31,7 +33,15 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
+import arsenic.utils.lag.PingTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.ResourceLocation;
+import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.settings.GameSettings;
@@ -48,24 +58,23 @@ public class HUD extends Module {
     public final BooleanProperty showInfo = new BooleanProperty("Module Info", true);
     public final BooleanProperty showCoords = new BooleanProperty("Show Coords", false);
     public final BooleanProperty showKeybinds = new BooleanProperty("Show Keybinds", false);
+    public final BooleanProperty showPing = new BooleanProperty("Show Ping", false);
+    public final BooleanProperty showPotions = new BooleanProperty("Show Potions", false);
+    public final BooleanProperty showKeystrokes = new BooleanProperty("Show Keystrokes", false);
     public final DoubleProperty backgroundOpacity = new DoubleProperty("Opacity", new DoubleValue(0, 100, 62, 1));
     public final BooleanProperty editPosition = new BooleanProperty("Edit Position", false);
 
-    public static int arrayListX = 0;
-    public static int arrayListY = 0;
-    public static int watermarkX = 4;
-    public static int watermarkY = 4;
-    public static int targetHUDX = 100;
-    public static int targetHUDY = 100;
-    public static int coordsX = 4;
-    public static int coordsY = 60;
-    public static int keybindsX = 4;
-    public static int keybindsY = 80;
+    public static final int KEYSTROKES_W = 64, KEYSTROKES_H = 78;
 
-    public static int watermarkW = 78, watermarkH = 16;
-    public static int coordsW = 96, coordsH = 16;
-    public static int keybindsW = 104, keybindsH = 46;
+    private final HudElement arrayList = hudElement("Module List", 0, 0, 92, 70, true);
+    private final HudElement watermark = hudElement("Watermark", 4, 4, 78, 16);
+    private final HudElement coords = hudElement("Coordinates", 4, 60, 96, 16);
+    private final HudElement keybinds = hudElement("Keybinds", 4, 80, 104, 46);
+    private final HudElement pingElement = hudElement("Ping", 4, 40, 70, 16);
+    private final HudElement potions = hudElement("Potions", 76, 140, 100, 16);
+    private final HudElement keystrokes = hudElement("Keystrokes", 4, 140, KEYSTROKES_W, KEYSTROKES_H);
 
+    private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
     private static final float ROW_HEIGHT = 13f;
     private static final float PANEL_PAD_X = 6f;
     private static final float ACCENT_WIDTH = 1.6f;
@@ -86,6 +95,24 @@ public class HUD extends Module {
         }
     };
 
+    private final java.util.ArrayDeque<Long> clicks = new java.util.ArrayDeque<>();
+    private final java.util.ArrayDeque<Long> rightClicks = new java.util.ArrayDeque<>();
+
+    @EventLink
+    public final Listener<EventMouse.Down> onMouseDown = event -> {
+        if (event.button == 0)
+            clicks.addLast(System.currentTimeMillis());
+        else if (event.button == 1)
+            rightClicks.addLast(System.currentTimeMillis());
+    };
+
+    private static int cps(java.util.ArrayDeque<Long> q) {
+        long cutoff = System.currentTimeMillis() - 1000L;
+        while (!q.isEmpty() && q.peekFirst() < cutoff)
+            q.pollFirst();
+        return q.size();
+    }
+
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
         if (!shouldRender())
@@ -103,6 +130,12 @@ public class HUD extends Module {
             renderCoords(fr, accent);
         if (showKeybinds.getValue())
             renderKeybinds(fr, accent);
+        if (showPing.getValue())
+            renderPing(fr, accent);
+        if (showPotions.getValue() && mc.thePlayer != null)
+            renderPotions(fr, accent);
+        if (showKeystrokes.getValue())
+            renderKeystrokes(fr, accent);
 
         buildEntries(fr);
         drawArrayList(fr, sr, Pass.NORMAL);
@@ -195,8 +228,8 @@ public class HUD extends Module {
             return;
 
         ArrayListBackground bg = arraylistBackground.getValue();
-        float right = sr.getScaledWidth() + arrayListX;
-        float top = arrayListY;
+        float right = sr.getScaledWidth() + arrayList.x;
+        float top = arrayList.y;
         int panelAlpha = (int) (255 * (backgroundOpacity.getValue().getInput() / 100.0));
 
         for (int i = 0; i < visible.size(); i++) {
@@ -261,17 +294,17 @@ public class HUD extends Module {
         float pad = 4f;
         float h = fr.getHeight(title) + pad * 1.5f;
         float w = fr.getWidth(title) + (suffix == null ? 0 : fr.getWidth("  " + suffix)) + pad * 2f;
-        float mid = watermarkY + h / 2f;
-        watermarkW = (int) Math.ceil(w);
-        watermarkH = (int) Math.ceil(h);
+        float mid = watermark.y + h / 2f;
+        watermark.width = (int) Math.ceil(w);
+        watermark.height = (int) Math.ceil(h);
 
-        chipBackground(watermarkX, watermarkY, watermarkX + w, watermarkY + h);
-        DrawUtils.drawRoundedRect(watermarkX, watermarkY + pad * 0.6f,
-                watermarkX + 1.6f, watermarkY + h - pad * 0.6f, 0.8f, color);
+        chipBackground(watermark.x, watermark.y, watermark.x + w, watermark.y + h);
+        DrawUtils.drawRoundedRect(watermark.x, watermark.y + pad * 0.6f,
+                watermark.x + 1.6f, watermark.y + h - pad * 0.6f, 0.8f, color);
 
-        fr.drawStringWithShadow(title, watermarkX + pad, mid, color, fr.CENTREY);
+        fr.drawStringWithShadow(title, watermark.x + pad, mid, color, fr.CENTREY);
         if (suffix != null)
-            fr.drawStringWithShadow(suffix, watermarkX + pad + fr.getWidth(title + "  "),
+            fr.drawStringWithShadow(suffix, watermark.x + pad + fr.getWidth(title + "  "),
                     mid, ThemeManager.getTextMuted(), fr.CENTREY);
     }
 
@@ -280,12 +313,12 @@ public class HUD extends Module {
         float pad = 4f;
         float h = fr.getHeight(text) + pad * 1.5f;
         float w = fr.getWidth("XYZ  " + text) + pad * 2f;
-        coordsW = (int) Math.ceil(w);
-        coordsH = (int) Math.ceil(h);
-        chipBackground(coordsX, coordsY, coordsX + w, coordsY + h);
-        float coordsMid = coordsY + h / 2f;
-        fr.drawStringWithShadow("XYZ", coordsX + pad, coordsMid, ThemeManager.getTextMuted(), fr.CENTREY);
-        fr.drawStringWithShadow(text, coordsX + pad + fr.getWidth("XYZ  "), coordsMid, color, fr.CENTREY);
+        coords.width = (int) Math.ceil(w);
+        coords.height = (int) Math.ceil(h);
+        chipBackground(coords.x, coords.y, coords.x + w, coords.y + h);
+        float coordsMid = coords.y + h / 2f;
+        fr.drawStringWithShadow("XYZ", coords.x + pad, coordsMid, ThemeManager.getTextMuted(), fr.CENTREY);
+        fr.drawStringWithShadow(text, coords.x + pad + fr.getWidth("XYZ  "), coordsMid, color, fr.CENTREY);
     }
 
     private void renderKeybinds(FontRendererExtension<?> fr, int color) {
@@ -304,18 +337,134 @@ public class HUD extends Module {
             w = Math.max(w, fr.getWidth(m.getName() + "   " + GameSettings.getKeyDisplayString(m.getKeybind())));
         w += pad * 2f;
         float h = binds.size() * rowH + pad * 1.5f;
-        keybindsW = (int) Math.ceil(w);
-        keybindsH = (int) Math.ceil(h);
+        keybinds.width = (int) Math.ceil(w);
+        keybinds.height = (int) Math.ceil(h);
 
-        chipBackground(keybindsX, keybindsY, keybindsX + w, keybindsY + h);
+        chipBackground(keybinds.x, keybinds.y, keybinds.x + w, keybinds.y + h);
 
-        float y = keybindsY + pad * 0.75f + rowH / 2f;
+        float y = keybinds.y + pad * 0.75f + rowH / 2f;
         for (Module m : binds) {
             String key = GameSettings.getKeyDisplayString(m.getKeybind());
-            fr.drawStringWithShadow(m.getName(), keybindsX + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted(), fr.CENTREY);
-            fr.drawStringWithShadow(key, keybindsX + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted(), fr.CENTREY);
+            fr.drawStringWithShadow(m.getName(), keybinds.x + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted(), fr.CENTREY);
+            fr.drawStringWithShadow(key, keybinds.x + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted(), fr.CENTREY);
             y += rowH;
         }
+    }
+
+    private void renderPing(FontRendererExtension<?> fr, int color) {
+        PingTracker.Source source = PingTracker.getSource();
+        int ping = PingTracker.getPing();
+        String value = source == PingTracker.Source.NONE ? "--" : ping + " ms";
+        String tag = source == PingTracker.Source.TAB_LIST ? " ~" : "";
+        int valueColor = source == PingTracker.Source.NONE ? ThemeManager.getTextMuted()
+                : ping < 80 ? 0xFF55FF55 : ping < 150 ? 0xFFFFFF55 : 0xFFFF5555;
+
+        float pad = 4f;
+        float h = fr.getHeight("Ping") + pad * 1.5f;
+        float w = fr.getWidth("Ping  " + value + tag) + pad * 2f;
+        pingElement.width = (int) Math.ceil(w);
+        pingElement.height = (int) Math.ceil(h);
+        chipBackground(pingElement.x, pingElement.y, pingElement.x + w, pingElement.y + h);
+        float mid = pingElement.y + h / 2f;
+        fr.drawStringWithShadow("Ping", pingElement.x + pad, mid, ThemeManager.getTextMuted(), fr.CENTREY);
+        float x = pingElement.x + pad + fr.getWidth("Ping  ");
+        fr.drawStringWithShadow(value, x, mid, valueColor, fr.CENTREY);
+        if (!tag.isEmpty())
+            fr.drawStringWithShadow(tag, x + fr.getWidth(value), mid, ThemeManager.getTextMuted(), fr.CENTREY);
+    }
+
+    private void renderPotions(FontRendererExtension<?> fr, int color) {
+        List<PotionEffect> effects = new ArrayList<>(mc.thePlayer.getActivePotionEffects());
+        if (effects.isEmpty()) {
+            potions.width = 100;
+            potions.height = 16;
+            return;
+        }
+        effects.sort(Comparator.comparingInt(PotionEffect::getDuration).reversed());
+
+        float pad = 4f;
+        float icon = 12f;
+        float rowH = 15f;
+        List<String[]> rows = new ArrayList<>();
+        float w = 0;
+        for (PotionEffect effect : effects) {
+            String name = I18n.format(effect.getEffectName());
+            int amp = effect.getAmplifier();
+            if (amp > 0)
+                name += " " + (amp < 9 ? I18n.format("enchantment.level." + (amp + 1)) : String.valueOf(amp + 1));
+            String time = Potion.getDurationString(effect);
+            rows.add(new String[]{name, time});
+            w = Math.max(w, fr.getWidth(name + "   " + time));
+        }
+        w += pad * 2f + icon + 4f;
+        float h = rows.size() * rowH + pad * 1.2f;
+        potions.width = (int) Math.ceil(w);
+        potions.height = (int) Math.ceil(h);
+        chipBackground(potions.x, potions.y, potions.x + w, potions.y + h);
+
+        mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
+        float y = potions.y + pad * 0.6f;
+        for (PotionEffect effect : effects) {
+            Potion potion = Potion.potionTypes[effect.getPotionID()];
+            if (potion != null && potion.hasStatusIcon()) {
+                int idx = potion.getStatusIconIndex();
+                GlStateManager.enableBlend();
+                GlStateManager.color(1f, 1f, 1f, 1f);
+                Gui.drawScaledCustomSizeModalRect((int) (potions.x + pad), (int) (y + (rowH - icon) / 2f),
+                        idx % 8 * 18, 198 + idx / 8 * 18, 18, 18, (int) icon, (int) icon, 256, 256);
+            }
+            y += rowH;
+        }
+
+        y = potions.y + pad * 0.6f + rowH / 2f;
+        for (int i = 0; i < rows.size(); i++) {
+            PotionEffect effect = effects.get(i);
+            boolean expiring = effect.getDuration() < 200 && !effect.getIsAmbient();
+            int nameColor = expiring && (System.currentTimeMillis() / 250 % 2 == 0) ? 0xFFFF5555 : color;
+            fr.drawStringWithShadow(rows.get(i)[0], potions.x + pad + icon + 4f, y, nameColor, fr.CENTREY);
+            String time = rows.get(i)[1];
+            fr.drawStringWithShadow(time, potions.x + w - pad - fr.getWidth(time), y,
+                    ThemeManager.getTextMuted(), fr.CENTREY);
+            y += rowH;
+        }
+    }
+
+    private void renderKeystrokes(FontRendererExtension<?> fr, int color) {
+        float k = 20f, gap = 2f;
+        float x0 = keystrokes.x, y0 = keystrokes.y;
+
+        keyBox(fr, "W", mc.gameSettings.keyBindForward.isKeyDown(), x0 + k + gap, y0, k, k, color);
+        float row2 = y0 + k + gap;
+        keyBox(fr, "A", mc.gameSettings.keyBindLeft.isKeyDown(), x0, row2, k, k, color);
+        keyBox(fr, "S", mc.gameSettings.keyBindBack.isKeyDown(), x0 + k + gap, row2, k, k, color);
+        keyBox(fr, "D", mc.gameSettings.keyBindRight.isKeyDown(), x0 + (k + gap) * 2f, row2, k, k, color);
+
+        float row3 = row2 + k + gap;
+        float half = (k * 3f + gap * 2f - gap) / 2f;
+        keyBox(fr, "LMB " + cps(clicks), Mouse.isButtonDown(0), x0, row3, half, k, color);
+        keyBox(fr, "RMB " + cps(rightClicks), Mouse.isButtonDown(1), x0 + half + gap, row3, half, k, color);
+
+        float row4 = row3 + k + gap;
+        float spaceH = 12f;
+        boolean jump = mc.gameSettings.keyBindJump.isKeyDown();
+        chipBackground(x0, row4, x0 + k * 3f + gap * 2f, row4 + spaceH, jump, color);
+        float barW = 22f;
+        float cx = x0 + (k * 3f + gap * 2f) / 2f;
+        DrawUtils.drawRect(cx - barW / 2f, row4 + spaceH / 2f - 0.5f, cx + barW / 2f, row4 + spaceH / 2f + 0.5f,
+                jump ? 0xFFFFFFFF : ThemeManager.getTextMuted());
+    }
+
+    private void keyBox(FontRendererExtension<?> fr, String label, boolean down, float x, float y, float w, float h, int color) {
+        chipBackground(x, y, x + w, y + h, down, color);
+        fr.drawStringWithShadow(label, x + w / 2f, y + h / 2f, down ? 0xFFFFFFFF : ThemeManager.getTextMuted(),
+                fr.CENTREX, fr.CENTREY);
+    }
+
+    private void chipBackground(float x1, float y1, float x2, float y2, boolean pressed, int color) {
+        int a = (int) (255 * (backgroundOpacity.getValue().getInput() / 100.0));
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(0x000000, a));
+        if (pressed)
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(color, 130));
     }
 
     private void chipBackground(float x1, float y1, float x2, float y2) {
@@ -325,74 +474,25 @@ public class HUD extends Module {
     }
 
 
-    @Override
-    public JsonObject saveInfoToJson(JsonObject obj) {
-        JsonObject pos = new JsonObject();
-        pos.addProperty("watermarkX", watermarkX);
-        pos.addProperty("watermarkY", watermarkY);
-        pos.addProperty("arrayListX", arrayListX);
-        pos.addProperty("arrayListY", arrayListY);
-        pos.addProperty("targetHUDX", targetHUDX);
-        pos.addProperty("targetHUDY", targetHUDY);
-        pos.addProperty("coordsX", coordsX);
-        pos.addProperty("coordsY", coordsY);
-        pos.addProperty("keybindsX", keybindsX);
-        pos.addProperty("keybindsY", keybindsY);
-        pos.addProperty("radarX", Radar.radarX);
-        pos.addProperty("radarY", Radar.radarY);
-        obj.add("positions", pos);
-
-        obj.addProperty("bind", getKeybind());
-        obj.addProperty("enabled", isEnabled());
-        serializableProperties.forEach(property -> property.addToJson(obj));
-        return obj;
-    }
-
+    /** Configs written before HUD elements moved into their modules kept every position in HUD's "positions". */
     @Override
     public void loadFromJson(JsonObject obj) {
-        try {
-            JsonObject pos = obj.getAsJsonObject("positions");
-            if (pos != null) {
-                watermarkX = pos.get("watermarkX").getAsInt();
-                watermarkY = pos.get("watermarkY").getAsInt();
-                arrayListX = pos.get("arrayListX").getAsInt();
-                arrayListY = pos.get("arrayListY").getAsInt();
-                targetHUDX = pos.get("targetHUDX").getAsInt();
-                targetHUDY = pos.get("targetHUDY").getAsInt();
-                coordsX = pos.get("coordsX").getAsInt();
-                coordsY = pos.get("coordsY").getAsInt();
-                keybindsX = pos.get("keybindsX").getAsInt();
-                keybindsY = pos.get("keybindsY").getAsInt();
-                Radar.radarX = pos.get("radarX").getAsInt();
-                Radar.radarY = pos.get("radarY").getAsInt();
-            }
-        } catch (NullPointerException | IllegalArgumentException e) {
-            Arsenic.getArsenic().getLogger().info("Error loading HUD positions (first launch or update)");
+        JsonObject legacy = obj.has("positions") && obj.get("positions").isJsonObject() ? obj.getAsJsonObject("positions") : null;
+        if (legacy != null && !obj.has("hud")) {
+            legacyPosition(legacy, "watermark", watermark);
+            legacyPosition(legacy, "arrayList", arrayList);
+            legacyPosition(legacy, "coords", coords);
+            legacyPosition(legacy, "keybinds", keybinds);
+            legacyPosition(legacy, "ping", pingElement);
+            legacyPosition(legacy, "potions", potions);
+            legacyPosition(legacy, "keystrokes", keystrokes);
         }
-
-        try {
-            setKeybind(obj.get("bind").getAsInt());
-            setEnabledSilently(obj.get("enabled").getAsBoolean());
-            serializableProperties.forEach(property -> property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())));
-        } catch (NullPointerException | IllegalArgumentException e) {
-            Arsenic.getArsenic().getLogger().info("Error loading HUD config (first launch or update)");
-        }
-        postApplyConfig();
+        super.loadFromJson(obj);
     }
 
-    public static void resetPositions() {
-        arrayListX = 0;
-        arrayListY = 0;
-        watermarkX = 4;
-        watermarkY = 4;
-        targetHUDX = 100;
-        targetHUDY = 100;
-        coordsX = 4;
-        coordsY = 60;
-        keybindsX = 4;
-        keybindsY = 80;
-        Radar.radarX = 4;
-        Radar.radarY = 4;
+    private static void legacyPosition(JsonObject legacy, String key, HudElement element) {
+        if (legacy.has(key + "X")) element.x = legacy.get(key + "X").getAsInt();
+        if (legacy.has(key + "Y")) element.y = legacy.get(key + "Y").getAsInt();
     }
 
     private static class Entry {

@@ -65,6 +65,7 @@ public class BedPlates extends Module {
         }
 
         removeBrokenBeds();
+        pruneFarChunks();
 
         int chunkRadius = getChunkRadius();
         int playerCX = mc.thePlayer.getPosition().getX() >> 4;
@@ -110,6 +111,19 @@ public class BedPlates extends Module {
         }
     };
 
+
+    /** Forget chunks the player has left behind so the scan bookkeeping does not grow forever. */
+    private void pruneFarChunks() {
+        int r = getChunkRadius() + 2;
+        int pcx = mc.thePlayer.getPosition().getX() >> 4;
+        int pcz = mc.thePlayer.getPosition().getZ() >> 4;
+        java.util.function.LongPredicate far = ck ->
+                Math.abs((int) (ck >> 32) - pcx) > r || Math.abs((int) (long) ck - pcz) > r;
+        scannedChunks.removeIf(far::test);
+        chunkBeds.keySet().removeIf(far::test);
+        queuedChunks.removeIf(far::test);
+        rescanQueue.removeIf(far::test);
+    }
 
     private void removeBrokenBeds() {
         List<String> stale = new ArrayList<>();
@@ -337,7 +351,9 @@ public class BedPlates extends Module {
             drawSprite(sprite, left, top, iconSize);
         }
 
-        GlStateManager.disableAlpha();
+        // vanilla default (the hand and held items render right after this event and rely on it)
+        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1f);
+        GlStateManager.enableAlpha();
         GlStateManager.color(1, 1, 1, 1);
     }
 

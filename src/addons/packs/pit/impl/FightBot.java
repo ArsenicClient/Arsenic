@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -21,7 +20,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.server.S07PacketRespawn;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 
-@ModuleInfo(name = "FightBot", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "FightBot", category = ModuleCategory.PLAYER, tier = arsenic.module.ModuleTier.BLATANT)
 public class FightBot extends Module {
 
     public final DoubleProperty chaseRange = new DoubleProperty("Chase Range", new DoubleValue(1, 30, 7, 0.5));

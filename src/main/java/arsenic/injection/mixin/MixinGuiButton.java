@@ -3,6 +3,7 @@ package arsenic.injection.mixin;
 import arsenic.module.impl.visual.custommainmenu.MenuTheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.GlStateManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,7 +27,10 @@ public abstract class MixinGuiButton {
     private void arsenic$themedButton(Minecraft mc, int mouseX, int mouseY, CallbackInfo ci) {
         if (visible) {
             hovered = MenuTheme.drawButton((GuiButton) (Object) this, mc, mouseX, mouseY);
-            // sliders do their dragging (and used to draw their knob) here
+            // sliders do their dragging (and used to draw their knob) here; the sound sliders draw a vanilla
+            // knob without binding a texture themselves, so give them the widget sheet
+            mc.getTextureManager().bindTexture(new net.minecraft.util.ResourceLocation("textures/gui/widgets.png"));
+            GlStateManager.color(1f, 1f, 1f, 1f);
             mouseDragged(mc, mouseX, mouseY);
         }
         ci.cancel();

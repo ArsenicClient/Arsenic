@@ -1,4 +1,3 @@
-package arsenic.module.impl.player;
 
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.module.property.impl.SliderScale;
@@ -27,7 +26,7 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import org.lwjgl.input.Mouse;
 
-@ModuleInfo(name = "FastCake", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "FastCake", category = ModuleCategory.PLAYER, tier = ModuleTier.BLATANT)
 public class FastCake extends Module {
 
     public final BooleanProperty autoAim = new BooleanProperty("Auto Aim", false);
@@ -74,10 +73,7 @@ public class FastCake extends Module {
                 double cx = pendingCake.getX() + (block.getBlockBoundsMinX() + block.getBlockBoundsMaxX()) / 2.0;
                 double cz = pendingCake.getZ() + (block.getBlockBoundsMinZ() + block.getBlockBoundsMaxZ()) / 2.0;
                 Vec3 hitVec = new Vec3(cx, pendingCake.getY() + block.getBlockBoundsMaxY(), cz);
-                mc.playerController.onPlayerRightClick(
-                        mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(),
-                        pendingCake, EnumFacing.UP, hitVec
-                );
+                eat(pendingCake, EnumFacing.UP, hitVec);
             }
             return;
         }
@@ -90,10 +86,7 @@ public class FastCake extends Module {
         if (mc.theWorld.getBlockState(pos).getBlock() != Blocks.cake)
             return;
 
-        mc.playerController.onPlayerRightClick(
-                mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(),
-                pos, mop.sideHit, mop.hitVec
-        );
+        eat(pos, mop.sideHit, mop.hitVec);
     };
 
     @RequiresPlayer
@@ -120,6 +113,22 @@ public class FastCake extends Module {
         if (clientBites > serverBites)
             event.setCancelled(true);
     };
+
+    /**
+     * Right clicks the cake. Vanilla only takes the bite on the client while you are hungry, so when it did not,
+     * the bite is applied here the way an incoming block change from the server would (the same call the
+     * client makes for one). The cake then goes down at once and the next click is not wasted on it.
+     */
+    private void eat(BlockPos pos, EnumFacing side, Vec3 hitVec) {
+        IBlockState before = mc.theWorld.getBlockState(pos);
+        mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), pos, side, hitVec);
+
+        if (before.getBlock() != Blocks.cake || mc.theWorld.getBlockState(pos) != before)
+            return;
+        int bites = before.getValue(BlockCake.BITES);
+        mc.theWorld.invalidateRegionAndSetBlock(pos,
+                bites < 6 ? before.withProperty(BlockCake.BITES, bites + 1) : Blocks.air.getDefaultState());
+    }
 
     private float[] getCakeRotations(BlockPos cake) {
         Block block = Blocks.cake;

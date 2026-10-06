@@ -1,4 +1,3 @@
-package arsenic.module.impl.visual;
 
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;

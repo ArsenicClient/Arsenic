@@ -1,0 +1,21 @@
+{
+  "packs": ["bedwars", "pit"],
+  "addons": [
+    {
+      "file": "AutoSoup",
+      "description": "Eats soup (or other healing food) from your hotbar when your health drops below a set value, refills the hotbar from your inventory afterwards and returns to the item you were holding."
+    },
+    {
+      "file": "Nuker",
+      "description": "Mines every block of one chosen block ID around you (crops by default), optionally only when fully grown. Rotates towards the blocks and has range, rotation speed and hold-click settings."
+    },
+    {
+      "file": "FastCake",
+      "description": "Eats cake as fast as you can click: right clicks the cake under your crosshair every tick, even at full hunger, and takes the bite on your side straight away so the cake goes down at once. Optionally aims at the nearest cake in range for you."
+    },
+    {
+      "file": "Tracers",
+      "description": "Draws a line from your crosshair to every real player, coloured by their BedWars team colour, so you can see where everyone is through walls."
+    }
+  ]
+}

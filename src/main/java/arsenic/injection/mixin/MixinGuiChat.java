@@ -32,7 +32,8 @@ public class MixinGuiChat extends GuiScreen {
 
             String latestAutoCompletion = Arsenic.getArsenic().getCommandManager().getAutoCompletionWithoutRotation();
             lastArg = inputField.getText().substring(inputField.getText().lastIndexOf((inputField.getText().contains(" ") ? ' ' : '.')) + 1);
-            trimmedAutoCompletion = latestAutoCompletion.toLowerCase().replaceFirst(lastArg.toLowerCase(), "");
+            // lastArg is whatever was typed, so it must not be read as a regex (a stray \ or [ crashed the game)
+            trimmedAutoCompletion = latestAutoCompletion.toLowerCase().replaceFirst(java.util.regex.Pattern.quote(lastArg.toLowerCase()), "");
             isLastArgValidArg = (trimmedAutoCompletion.length() == latestAutoCompletion.length() || latestAutoCompletion.length() < lastArg.length()) && lastArg.length() != 0;
         } else {
             inputField.setTextColor(0xE0E0E0);

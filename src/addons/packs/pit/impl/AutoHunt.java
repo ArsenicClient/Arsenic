@@ -1,6 +1,7 @@
-package arsenic.module.impl.player;
 
 import arsenic.asm.RequiresPlayer;
+import arsenic.command.Command;
+import arsenic.command.CommandInfo;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
@@ -15,9 +16,16 @@ import arsenic.utils.bot.BotDriver;
 import arsenic.utils.bot.Chaser;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.client.gui.GuiIngameMenu;
+import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.entity.player.EntityPlayer;
 
-@ModuleInfo(name = "AutoHunt", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
+
+@ModuleInfo(name = "AutoHunt", category = ModuleCategory.PLAYER, tier = ModuleTier.BLATANT)
 public class AutoHunt extends Module {
 
     public final BooleanProperty useKillAura = new BooleanProperty("Use KillAura", true);
@@ -26,6 +34,10 @@ public class AutoHunt extends Module {
     private static final double LAST_SEEN_STOP_DISTANCE = 1.5;
 
     private static String huntName;
+
+    {
+        registerCommand(new HuntCommand());
+    }
 
     private final Chaser chaser = new Chaser();
     private double[] lastSeen;
@@ -42,9 +54,9 @@ public class AutoHunt extends Module {
         huntName = name;
     }
 
-    public static boolean allowsTarget(EntityPlayer player) {
-        AutoHunt hunt = Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoHunt.class);
-        if (hunt == null || !hunt.isEnabled() || !hunt.useKillAura.getValue() || huntName == null)
+    @Override
+    public boolean allowsTarget(EntityPlayer player) {
+        if (!useKillAura.getValue() || huntName == null)
             return true;
         return player.getName().equalsIgnoreCase(huntName);
     }
@@ -131,5 +143,40 @@ public class AutoHunt extends Module {
     @Override
     public String getHudInfo() {
         return huntName == null ? "none" : huntName;
+    }
+
+    /** .hunt <name> sets who to chase and turns the module on, .hunt stop turns it off. */
+    @CommandInfo(name = "hunt", args = { "name/stop" }, help = "sets who AutoHunt chases and turns it on, or stops it", minArgs = 1)
+    private class HuntCommand extends Command {
+
+        @Override
+        public void execute(String[] args) {
+            if (args[0].equalsIgnoreCase("stop")) {
+                setEnabled(false);
+                PlayerUtils.addWaterMarkedMessageToChat("Stopped hunting");
+                return;
+            }
+            setHuntName(args[0]);
+            if (isEnabled())
+                PlayerUtils.addWaterMarkedMessageToChat("Now hunting §c" + args[0]);
+            else
+                setEnabled(true);
+        }
+
+        @Override
+        protected List<String> getAutoComplete(String str, int arg, List<String> list) {
+            if (arg != 0)
+                return list;
+            List<String> names = new ArrayList<>();
+            names.add("stop");
+            if (mc.getNetHandler() != null) {
+                names.addAll(mc.getNetHandler().getPlayerInfoMap().stream()
+                        .map(NetworkPlayerInfo::getGameProfile)
+                        .map(profile -> profile.getName())
+                        .filter(n -> mc.thePlayer == null || !n.equalsIgnoreCase(mc.thePlayer.getName()))
+                        .collect(Collectors.toList()));
+            }
+            return autoCompleteHelper(names, str);
+        }
     }
 }

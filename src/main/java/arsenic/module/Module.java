@@ -7,6 +7,8 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
+import arsenic.command.Command;
+import arsenic.gui.hud.HudElement;
 import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.Property;
@@ -18,6 +20,7 @@ import arsenic.notifications.NotificationType;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
 
 public class Module implements IContainer<Property<?>>, ISerializable {
 
@@ -37,6 +40,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
     private final List<Property<?>> properties = new ArrayList<>();
     protected final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
+    private final List<HudElement> hudElements = new ArrayList<>();
+    private final List<Command> commands = new ArrayList<>();
 
     public Module() {
         if (!this.getClass().isAnnotationPresent(ModuleInfo.class))
@@ -60,6 +65,40 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
     protected void registerProperty(Property<?> p) {
         properties.add(p);
+    }
+
+    /** Registers a draggable HUD spot for this module; it appears in the HUD editor and is saved with the module. */
+    protected final HudElement hudElement(String label, int x, int y, int width, int height) {
+        return hudElement(label, x, y, width, height, false);
+    }
+
+    protected final HudElement hudElement(String label, int x, int y, int width, int height, boolean rightAnchored) {
+        HudElement element = new HudElement(label, x, y, width, height, rightAnchored);
+        hudElements.add(element);
+        return element;
+    }
+
+    /** Registers a chat command that exists while this module is loaded (used by addons). */
+    protected final void registerCommand(Command command) {
+        commands.add(command);
+    }
+
+    public final List<Command> getCommands() {
+        return commands;
+    }
+
+    /** While this module is enabled, TargetManager only accepts targets this returns true for. */
+    public boolean allowsTarget(EntityPlayer player) {
+        return true;
+    }
+
+    /** True while the module is moving items around the hotbar, so AutoWeapon keeps its hands off. */
+    public boolean isSwappingHotbar() {
+        return false;
+    }
+
+    public final List<HudElement> getHudElements() {
+        return hudElements;
     }
 
     public void registerProperties() throws IllegalAccessException {
@@ -214,6 +253,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
     @Override
     public void loadFromJson(JsonObject obj) {
+        if (obj.has("hud") && obj.get("hud").isJsonObject())
+            hudElements.forEach(element -> element.load(obj.getAsJsonObject("hud")));
         try {
 
             keybind = obj.get("bind").getAsInt();
@@ -238,6 +279,12 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         obj.addProperty("bind", keybind);
         obj.addProperty("enabled", enabled);
         obj.addProperty("hidden", hidden);
+
+        if (!hudElements.isEmpty()) {
+            JsonObject hud = new JsonObject();
+            hudElements.forEach(element -> element.save(hud));
+            obj.add("hud", hud);
+        }
 
         serializableProperties.forEach(property -> property.addToJson(obj));
         return obj;

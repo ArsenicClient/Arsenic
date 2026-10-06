@@ -1,5 +1,6 @@
 package arsenic.gui.click;
 
+import arsenic.main.Arsenic;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.interfaces.ISerializable;
 import com.google.gson.JsonObject;
@@ -107,6 +108,7 @@ public final class GuiStyle implements ISerializable {
     private boolean customFont = true;
     private boolean sounds = true;
     private boolean showMoreModules = false;
+    private boolean showBlatant = true;
     /** The whole menu look: "Element" (default) or "Ocean". The loading screen reads it straight from the config file at start-up. */
     private String screenStyle = "Element";
 
@@ -137,11 +139,40 @@ public final class GuiStyle implements ISerializable {
             this.screenStyle = style;
     }
 
+
+
     public boolean isShowMoreModules() { return showMoreModules; }
 
     public void setShowMoreModules(boolean showMoreModules) { this.showMoreModules = showMoreModules; }
 
+    public boolean isShowBlatant() { return showBlatant; }
 
+    public void setShowBlatant(boolean showBlatant) { this.showBlatant = showBlatant; }
+
+    /** Legit is always on; Blatant and Extra (and Dev, with Extra) follow their ClickGUI toggles. */
+    public boolean isTierShown(arsenic.module.ModuleTier tier) {
+        switch (tier) {
+            case BLATANT: return showBlatant;
+            case EXTRA:
+            case DEV: return showMoreModules;
+            default: return true;
+        }
+    }
+
+    /** Flip a tier toggle. Turning one off also switches off that tier's modules so none keep running unseen. */
+    public void toggleTier(arsenic.module.ModuleTier tier) {
+        if (tier == arsenic.module.ModuleTier.LEGIT)
+            return;
+        if (tier == arsenic.module.ModuleTier.BLATANT)
+            showBlatant = !showBlatant;
+        else
+            showMoreModules = !showMoreModules;
+        if (isTierShown(tier))
+            return;
+        for (arsenic.module.Module m : new java.util.ArrayList<>(Arsenic.getArsenic().getModuleManager().getModules()))
+            if (m.isEnabled() && !isTierShown(m.getTier()))
+                m.setEnabled(false);
+    }
     private static Preset p() { return INSTANCE.preset; }
 
     public static boolean backgroundEnabled() { return p().background; }
@@ -214,6 +245,7 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("customFont", customFont);
         obj.addProperty("sounds", sounds);
         obj.addProperty("showMoreModules", showMoreModules);
+        obj.addProperty("showBlatant", showBlatant);
         obj.addProperty("screenStyle", screenStyle);
         return obj;
     }
@@ -233,6 +265,8 @@ public final class GuiStyle implements ISerializable {
                 setScreenStyle(obj.get("loadingScreen").getAsString());
             if (obj.has("screenStyle"))
                 setScreenStyle(obj.get("screenStyle").getAsString());
+            if (obj.has("showBlatant"))
+                showBlatant = obj.get("showBlatant").getAsBoolean();
             if (obj.has("showMoreModules"))
                 showMoreModules = obj.get("showMoreModules").getAsBoolean();
         } catch (Exception e) {

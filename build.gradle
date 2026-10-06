@@ -69,10 +69,54 @@ dependencies {
         exclude module: "guava"  // provided by Minecraft
     }
     embed("org.javassist:javassist:3.28.0-GA")
+    // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
+    embed("org.eclipse.jdt:ecj:3.26.0")
+}
+
+// MCP -> SRG member names, bundled so addons written with MCP names can be remapped inside the obfuscated game.
+def addonMappingsDir = file("$buildDir/generated/addon")
+task generateAddonMappings {
+    outputs.dir addonMappingsDir
+    if (tasks.findByName("genSrgs") != null)
+        dependsOn "genSrgs"
+
+    doLast {
+        def mcpSrg = file("${gradle.gradleUserHomeDir}/caches/minecraft/de/oceanlabs/mcp/mcp_stable/20/srgs/mcp-srg.srg")
+        if (!mcpSrg.exists())
+            throw new GradleException("Missing ${mcpSrg}; run the ForgeGradle setup first")
+        addonMappingsDir.mkdirs()
+        def out = new File(addonMappingsDir, "addon-mappings.txt")
+        out.withWriter("UTF-8") { w ->
+            mcpSrg.eachLine { line ->
+                def p = line.split(" ")
+                if (p[0] == "FD:" && p.length == 3) {
+                    def mcp = p[1], srg = p[2]
+                    def owner = mcp.substring(0, mcp.lastIndexOf("/"))
+                    def mcpName = mcp.substring(mcp.lastIndexOf("/") + 1)
+                    def srgName = srg.substring(srg.lastIndexOf("/") + 1)
+                    if (mcpName != srgName) w.write("F ${owner} ${mcpName} ${srgName}\n")
+                } else if (p[0] == "MD:" && p.length == 5) {
+                    def mcp = p[1], srg = p[3]
+                    def owner = mcp.substring(0, mcp.lastIndexOf("/"))
+                    def mcpName = mcp.substring(mcp.lastIndexOf("/") + 1)
+                    def srgName = srg.substring(srg.lastIndexOf("/") + 1)
+                    if (mcpName != srgName) w.write("M ${owner} ${mcpName} ${p[2]} ${srgName}\n")
+                }
+            }
+        }
+    }
 }
 
 
 processResources {
+    dependsOn generateAddonMappings
+    from("src/addons") {
+        include "addons.json"
+        include "java/*.java"
+        include "packs/**"
+        into "assets/arsenic/addons"
+    }
+    from(addonMappingsDir)
     inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
@@ -86,6 +130,23 @@ processResources {
 }
 
 
+
+// Default addons: ordinary modules written exactly like user addons (MCP names, default package). They are
+// compiled here as a check and so IDEs treat them as source, but they are not part of the jar's classes; their
+// .java sources are bundled as resources and copied into the Arsenic/addons folder at startup. Loose addons live
+// in src/addons/java, each pack in src/addons/packs/<id> with a pack.json and its addons in impl.
+def addonSourceDirs = [file("src/addons/java")]
+file("src/addons/packs").listFiles({ File f -> f.isDirectory() } as FileFilter)?.each { File pack ->
+    File impl = new File(pack, "impl")
+    if (impl.isDirectory()) addonSourceDirs << impl
+}
+sourceSets {
+    addons {
+        java.srcDirs = addonSourceDirs
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+}
+build.dependsOn "compileAddonsJava"
 mixin {
     add sourceSets.main, "mixins.arsenic.refmap.json"
 }
@@ -141,8 +202,46 @@ reobf {
 }
 build.dependsOn devJar
 
+// reobf rewrites every class in the jar with an old ASM, which mangles the stack map frames of the embedded
+// libraries (ECJ then fails verification). Only Arsenic's own classes need remapping, so put the libraries'
+// original classes back once reobf is done.
+def restoreEmbeddedLibs = { File jarFile ->
+    def originals = [:]
+    configurations.embed.each { File lib ->
+        if (!lib.isFile()) return
+        new java.util.zip.ZipFile(lib).withCloseable { zip ->
+            zip.entries().each { e ->
+                if (!e.isDirectory() && e.name.endsWith(".class") && !originals.containsKey(e.name))
+                    originals[e.name] = zip.getInputStream(e).bytes
+            }
+        }
+    }
+    def tmp = new File(jarFile.parentFile, jarFile.name + ".restore")
+    new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+        new java.util.zip.ZipOutputStream(new FileOutputStream(tmp)).withCloseable { out ->
+            zip.entries().each { e ->
+                def entry = new java.util.zip.ZipEntry(e.name)
+                entry.time = e.time
+                out.putNextEntry(entry)
+                if (!e.isDirectory()) {
+                    boolean lib = e.name.endsWith(".class") && !e.name.startsWith("arsenic/") && originals.containsKey(e.name)
+                    out.write(lib ? originals[e.name] : zip.getInputStream(e).bytes)
+                }
+                out.closeEntry()
+            }
+        }
+    }
+    jarFile.delete()
+    tmp.renameTo(jarFile)
+}
+afterEvaluate {
+    tasks.reobfJar.doLast { restoreEmbeddedLibs(tasks.getByName("jar").archivePath) }
+    tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
+}
+
 idea {
     module {
         inheritOutputDirs = true
+        sourceDirs += addonSourceDirs
     }
 }
