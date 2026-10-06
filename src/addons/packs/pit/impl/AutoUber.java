@@ -94,6 +94,7 @@ public class AutoUber extends Module {
     public final BooleanProperty mentionsOnly = new BooleanProperty("Only Mentions", false);
     public final BooleanProperty pathCheck = new BooleanProperty("Path Check", true);
     public final DoubleProperty maxDetour = new DoubleProperty("Max Detour", new DoubleValue(1, 4, 1.8, 0.1));
+    public final DoubleProperty statusInterval = new DoubleProperty("Status Every (s)", new DoubleValue(0, 300, 30, 5));
     public final BooleanProperty pitOnly = new BooleanProperty("Pit Only", true);
     public final BooleanProperty pickupMystics = new BooleanProperty("Pick Up Mystics", true);
     public final BooleanProperty notifyEvents = new BooleanProperty("Notify Death/Stall", true);
@@ -155,6 +156,9 @@ public class AutoUber extends Module {
     private String status = "idle";
 
     // chat window
+    private int oofCount, deathCount, insertCount, checkoutCount;
+    private double bestStreak;
+    private long nextStatus, startedAt;
     private JFrame frame;
     private JTextPane pane;
     private boolean windowFailed;
@@ -163,6 +167,10 @@ public class AutoUber extends Module {
 
     @Override
     protected void onEnable() {
+        startedAt = System.currentTimeMillis();
+        nextStatus = startedAt + (long) (statusInterval.getValue().getInput() * 1000);
+        oofCount = deathCount = insertCount = checkoutCount = 0;
+        bestStreak = 0;
         if (notifyChat.getValue() || notifyEvents.getValue()) notifyDesktop("AutoUber: started", "chat window ready");
         pendingChat.clear();
         respawnPacket = false;
@@ -253,6 +261,11 @@ public class AutoUber extends Module {
 
         readScoreboard();
         trackStreak();
+        if (statusInterval.getValue().getInput() > 0 && System.currentTimeMillis() >= nextStatus) {
+            nextStatus = System.currentTimeMillis() + (long) (statusInterval.getValue().getInput() * 1000);
+            statusLine();
+        }
+        bestStreak = Math.max(bestStreak, streak);
         if (pitOnly.getValue() && !inPit) {
             releaseKeys();
             setKillAura(false);
@@ -319,6 +332,7 @@ public class AutoUber extends Module {
         lootUntil = 0;
         if (notifyEvents.getValue())
             notifyDesktop("AutoUber: you died", "Streak was " + (int) lastStreakSeen);
+        deathCount++;
         lastStreakSeen = 0;
         lastIncreaseAt = now;
         stallNotified = false;
@@ -426,6 +440,8 @@ public class AutoUber extends Module {
         if (System.currentTimeMillis() < oofCooldown) return;
         oofCooldown = System.currentTimeMillis() + 10000;
         mc.thePlayer.sendChatMessage("/oof");
+        oofCount++;
+        info("/oof sent at streak " + (int) streak + " (#" + oofCount + ")");
         PlayerUtils.addWaterMarkedMessageToChat("Streak §c" + (int) streak + "§r - /oof");
     }
 
@@ -456,6 +472,8 @@ public class AutoUber extends Module {
         mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), ground, EnumFacing.UP, hit);
         if (previous != slot) restoreSlot = previous;
         insertionPending = false;
+        insertCount++;
+        info("Tactical Insertion placed (#" + insertCount + ")");
     }
 
     // ---------------------------------------------------------------- self-checkout
@@ -503,6 +521,10 @@ public class AutoUber extends Module {
     }
 
     private void finishCheckout(boolean ok) {
+        if (ok) {
+            checkoutCount++;
+            info("Self-checkout used (#" + checkoutCount + "), bounty was " + (int) bounty + "g");
+        }
         mc.thePlayer.inventory.currentItem = coPrev;
         coState = 0;
         coCooldown = ticks + 200;
@@ -520,6 +542,7 @@ public class AutoUber extends Module {
             if (mc.getNetHandler().getPlayerInfo(p.getUniqueID()) == null) continue; // NPCs
             if (Arsenic.getArsenic().getFriendManager().add(p.getName()))
                 PlayerUtils.addWaterMarkedMessageToChat("Friended §b" + p.getName() + "§r (diamond chestplate)");
+                info("Friended " + p.getName() + " (diamond chestplate)");
         }
     }
 
@@ -787,6 +810,17 @@ public class AutoUber extends Module {
         }
     }
 
+    private void info(String text) {
+        notifyDesktop("AutoUber+", text);
+    }
+
+    private void statusLine() {
+        long mins = (System.currentTimeMillis() - startedAt) / 60000;
+        info("Status: streak " + (int) streak + " (best " + (int) bestStreak + ") | bounty " + (int) bounty + "g | /oof " + oofCount
+                + " | deaths " + deathCount + " | insertions " + insertCount + " | checkouts " + checkoutCount
+                + " | " + status + " | " + mins + "m");
+    }
+
     private void notifyDesktop(final String title, final String text) {
         long now = System.currentTimeMillis();
         String key = title + text;
@@ -806,10 +840,15 @@ public class AutoUber extends Module {
                     return;
                 }
                 if (frame == null) buildWindow();
-                if (!frame.isVisible()) frame.setVisible(true);
+                if (!frame.isVisible()) {
+                    frame.setVisible(true);
+                    frame.toFront();
+                }
                 StyledDocument doc = pane.getStyledDocument();
                 doc.insertString(doc.getLength(), stamp + " ", styleOf(new Color(120, 120, 130), false));
-                if (event) {
+                if (title.equals("AutoUber+")) {
+                    doc.insertString(doc.getLength(), text + "\n", styleOf(new Color(85, 255, 85), false));
+                } else if (event) {
                     doc.insertString(doc.getLength(), title.replace("AutoUber: ", "") + " - " + text + "\n", styleOf(new Color(255, 85, 85), true));
                 } else {
                     doc.insertString(doc.getLength(), title + ": ", styleOf(new Color(85, 255, 255), true));
