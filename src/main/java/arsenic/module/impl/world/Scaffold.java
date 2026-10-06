@@ -81,6 +81,7 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
+        event.setBlockUserInput(true);
         Item item = keyBlock();
         ScaffoldCore.Rotation rotation = core.rotate(input(true, item != null && haveBlocks()), ScaffoldUtil.WORLD);
         event.setSpeed(rotation.speed);

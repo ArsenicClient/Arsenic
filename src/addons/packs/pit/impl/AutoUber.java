@@ -542,7 +542,6 @@ public class AutoUber extends Module {
             if (mc.getNetHandler().getPlayerInfo(p.getUniqueID()) == null) continue; // NPCs
             if (Arsenic.getArsenic().getFriendManager().add(p.getName()))
                 PlayerUtils.addWaterMarkedMessageToChat("Friended §b" + p.getName() + "§r (diamond chestplate)");
-                info("Friended " + p.getName() + " (diamond chestplate)");
         }
     }
 

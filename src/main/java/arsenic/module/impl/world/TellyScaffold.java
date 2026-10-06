@@ -115,6 +115,7 @@ public class TellyScaffold extends Module {
     public final Listener<EventSilentRotation> onRotation = event -> {
         if (scaffoldActive())
             return;
+        event.setBlockUserInput(true);
         bridging = !mc.thePlayer.onGround && airTicks >= (int) startTick.getValue().getInput();
         if (!bridging) {
             core.reset();
