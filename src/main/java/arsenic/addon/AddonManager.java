@@ -131,9 +131,12 @@ public final class AddonManager {
     }
 
     /**
-     * Puts the bundled default addons and packs into the addons folder the first time each one is seen: loose addons
-     * and packs flagged autoInstall enabled, the rest as disabled files. Anything the user later deletes or renames
-     * is left alone.
+     * Keeps the addons folder in step with the bundled defaults. The first time a default addon or pack addon is seen
+     * it is installed (loose addons and packs flagged autoInstall enabled, the rest as disabled files); anything the
+     * user later deletes or renames is left alone. On every later start, an installed default whose bundled source
+     * changed (a new client version) is updated in place, keeping its enabled or disabled state. A copy the user edited
+     * is never overwritten, and a copy whose history is unknown is overwritten only after a .bak backup is written.
+     * Addons new to an already installed pack are added.
      */
     public synchronized void installDefaults() {
         try {
@@ -142,29 +145,130 @@ public final class AddonManager {
             Set<String> seen = new HashSet<>();
             if (marker.exists())
                 seen.addAll(Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8));
+            File hashFile = new File(directory, ".defaults-hashes");
+            Map<String, String> hashes = readHashes(hashFile);
+            int seenBefore = seen.size();
+            Map<String, String> hashesBefore = new HashMap<>(hashes);
 
-            boolean changed = false;
             for (AddonCatalog.Entry entry : catalog.addons) {
-                if (!seen.add(entry.file))
-                    continue;
-                changed = true;
-                if (on(directory, entry.file).exists() || off(directory, entry.file).exists())
-                    continue;
                 String source = catalog.source(entry.file);
-                if (source != null)
-                    write(off(directory, entry.file), source);
+                if (source == null)
+                    continue;
+                File existing = existing(directory, entry.file);
+                if (existing == null) {
+                    if (seen.add(entry.file)) {
+                        write(off(directory, entry.file), source);
+                        hashes.put("java:" + entry.file, hash(source));
+                    }
+                } else {
+                    seen.add(entry.file);
+                    refresh(existing, source, "java:" + entry.file, hashes);
+                }
             }
             for (AddonCatalog.PackMeta meta : catalog.bundledPacks()) {
-                if (!seen.add("pack:" + meta.id))
-                    continue;
-                changed = true;
-                if (!new File(packsDirectory(), meta.id).exists())
+                boolean firstSeen = seen.add("pack:" + meta.id);
+                if (firstSeen && !new File(packsDirectory(), meta.id).exists())
                     extractBundledPack(meta, meta.autoInstall);
+                updatePack(meta, seen, hashes);
             }
-            if (changed)
+
+            if (seen.size() != seenBefore)
                 Files.write(marker.toPath(), seen.stream().sorted().collect(Collectors.toList()), StandardCharsets.UTF_8);
+            if (!hashes.equals(hashesBefore))
+                Files.write(hashFile.toPath(), hashes.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                        .map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.toList()), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Arsenic.getArsenic().getLogger().error("Could not install the default addons", e);
+        }
+    }
+
+    /** Brings an installed pack up to the bundled version: its pack.json, its addons, and addons the pack gained. */
+    private void updatePack(AddonCatalog.PackMeta meta, Set<String> seen, Map<String, String> hashes) throws java.io.IOException {
+        File packDir = new File(packsDirectory(), meta.id);
+        if (!packDir.isDirectory())
+            return;
+        String metaSource = catalog.packMetaSource(meta.id);
+        File packJson = new File(packDir, "pack.json");
+        if (metaSource != null) {
+            if (packJson.isFile())
+                refresh(packJson, metaSource, "pack:" + meta.id + "/pack.json", hashes);
+            else
+                write(packJson, metaSource);
+        }
+        File impl = implDirectory(meta.id);
+        for (String addon : meta.addons.keySet()) {
+            String source = catalog.packSource(meta.id, addon);
+            if (source == null)
+                continue;
+            String key = "pack:" + meta.id + "/" + addon;
+            File existing = existing(findDirectory(impl, addon), addon);
+            boolean unseen = seen.add("packaddon:" + meta.id + "/" + addon);
+            if (existing != null) {
+                refresh(existing, source, key, hashes);
+            } else if (unseen) {
+                write(meta.autoInstall ? on(impl, addon) : off(impl, addon), source);
+                hashes.put(key, hash(source));
+            }
+        }
+    }
+
+    /**
+     * Overwrites an installed default with the bundled source when they differ and it is safe to: the file must be
+     * either untouched since we wrote it (its hash matches the one recorded) or of unknown origin, in which case it is
+     * backed up first. A file the user edited is left alone.
+     */
+    private void refresh(File target, String bundled, String key, Map<String, String> hashes) {
+        try {
+            String disk = new String(Files.readAllBytes(target.toPath()), StandardCharsets.UTF_8);
+            String diskHash = hash(disk), bundledHash = hash(bundled);
+            String recorded = hashes.get(key);
+            if (diskHash.equals(bundledHash)) {
+                hashes.put(key, bundledHash);
+                return;
+            }
+            if (recorded != null && !recorded.equals(diskHash))
+                return; // edited by the user
+            if (recorded == null)
+                Files.write(new File(target.getParentFile(), target.getName() + ".bak").toPath(),
+                        disk.getBytes(StandardCharsets.UTF_8));
+            Files.write(target.toPath(), bundled.getBytes(StandardCharsets.UTF_8));
+            hashes.put(key, bundledHash);
+            Arsenic.getArsenic().getLogger().info("Updated default addon {}", target.getName());
+        } catch (Exception e) {
+            Arsenic.getArsenic().getLogger().error("Could not update default addon " + target.getName(), e);
+        }
+    }
+
+    private static File existing(File dir, String name) {
+        if (on(dir, name).exists())
+            return on(dir, name);
+        return off(dir, name).exists() ? off(dir, name) : null;
+    }
+
+    private static Map<String, String> readHashes(File file) {
+        Map<String, String> map = new HashMap<>();
+        try {
+            if (file.isFile())
+                for (String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
+                    int i = line.lastIndexOf('=');
+                    if (i > 0)
+                        map.put(line.substring(0, i), line.substring(i + 1));
+                }
+        } catch (Exception ignored) {
+            // no history: every default is treated as of unknown origin
+        }
+        return map;
+    }
+
+    private static String hash(String text) {
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-1").digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : d)
+                sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
         }
     }
 

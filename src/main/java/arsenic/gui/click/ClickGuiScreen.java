@@ -289,8 +289,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float margin = height / 100f * 2.5f;
 
         hudBtnX1 = margin;
-        // sits above the three tier pills (Legit / Blatant / Extra) that take the corner below it
-        hudBtnY1 = height - margin - h - 3 * h * 1.3f;
+        // sits above the tier pill(s) that take the corner below it
+        hudBtnY1 = height - margin - h - TIER_TOGGLES.length * h * 1.3f;
         hudBtnX2 = margin + w;
         hudBtnY2 = hudBtnY1 + h;
 
@@ -342,7 +342,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     }
 
     private static final arsenic.module.ModuleTier[] TIER_TOGGLES = {
-            arsenic.module.ModuleTier.LEGIT, arsenic.module.ModuleTier.BLATANT, arsenic.module.ModuleTier.EXTRA};
+            arsenic.module.ModuleTier.BLATANT};
     private final float[][] tierRects = new float[TIER_TOGGLES.length][4];
     private final boolean[] tierHovered = new boolean[TIER_TOGGLES.length];
     private final arsenic.utils.timer.AnimationTimer[] tierHoverTimers = new arsenic.utils.timer.AnimationTimer[TIER_TOGGLES.length];
@@ -358,7 +358,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
     }
 
-    /** Legit / Blatant / Extra: stacked pills in the bottom-left corner, Legit is always on. */
+    /** The Blatant toggle pill in the bottom-left corner. */
     private void drawTierToggles(int mouseX, int mouseY) {
         float pad = height / 100f * 1.6f;
         float h = height / 100f * 4.2f;

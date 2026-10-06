@@ -1,10 +1,9 @@
 package arsenic.module;
 
-/** Which ClickGUI toggle a module belongs to. LEGIT is always shown; the others follow their own toggle. */
+/** Which ClickGUI toggle a module belongs to. LEGIT is always shown; BLATANT follows its toggle; DEV only exists in the dev jar. */
 public enum ModuleTier {
     LEGIT("Legit"),
     BLATANT("Blatant"),
-    EXTRA("Extra"),
     DEV("Dev");
 
     private final String displayName;

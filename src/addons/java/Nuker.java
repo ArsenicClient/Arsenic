@@ -32,7 +32,7 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import org.lwjgl.input.Mouse;
 
-@ModuleInfo(name = "Nuker", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "Nuker", category = ModuleCategory.PLAYER)
 public class Nuker extends Module {
 
     public final EnumProperty<TargetBlock> targetBlock = new EnumProperty<>("Block", TargetBlock.Wheat);

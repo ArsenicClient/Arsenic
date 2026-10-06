@@ -29,8 +29,7 @@ public class ModuleManager {
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
 
-        // devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar)
-        if(ModuleManager.class.getResource("/devmode.properties") == null) {
+        if (!isDevBuild()) {
             modules.entrySet().removeIf(entry -> {
                 ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
                 return info != null && info.tier() == ModuleTier.DEV;
@@ -94,7 +93,15 @@ public class ModuleManager {
     };
 
     /** Registers a module that did not come from the client jar (an addon). @return why it was rejected, or null. */
+    /** devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar). */
+    public static boolean isDevBuild() {
+        return ModuleManager.class.getResource("/devmode.properties") != null;
+    }
+
     public String registerExternal(Module module) {
+        // dev-tier modules must stay out of normal builds, addons included
+        if (module.getTier() == ModuleTier.DEV && !isDevBuild())
+            return "dev-tier modules only load in the dev jar";
         if (getModuleByName(module.getName()) != null)
             return "a module named " + module.getName() + " already exists";
         try {

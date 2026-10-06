@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "AutoSoup", category = ModuleCategory.PLAYER)
 public class AutoSoup extends Module {
 
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(0, 20, 7, 0.1));
