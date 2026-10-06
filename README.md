@@ -26,44 +26,6 @@ Then:
 2. Run `.addon reload` in game. Compile errors are printed in chat; paste them back to the AI to fix them.
 3. Enable the module in the ClickGUI.
 
-Other prompts that work the same way:
-
-> Read the ADDONS.md link and make an addon that draws boxes around chests through walls.
->
-> Read the ADDONS.md link and make an addon that auto-blocks with my sword when a player is within 3 blocks.
-
-If you want a more accurate result, also paste the link to an existing addon from
-[`src/addons`](src/addons/java) (e.g. [Tracers](src/addons/java/Tracers.java)) so the AI can copy its style.
-
-### The manual way
-
-```
-.addon new MyModule combat     # creates Arsenic/addons/MyModule.java from a template
-.addon reload                  # compile + load everything in the folder
-.addon list | .addon folder
-```
-
-An addon is a normal module: `@ModuleInfo`, public `Property` fields, `@EventLink` listeners, `onEnable/onDisable`,
-and MCP names for Minecraft code (`mc.thePlayer`, `mc.theWorld`, ...).
-
-```java
-import arsenic.event.bus.Listener;
-import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventTick;
-import arsenic.module.*;
-
-@ModuleInfo(name = "Example", category = ModuleCategory.PLAYER)
-public class Example extends Module {
-    @EventLink
-    public final Listener<EventTick> onTick = event -> {
-        if (mc.thePlayer != null) mc.thePlayer.setSprinting(true);
-    };
-}
-```
-
-Addons can be bundled into **packs** (a folder or zip with a `pack.json`) and managed from the **Addon Manager** button
-in the ClickGUI. Addons run with the game's full permissions, so only load ones you trust.
-
 ## Building and editing the client
 
 1. Clone the repository.
