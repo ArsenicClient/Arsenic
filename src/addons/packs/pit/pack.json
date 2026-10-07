@@ -8,7 +8,7 @@
     "AutoHunt": "Chases one named player with the pathfinding bot: use .hunt <name> to start and .hunt stop to stop. Can limit KillAura to your prey and walks to where they were last seen if they disappear.",
     "AutoSewerChest": "Finds freshly spawned sewer chests, walks to them with the built-in pathfinder, opens them and tidies your inventory afterwards (drops junk and duplicates, keeps the best gear in your hotbar). Can draw the path and the chests.",
     "FightBot": "Holds a spot and fights for you: turns on KillAura, chases enemies inside the chase range with the pathfinding bot and walks back to where it started. Stops by itself if you are teleported away or respawn.",
-    "AutoUber": "Made for classic pit. Uberstreak fight bot: /oof at 400 streak, Tactical Insertion after each death, Self-checkout pants at a 5,000g bounty, sprint jumps to the densest crowd around 0 0 while steering around slimes, friends diamond chestplate players and shows player chat, deaths and streak stalls in a popout chat window.",
+    "AutoUber": "Made for classic pit. Uberstreak fight bot: /oof at 400 streak, Tactical Insertion after each death, Self-checkout pants at a 5,000g bounty, sprint jumps to the densest crowd around 0 0 while steering around slimes, friends diamond chestplate players and shows a popout window with live stats, player chat and alerts (premature streak resets in big red), keeps session and all-time stats in Arsenic/autouber-stats.json (.uber shows them).",
     "FastCake": "Nukes the cake in the cake minor event",
     "KillTracker": "Reads the server's streak broadcasts and shows a draggable panel ranking players by kills per minute. Hides the streak messages from chat so the panel replaces the spam."
   }

@@ -49,7 +49,21 @@ import arsenic.utils.botcore.Planner;
 import arsenic.utils.botcore.Step;
 import arsenic.utils.botcore.Tuning;
 
+import arsenic.command.Command;
+import arsenic.command.CommandInfo;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Font;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import javax.swing.JTextArea;
 import java.awt.GraphicsEnvironment;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
@@ -58,6 +72,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,11 +109,128 @@ public class AutoUber extends Module {
     public final BooleanProperty mentionsOnly = new BooleanProperty("Only Mentions", false);
     public final BooleanProperty pathCheck = new BooleanProperty("Path Check", true);
     public final DoubleProperty maxDetour = new DoubleProperty("Max Detour", new DoubleValue(1, 4, 1.8, 0.1));
-    public final DoubleProperty statusInterval = new DoubleProperty("Status Every (s)", new DoubleValue(0, 300, 30, 5));
+    public final DoubleProperty prematureMin = new DoubleProperty("Premature Min Streak", new DoubleValue(1, 400, 50, 5));
+    public final BooleanProperty windowOnTop = new BooleanProperty("Window Always On Top", true);
     public final BooleanProperty pitOnly = new BooleanProperty("Pit Only", true);
     public final BooleanProperty pickupMystics = new BooleanProperty("Pick Up Mystics", true);
     public final BooleanProperty notifyEvents = new BooleanProperty("Notify Death/Stall", true);
     public final DoubleProperty stallSeconds = new DoubleProperty("Streak Stall (s)", new DoubleValue(10, 300, 40, 5));
+
+    // ---------------------------------------------------------------- stats (session = this game launch, lifetime = file on disk)
+
+    private static final String[] STAT_KEYS = {"kills", "deaths", "oofs", "bankedStreak", "uberdrops", "premature", "prematureLost",
+            "insertions", "insertionTries", "checkouts", "checkoutTries", "bestStreak", "runtimeMs"};
+
+    private static final class Stats {
+        final java.util.Map<String, Double> v = new java.util.LinkedHashMap<>();
+
+        Stats() {
+            for (String k : STAT_KEYS) v.put(k, 0.0);
+        }
+
+        double get(String k) {
+            Double d = v.get(k);
+            return d == null ? 0 : d;
+        }
+
+        JsonObject toJson() {
+            JsonObject o = new JsonObject();
+            for (java.util.Map.Entry<String, Double> e : v.entrySet()) o.addProperty(e.getKey(), e.getValue());
+            return o;
+        }
+
+        void load(JsonObject o) {
+            for (String k : STAT_KEYS)
+                if (o.has(k) && o.get(k).isJsonPrimitive()) v.put(k, o.get(k).getAsDouble());
+        }
+    }
+
+    private static final Stats SESSION = new Stats();
+    private static final Stats LIFETIME = new Stats();
+    private static final long SESSION_START = System.currentTimeMillis();
+    private static final Object FILE_LOCK = new Object();
+    private static final List<JsonObject> PAST_SESSIONS = new ArrayList<>();
+    private static boolean statsLoaded;
+    private static boolean shutdownHookAdded;
+    private static volatile boolean statsDirty;
+    private static long lastSave;
+
+    private static File statsFile() {
+        return new File(new File(net.minecraft.client.Minecraft.getMinecraft().mcDataDir, "Arsenic"), "autouber-stats.json");
+    }
+
+    private static void loadStats() {
+        synchronized (FILE_LOCK) {
+            if (statsLoaded) return;
+            statsLoaded = true;
+            try {
+                File file = statsFile();
+                if (file.isFile()) {
+                    JsonObject root = new JsonParser().parse(new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8)).getAsJsonObject();
+                    if (root.has("lifetime")) LIFETIME.load(root.getAsJsonObject("lifetime"));
+                    if (root.has("sessions"))
+                        for (JsonElement e : root.getAsJsonArray("sessions"))
+                            if (e.getAsJsonObject().get("start").getAsLong() != SESSION_START) PAST_SESSIONS.add(e.getAsJsonObject());
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+            if (!shutdownHookAdded) {
+                shutdownHookAdded = true;
+                Runtime.getRuntime().addShutdownHook(new Thread(AutoUber::saveStats, "AutoUber-stats-save"));
+            }
+        }
+    }
+
+    private static void saveStats() {
+        synchronized (FILE_LOCK) {
+            if (!statsLoaded) return;
+            try {
+                JsonObject root = new JsonObject();
+                root.add("lifetime", LIFETIME.toJson());
+                JsonArray sessions = new JsonArray();
+                int from = Math.max(0, PAST_SESSIONS.size() - 99);
+                for (int i = from; i < PAST_SESSIONS.size(); i++) sessions.add(PAST_SESSIONS.get(i));
+                JsonObject cur = SESSION.toJson();
+                cur.addProperty("start", SESSION_START);
+                cur.addProperty("end", System.currentTimeMillis());
+                sessions.add(cur);
+                root.add("sessions", sessions);
+                File file = statsFile();
+                file.getParentFile().mkdirs();
+                Files.write(file.toPath(), new GsonBuilder().setPrettyPrinting().create().toJson(root).getBytes(StandardCharsets.UTF_8));
+                statsDirty = false;
+                lastSave = System.currentTimeMillis();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void stat(String key, double amount) {
+        synchronized (FILE_LOCK) {
+            SESSION.v.put(key, SESSION.get(key) + amount);
+            LIFETIME.v.put(key, LIFETIME.get(key) + amount);
+        }
+        statsDirty = true;
+    }
+
+    private static void statMax(String key, double value) {
+        synchronized (FILE_LOCK) {
+            if (value > SESSION.get(key)) SESSION.v.put(key, value);
+            if (value > LIFETIME.get(key)) LIFETIME.v.put(key, value);
+        }
+        statsDirty = true;
+    }
+
+    private static String duration(double ms) {
+        long s = (long) (ms / 1000);
+        return String.format("%dh %02dm %02ds", s / 3600, (s / 60) % 60, s % 60);
+    }
+
+    private static String num(double d) {
+        return d == Math.rint(d) ? String.format("%,d", (long) d) : String.format("%,.1f", d);
+    }
 
     private static final Pattern STREAK = Pattern.compile("Streak:\\s*([\\d,]+(?:\\.\\d+)?)");
     private static final Pattern BOUNTY = Pattern.compile("Bounty:\\s*([\\d,]+)\\s*g");
@@ -131,18 +263,25 @@ public class AutoUber extends Module {
 
     // death / insertion
     private boolean wasAlive = true;
-    private boolean insertionPending;
     private long insertionAt;
+    private long insertionRetryAt;
+    private int insHold, insSlot, insPrev;
+    private boolean insertionActive;
+    private int insertionTries;
+    private volatile boolean insertionConfirmed;
     private int restoreSlot = -1;
     private boolean warnedNoRod;
 
     // oof
     private long oofCooldown;
+    private long lastOofAt;
 
     // self-checkout
     private int coState;
-    private int coSlot, coPrev;
-    private long coStart, coCooldown;
+    private int coSlot, coPrev, coFix, coTries;
+    private long coStart, coCooldown, coLastClick, coVerifyUntil;
+    private String coWanted;
+    private boolean warnedNoSco;
 
     // movement
     private double goalX, goalZ;
@@ -156,9 +295,11 @@ public class AutoUber extends Module {
     private String status = "idle";
 
     // chat window
-    private int oofCount, deathCount, insertCount, checkoutCount;
-    private double bestStreak;
-    private long nextStatus, startedAt;
+    private final ArrayDeque<double[]> streakHistory = new ArrayDeque<>();
+    private boolean streakBaselined;
+    private long lastTickAt;
+    private String lastDashboard = "";
+    private JTextArea dashboard;
     private JFrame frame;
     private JTextPane pane;
     private boolean windowFailed;
@@ -167,16 +308,27 @@ public class AutoUber extends Module {
 
     @Override
     protected void onEnable() {
-        startedAt = System.currentTimeMillis();
-        nextStatus = startedAt + (long) (statusInterval.getValue().getInput() * 1000);
-        oofCount = deathCount = insertCount = checkoutCount = 0;
-        bestStreak = 0;
-        if (notifyChat.getValue() || notifyEvents.getValue()) notifyDesktop("AutoUber: started", "chat window ready");
+        loadStats();
+        lastTickAt = 0;
+        streakBaselined = false;
+        streakHistory.clear();
+        if (notifyChat.getValue() || notifyEvents.getValue()) {
+            notifyDesktop("AutoUber+", "AutoUber enabled");
+            openWindow();
+        }
         pendingChat.clear();
         respawnPacket = false;
         coState = 0;
+        coCooldown = 0;
+        coVerifyUntil = 0;
+        coTries = 0;
         restoreSlot = -1;
-        insertionPending = false;
+        // try to set a Tactical Insertion straight away; the server confirms it in chat
+        insertionActive = false;
+        insertionConfirmed = false;
+        insertionTries = 0;
+        insertionAt = System.currentTimeMillis();
+        insertionRetryAt = 0;
         wasAlive = true;
         haveGoal = false;
         if (mc.gameSettings != null) {
@@ -192,6 +344,7 @@ public class AutoUber extends Module {
         pauseSaved = false;
         releaseKeys();
         setKillAura(false);
+        saveStats();
         closeWindow();
     }
 
@@ -205,6 +358,7 @@ public class AutoUber extends Module {
                 mysticChatAt = System.currentTimeMillis();
                 lootUntil = mysticChatAt + 5000;
             }
+            if (chatText.contains("TACTICAL INSERTION!") && chatText.contains("Spawn set")) insertionConfirmed = true;
             pendingChat.add(chatText);
         } else if (event.getPacket() instanceof S0EPacketSpawnObject) {
             S0EPacketSpawnObject spawn = (S0EPacketSpawnObject) event.getPacket();
@@ -238,6 +392,19 @@ public class AutoUber extends Module {
 
         handleChat();
 
+        long nowMs = System.currentTimeMillis();
+        if (lastTickAt != 0) stat("runtimeMs", Math.min(1000, nowMs - lastTickAt));
+        lastTickAt = nowMs;
+        if (insertionConfirmed) {
+            insertionConfirmed = false;
+            insertionActive = true;
+            insertionTries = 0;
+            stat("insertions", 1);
+            info("Tactical Insertion set for your next death");
+        }
+        if (statsDirty && nowMs - lastSave > 5000) saveStats();
+        updateDashboard();
+
         if (restoreSlot >= 0) {
             mc.thePlayer.inventory.currentItem = restoreSlot;
             restoreSlot = -1;
@@ -261,11 +428,6 @@ public class AutoUber extends Module {
 
         readScoreboard();
         trackStreak();
-        if (statusInterval.getValue().getInput() > 0 && System.currentTimeMillis() >= nextStatus) {
-            nextStatus = System.currentTimeMillis() + (long) (statusInterval.getValue().getInput() * 1000);
-            statusLine();
-        }
-        bestStreak = Math.max(bestStreak, streak);
         if (pitOnly.getValue() && !inPit) {
             releaseKeys();
             setKillAura(false);
@@ -326,13 +488,37 @@ public class AutoUber extends Module {
         long now = System.currentTimeMillis();
         if (now - lastDeathAt < 3000) return;
         lastDeathAt = now;
-        insertionPending = doInsertion.getValue();
+        // the scoreboard may already show 0 by now, so use the highest streak of the last few seconds
+        double peak = 0;
+        for (double[] h : streakHistory)
+            if (now - h[0] <= 4000) peak = Math.max(peak, h[1]);
+        peak = Math.max(peak, lastStreakSeen);
+        streakHistory.clear();
+
+        insertionActive = false;
+        insertionTries = 0;
+        insertionConfirmed = false;
+        insertionRetryAt = 0;
         insertionAt = now + (long) (insertionDelay.getValue().getInput() * 1000);
         coState = 0;
         lootUntil = 0;
-        if (notifyEvents.getValue())
-            notifyDesktop("AutoUber: you died", "Streak was " + (int) lastStreakSeen);
-        deathCount++;
+        stat("deaths", 1);
+
+        if (peak >= 400) { // uberdrops are given on death at 400+ streak
+            stat("uberdrops", 1);
+            info("Uberdrop! died at streak " + (int) peak + " (" + (int) SESSION.get("uberdrops") + " this session)");
+        }
+        boolean banked = now - lastOofAt < 15000;
+        if (banked) {
+            stat("bankedStreak", peak);
+            info("Streak of " + (int) peak + " banked with /oof");
+        } else if (peak >= prematureMin.getValue().getInput()) {
+            stat("premature", 1);
+            stat("prematureLost", peak);
+            bigAlert("PREMATURE STREAK RESET!  Lost a " + (int) peak + " streak (" + (int) SESSION.get("premature") + " this session)");
+        } else if (notifyEvents.getValue()) {
+            notifyDesktop("AutoUber: you died", "Streak was " + (int) peak);
+        }
         lastStreakSeen = 0;
         lastIncreaseAt = now;
         stallNotified = false;
@@ -340,11 +526,22 @@ public class AutoUber extends Module {
 
     private void trackStreak() {
         long now = System.currentTimeMillis();
+        if (!streakBaselined) { // first reading: don't count a streak we joined with as kills or uberdrops
+            streakBaselined = true;
+            lastStreakSeen = streak;
+            lastIncreaseAt = now;
+            return;
+        }
+        streakHistory.addLast(new double[]{now, streak});
+        while (!streakHistory.isEmpty() && now - streakHistory.peekFirst()[0] > 6000) streakHistory.pollFirst();
+
         if (streak > lastStreakSeen) {
             lastIncreaseAt = now;
             stallNotified = false;
+            if (streak - lastStreakSeen >= 0.99) stat("kills", 1);
         }
         if (streak < lastStreakSeen) lastIncreaseAt = now; // dropped (oof / death): start timing again
+        statMax("bestStreak", streak);
         lastStreakSeen = streak;
         if (notifyEvents.getValue() && !stallNotified && streak > 0
                 && now - lastIncreaseAt > stallSeconds.getValue().getInput() * 1000) {
@@ -439,16 +636,29 @@ public class AutoUber extends Module {
         if (streak < oofStreak.getValue().getInput()) return;
         if (System.currentTimeMillis() < oofCooldown) return;
         oofCooldown = System.currentTimeMillis() + 10000;
+        lastOofAt = System.currentTimeMillis();
         mc.thePlayer.sendChatMessage("/oof");
-        oofCount++;
-        info("/oof sent at streak " + (int) streak + " (#" + oofCount + ")");
-        PlayerUtils.addWaterMarkedMessageToChat("Streak §c" + (int) streak + "§r - /oof");
+        stat("oofs", 1);
+        info("/oof sent at streak " + (int) streak + " (#" + (int) SESSION.get("oofs") + " this session)");
     }
 
     // ---------------------------------------------------------------- tactical insertion
+    // It has to be down before we die (the server answers "Spawn set for your next death") and has a 60 s cooldown, so
+    // we keep trying every 5 s until the server confirms it, then leave it alone until the next death.
 
     private void insertion() {
-        if (!insertionPending || System.currentTimeMillis() < insertionAt) return;
+        if (insHold > 0) {
+            // keep the rod selected and keep clicking for a few ticks so the server sees it in hand (it sometimes ignored a single click)
+            if (insertionActive || mc.thePlayer.inventory.getStackInSlot(insSlot) == null) insHold = 0;
+            else {
+                clickRod();
+                insHold--;
+            }
+            if (insHold == 0) mc.thePlayer.inventory.currentItem = insPrev;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (insertionActive || now < insertionAt || now < insertionRetryAt || insertionTries >= 15) return;
         if (!mc.thePlayer.onGround || coState != 0) return;
         int slot = -1;
         for (int i = 0; i < 9; i++) {
@@ -464,71 +674,148 @@ public class AutoUber extends Module {
             return;
         }
         warnedNoRod = false;
+        insSlot = slot;
+        insPrev = mc.thePlayer.inventory.currentItem;
+        insHold = INSERTION_CLICK_TICKS;
+        clickRod();
+        insHold--;
+        if (insHold == 0) mc.thePlayer.inventory.currentItem = insPrev;
+        insertionRetryAt = now + 5000;
+        insertionTries++;
+        stat("insertionTries", 1);
+        if (insertionTries > 1) info("Tactical Insertion not confirmed, retrying (try " + insertionTries + ")");
+        if (insertionTries == 15) info("Tactical Insertion gave up for this life (15 tries)");
+    }
+
+    private static final int INSERTION_CLICK_TICKS = 3;
+
+    private void clickRod() {
+        mc.thePlayer.inventory.currentItem = insSlot;
         BlockPos ground = new BlockPos(mc.thePlayer.posX, mc.thePlayer.posY - 0.5, mc.thePlayer.posZ);
         Vec3 hit = new Vec3(ground.getX() + 0.5, ground.getY() + 1.0, ground.getZ() + 0.5);
-        int previous = mc.thePlayer.inventory.currentItem;
-        mc.thePlayer.inventory.currentItem = slot;
         mc.thePlayer.swingItem();
         mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), ground, EnumFacing.UP, hit);
-        if (previous != slot) restoreSlot = previous;
-        insertionPending = false;
-        insertCount++;
-        info("Tactical Insertion placed (#" + insertCount + ")");
     }
 
     // ---------------------------------------------------------------- self-checkout
 
     private boolean isCheckout(ItemStack s) {
-        if (s == null || !(s.getItem() instanceof ItemArmor) || ((ItemArmor) s.getItem()).armorType != 2) return false;
+        if (!isLeggings(s)) return false;
         for (String line : s.getTooltip(mc.thePlayer, false))
             if (StringUtils.stripControlCodes(line).toLowerCase().contains("self-checkout")) return true;
         return false;
     }
 
+    private boolean isLeggings(ItemStack s) {
+        return s != null && s.getItem() instanceof ItemArmor && ((ItemArmor) s.getItem()).armorType == 2;
+    }
+
+    private boolean isPitblob(ItemStack s) {
+        for (String line : s.getTooltip(mc.thePlayer, false))
+            if (StringUtils.stripControlCodes(line).toLowerCase().contains("pitblob")) return true;
+        return false;
+    }
+
     private void checkout() {
+        double threshold = checkoutBounty.getValue().getInput();
+        if (bounty < threshold) {
+            coTries = 0;
+            warnedNoSco = false;
+        }
+        // did the last attempt clear the bounty?
+        if (coVerifyUntil > 0) {
+            if (bounty < threshold) {
+                coVerifyUntil = 0;
+                stat("checkouts", 1);
+                info("Self-checkout cleared the bounty (#" + (int) SESSION.get("checkouts") + " this session)");
+            } else if (ticks >= coVerifyUntil) {
+                coVerifyUntil = 0;
+                info("Self-checkout did not clear the bounty - trying again");
+            }
+        }
+
         if (coState == 0) {
-            if (bounty < checkoutBounty.getValue().getInput() || ticks < coCooldown) return;
+            if (bounty < threshold || ticks < coCooldown || coVerifyUntil > 0 || coTries >= 5 || insHold > 0) return;
             int slot = -1;
             for (int i = 0; i < 9; i++)
                 if (isCheckout(mc.thePlayer.inventory.getStackInSlot(i))) {
                     slot = i;
                     break;
                 }
-            coCooldown = ticks + 200;
+            coCooldown = ticks + 100;
             if (slot < 0) {
-                PlayerUtils.addWaterMarkedMessageToChat("Bounty §6" + (int) bounty + "g§r but no Self-checkout pants in your hotbar");
+                if (!warnedNoSco) PlayerUtils.addWaterMarkedMessageToChat("Bounty §6" + (int) bounty + "g§r but no Self-checkout pants in your hotbar");
+                warnedNoSco = true;
                 return;
             }
+            ItemStack worn = mc.thePlayer.inventory.armorItemInSlot(1);
+            coWanted = worn == null || isCheckout(worn) ? null : StringUtils.stripControlCodes(worn.getDisplayName());
             coPrev = mc.thePlayer.inventory.currentItem;
             coSlot = slot;
+            coFix = 0;
+            coTries++;
+            stat("checkoutTries", 1);
             mc.thePlayer.inventory.currentItem = slot;
             mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getStackInSlot(slot));
             coState = 1;
             coStart = ticks;
+            coLastClick = ticks;
             return;
         }
-        // first click done: wait for the server to swap our old pants into that slot, then click again to put them back
-        mc.thePlayer.inventory.currentItem = coSlot;
-        if (ticks - coStart < 4) return;
-        ItemStack s = mc.thePlayer.inventory.getStackInSlot(coSlot);
-        boolean oldPants = s != null && s.getItem() instanceof ItemArmor && ((ItemArmor) s.getItem()).armorType == 2 && !isCheckout(s);
-        if (oldPants) {
-            mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, s);
-            finishCheckout(true);
-        } else if (s == null || ticks - coStart > 40) {
-            finishCheckout(s == null);
+
+        if (coState == 1) {
+            // first click done: wait for the server to swap our old pants into that slot, then click again to put them back
+            mc.thePlayer.inventory.currentItem = coSlot;
+            if (ticks - coStart < 4) return;
+            ItemStack s = mc.thePlayer.inventory.getStackInSlot(coSlot);
+            if (isLeggings(s) && !isCheckout(s)) {
+                mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, s);
+                coLastClick = ticks;
+                coState = 2;
+            } else if (s == null || ticks - coStart > 40) {
+                coState = 2; // nothing swapped into the slot: the check below sorts the pants out
+            }
+            return;
         }
+
+        // coState 2: make sure our normal (pitblob) pants are back on and the self-checkout is not what we are wearing
+        if (ticks - coLastClick < 6) return;
+        ItemStack worn = mc.thePlayer.inventory.armorItemInSlot(1);
+        if (worn != null && !isCheckout(worn)) {
+            finishCheckout(true);
+            return;
+        }
+        int fix = pantsToWear();
+        if (fix < 0 || coFix >= 4) {
+            finishCheckout(false);
+            return;
+        }
+        coFix++;
+        mc.thePlayer.inventory.currentItem = fix;
+        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getStackInSlot(fix));
+        coLastClick = ticks;
+    }
+
+    /** Hotbar slot of the pants to put back on: pitblob pants first, then the ones we were wearing, then any non-self-checkout pants. */
+    private int pantsToWear() {
+        int named = -1, any = -1;
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = mc.thePlayer.inventory.getStackInSlot(i);
+            if (!isLeggings(s) || isCheckout(s)) continue;
+            if (isPitblob(s)) return i;
+            if (named < 0 && coWanted != null && coWanted.equals(StringUtils.stripControlCodes(s.getDisplayName()))) named = i;
+            if (any < 0) any = i;
+        }
+        return named >= 0 ? named : any;
     }
 
     private void finishCheckout(boolean ok) {
-        if (ok) {
-            checkoutCount++;
-            info("Self-checkout used (#" + checkoutCount + "), bounty was " + (int) bounty + "g");
-        }
         mc.thePlayer.inventory.currentItem = coPrev;
         coState = 0;
-        coCooldown = ticks + 200;
-        if (!ok) PlayerUtils.addWaterMarkedMessageToChat("Self-checkout swap did not finish; check your pants");
+        coCooldown = ticks + 100; // 5 s before trying again
+        coVerifyUntil = ticks + 100;
+        if (ok) info("Pants back on after Self-checkout, waiting to see if the bounty cleared");
+        else PlayerUtils.addWaterMarkedMessageToChat("Could not put your normal pants back on after Self-checkout - check your pants!");
     }
 
     // ---------------------------------------------------------------- friends
@@ -542,7 +829,7 @@ public class AutoUber extends Module {
             if (mc.getNetHandler().getPlayerInfo(p.getUniqueID()) == null) continue; // NPCs
             if (Arsenic.getArsenic().getFriendManager().add(p.getName()))
                 PlayerUtils.addWaterMarkedMessageToChat("Friended §b" + p.getName() + "§r (diamond chestplate)");
-                info("Friended " + p.getName() + " (diamond chestplate)");
+
         }
     }
 
@@ -786,7 +1073,7 @@ public class AutoUber extends Module {
         }
     }
 
-    // ---------------------------------------------------------------- chat -> desktop notifications
+    // ---------------------------------------------------------------- chat window
 
     private void handleChat() {
         String line;
@@ -810,15 +1097,14 @@ public class AutoUber extends Module {
         }
     }
 
+    /** Green progress line in the chat window. */
     private void info(String text) {
         notifyDesktop("AutoUber+", text);
     }
 
-    private void statusLine() {
-        long mins = (System.currentTimeMillis() - startedAt) / 60000;
-        info("Status: streak " + (int) streak + " (best " + (int) bestStreak + ") | bounty " + (int) bounty + "g | /oof " + oofCount
-                + " | deaths " + deathCount + " | insertions " + insertCount + " | checkouts " + checkoutCount
-                + " | " + status + " | " + mins + "m");
+    /** Big bold red line in the chat window. */
+    private void bigAlert(String text) {
+        notifyDesktop("AutoUber!", text);
     }
 
     private void notifyDesktop(final String title, final String text) {
@@ -833,26 +1119,20 @@ public class AutoUber extends Module {
         final String stamp = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
         SwingUtilities.invokeLater(() -> {
             try {
-                if (GraphicsEnvironment.isHeadless() && !windowFailed)
-                    PlayerUtils.addWaterMarkedMessageToChat("Chat window unavailable: Java is running headless");
-                if (windowFailed || GraphicsEnvironment.isHeadless()) {
-                    windowFailed = true;
-                    return;
-                }
-                if (frame == null) buildWindow();
-                if (!frame.isVisible()) {
-                    frame.setVisible(true);
-                    frame.toFront();
-                }
+                if (!ensureWindow()) return;
                 StyledDocument doc = pane.getStyledDocument();
-                doc.insertString(doc.getLength(), stamp + " ", styleOf(new Color(120, 120, 130), false));
-                if (title.equals("AutoUber+")) {
-                    doc.insertString(doc.getLength(), text + "\n", styleOf(new Color(85, 255, 85), false));
-                } else if (event) {
-                    doc.insertString(doc.getLength(), title.replace("AutoUber: ", "") + " - " + text + "\n", styleOf(new Color(255, 85, 85), true));
+                if (title.equals("AutoUber!")) {
+                    doc.insertString(doc.getLength(), "\n" + stamp + " " + text + "\n\n", styleOf(new Color(255, 60, 60), true, 22));
                 } else {
-                    doc.insertString(doc.getLength(), title + ": ", styleOf(new Color(85, 255, 255), true));
-                    doc.insertString(doc.getLength(), text + "\n", styleOf(mention ? new Color(255, 170, 0) : new Color(230, 230, 235), mention));
+                    doc.insertString(doc.getLength(), stamp + " ", styleOf(new Color(120, 120, 130), false, 14));
+                    if (title.equals("AutoUber+")) {
+                        doc.insertString(doc.getLength(), text + "\n", styleOf(new Color(85, 255, 85), false, 14));
+                    } else if (event) {
+                        doc.insertString(doc.getLength(), title.replace("AutoUber: ", "") + " - " + text + "\n", styleOf(new Color(255, 85, 85), true, 14));
+                    } else {
+                        doc.insertString(doc.getLength(), title + ": ", styleOf(new Color(85, 255, 255), true, 14));
+                        doc.insertString(doc.getLength(), text + "\n", styleOf(mention ? new Color(255, 170, 0) : new Color(230, 230, 235), mention, 14));
+                    }
                 }
                 if (doc.getLength() > 60000) doc.remove(0, doc.getLength() - 40000);
                 pane.setCaretPosition(doc.getLength());
@@ -863,40 +1143,149 @@ public class AutoUber extends Module {
         });
     }
 
-    private SimpleAttributeSet styleOf(Color c, boolean bold) {
+    private SimpleAttributeSet styleOf(Color c, boolean bold, int size) {
         SimpleAttributeSet a = new SimpleAttributeSet();
         StyleConstants.setForeground(a, c);
         StyleConstants.setBold(a, bold);
         StyleConstants.setFontFamily(a, "Consolas");
-        StyleConstants.setFontSize(a, 14);
+        StyleConstants.setFontSize(a, size);
         return a;
     }
 
-    /** Ordinary chat window (own taskbar entry) that does not grab focus when it opens. */
-    private void buildWindow() {
-        frame = new JFrame("AutoUber chat");
-        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        frame.setAutoRequestFocus(false);
-        pane = new JTextPane();
-        pane.setEditable(false);
-        pane.setBackground(new Color(24, 24, 28));
-        JScrollPane scroll = new JScrollPane(pane);
-        scroll.setBorder(null);
-        frame.add(scroll);
-        frame.setSize(460, 520);
-        frame.setLocationByPlatform(true);
+    /** Must run on the Swing thread. */
+    private boolean ensureWindow() {
+        if (GraphicsEnvironment.isHeadless() && !windowFailed)
+            PlayerUtils.addWaterMarkedMessageToChat("Chat window unavailable: Java is running headless");
+        if (windowFailed || GraphicsEnvironment.isHeadless()) {
+            windowFailed = true;
+            return false;
+        }
+        if (frame == null) buildWindow();
+        if (!frame.isVisible()) {
+            frame.setVisible(true);
+            frame.toFront();
+        }
+        return true;
     }
 
-    private void closeWindow() {
+    private void openWindow() {
         SwingUtilities.invokeLater(() -> {
-            if (frame != null) {
-                frame.dispose();
-                frame = null;
-                pane = null;
+            try {
+                ensureWindow();
+            } catch (Throwable e) {
+                windowFailed = true;
+                PlayerUtils.addWaterMarkedMessageToChat("Chat window failed: " + e);
             }
         });
     }
 
+    /** Ordinary window (own taskbar entry) that does not grab focus when it opens: live stats on top, chat below. */
+    private void buildWindow() {
+        frame = new JFrame("AutoUber");
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        frame.setAutoRequestFocus(false);
+        frame.setAlwaysOnTop(windowOnTop.getValue());
+        dashboard = new JTextArea();
+        dashboard.setEditable(false);
+        dashboard.setFont(new Font("Consolas", Font.PLAIN, 13));
+        dashboard.setBackground(new Color(18, 18, 22));
+        dashboard.setForeground(new Color(220, 220, 225));
+        dashboard.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        lastDashboard = "";
+        pane = pane == null ? new JTextPane() : pane;
+        pane.setEditable(false);
+        pane.setBackground(new Color(24, 24, 28));
+        JScrollPane scroll = new JScrollPane(pane);
+        scroll.setBorder(null);
+        frame.setLayout(new BorderLayout());
+        frame.add(dashboard, BorderLayout.NORTH);
+        frame.add(scroll, BorderLayout.CENTER);
+        frame.setSize(520, 700);
+        frame.setLocationByPlatform(true);
+    }
+
+    /** Hides the window but keeps its chat log, so it is all still there when the module is switched back on. */
+    private void closeWindow() {
+        SwingUtilities.invokeLater(() -> {
+            if (frame != null) frame.setVisible(false);
+        });
+    }
+
+    private String buildDashboard() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("LIVE  streak %s (best %s)   bounty %sg   %s%n", num(streak), num(LIFETIME.get("bestStreak")), num(bounty), status));
+        sb.append(String.format("      tactical: %s   self-checkout: %s%n",
+                insertionActive ? "SET" : (insertionTries > 0 ? "retrying #" + insertionTries : "waiting"),
+                coState != 0 ? "working" : (coVerifyUntil > 0 ? "verifying" : (bounty >= checkoutBounty.getValue().getInput() ? "ready" : "idle"))));
+        sb.append(String.format("%n%-18s %14s %16s%n", "", "SESSION", "ALL TIME"));
+        String[][] rows = {
+                {"Kills", "kills"}, {"Deaths", "deaths"}, {"/oofs", "oofs"}, {"Streak banked", "bankedStreak"},
+                {"Uberdrops", "uberdrops"}, {"Premature resets", "premature"}, {"Streak lost", "prematureLost"},
+                {"Tactical set", "insertions"}, {"Tactical tries", "insertionTries"},
+                {"Checkouts", "checkouts"}, {"Checkout tries", "checkoutTries"}, {"Best streak", "bestStreak"}};
+        for (String[] r : rows)
+            sb.append(String.format("%-18s %14s %16s%n", r[0], num(SESSION.get(r[1])), num(LIFETIME.get(r[1]))));
+        sb.append(String.format("%-18s %14s %16s", "Time running", duration(SESSION.get("runtimeMs")), duration(LIFETIME.get("runtimeMs"))));
+        return sb.toString();
+    }
+
+    /** Runs every tick; only touches Swing when the text actually changed. */
+    private void updateDashboard() {
+        if (frame == null || !frame.isVisible()) return;
+        final boolean top = windowOnTop.getValue();
+        if (frame.isAlwaysOnTop() != top) SwingUtilities.invokeLater(() -> {
+            if (frame != null) frame.setAlwaysOnTop(top);
+        });
+        final String text = buildDashboard();
+        if (text.equals(lastDashboard)) return;
+        lastDashboard = text;
+        SwingUtilities.invokeLater(() -> {
+            if (dashboard != null) dashboard.setText(text);
+        });
+    }
+
+    // ---------------------------------------------------------------- .uber command
+
+    {
+        registerCommand(new UberCommand());
+    }
+
+    private static void sendStats(String title, Stats s) {
+        PlayerUtils.addMessageToChat("§7[§cA§7]§r §c" + title + "§r  kills " + num(s.get("kills")) + ", deaths " + num(s.get("deaths"))
+                + ", /oofs " + num(s.get("oofs")) + ", banked " + num(s.get("bankedStreak")) + ", uberdrops " + num(s.get("uberdrops")));
+        PlayerUtils.addMessageToChat("§7        premature resets " + num(s.get("premature")) + " (lost " + num(s.get("prematureLost"))
+                + "), tactical " + num(s.get("insertions")) + "/" + num(s.get("insertionTries")) + ", checkouts " + num(s.get("checkouts"))
+                + "/" + num(s.get("checkoutTries")) + ", best " + num(s.get("bestStreak")) + ", " + duration(s.get("runtimeMs")));
+    }
+
+    /** .uber shows session + all-time stats, .uber window opens the window, .uber file shows where the stats are saved. */
+    @CommandInfo(name = "uber", args = {"stats/window/file"}, help = "shows AutoUber session and all-time stats", aliases = {"uberstats"})
+    private class UberCommand extends Command {
+
+        @Override
+        public void execute(String[] args) {
+            loadStats();
+            String sub = args.length == 0 ? "stats" : args[0].toLowerCase();
+            if (sub.equals("window")) {
+                openWindow();
+            } else if (sub.equals("file")) {
+                PlayerUtils.addWaterMarkedMessageToChat("Stats file: " + statsFile().getAbsolutePath());
+            } else {
+                sendStats("Session", SESSION);
+                sendStats("All time", LIFETIME);
+            }
+        }
+
+        @Override
+        protected List<String> getAutoComplete(String str, int arg, List<String> list) {
+            if (arg == 0) {
+                list.add("stats");
+                list.add("window");
+                list.add("file");
+            }
+            return list;
+        }
+    }
 
     @Override
     public String getHudInfo() {
