@@ -4,10 +4,13 @@ Addons are modules written as plain `.java` files. Drop them in `.minecraft/Arse
 and loaded when the client starts. No JDK, no jar, no obfuscation step.
 
 Contents: [Quick start](#quick-start) · [Platform facts](#platform-facts) · [Module basics](#module-basics) ·
-[Properties](#properties) · [Events](#events) · [Silent rotations](#silent-rotations) · [Utility index](#utility-index) ·
-[Cookbook](#cookbook) · [Pitfalls](#pitfalls) · [API reference](#api-reference-generated) ·
+[Properties](#properties) · [Events](#events) · [Silent rotations](#silent-rotations) ·
+[Legit actions](#legit-actions-rotate-then-act) · [Aim solver](#aim-solver) · [Hotbar](#hotbar-handling) ·
+[Sneak](#sneak-to-place-on-a-bed-or-container) · [Verify](#verify-then-fall-back) · [Visuals](#visuals-on-by-default) ·
+[Staying legit](#staying-legit-grim) · [1.8.9 gotchas](#minecraft-189-gotchas) · [Utility index](#utility-index) ·
+[Cookbook](#cookbook) · [Worked example](#worked-example-bedcover) · [Pitfalls](#pitfalls) · [API reference](#api-reference-generated) ·
 [How the loader works](#how-the-obfuscation-problem-is-solved) · [HUD](#hud-elements) · [Packs](#addon-packs) ·
-[Default addons and the Addon Manager](#default-addons-and-the-addon-manager)
+[Default addons and the Addon Manager](#default-addons-and-the-addon-manager) · [When something is missing](#when-something-is-missing)
 
 ## Quick start
 
@@ -40,6 +43,23 @@ public class Example extends Module {
 Rules: public class named like the file, public no-arg constructor, a unique module name. Several files may refer
 to each other. A file with compile errors is skipped and the errors are printed in chat and in the log; the rest still load.
 Settings and enabled state are saved in configs like any other module, and survive `.addon reload`.
+
+## Defaults every addon follows
+
+Unless the person asking says otherwise, an addon you write:
+
+1. **Has visuals.** A world highlight of what it targets or plans (`EventRenderWorldLast`) and a small draggable HUD panel
+   (`EventRender2D` + `hudElement`), each behind a `BooleanProperty` (`Render`, `HUD`) that defaults to `true`. Skip them only
+   if the user explicitly says no visuals. Templates: [Visuals](#visuals-on-by-default).
+2. **Goes through the silent rotation pipeline** for anything that rotates, places, breaks, attacks or moves toward
+   something, and acts only from the ray of the rotation being sent: [Legit actions](#legit-actions-rotate-then-act).
+3. **Uses `MovementFix.SILENT`** (a setting defaulting to it) whenever the player can move.
+4. **Is jittered and bounded:** random offsets in the aim point, a base delay plus jitter between actions, a rotation speed
+   cap, timeouts per target, no action while a GUI is open, reach at most 4.5.
+5. **Is honest about detection.** These choices are built to avoid the common Grim checks; they do not make an addon
+   undetectable, so tell the user to test on their server and to report the exact flag name if one still appears.
+
+Start from the [skeleton](#skeleton) or copy the [worked example](#worked-example-bedcover).
 
 ## Platform facts
 
@@ -207,10 +227,10 @@ Frame-rate events, any number per tick:
 Network (not tied to the tick, see Pitfalls): EventPacket.OutGoing, EventPacket.Incoming.Pre/Post
 ```
 
-**So: the movement packet is sent after `EventTick`, `EventLiving` and `EventSilentRotation` of the same tick.** Any
-action packet you send from those events (a block break, a use-item, an attack) reaches the server *before* this
-tick's rotation does. Send it from `EventUpdate.Post`, or from the next tick's `EventTick` (what Nuker does), if it
-must be seen with the new rotation. See [Silent rotations](#silent-rotations).
+**Note the order: the movement packet (which carries the rotation) is built after `EventTick`, `EventLiving` and
+`EventSilentRotation` of the same tick.** An action packet sent from those events leaves *before* this tick's rotation
+packet. Which event to act from is a Grim question, not just a timing one; the working patterns are in
+[Legit actions](#legit-actions-rotate-then-act).
 
 ### Catalogue
 
@@ -289,20 +309,296 @@ Public fields on the manager. They are updated **after** `EventSilentRotation` h
 `EventTick.Post`/`EventUpdate`, they are the rotation **being sent this tick**; at the next tick's `EventTick` they are
 again "last sent". Use them as the "current rotation" to measure how far you still have to turn.
 
-### "Rotate this tick, act next tick"
+### Movement fix, in one table
 
-Packets go out after `EventTick`, so a rotation requested in tick N is on the wire at the end of tick N, and an action
-packet sent during tick N before `EventUpdate.Pre` precedes it. Therefore:
+| `MovementFix` | Effect | Use when |
+|---|---|---|
+| `SILENT` (default) | W/A/S/D are remapped so you keep walking where the camera points, jump boost uses the silent yaw | the player can move while you rotate (almost always) |
+| `STRICT` | acceleration uses the silent yaw, keys are not remapped | rarely; movement then follows the silent rotation |
+| `OFF` | no correction | only for addons that hold the player still (`AutoBlockIn` does). **Using `OFF` while the player moves is a flag.** |
 
-1. In `EventSilentRotation`, set the target and the speed.
-2. In `EventSilentRotation.Post`, check `event.getRayTrace()` (or your own ray from `getYaw()/getPitch()`) to see whether
-   the rotation that will be sent already lines up with the target.
-3. If it does, perform the action in `EventUpdate.Post` (same tick, after the rotation packet) or in the next tick's
-   `EventTick` (before that tick's rotation packet, but after this tick's has been delivered). Nuker uses the latter:
-   it decides in `Post`, acts in the next `EventTick`.
+### How the manager applies your request
 
-It is wasteful to wait an extra tick when `Post` already shows you on target and you act from `EventUpdate.Post`;
-it is wrong to act from `EventTick`/`EventSilentRotation` in the same tick and expect the server to have turned.
+Each tick it eases yaw/pitch toward your target with momentum capped by `speed`, then runs `RotationUtils.patchGCD` so the
+result is a multiple of the mouse-sensitivity step (`RotationUtils.getGCD()`, degrees). With `setPreventDuplicateLook(true)`
+it nudges the yaw by one step when two large turns repeat the same delta. The result is written into the movement packet at
+`EventUpdate.Pre` and the camera is left alone.
+
+## Legit actions: rotate, then act
+
+Anything that **places, breaks, attacks, uses an item on something or moves toward something** must go through the
+silent rotation pipeline above, the way the shipped legit modules (`AutoBlockIn`, `Breaker`, `Nuker`) do. Never set
+`mc.thePlayer.rotationYaw/Pitch` directly, never send a hand-made rotation packet, never act on a target you are not
+already aimed at.
+
+Which event to act from, as the shipped modules do it (read from their source):
+
+| Action | Module to copy | Decide | Act |
+|---|---|---|---|
+| **Place a block** | `AutoBlockIn` | `EventSilentRotation` picks the face and requests the rotation | **inside `EventSilentRotation.Post`**, from `event.getRayTrace()`, only if that ray hits the intended block and face |
+| **Break a block** | `Breaker`, `Nuker` | `Post` checks the ray of the rotation being sent and stores `breakPos` + `breakFace` | the **next `EventTick`**: `mc.playerController.onPlayerDamageBlock(pos, face)` + `swingItem()` |
+| **Attack / use item on a target** | follow the break pattern | `Post` checks `getRayTraceEntity()` | the next `EventTick` |
+
+Never act from `EventTick` in the same tick you asked for the rotation, and never from a ray you computed yourself with a
+different rotation than the one in `Post`. A 1.8 client sends the action packet before that tick's rotation packet, so
+an action taken from a ray that is not the one being sent has been seen to flag `RotationPlace (pre-flying)`.
+
+### Skeleton
+
+```java
+@ModuleInfo(name = "Skeleton", category = ModuleCategory.PLAYER)
+public class Skeleton extends Module {
+    public final DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(20, 180, 130, 1));
+    public final EnumProperty<SilentRotationManager.MovementFix> fix =
+            new EnumProperty<>("Movement Fix", SilentRotationManager.MovementFix.SILENT);   // see the table above
+    public final BooleanProperty render = new BooleanProperty("Render", true);               // visuals default ON
+
+    private final MSTimer cooldown = new MSTimer();
+    private final java.util.Random random = new java.util.Random();
+    private BlockPos target;                // locked until done, do not flick between targets
+    private float aimYaw, aimPitch;         // from the aim solver
+    private BlockPos actPos; private EnumFacing actFace;   // set in Post, used next tick (break pattern)
+
+    // 1. ask for a rotation
+    @RequiresPlayer @EventLink
+    public final Listener<EventSilentRotation> onRotation = event -> {
+        if (mc.currentScreen != null) { target = null; return; }          // never act with a GUI open
+        if (target == null) target = chooseTarget();                      // your logic
+        if (target == null) return;
+        float[] aim = aimAt(target);                                      // the aim solver, returns {yaw, pitch}
+        event.setYaw(aim[0]);
+        event.setPitch(aim[1]);
+        event.setSpeed((float) (speed.getValue().getInput() * (0.95 + random.nextDouble() * 0.1)));
+        event.setPreventDuplicateLook(true);
+        event.setBlockUserInput(true);                                    // ignore the user's own clicks meanwhile
+        event.setMovementFix(fix.getValue());
+    };
+
+    // 2. act only when the rotation that is being sent really hits what we want
+    @RequiresPlayer @EventLink
+    public final Listener<EventSilentRotation.Post> onPost = event -> {
+        actPos = null;
+        if (target == null) return;
+        MovingObjectPosition mop = event.getRayTrace();                   // block ray of the rotation being sent, reach 4.5
+        if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
+                || !mop.getBlockPos().equals(target)) return;             // not there yet: do nothing, keep rotating
+        actPos = mop.getBlockPos();                                       // use the face and hit point FROM THE RAY
+        actFace = mop.sideHit;                                            // (for placing use mop.hitVec as well)
+    };
+
+    // 3. break/attack pattern: do it on the next tick. (For placing, call the place code in onPost instead.)
+    @RequiresPlayer @EventLink
+    public final Listener<EventTick> onTick = event -> {
+        if (actPos == null || mc.currentScreen != null) return;
+        if (!cooldown.hasTimeElapsed(60 + random.nextInt(60))) return;    // base delay + jitter, never every tick
+        mc.playerController.onPlayerDamageBlock(actPos, actFace);
+        mc.thePlayer.swingItem();
+        cooldown.reset();
+    };
+
+    private BlockPos chooseTarget() { return null; }                      // your logic
+    private float[] aimAt(BlockPos p) {                                   // simplest possible aim; use the solver below
+        return RotationUtils.rotationsTo(mc.thePlayer.getPositionEyes(1f),
+                new Vec3(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5));
+    }
+}
+```
+
+When `Post` shows a ray that misses, do nothing that tick. If it keeps missing (4 ticks is what `AutoBlockIn` uses),
+re-solve the aim; after a few failed re-solves or ~40 ticks on one target, skip it and blacklist it for ~60 ticks.
+
+## Aim solver
+
+Aiming at the centre of a block works for a bot and is the first thing that looks wrong. What the legit modules do
+(`AutoBlockIn.solveFace`, `Breaker`): they search for the **middle of the largest patch of the face that a real ray can
+hit**, then add a small random offset inside that patch.
+
+1. Pick the face to click (for placing: the face of an existing solid block that touches the block you want).
+2. Sample a grid over the face and a margin around it (the worked example uses 9x9 over -0.125..1.125). For each sample
+   compute `RotationUtils.rotationsTo(eyes, point)` and **trace a real ray** with that rotation. A sample counts as a hit
+   only if the ray ends on the intended block *and* the intended face, within reach.
+3. For every hit sample, `clearance` is the angle to the nearest sample that misses. Aim at the hit sample with the largest
+   clearance: the middle of the biggest visible patch.
+4. Jitter by up to half the clearance, then re-check with a ray; if the jittered rotation no longer hits, keep the plain one.
+5. If `clearance < Math.toRadians(RotationUtils.getGCD()) * 3 + 0.0015` (the patch is only a few mouse steps wide) a float
+   offset is meaningless because rotations are quantised. Dither instead by whole GCD steps, cycling through offsets such as
+   `{0,0} {1,0} {-1,0} {0,1} {0,-1} {2,0} {-2,0}` times `getGCD()` on yaw/pitch, one per tick, until the ray confirms.
+6. Choose the next target by the **smallest turn from the current rotation** (`srm.yaw/pitch`), and stay on it until it
+   is done.
+
+The complete, compiling implementation (`solve`, `rayHits`, `facePoint`) is in the [worked example](#worked-example-bedcover).
+
+## Hotbar handling
+
+When you need a different item (blocks, a tool), switch once, keep it while there is work, and put the old slot back
+when idle. Do not swap back and forth for every action.
+
+- Remember the slot you started from (`savedSlot`) the first time you switch, set `inventory.currentItem`, and remember
+  what you set (`lastSetSlot`).
+- If `currentItem != lastSetSlot` later, **the user scrolled**: stop, forget `savedSlot`, and back off for about 20 ticks.
+- Restore `savedSlot` after about 8 idle ticks with no target.
+- `isSwappingHotbar()` returns true while you hold a swapped slot, so `AutoWeapon` leaves it alone.
+- `PlayerUtils.getTool(Block)` returns the best hotbar slot for mining a block, or -1.
+
+```java
+if (savedSlot == -1) savedSlot = mc.thePlayer.inventory.currentItem;
+mc.thePlayer.inventory.currentItem = slot;
+lastSetSlot = slot;
+// later, in EventTick:
+if (lastSetSlot != -1 && mc.thePlayer.inventory.currentItem != lastSetSlot) { yieldTicks = 20; savedSlot = -1; lastSetSlot = -1; }
+if (target == null && ++idleTicks >= 8 && savedSlot != -1) { mc.thePlayer.inventory.currentItem = savedSlot; savedSlot = lastSetSlot = -1; }
+@Override public boolean isSwappingHotbar() { return lastSetSlot != -1; }
+```
+
+## Sneak to place on a bed or container
+
+Right-clicking a bed, chest, crafting table etc. opens it (a bed shows the sleep prompt) unless the player is **really
+sneaking**. `EntityPlayerSP.isSneaking()` reads `movementInput.sneak`, not the entity flag, so setting a flag does nothing:
+press the real key, wait two ticks so the client and server both agree, and require `isSneaking()` before clicking.
+
+```java
+// tick bookkeeping (EventTick): hold the key while the support block needs it
+if (needsSneak(aim.support)) { KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), true); sneakTicks++; }
+else { sneakTicks = 0; releaseSneak(); }
+
+// in EventSilentRotation.Post, before clicking:
+if (needsSneak(mop.getBlockPos()) && !(mc.thePlayer.isSneaking() && sneakTicks >= 2)) return;
+
+boolean needsSneak(BlockPos support) {
+    Block b = mc.theWorld.getBlockState(support).getBlock();
+    return b instanceof BlockBed || ContainerUtils.isInteractable(b);
+}
+
+// release, but never override the user's own held key (a mouse bind has a negative key code)
+void releaseSneak() {
+    int code = mc.gameSettings.keyBindSneak.getKeyCode();
+    boolean userHolds = code < 0 ? Mouse.isButtonDown(code + 100) : Keyboard.isKeyDown(code);
+    KeyBinding.setKeyBindState(code, userHolds);
+}
+```
+
+## Verify, then fall back
+
+The server can refuse a placement (anticheat, a bed that cannot be built on, an entity in the way). Do not assume it
+worked.
+
+- After a click, remember `verifyPos`. About 4 ticks later check whether the block is still replaceable.
+- If it is, remember **which support and face failed** (`key = support.toLong() * 8 + face.getIndex()`) in a map with an
+  expiry tick, and make the solver skip that support for ~60 ticks. The next attempt then uses another support.
+- Count how often you failed on one target; give up on it after about three recoveries.
+
+```java
+if (verifyPos != null && ++verifyTicks >= 4) {
+    if (mc.theWorld.getBlockState(verifyPos).getBlock().getMaterial().isReplaceable())
+        badSupports.put(verifyKey, tickCounter + 60);
+    verifyPos = null;
+}
+```
+
+## Visuals (on by default)
+
+**If the person asking for an addon does not mention visuals, add some anyway; skip them only if they say they do not
+want any.** Every addon that targets, plans or acts on something gets both of these, and a `Render` setting so the user
+can turn them off:
+
+```java
+public final BooleanProperty render = new BooleanProperty("Render", true);
+public final BooleanProperty hud    = new BooleanProperty("HUD", true);
+```
+
+**World: highlight the target / plan** in `EventRenderWorldLast`, in theme colours. Current target bright, queued
+targets dimmer (this is what `AutoBlockIn` does).
+
+```java
+@RequiresPlayer @EventLink
+public final Listener<EventRenderWorldLast> onWorld = event -> {
+    if (!render.getValue() || target == null) return;
+    int main = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+    RenderUtils.renderBlock(target, ColorUtils.withAlpha(main, 90), false, true);    // fill   (renderBlock(pos, argb, outline, shade))
+    RenderUtils.renderBlock(target, ColorUtils.withAlpha(main, 230), true, false);   // outline
+    RenderUtils.renderBlockFace(supportPos, face, ColorUtils.withAlpha(main, 200), true, true);   // face we click
+};
+```
+
+`renderBlock(pos, argb, outline, shade)`: `outline` draws the wireframe, `shade` draws the filled box; the colour is ARGB
+(alpha in the top byte, so use `ColorUtils.withAlpha(rgb, alpha0to255)`). Theme colours:
+`getCurrentTheme().getMainColor()`, `.getDarkerColor()`, `.getWhite()`. The draw ignores depth, so it shows through walls.
+
+**HUD: a small panel or a progress bar** in `EventRender2D`. Register a `hudElement` so the user can move it, and
+keep its size in sync with what you draw:
+
+```java
+private final HudElement panel = hudElement("MyAddon", 4, 120, 90, 16);
+
+@EventLink
+public final Listener<EventRender2D> onHud = event -> {
+    if (!hud.getValue()) return;
+    String text = (target != null ? "Working" : "Idle") + "  " + count;
+    panel.setSize(Math.max(60, mc.fontRendererObj.getStringWidth(text) + 12), 16);
+    DrawUtils.drawRoundedRect(panel.x, panel.y, panel.x + panel.width, panel.y + panel.height, 5, 0x96121212);
+    mc.fontRendererObj.drawStringWithShadow(text, panel.x + 6, panel.y + 4, 0xFFFFFFFF);
+};
+```
+
+A progress bar under the crosshair (what `Breaker` draws for mining):
+
+```java
+ScaledResolution sr = new ScaledResolution(mc);
+float w = 60f, h = 4f, x = sr.getScaledWidth() / 2f - w / 2f, y = sr.getScaledHeight() / 2f + 14f;
+DrawUtils.drawRoundedRect(x, y, x + w, y + h, h / 2f, 0x90000000);                       // track
+DrawUtils.drawRoundedRect(x, y, x + Math.max(h, w * progress), y + h, h / 2f,
+        Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor() | 0xFF000000);   // fill, progress 0..1
+```
+
+Other drawing recipes (lines, text, 2D/3D state) are in the [cookbook](#draw-in-2d-and-3d).
+
+## Staying legit (Grim)
+
+The shipped legit modules are built to avoid the common Grim checks. **Nothing here makes an addon undetectable**, servers
+configure Grim differently, and none of this has been proven against your server: test on it, and when a flag still
+appears ask for its exact name (`RotationPlace`, `Simulation`, ...), because each name points to a specific fix.
+
+Checklist:
+
+1. **Place from `EventSilentRotation.Post` using `event.getRayTrace()`**; break/attack by deciding in `Post` and acting next `EventTick`. Never act from the same tick's `EventTick`.
+2. **Only act when the real ray hits what you intend**, right block and right face. Never assume the rotation arrived.
+3. **Use the face and `hitVec` of that ray** (`mop.sideHit`, `mop.hitVec`), not the point you hoped to hit.
+4. **Aim at the middle of the largest visible patch** plus a small random offset; never the exact centre, never a fixed point. Re-pick per target.
+5. **Respect the mouse GCD.** Rotations are quantised; dither in whole GCD steps when the patch is small.
+6. **Lock a target until it is done.** No flicking between targets; pick the next by smallest turn from the current rotation.
+7. **Limit rotation speed**: the repo's legit modules use about 120-140 degrees per tick, keep `setSmoothing(true)` (default), and vary it a few percent.
+8. **`setPreventDuplicateLook(true)`** for repeated large turns.
+9. **Movement fix `SILENT`** (or `STRICT`) whenever the player can move. `OFF` only when you freeze the player.
+10. **Delays:** a base delay plus random jitter between actions; never every tick. Do nothing while a GUI is open (`mc.currentScreen != null`).
+11. **Reach:** at most 4.5 for blocks (`getRayTrace()` already uses 4.5); a conservative default is lower. Require line of sight, never through walls.
+12. **Timeouts:** give up on a target after ~40 ticks, re-solve after ~4 ticks of missing, blacklist a failed support for ~60 ticks.
+13. **Sneak is real:** press the key, wait 2 ticks, check `isSneaking()`.
+14. **Hotbar:** switch once and keep it, restore when idle, yield to the user if they change slot.
+15. **Use only what the client really has.** Stay with MCP-named public members and the accessor interfaces; do not read fields or packets that do not exist.
+16. **Use `setBlockUserInput(true)`** while your rotation differs from the camera, so a manual click cannot go out with the silent rotation.
+
+Common mistakes:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `RotationPlace (pre-flying)` | placing from `EventTick`, or from a ray you computed yourself | place in `EventSilentRotation.Post` from `event.getRayTrace()` |
+| movement flags while placing | `MovementFix.OFF` while the player moves | `SILENT` |
+| "can't place on the bed", sleep prompt opens | no real sneak | hold the sneak key, wait 2 ticks, check `isSneaking()` |
+| flicking / snapping between blocks | re-choosing the target every tick | lock the target until done or timed out |
+| same spot every time | aiming at the centre | random point in the largest patch |
+| the module fights the user's hotbar | swapping back and forth | switch once, yield when `currentItem` changed |
+| acts every tick | no delay | base delay plus jitter |
+
+## Minecraft 1.8.9 gotchas
+
+- `mc.playerController.onPlayerRightClick(player, world, heldStack, supportPos, face, hitVec)`: `hitVec` is an **absolute world position**. It returns true when the packet was sent.
+- Check `((ItemBlock) held.getItem()).canPlaceBlockOnSide(world, supportPos, face, player, held)` before clicking.
+- `Material.isReplaceable()` (via `block.getMaterial()`) is the correct "air or replaceable" test. Air is replaceable; `Block.isReplaceable` is not the method to use.
+- Call `block.setBlockBoundsBasedOnState(world, pos)` before `getSelectedBoundingBox(world, pos)`; beds are only 9/16 high.
+- `mc.thePlayer.isSneaking()` reads the input, not the entity flag (see the sneak section).
+- `IMixinPlayerControllerMp`: `setBlockHitDelay(int)`, `getCurBlockDamageMP()` (mining progress 0..1), `isHittingBlock()`.
+- A look vector from a rotation: `((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw)` (pitch first).
+- `Block.getBlockHardness`, `ItemStack.getStrVsBlock` and `PlayerUtils.getEfficiency(stack, block)` give mining speed.
 
 ## Utility index
 
@@ -504,10 +800,362 @@ Use a tick counter when you care about server ticks, an `MSTimer` when you care 
 sequence write a small `enum State` and a `switch` in `EventTick`, as AutoSoup does. From a packet listener (network
 thread) use `mc.addScheduledTask(runnable)` to get back onto the game thread.
 
+## Worked example: BedCover
+
+A complete, compiling addon that uses everything above: it finds the nearest bed and covers its open sides with blocks.
+Properties with `@PropertyInfo`, silent rotation with `MovementFix`, the aim solver, placing from
+`EventSilentRotation.Post`, hotbar handling with `isSwappingHotbar`, real sneak for the bed, verify-and-fall-back, world
+and HUD visuals that default on. Save it as `BedCover.java`; every API it calls is in the API reference below.
+(It has been compiled against the client, not tested on a server.)
+
+```java
+import arsenic.asm.RequiresPlayer;
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventRender2D;
+import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.event.impl.EventSilentRotation;
+import arsenic.event.impl.EventTick;
+import arsenic.gui.hud.HudElement;
+import arsenic.injection.accessor.IMixinEntity;
+import arsenic.main.Arsenic;
+import arsenic.module.Module;
+import arsenic.module.ModuleCategory;
+import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.java.ColorUtils;
+import arsenic.utils.minecraft.ContainerUtils;
+import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderUtils;
+import arsenic.utils.rotations.RotationUtils;
+import arsenic.utils.rotations.SilentRotationManager;
+import arsenic.utils.timer.MSTimer;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockBed;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+/** Surrounds the nearest bed with blocks, the legit way: rotate silently, place from the ray of the rotation being sent. */
+@ModuleInfo(name = "BedCover", description = "Covers the nearest bed with blocks", category = ModuleCategory.PLAYER)
+public class BedCover extends Module {
+
+    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(2, 4.5, 4.5, 0.1));
+    public final DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(20, 180, 130, 1));
+    public final DoubleProperty delay = new DoubleProperty("Place Delay", new DoubleValue(50, 500, 120, 5));
+    public final EnumProperty<SilentRotationManager.MovementFix> fix =
+            new EnumProperty<>("Movement Fix", SilentRotationManager.MovementFix.SILENT);
+    public final BooleanProperty render = new BooleanProperty("Render", true);
+    public final BooleanProperty hud = new BooleanProperty("HUD", true);
+    @PropertyInfo(reliesOn = "HUD", value = "true")
+    public final BooleanProperty showCount = new BooleanProperty("Show Count", true);
+
+    private final HudElement panel = hudElement("BedCover", 4, 120, 90, 16);
+    private final Random random = new Random();
+    private final MSTimer placeTimer = new MSTimer();
+    private final Map<Long, Integer> badSupports = new HashMap<>();   // support key -> tick it may be tried again
+
+    private BlockPos target;          // the block we are trying to place, locked until placed or given up
+    private Aim aim;                  // how to click it
+    private int ticksOnStep, missTicks, sneakTicks, idleTicks, yieldTicks, verifyTicks, tickCounter, placed;
+    private int savedSlot = -1, lastSetSlot = -1;
+    private BlockPos verifyPos;
+    private long verifyKey;
+    private boolean weSneak;
+
+    private static final int MAX_STEP_TICKS = 40, RESOLVE_AFTER_MISSES = 4, BLACKLIST_TICKS = 60;
+    private static final double[][] DITHER = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {2, 0}, {-2, 0}};
+
+    private static final class Aim {
+        final BlockPos support; final EnumFacing face; final float yaw, pitch; final double clearanceRad;
+        Aim(BlockPos s, EnumFacing f, float y, float p, double c) { support = s; face = f; yaw = y; pitch = p; clearanceRad = c; }
+    }
+
+    @Override
+    protected void onDisable() {
+        releaseSneak();
+        restoreSlot();
+        target = null;
+        aim = null;
+    }
+
+    // ---- tick bookkeeping: timers, sneak, hotbar, verification (never place from here) ----
+    @RequiresPlayer @EventLink
+    public final Listener<EventTick> onTick = event -> {
+        tickCounter++;
+        if (yieldTicks > 0) yieldTicks--;
+        if (lastSetSlot != -1 && mc.thePlayer.inventory.currentItem != lastSetSlot) {   // the user scrolled: hands off
+            yieldTicks = 20; savedSlot = -1; lastSetSlot = -1;
+        }
+        if (target == null) {
+            idleTicks++;
+            if (idleTicks >= 8) { releaseSneak(); restoreSlot(); }
+        } else {
+            idleTicks = 0;
+        }
+        if (aim != null && needsSneak(aim.support)) { holdSneak(); sneakTicks++; } else { sneakTicks = 0; releaseSneak(); }
+        if (verifyPos != null && ++verifyTicks >= 4) {            // did the server accept the block?
+            if (isReplaceable(verifyPos)) badSupports.put(verifyKey, tickCounter + BLACKLIST_TICKS);
+            else placed++;
+            verifyPos = null;
+        }
+    };
+
+    // ---- 1. ask for a rotation ----
+    @RequiresPlayer @EventLink
+    public final Listener<EventSilentRotation> onRotation = event -> {
+        if (mc.currentScreen != null || yieldTicks > 0) { target = null; aim = null; return; }
+        if (target == null || !isReplaceable(target) || aim == null) pickTarget();
+        if (target == null || aim == null) return;
+        if (++ticksOnStep > MAX_STEP_TICKS) { giveUp(); return; }
+
+        float yaw = aim.yaw, pitch = aim.pitch;
+        if (aim.clearanceRad < settledFloorRad()) {                // target patch smaller than ~3 mouse steps: dither
+            double[] d = DITHER[ticksOnStep % DITHER.length];
+            yaw += (float) (d[0] * RotationUtils.getGCD());
+            pitch += (float) (d[1] * RotationUtils.getGCD());
+        }
+        event.setYaw(yaw);
+        event.setPitch(pitch);
+        event.setSpeed((float) (speed.getValue().getInput() * (0.95 + random.nextDouble() * 0.1)));
+        event.setPreventDuplicateLook(true);
+        event.setBlockUserInput(true);
+        event.setMovementFix(fix.getValue());
+    };
+
+    // ---- 2. act only if the rotation being sent really hits the intended face ----
+    @RequiresPlayer @EventLink
+    public final Listener<EventSilentRotation.Post> onPost = event -> {
+        if (target == null || aim == null) return;
+        MovingObjectPosition mop = event.getRayTrace();
+        if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK
+                || !mop.getBlockPos().offset(mop.sideHit).equals(target)) {
+            if (++missTicks >= RESOLVE_AFTER_MISSES) { missTicks = 0; aim = solve(target); if (aim == null) giveUp(); }
+            return;
+        }
+        missTicks = 0;
+        long wait = (long) (delay.getValue().getInput() * (0.85 + random.nextDouble() * 0.3));
+        if (!placeTimer.finished(wait)) return;
+        if (needsSneak(mop.getBlockPos()) && !(mc.thePlayer.isSneaking() && sneakTicks >= 2)) return;
+        int slot = findBlockSlot();
+        if (slot == -1) { setEnabled(false); return; }
+        if (savedSlot == -1) savedSlot = mc.thePlayer.inventory.currentItem;
+        mc.thePlayer.inventory.currentItem = slot;
+        lastSetSlot = slot;
+        ItemStack held = mc.thePlayer.inventory.getCurrentItem();
+        if (!((ItemBlock) held.getItem()).canPlaceBlockOnSide(mc.theWorld, mop.getBlockPos(), mop.sideHit, mc.thePlayer, held))
+            return;
+        if (mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, held, mop.getBlockPos(), mop.sideHit, mop.hitVec)) {
+            mc.thePlayer.swingItem();
+            verifyPos = target;
+            verifyTicks = 0;
+            verifyKey = key(mop.getBlockPos(), mop.sideHit);
+            placeTimer.reset();
+            target = null;
+            aim = null;
+        }
+    };
+
+    // ---- target choice ----
+    private void pickTarget() {
+        target = null; aim = null; ticksOnStep = 0; missTicks = 0;
+        BlockPos bed = nearestBed();
+        if (bed == null) return;
+        SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
+        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
+        double bestTurn = Double.MAX_VALUE;
+        List<BlockPos> halves = new ArrayList<>();
+        halves.add(bed);
+        for (EnumFacing side : EnumFacing.HORIZONTALS)
+            if (mc.theWorld.getBlockState(bed.offset(side)).getBlock() instanceof BlockBed) halves.add(bed.offset(side));
+        for (BlockPos half : halves) {
+            for (EnumFacing side : EnumFacing.values()) {
+                BlockPos pos = half.offset(side);
+                if (side == EnumFacing.DOWN || !isReplaceable(pos) || intersectsPlayer(pos)) continue;
+                Aim a = solve(pos);
+                if (a == null) continue;
+                // smallest turn from where we already look = least visible movement
+                double turn = Math.abs(RotationUtils.getYawDifference(a.yaw, srm.yaw)) + Math.abs(a.pitch - srm.pitch);
+                if (turn < bestTurn) { bestTurn = turn; target = pos; aim = a; }
+            }
+        }
+    }
+
+    private BlockPos nearestBed() {
+        BlockPos best = null;
+        double bestDist = Double.MAX_VALUE;
+        int r = (int) Math.ceil(range.getValue().getInput()) + 1;
+        BlockPos origin = new BlockPos(mc.thePlayer);
+        for (int x = -r; x <= r; x++) for (int y = -r; y <= r; y++) for (int z = -r; z <= r; z++) {
+            BlockPos p = origin.add(x, y, z);
+            if (!(mc.theWorld.getBlockState(p).getBlock() instanceof BlockBed)) continue;
+            double d = mc.thePlayer.getDistanceSq(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
+            if (d < bestDist) { bestDist = d; best = p; }
+        }
+        return best;
+    }
+
+    // ---- aim solver: sample the face, keep rays that really hit it, aim at the middle of the biggest clear patch ----
+    private Aim solve(BlockPos placePos) {
+        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
+        double reach = range.getValue().getInput();
+        Aim best = null;
+        for (EnumFacing face : EnumFacing.values()) {
+            BlockPos support = placePos.offset(face.getOpposite());
+            if (isReplaceable(support)) continue;
+            Integer retryAt = badSupports.get(key(support, face));
+            if (retryAt != null && retryAt > tickCounter) continue;
+            Block block = mc.theWorld.getBlockState(support).getBlock();
+            block.setBlockBoundsBasedOnState(mc.theWorld, support);            // beds are only 9/16 high
+            AxisAlignedBB box = block.getSelectedBoundingBox(mc.theWorld, support);
+
+            final int n = 9;                                                    // grid over the face, plus a margin outside it
+            float[][][] rots = new float[n][n][];
+            boolean[][] hit = new boolean[n][n];
+            for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+                double u = -0.125 + 1.25 * i / (n - 1), v = -0.125 + 1.25 * j / (n - 1);
+                rots[i][j] = RotationUtils.rotationsTo(eyes, facePoint(box, face, u, v));
+                hit[i][j] = rayHits(eyes, rots[i][j][0], rots[i][j][1], reach, support, face);
+            }
+            for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+                if (!hit[i][j]) continue;
+                double clearance = Double.MAX_VALUE;                            // angle to the nearest ray that misses
+                for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) {
+                    if (hit[a][b]) continue;
+                    double dy = RotationUtils.getYawDifference(rots[i][j][0], rots[a][b][0]);
+                    double dp = rots[i][j][1] - rots[a][b][1];
+                    clearance = Math.min(clearance, Math.toRadians(Math.sqrt(dy * dy + dp * dp)));
+                }
+                if (best != null && clearance <= best.clearanceRad) continue;
+                float yaw = rots[i][j][0], pitch = rots[i][j][1];
+                float jy = (float) ((random.nextDouble() - 0.5) * Math.toDegrees(clearance) * 0.5);   // never the exact point
+                float jp = (float) ((random.nextDouble() - 0.5) * Math.toDegrees(clearance) * 0.5);
+                if (rayHits(eyes, yaw + jy, pitch + jp, reach, support, face)) { yaw += jy; pitch += jp; }
+                best = new Aim(support, face, yaw, pitch, clearance);
+            }
+        }
+        return best;
+    }
+
+    private boolean rayHits(Vec3 eyes, float yaw, float pitch, double reach, BlockPos support, EnumFacing face) {
+        Vec3 look = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw);   // note: pitch first
+        Vec3 end = eyes.addVector(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach);
+        MovingObjectPosition mop = mc.theWorld.rayTraceBlocks(eyes, end, false, false, true);
+        return mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && mop.getBlockPos().equals(support) && mop.sideHit == face;
+    }
+
+    private static Vec3 facePoint(AxisAlignedBB b, EnumFacing f, double u, double v) {
+        switch (f.getAxis()) {
+            case Y: return new Vec3(b.minX + (b.maxX - b.minX) * u, f == EnumFacing.UP ? b.maxY : b.minY, b.minZ + (b.maxZ - b.minZ) * v);
+            case X: return new Vec3(f == EnumFacing.EAST ? b.maxX : b.minX, b.minY + (b.maxY - b.minY) * u, b.minZ + (b.maxZ - b.minZ) * v);
+            default: return new Vec3(b.minX + (b.maxX - b.minX) * u, b.minY + (b.maxY - b.minY) * v, f == EnumFacing.SOUTH ? b.maxZ : b.minZ);
+        }
+    }
+
+    private static double settledFloorRad() { return Math.toRadians(RotationUtils.getGCD()) * 3.0 + 0.0015; }
+
+    // ---- helpers ----
+    private boolean isReplaceable(BlockPos p) { return mc.theWorld.getBlockState(p).getBlock().getMaterial().isReplaceable(); }   // air counts
+
+    private boolean intersectsPlayer(BlockPos p) {
+        return mc.thePlayer.getEntityBoundingBox().intersectsWith(new AxisAlignedBB(p.getX(), p.getY(), p.getZ(), p.getX() + 1, p.getY() + 1, p.getZ() + 1));
+    }
+
+    private static long key(BlockPos p, EnumFacing f) { return p.toLong() * 8 + f.getIndex(); }
+
+    private void giveUp() {
+        if (target != null) badSupports.put(aim != null ? key(aim.support, aim.face) : 0L, tickCounter + BLACKLIST_TICKS);
+        target = null; aim = null;
+    }
+
+    private int findBlockSlot() {
+        int best = -1, bestSize = 0;
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = mc.thePlayer.inventory.mainInventory[i];
+            if (s == null || s.stackSize <= 0 || !(s.getItem() instanceof ItemBlock)) continue;
+            Block b = ((ItemBlock) s.getItem()).getBlock();
+            if (!b.isFullCube() || ContainerUtils.isInteractable(b)) continue;
+            if (s.stackSize > bestSize) { bestSize = s.stackSize; best = i; }
+        }
+        return best;
+    }
+
+    private void restoreSlot() {
+        if (savedSlot != -1 && mc.thePlayer != null && mc.thePlayer.inventory.currentItem == lastSetSlot)
+            mc.thePlayer.inventory.currentItem = savedSlot;
+        savedSlot = -1;
+        lastSetSlot = -1;
+    }
+
+    @Override
+    public boolean isSwappingHotbar() { return lastSetSlot != -1; }                 // keeps AutoWeapon away
+
+    // ---- real sneak: press the key, never fake the flag ----
+    private boolean needsSneak(BlockPos support) {
+        Block b = mc.theWorld.getBlockState(support).getBlock();
+        return b instanceof BlockBed || ContainerUtils.isInteractable(b);          // right-clicking these would open them
+    }
+
+    private void holdSneak() {
+        KeyBinding kb = mc.gameSettings.keyBindSneak;
+        KeyBinding.setKeyBindState(kb.getKeyCode(), true);
+        weSneak = true;
+    }
+
+    private void releaseSneak() {
+        if (!weSneak) return;
+        KeyBinding kb = mc.gameSettings.keyBindSneak;
+        int code = kb.getKeyCode();
+        boolean userHolds = code < 0 ? Mouse.isButtonDown(code + 100) : Keyboard.isKeyDown(code);
+        KeyBinding.setKeyBindState(code, userHolds);                                // keep it down if the user is really holding it
+        weSneak = false;
+    }
+
+    // ---- visuals: on by default, switchable ----
+    @RequiresPlayer @EventLink
+    public final Listener<EventRenderWorldLast> onRenderWorld = event -> {
+        if (!render.getValue() || target == null) return;
+        int main = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+        RenderUtils.renderBlock(target, ColorUtils.withAlpha(main, 90), false, true);     // fill
+        RenderUtils.renderBlock(target, ColorUtils.withAlpha(main, 230), true, false);    // outline
+        if (aim != null) RenderUtils.renderBlockFace(aim.support, aim.face, ColorUtils.withAlpha(main, 200), true, true);
+    };
+
+    @EventLink
+    public final Listener<EventRender2D> onRenderHud = event -> {
+        if (!hud.getValue()) return;
+        String text = target != null ? "Placing" : "Idle";
+        if (showCount.getValue()) text += "  " + placed;
+        panel.setSize(Math.max(60, mc.fontRendererObj.getStringWidth(text) + 12), 16);
+        DrawUtils.drawRoundedRect(panel.x, panel.y, panel.x + panel.width, panel.y + panel.height, 5, 0x96121212);
+        mc.fontRendererObj.drawStringWithShadow(text, panel.x + 6, panel.y + 4, 0xFFFFFFFF);
+    };
+}
+```
+
 ## Pitfalls
 
-- **The movement packet is sent after `EventTick`.** A rotation you request is not on the server yet when you send an
-  action packet in the same tick before `EventUpdate.Pre`. Act from `EventUpdate.Post` or the next `EventTick`.
+- **Act from the right event.** Place from `EventSilentRotation.Post` using `event.getRayTrace()`; break/attack by deciding
+  in `Post` and acting on the next `EventTick`. Never act from `EventTick` in the tick you asked for the rotation. See
+  [Legit actions](#legit-actions-rotate-then-act).
 - **A rotation request does not mean you arrived.** Speed limits, smoothing and the sensitivity grid mean the rotation
   can take several ticks. Check `EventSilentRotation.Post` before acting.
 - **`setBlockUserInput` is per tick.** It resets to `false` each tick, so set it every tick you need it.
@@ -520,6 +1168,8 @@ thread) use `mc.addScheduledTask(runnable)` to get back onto the game thread.
   listeners and anywhere a half-loaded world can reach.
 - **Optimistic client state.** `sendUseItem` and `windowClick` update the client's copy of the stack before the server
   answers; the server can still refuse, and the stack snaps back. Do not chain decisions on the client stack in the same tick.
+- **Visuals are not optional.** An addon without a world highlight and a HUD panel is incomplete unless the user said no
+  visuals; give them a `Render` toggle. See [Visuals](#visuals-on-by-default).
 - **Assign `inventory.currentItem` before `sendUseItem` / `onPlayerRightClick`**, not after, and put it back afterwards (and
   tell AutoWeapon with `isSwappingHotbar()` while you are away from the player's slot).
 - **`EventJump.cancel()` does not block jumping.** To stop a jump use `EventMovementInput.setJump(false)`.
@@ -619,6 +1269,21 @@ Every change reloads the addons straight away.
 
 `registerCommand(new MyCommand())` (see the cookbook), `allowsTarget(player)` and `isSwappingHotbar()` are the hooks
 beyond a plain module; see [Module basics](#module-basics).
+
+## When something is missing
+
+The API reference below is generated from the source and is exact. If you still need behaviour, read the source of the
+module that already does it (paths under `src/main/java/arsenic/` and `src/addons/`):
+
+| Need | Read |
+|---|---|
+| legit block placing, face solver, GCD dither, step timeouts | `module/impl/player/AutoBlockIn.java` |
+| legit breaking, jittered aim, progress bar | `src/addons/packs/bedwars/impl/Breaker.java` |
+| properties, `@PropertyInfo`, `SliderScale.LOG`, `EventSilentRotation` + `.Post` | `src/addons/java/Nuker.java` |
+| hotbar swap, refilling, `isSwappingHotbar` | `src/addons/java/AutoSoup.java` |
+| world drawing | `src/addons/java/Tracers.java` |
+| how the rotation is applied | `utils/rotations/SilentRotationManager.java`, `event/impl/EventSilentRotation.java` |
+| chat commands, packs, targeting hooks | `src/addons/packs/pit/impl/AutoHunt.java` |
 
 ## API reference (generated)
 
@@ -1982,6 +2647,7 @@ public final class LagManager {
     public static void acquire(Class<?> holderClass, Predicate<Packet<?>> filter);
     public static void acquire(Class<?> holderClass);
     public static void release(Class<?> holderId);
+    public static void releaseAndDiscard(Class<?> holderId);
     public static int countBuffered();
     public static boolean isLagging();
     public static Set<Class<?>> getHolders();
