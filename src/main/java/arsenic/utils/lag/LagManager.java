@@ -94,6 +94,13 @@ public final class LagManager {
         flushUnheld();
     }
 
+    public static void releaseAndDiscard(Class<?> holderId) {
+        holders.remove(holderId);
+        synchronized (buffer) {
+            buffer.clear();
+        }
+    }
+
     public static int countBuffered() {
         synchronized (buffer) {
             return buffer.size();
