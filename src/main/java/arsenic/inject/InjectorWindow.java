@@ -91,15 +91,18 @@ final class InjectorWindow {
         cards.setLayout(new BoxLayout(cards, BoxLayout.Y_AXIS));
         cards.setOpaque(false);
         body.add(cardScroll, BorderLayout.CENTER);
-        body.add(footer(), BorderLayout.SOUTH);
+        JPanel bottom = transparent(new BorderLayout(0, 12));
+        bottom.add(footer(), BorderLayout.NORTH);
+        bottom.add(launchingInLunar(), BorderLayout.SOUTH);
+        body.add(bottom, BorderLayout.SOUTH);
         root.add(body, BorderLayout.CENTER);
 
         frame.setUndecorated(true);
         frame.setContentPane(root);
         frame.setIconImages(icons());
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.setSize(560, 500);
-        frame.setMinimumSize(new Dimension(460, 420));
+        frame.setSize(560, 610);
+        frame.setMinimumSize(new Dimension(460, 540));
         frame.setLocationRelativeTo(null);
         frame.getRootPane().setDefaultButton(null);
         try {
@@ -166,7 +169,7 @@ final class InjectorWindow {
         JPanel header = transparent(new BorderLayout());
         JPanel text = transparent(new GridLayout(2, 1, 0, 2));
         text.add(label("Running games", 15f, Font.BOLD, TEXT));
-        text.add(label("Forge, Vanilla and Lunar Client 1.8.9", 12f, Font.PLAIN, TEXT_SECONDARY));
+        text.add(label("Forge or Vanilla 1.8.9", 12f, Font.PLAIN, TEXT_SECONDARY));
         header.add(text, BorderLayout.WEST);
 
         JPanel right = transparent(new FlowLayout(FlowLayout.RIGHT, 8, 6));
@@ -409,18 +412,41 @@ final class InjectorWindow {
         }.execute();
     }
 
-    /** How to load Arsenic at launch into a game that turns attach off, written out for the game's own settings. */
+    /** How to load Arsenic at launch into a game that turns attach off. Lunar's steps are always shown at the bottom. */
     private void appendLaunchSteps(Injector.Game game) {
         appendLog(game.client.display + " turns off the Java attach mechanism, so the injector cannot reach it.");
-        appendLog("Load Arsenic at launch instead:");
         if (game.client == Injector.Client.LUNAR) {
-            appendLog("  1. In Lunar, open Settings (bottom left) -> Game.");
-            appendLog("  2. Turn on advanced mode (the shield icon left of \"Game Settings\").");
-            appendLog("  3. Under JVM arguments, add this line (keep any others already there):");
-        } else {
-            appendLog("  Add this line to the game's Java arguments:");
+            appendLog("Launching in Lunar is covered at the bottom of this window.");
+            return;
         }
+        appendLog("Load Arsenic at launch instead:");
+        appendLog("  Add this line to the game's Java arguments:");
         appendLog("       " + Injector.agentArg());
+    }
+
+    /** Lunar Client turns attach off, so Arsenic has to be loaded at launch. Always shown, under the log. */
+    private JComponent launchingInLunar() {
+        JPanel panel = transparent(new BorderLayout(0, 6));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
+                new EmptyBorder(10, 0, 0, 0)));
+
+        JPanel steps = transparent(new GridLayout(0, 1, 0, 3));
+        steps.add(label("Launching in Lunar", 13f, Font.BOLD, TEXT));
+        steps.add(label("1. In Lunar, open Settings (bottom left) -> Game.", 12f, Font.PLAIN, TEXT_SECONDARY));
+        steps.add(label("2. Turn on advanced mode (the shield icon left of \"Game Settings\").", 12f, Font.PLAIN, TEXT_SECONDARY));
+        steps.add(label("3. Under JVM arguments, add this line (keep any others already there):", 12f, Font.PLAIN, TEXT_SECONDARY));
+        panel.add(steps, BorderLayout.NORTH);
+
+        JTextField arg = new JTextField(Injector.agentArg());
+        arg.setEditable(false);
+        arg.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        arg.setForeground(TEXT);
+        arg.setBackground(SURFACE);
+        arg.setCaretColor(TEXT_SECONDARY);
+        arg.setBorder(new EmptyBorder(6, 8, 6, 8));
+        panel.add(arg, BorderLayout.CENTER);
+        return panel;
     }
 
     // ---- components ----
@@ -566,7 +592,7 @@ final class InjectorWindow {
             g2.drawRoundRect(0, 0, w, h, RADIUS, RADIUS);
 
             String title = "No Minecraft running";
-            String hint = "Start a 1.8.9 game (Forge, Vanilla or Lunar). It shows up here on its own.";
+            String hint = "Start a 1.8.9 game (Forge or Vanilla). It shows up here on its own.";
             g2.setFont(font(14f, Font.BOLD));
             FontMetrics fm = g2.getFontMetrics();
             g2.setColor(TEXT);
