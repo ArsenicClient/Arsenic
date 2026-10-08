@@ -107,6 +107,36 @@ public final class InjectedLaunch {
         }
     }
 
+    /**
+     * Takes the client out of the game (uninject), on the game thread: its modules are switched off, the classes it hooked
+     * get their original bytes back through {@code restoreClasses}, and the splash-free hooks stop running. The client's
+     * classes stay loaded (the JVM cannot unload them), so the game has to be restarted before Arsenic can be injected again.
+     */
+    public static void stop(Consumer<String> status, Runnable restoreClasses) {
+        Minecraft.getMinecraft().addScheduledTask(() -> {
+            try {
+                status.accept("Switching off modules");
+                for (arsenic.module.Module module : Arsenic.getArsenic().getModuleManager().getModules()) {
+                    if (!module.isEnabled())
+                        continue;
+                    try {
+                        module.setEnabled(false);
+                    } catch (Throwable t) {
+                        status.accept("LOG could not switch off " + module.getName() + ": " + t);
+                    }
+                }
+                SilentView.unregister();
+                status.accept("Removing hooks");
+                restoreClasses.run();
+                injected = false;
+                System.setProperty("arsenic.loaded", "uninjected");
+                status.accept("OK");
+            } catch (Throwable t) {
+                status.accept("ERROR " + t);
+            }
+        });
+    }
+
     /** One stage of the launch: the status line for the injector and the loading screen. */
     private static void stage(float fraction, String text, Consumer<String> status) {
         status.accept(text);

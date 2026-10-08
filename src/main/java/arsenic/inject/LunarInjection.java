@@ -14,10 +14,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * "Inject into Lunar": Lunar Client turns the attach mechanism off, so Arsenic has to come in as a launch argument.
- * This stops Lunar (its launcher and the game, which Lunar would otherwise rewrite its settings over), then puts
- * {@code -javaagent:<this jar>} in the JVM arguments of Lunar's launcher.json. Written for Java 8 (the injector's
- * floor), Windows first; other systems get the process stop through ps and kill.
+ * Lunar Client turns the attach mechanism off, so Arsenic comes in as a launch argument instead: {@code
+ * -javaagent:<this jar>} in the JVM arguments of Lunar's launcher.json. This stops Lunar (its launcher and the game,
+ * which would otherwise rewrite the settings when they exit) and then adds or removes that argument. Written for Java 8
+ * (the injector's floor); process handling is Windows first, other systems use ps and kill.
  */
 final class LunarInjection {
 
@@ -38,7 +38,7 @@ final class LunarInjection {
         List<String> pids = new ArrayList<>();
         String self = java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
         try {
-            if (System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+            if (windows()) {
                 // $PID is the PowerShell itself, whose command line holds this script and so mentions lunar too
                 String script = "Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and "
                         + "($_.Name -match 'lunar' -or $_.CommandLine -match 'lunar') } | "
@@ -67,11 +67,10 @@ final class LunarInjection {
 
     /** Stops the processes and waits until they are gone. Returns false when some are still running after the wait. */
     static boolean stop(List<String> pids, Consumer<String> log) throws InterruptedException {
-        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
         for (String pid : pids) {
             log.accept("Stopping process " + pid);
             try {
-                if (windows)
+                if (windows())
                     run("taskkill", "/F", "/T", "/PID", pid);
                 else
                     run("kill", "-9", pid);
@@ -91,25 +90,18 @@ final class LunarInjection {
     /**
      * Puts the agent argument into the JVM arguments in launcher.json, replacing any earlier Arsenic agent argument
      * (an old jar in .minecraft/mods, for example) and keeping every other argument. Lunar ignores JVM arguments
-     * unless advanced mode is on, so that is switched on too. A backup is written next to the file first.
+     * unless advanced mode is on, so that is switched on too.
      *
      * @return true when the file changed
      */
     static boolean setAgent(File settings, String agentArg, Consumer<String> log) throws IOException {
-        String text = new String(Files.readAllBytes(settings.toPath()), StandardCharsets.UTF_8);
+        String text = read(settings);
         String updated = text;
-
         Matcher args = JVM_ARGS.matcher(updated);
         if (args.find()) {
-            List<String> kept = new ArrayList<>();
-            for (String token : unescape(args.group(1)).trim().split("\\s+")) {
-                if (token.isEmpty() || isArsenicAgent(token))
-                    continue;
-                kept.add(token);
-            }
+            List<String> kept = withoutArsenic(args.group(1));
             kept.add(0, agentArg);
-            String value = String.join(" ", kept);
-            updated = updated.substring(0, args.start(1)) + escape(value) + updated.substring(args.end(1));
+            updated = replaceJvmArgs(updated, args, String.join(" ", kept));
         } else {
             Matcher open = SETTINGS_OPEN.matcher(updated);
             if (!open.find())
@@ -128,11 +120,53 @@ final class LunarInjection {
             log.accept("launcher.json already loads Arsenic from this jar");
             return false;
         }
+        save(settings, text, updated, log);
+        return true;
+    }
+
+    /**
+     * Takes Arsenic's agent argument out of the JVM arguments in launcher.json, keeping the others.
+     *
+     * @return true when the file changed
+     */
+    static boolean removeAgent(File settings, Consumer<String> log) throws IOException {
+        String text = read(settings);
+        Matcher args = JVM_ARGS.matcher(text);
+        if (!args.find()) {
+            log.accept("Lunar has no JVM arguments, so Arsenic is not in them");
+            return false;
+        }
+        List<String> kept = withoutArsenic(args.group(1));
+        if (kept.size() == unescape(args.group(1)).trim().split("\\s+").length) {
+            log.accept("Arsenic is not in Lunar's JVM arguments");
+            return false;
+        }
+        save(settings, text, replaceJvmArgs(text, args, String.join(" ", kept)), log);
+        return true;
+    }
+
+    private static List<String> withoutArsenic(String jsonValue) {
+        List<String> kept = new ArrayList<>();
+        for (String token : unescape(jsonValue).trim().split("\\s+")) {
+            if (!token.isEmpty() && !isArsenicAgent(token))
+                kept.add(token);
+        }
+        return kept;
+    }
+
+    private static String replaceJvmArgs(String text, Matcher args, String value) {
+        return text.substring(0, args.start(1)) + escape(value) + text.substring(args.end(1));
+    }
+
+    private static void save(File settings, String before, String after, Consumer<String> log) throws IOException {
         File backup = new File(settings.getParentFile(), settings.getName() + ".arsenic-backup");
         Files.copy(settings.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
         log.accept("Backed up the settings to " + backup.getName());
-        Files.write(settings.toPath(), updated.getBytes(StandardCharsets.UTF_8));
-        return true;
+        Files.write(settings.toPath(), after.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String read(File settings) throws IOException {
+        return new String(Files.readAllBytes(settings.toPath()), StandardCharsets.UTF_8);
     }
 
     private static boolean isArsenicAgent(String token) {
@@ -147,6 +181,10 @@ final class LunarInjection {
 
     private static String escape(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static boolean windows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
     }
 
     private static String run(String... command) throws IOException {

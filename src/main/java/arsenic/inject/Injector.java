@@ -380,6 +380,36 @@ public final class Injector {
      * @return "OK" when the client started, otherwise "ERROR ..." with the reason
      */
     static String inject(String pid, java.util.function.Consumer<String> progress) {
+        return runAgent(pid, "", progress);
+    }
+
+    /** Takes Arsenic out of a running game (the agent's uninject); see {@link Agent}. */
+    static String uninject(String pid, java.util.function.Consumer<String> progress) {
+        return runAgent(pid, "uninject:", progress);
+    }
+
+    /**
+     * "injected" or "uninjected" when Arsenic has been loaded into the game, null when it has not or the game cannot be
+     * reached. Reads the game's own system property, so it is right whichever window injected it.
+     */
+    static String loadedState(String pid) {
+        try {
+            Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
+            Object vm = vmClass.getMethod("attach", String.class).invoke(null, pid);
+            try {
+                java.util.Map<?, ?> props = (java.util.Map<?, ?>) vmClass.getMethod("getSystemProperties").invoke(vm);
+                Object value = props.get("arsenic.loaded");
+                return value == null ? null : value.toString();
+            } finally {
+                vmClass.getMethod("detach").invoke(vm);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Loads the agent into the game with {@code argPrefix} before the status file, and follows the status file. */
+    private static String runAgent(String pid, String argPrefix, java.util.function.Consumer<String> progress) {
         File status = null;
         try {
             File jar = ownJar();
@@ -395,7 +425,7 @@ public final class Injector {
             String loadError = null;
             try {
                 progress.accept("Loading the client...");
-                vmClass.getMethod("loadAgent", String.class, String.class).invoke(vm, jar.getAbsolutePath(), status.getAbsolutePath());
+                vmClass.getMethod("loadAgent", String.class, String.class).invoke(vm, jar.getAbsolutePath(), argPrefix + status.getAbsolutePath());
             } catch (java.lang.reflect.InvocationTargetException e) {
                 Throwable cause = e.getCause();
                 loadError = cause.getMessage() != null ? cause.getMessage() : cause.toString();

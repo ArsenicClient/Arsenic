@@ -58,8 +58,35 @@ public final class Agent {
         }
     }
 
+    /** The hooks and the way out of an injected client, kept for an uninject. */
+    private static final class Active {
+        final Instrumentation inst;
+        final HookTransformer hooks;
+        final ClassLoader loader;
+        final Method stop;
+
+        Active(Instrumentation inst, HookTransformer hooks, ClassLoader loader, Method stop) {
+            this.inst = inst;
+            this.hooks = hooks;
+            this.loader = loader;
+            this.stop = stop;
+        }
+    }
+
+    private static final String UNINJECT = "uninject:";
+    private static volatile Active active;
+
     /** Loaded into a game that is already running, by the {@link Injector} through the attach API. */
     public static void agentmain(String args, Instrumentation inst) {
+        if (args != null && args.startsWith(UNINJECT)) {
+            Consumer<String> status = statusWriter(args.substring(UNINJECT.length()));
+            try {
+                uninject(inst, status);
+            } catch (Throwable t) {
+                status.accept("ERROR " + describe(t));
+            }
+            return;
+        }
         Consumer<String> status = statusWriter(args);
         try {
             inject(inst, status);
@@ -86,6 +113,29 @@ public final class Agent {
         }, "Arsenic-premain");
         waiter.setDaemon(true);
         waiter.start();
+    }
+
+    /**
+     * Takes the client out of the running game: the modules are switched off, then the hooks come out and the hooked
+     * classes are retransformed, which gives them back their original bytes. Runs on the game thread (see InjectedLaunch).
+     */
+    private static void uninject(Instrumentation inst, Consumer<String> status) throws Exception {
+        Active a = active;
+        if (a == null)
+            throw new IllegalStateException("Arsenic is not injected into this game");
+        a.stop.invoke(null, status, (Runnable) () -> {
+            a.inst.removeTransformer(a.hooks);
+            List<Class<?>> targets = new ArrayList<>();
+            for (Class<?> c : a.inst.getAllLoadedClasses())
+                if (c.getClassLoader() == a.loader && a.hooks.targets().contains(c.getName().replace('.', '/')))
+                    targets.add(c);
+            try {
+                a.inst.retransformClasses(targets.toArray(new Class<?>[0]));
+            } catch (Exception e) {
+                throw new IllegalStateException("Could not restore the game classes", e);
+            }
+            active = null;
+        });
     }
 
     private static String describe(Throwable t) {
@@ -142,7 +192,9 @@ public final class Agent {
 
         for (Class<?> c : inst.getAllLoadedClasses()) {
             if (c.getName().equals("arsenic.main.Arsenic"))
-                throw new IllegalStateException("Arsenic is already loaded in this game");
+                throw new IllegalStateException("uninjected".equals(System.getProperty("arsenic.loaded"))
+                        ? "Arsenic was removed from this game; restart the game to inject it again"
+                        : "Arsenic is already loaded in this game");
         }
 
         Game game = findGame(inst);
@@ -181,6 +233,7 @@ public final class Agent {
         List<String> problems = hooks.verifyHooks(game.loader);
         if (!problems.isEmpty())
             throw new IllegalStateException("Client hooks do not match: " + problems);
+        Method stop = launch.getMethod("stop", Consumer.class, Runnable.class);
 
         Runnable installHooks = () -> {
             inst.addTransformer(hooks, true);
@@ -198,6 +251,7 @@ public final class Agent {
                 status.accept("LOG hooked " + hook);
             for (String hook : hooks.missed())
                 status.accept("LOG missed " + hook);
+            active = new Active(inst, hooks, game.loader, stop);
         };
 
         launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class, Function.class)
