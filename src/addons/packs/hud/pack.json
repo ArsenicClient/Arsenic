@@ -17,7 +17,6 @@
     "ItemCounter": "Counts blocks, arrows, ender pearls and golden apples in your inventory.",
     "SessionStats": "Kills, deaths, K/D and time played this session, counted from chat.",
     "PingWarning": "Shows your ping, red while it is above a limit.",
-    "HackerDetector": "Lists nearby players whose speed or hovering looks like a cheat, with the score. Information only.",
     "ItemAlerts": "Chat alert when chosen items are dropped near you, with a short HUD line.",
     "BlockInfo": "Shows the block under your crosshair, its hardness and an approximate break time."
   }

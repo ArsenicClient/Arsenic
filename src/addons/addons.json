@@ -4,7 +4,9 @@
     "pit",
     "render",
     "hud",
-    "hypixel"
+    "hypixel",
+    "player",
+    "qol"
   ],
   "addons": [
     {

@@ -1,0 +1,11 @@
+{
+  "id": "qol",
+  "name": "Misc / QoL",
+  "description": "Small quality-of-life tools: a lower frame limit while the window is unfocused, and screenshots on kills and deaths.",
+  "icon": "textures/items/redstone.png",
+  "autoInstall": false,
+  "addons": {
+    "BackgroundFps": "Lowers the frame limit while the game window is not focused.",
+    "AutoScreenshot": "Takes a screenshot on a kill or on your death."
+  }
+}
