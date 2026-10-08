@@ -23,10 +23,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Java agent the {@link Injector} loads into a running Minecraft 1.8.9 game: Forge, vanilla or Lunar Client. It
- * finds the class loader that holds Minecraft and the names Minecraft has there, puts the client jar on that loader,
- * hands over to arsenic.runtime.InjectedLaunch (which starts the client on the game thread), and then hooks the
- * Minecraft classes with a {@link HookTransformer}.
+ * Java agent that loads the client into a Minecraft 1.8.9 game: Forge, vanilla or Lunar Client. Two ways in:
+ * {@link #agentmain} when the {@link Injector} attaches to a running game, and {@link #premain} when the jar is given
+ * at launch with {@code -javaagent} (for games that turn the attach API off). Either way it finds the class loader
+ * that holds Minecraft and the names Minecraft has there, puts the client jar on that loader, hands over to
+ * arsenic.runtime.InjectedLaunch (which starts the client on the game thread), and then hooks the Minecraft classes
+ * with a {@link HookTransformer}.
  *
  * The client jar is built against SRG names (what Forge runs). Elsewhere a {@link ClientTransformer} renames the
  * client's classes to the game's names as they load.
@@ -56,12 +58,81 @@ public final class Agent {
         }
     }
 
+    /** Loaded into a game that is already running, by the {@link Injector} through the attach API. */
     public static void agentmain(String args, Instrumentation inst) {
         Consumer<String> status = statusWriter(args);
         try {
             inject(inst, status);
         } catch (Throwable t) {
-            status.accept("ERROR " + (t.getMessage() != null && t instanceof IllegalStateException ? t.getMessage() : t.toString()));
+            status.accept("ERROR " + describe(t));
+        }
+    }
+
+    /**
+     * Handed to the JVM at launch with {@code -javaagent:Arsenic.jar} (no injector): the client loads itself. This is
+     * the same mechanism Forge mods and Weave use, and it works where the attach API is turned off. Unlike
+     * {@link #agentmain}, the game has not started yet, so a daemon thread waits until Minecraft is up and then does
+     * the same work. Progress goes to stdout.
+     */
+    public static void premain(String args, Instrumentation inst) {
+        Consumer<String> status = statusWriter(args);
+        Thread waiter = new Thread(() -> {
+            try {
+                awaitGameStarted(inst, status);
+                inject(inst, status);
+            } catch (Throwable t) {
+                status.accept("ERROR " + describe(t));
+            }
+        }, "Arsenic-premain");
+        waiter.setDaemon(true);
+        waiter.start();
+    }
+
+    private static String describe(Throwable t) {
+        return t.getMessage() != null && t instanceof IllegalStateException ? t.getMessage() : t.toString();
+    }
+
+    // ---- waiting for the game (premain) ----
+
+    private static final long STARTUP_TIMEOUT_MS = 300_000;
+
+    /** Blocks until Minecraft has started, so {@link #inject} can find it and schedule work on the game thread. */
+    private static void awaitGameStarted(Instrumentation inst, Consumer<String> status) throws InterruptedException {
+        status.accept("Waiting for Minecraft to start");
+        long deadline = System.currentTimeMillis() + STARTUP_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
+            Game game = findGameOrNull(inst);
+            if (game != null && minecraftInstance(game) != null)
+                return;
+            Thread.sleep(250);
+        }
+        throw new IllegalStateException("Minecraft did not start within " + (STARTUP_TIMEOUT_MS / 1000) + "s");
+    }
+
+    private static Game findGameOrNull(Instrumentation inst) {
+        try {
+            return findGame(inst);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** The running Minecraft singleton, or null when it has not been created yet. */
+    private static Object minecraftInstance(Game game) {
+        try {
+            RuntimeNames names = RuntimeNames.create(game.namespace, game.loader);
+            Class<?> mc = Class.forName(names.mapClass(MINECRAFT).replace('/', '.'), false, game.loader);
+            String getter = names.mapMethod(MINECRAFT, GET_MINECRAFT, "()L" + MINECRAFT + ";");
+            Method m;
+            try {
+                m = mc.getDeclaredMethod(getter);
+            } catch (NoSuchMethodException e) {
+                m = mc.getDeclaredMethod("getMinecraft");
+            }
+            m.setAccessible(true);
+            return m.invoke(null);
+        } catch (Throwable t) {
+            return null;
         }
     }
 
