@@ -196,45 +196,40 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float expandMax = catWidth / 40f;
         float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
         float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
-        // The addon manager drops the logo and the category column and uses the whole card.
-        if (!addonMode) {
-            DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
-            DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
-            DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
-            if (GuiStyle.glassEnabled())
-                DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
-                        ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
+        // The addon manager keeps the same frame: its packs are listed where the module categories are.
+        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
+        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
+        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
+        if (GuiStyle.glassEnabled())
+            DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
+                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
 
-            DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
-        }
+        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
         DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
 
-        if (!addonMode) {
-            mc.getTextureManager().bindTexture(logoPath);
-            int tempExpand = (int) (x * 0.1f);
-            int logoCol = ThemeManager.getMainColor();
-            RenderUtils.color2(logoCol, 1f);
-            Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
-            GlStateManager.color(1f, 1f, 1f, 1f);
+        mc.getTextureManager().bindTexture(logoPath);
+        int tempExpand = (int) (x * 0.1f);
+        int logoCol = ThemeManager.getMainColor();
+        RenderUtils.color2(logoCol, 1f);
+        Gui.drawModalRectWithCustomSizedTexture(x + tempExpand, y + tempExpand, 0, 0, vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2) );
+        GlStateManager.color(1f, 1f, 1f, 1f);
 
+        if (addonMode) {
+            addonPage.drawSidebar(catStartX, sy1 + catMargin, sx1, sx2 + expandMax, sy2 - catMargin, ri);
+        } else {
             PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
             components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
-        } else {
-            addonPage.drawTabs(x + width * 0.015f, y, hLineY, width * 0.575f, ri);
         }
 
         searchComponent.updateComponent(new PosInfo((vLineX + 5), (float) ((y + hLineY) / 2.05)), ri);
 
-        int contentLeft = addonMode ? x : vLineX;
-        ScissorUtils.subScissor(contentLeft + 1, hLineY, x1, y1, 2);
+        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1, 2);
 
         PosInfo piL = new PosInfo(vLineX + 5, hLineY);
         PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
         if (addonMode) {
-            piL = new PosInfo(x + width * 0.0125f, hLineY);
-            piR = new PosInfo(x + (x1 - x) / 2f, hLineY);
-            addonPage.drawLeft(piL, ri);
-            addonPage.drawRight(piR, ri);
+            float columnWidth = arsenic.gui.click.UITheme.space(width, 30);
+            addonPage.drawContent(piL.getX(), piR.getX(), hLineY, piR.getX() + columnWidth - piL.getX(), ri);
             addonPage.subtractFromMaxScrollHeight(y1 - hLineY);
         } else {
             cmcc.drawLeft(piL, ri);
@@ -474,11 +469,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
         searchComponent.handleClick(mouseX, mouseY, mouseButton);
         if (addonMode) {
-            if (addonPage.clickTabs(mouseX, mouseY, mouseButton))
-                return;
-            // the category column is not shown, so only the addon page takes clicks
-            if (mouseX > width / 8 && mouseX < x1 && mouseY > hLineY && mouseY < y1)
-                addonPage.clickChildren(mouseX, mouseY, mouseButton);
+            addonPage.clickSidebar(mouseX, mouseY, mouseButton);
+            if (mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
+                addonPage.clickContent(mouseX, mouseY, mouseButton);
             return;
         }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
@@ -577,7 +570,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        if (addonMode)
+        int mouseX = Mouse.getEventX() * width / mc.displayWidth;
+        int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
+        if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
+            addonPage.scrollSidebar(i * 30);
+        else if (addonMode)
             addonPage.scroll(i * 30);
         else
             cmcc.scroll(i * 30);
