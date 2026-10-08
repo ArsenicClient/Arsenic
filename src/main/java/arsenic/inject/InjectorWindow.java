@@ -308,7 +308,7 @@ final class InjectorWindow {
         if (!game.supported())
             return game.unsupportedReason();
         if (!game.attachable)
-            return game.client.display + " turns off attach -- injecting will likely fail. Launch it with -javaagent instead (see details).";
+            return game.client.display + " turns off attach. Load Arsenic with -javaagent in its JVM arguments instead (steps in details).";
         return "Ready to inject into " + game.client.display + ".";
     }
 
@@ -394,9 +394,7 @@ final class InjectorWindow {
                     progress.setState(ProgressBar.FAILED);
                     if (!game.attachable) {
                         appendLog("");
-                        appendLog(game.client.display + " turns off the Java attach mechanism, so the injector cannot reach it.");
-                        appendLog("Load Arsenic at launch instead, by adding this to the game's Java arguments:");
-                        appendLog("    " + Injector.agentArg());
+                        appendLaunchSteps(game);
                         setStatus(game.client.display + " can't be injected -- launch it with -javaagent (see details).", WARNING);
                     } else {
                         setStatus("Injection failed: " + reason, DANGER);
@@ -409,6 +407,20 @@ final class InjectorWindow {
                 updateButtons();
             }
         }.execute();
+    }
+
+    /** How to load Arsenic at launch into a game that turns attach off, written out for the game's own settings. */
+    private void appendLaunchSteps(Injector.Game game) {
+        appendLog(game.client.display + " turns off the Java attach mechanism, so the injector cannot reach it.");
+        appendLog("Load Arsenic at launch instead:");
+        if (game.client == Injector.Client.LUNAR) {
+            appendLog("  1. In Lunar, open Settings (bottom left) -> Game.");
+            appendLog("  2. Turn on advanced mode (the shield icon left of \"Game Settings\").");
+            appendLog("  3. Under JVM arguments, add this line (keep any others already there):");
+        } else {
+            appendLog("  Add this line to the game's Java arguments:");
+        }
+        appendLog("       " + Injector.agentArg());
     }
 
     // ---- components ----
