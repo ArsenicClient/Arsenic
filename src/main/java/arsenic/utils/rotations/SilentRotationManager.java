@@ -95,6 +95,14 @@ public class SilentRotationManager {
         return blockUserInput && mc.thePlayer != null;
     }
 
+    public boolean isModified() { return modified; }
+
+    public boolean isPrevModified() { return prevModified; }
+
+    public float getPrevYaw() { return prevYaw; }
+
+    public float getPrevPitch() { return prevPitch; }
+
     private void postSettled() {
         Arsenic.getArsenic().getEventManager().post(
                 new EventSilentRotation.Post(yaw, pitch, prevYaw, prevPitch, modified, speed));

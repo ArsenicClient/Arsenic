@@ -5,6 +5,9 @@ import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.visual.NoHurtCam;
+import arsenic.module.impl.visual.RotationView;
+import arsenic.utils.render.capture.RenderTargets;
+import arsenic.utils.render.capture.SilentView;
 import com.google.common.base.Predicates;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
@@ -35,11 +38,44 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
 
     @Inject(method = "renderWorldPass", at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderHand:Z", shift = At.Shift.BEFORE))
     private void renderWorldPass(int pass, float partialTicks, long finishTimeNano, CallbackInfo callbackInfo) {
-        Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(mc.renderGlobal, partialTicks));
+        if (SilentView.isRendering())
+            return;
+        boolean redirected = RenderTargets.beginVisuals();
+        try {
+            Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(mc.renderGlobal, partialTicks));
+        } finally {
+            RenderTargets.endVisuals(redirected);
+        }
+    }
+
+    @Inject(method = "renderWorld", at = @At("HEAD"))
+    private void arsenic$silentView(float partialTicks, long finishTimeNano, CallbackInfo ci) {
+        RotationView rotationView = Arsenic.getArsenic().getModuleManager().getModuleByClass(RotationView.class);
+        if ((rotationView.isEnabled() && rotationView.wantsFrame()) || RenderTargets.recordsSilentView())
+            SilentView.render(partialTicks, finishTimeNano);
+    }
+
+    @Inject(method = "updateCameraAndRender", at = @At("HEAD"))
+    private void arsenic$frameStart(float partialTicks, long nanoTime, CallbackInfo ci) {
+        RenderTargets.onFrameStart();
+    }
+
+    @Inject(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiIngame;renderGameOverlay(F)V", shift = At.Shift.AFTER))
+    private void arsenic$frameEndAfterHud(float partialTicks, long nanoTime, CallbackInfo ci) {
+        RenderTargets.onFrameEnd(partialTicks, true);
+    }
+
+    // frames with no HUD pass (F1 or no world)
+    @Inject(method = "updateCameraAndRender", at = @At("RETURN"))
+    private void arsenic$frameEnd(float partialTicks, long nanoTime, CallbackInfo ci) {
+        RenderTargets.onFrameEnd(partialTicks, false);
     }
 
     @Overwrite
     public void getMouseOver(float p_getMouseOver_1_) {
+        // the silent pass runs the whole renderWorld; keep the crosshair target from the real rotation
+        if (SilentView.isRendering())
+            return;
         Entity entity = this.mc.getRenderViewEntity();
         if(entity != null && this.mc.theWorld != null) {
             Reach reachMod = Arsenic.getArsenic().getModuleManager().getModuleByClass(Reach.class);

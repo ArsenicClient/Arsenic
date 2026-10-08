@@ -2095,6 +2095,7 @@ public interface IMixinKeyBinding {
 ```java
 public interface IMixinMinecraft {
     Timer getTimer();
+    Framebuffer getFramebufferMc();
     void leftClick();
 }
 ```
@@ -2230,6 +2231,10 @@ public class SilentRotationManager {
     public float pitch;
     public Listener<EventLiving> eventTickListener;
     public boolean isBlockingUserInput();
+    public boolean isModified();
+    public boolean isPrevModified();
+    public float getPrevYaw();
+    public float getPrevPitch();
     public Listener<EventUpdate.Pre> eventUpdateListener;
     public Listener<EventLook> eventLookListener;
     public Listener<EventRenderThirdPerson> eventRenderThirdPersonListener;

@@ -1,6 +1,7 @@
 package arsenic.utils.render.shader;
 
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.capture.RenderTargets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
@@ -57,7 +58,8 @@ public class KawaseBlur {
             currentIterations = iterations;
         }
 
-        renderFBO(framebufferList.get(1), mc.getFramebuffer().framebufferTexture, kawaseDown, offset);
+        // read the real scene: while visuals are redirected, getFramebuffer() is the overlay
+        renderFBO(framebufferList.get(1), RenderTargets.getScene().framebufferTexture, kawaseDown, offset);
 
         for (int i = 1; i < iterations; i++) {
             renderFBO(framebufferList.get(i + 1), framebufferList.get(i).framebufferTexture, kawaseDown, offset);
