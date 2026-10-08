@@ -70,10 +70,10 @@ dependencies {
     compileOnly "org.jetbrains:annotations:23.0.0"
     embed 'com.jagrosh:DiscordIPC:0.4'  // its junixsocket logs through log4j 1.2, which stays: Discord RPC needs it on Mac and Linux
     embed("org.reflections:reflections:0.10.2") {
-        exclude module: "guava"      // provided by Minecraft
-        exclude module: "javassist"  // only Reflections' javassist metadata adapter needs it; the default one does not
-        exclude module: "jsr305"     // annotations only
+        exclude module: "guava"  // provided by Minecraft
     }
+    // Reflections loads javassist when it scans (the game hit this on a plain start); keep it
+    embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
     // The injector's agent rewrites game classes with ASM: a current one (Lunar runs Java 17 classes), moved to
