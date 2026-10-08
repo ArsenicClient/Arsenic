@@ -34,6 +34,7 @@ final class InjectorWindow {
     private static final Color ACCENT_HOVER = new Color(0xE85A74);
     private static final Color SUCCESS = new Color(0x3FB950);
     private static final Color DANGER = new Color(0xE24B4A);
+    private static final Color WARNING = new Color(0xE0A030);
 
     private static final int RADIUS = 12;
     private static final int REFRESH_MS = 2500;
@@ -55,6 +56,7 @@ final class InjectorWindow {
     private final java.util.Set<String> injected = new java.util.HashSet<>();
     private String selectedId;
     private boolean busy;
+    private boolean refreshing;
 
     InjectorWindow() {
         cardScroll = scroll(cards);
@@ -226,14 +228,30 @@ final class InjectorWindow {
     // ---- behaviour ----
 
     private void refresh() {
-        List<Injector.Game> games;
-        try {
-            games = Injector.findGames(showAll.isSelected());
-        } catch (Exception e) {
-            setStatus("Could not list Java processes: " + e, DANGER);
+        // the game scan can shell out (Lunar is found through the OS process list), so it runs off the event thread
+        if (refreshing)
             return;
-        }
+        refreshing = true;
+        boolean all = showAll.isSelected();
+        new SwingWorker<List<Injector.Game>, Void>() {
+            @Override
+            protected List<Injector.Game> doInBackground() throws Exception {
+                return Injector.findGames(all);
+            }
 
+            @Override
+            protected void done() {
+                refreshing = false;
+                try {
+                    applyGames(get());
+                } catch (Exception e) {
+                    setStatus("Could not list Java processes: " + e, DANGER);
+                }
+            }
+        }.execute();
+    }
+
+    private void applyGames(List<Injector.Game> games) {
         boolean same = games.size() == gameCards.size();
         for (int i = 0; same && i < games.size(); i++)
             same = games.get(i).id.equals(gameCards.get(i).game.id) && games.get(i).label().equals(gameCards.get(i).game.label());
@@ -254,11 +272,18 @@ final class InjectorWindow {
                 selectionAlive |= game.id.equals(selectedId);
             if (!selectionAlive) {
                 selectedId = null;
+                // prefer a game the injector can actually attach to, but fall back to any supported one
                 for (Injector.Game game : games)
-                    if (game.supported() && !injected.contains(game.id)) {
+                    if (game.supported() && game.attachable && !injected.contains(game.id)) {
                         selectedId = game.id;
                         break;
                     }
+                if (selectedId == null)
+                    for (Injector.Game game : games)
+                        if (game.supported() && !injected.contains(game.id)) {
+                            selectedId = game.id;
+                            break;
+                        }
             }
             for (Injector.Game game : games) {
                 GameCard card = new GameCard(game);
@@ -282,6 +307,8 @@ final class InjectorWindow {
             return "Arsenic is already loaded in this game.";
         if (!game.supported())
             return game.unsupportedReason();
+        if (!game.attachable)
+            return game.client.display + " turns off attach -- injecting will likely fail. Launch it with -javaagent instead (see details).";
         return "Ready to inject into " + game.client.display + ".";
     }
 
@@ -365,7 +392,15 @@ final class InjectorWindow {
                 } else {
                     String reason = result.startsWith("ERROR") ? result.substring(5).trim() : result;
                     progress.setState(ProgressBar.FAILED);
-                    setStatus("Injection failed: " + reason, DANGER);
+                    if (!game.attachable) {
+                        appendLog("");
+                        appendLog(game.client.display + " turns off the Java attach mechanism, so the injector cannot reach it.");
+                        appendLog("Load Arsenic at launch instead, by adding this to the game's Java arguments:");
+                        appendLog("    " + Injector.agentArg());
+                        setStatus(game.client.display + " can't be injected -- launch it with -javaagent (see details).", WARNING);
+                    } else {
+                        setStatus("Injection failed: " + reason, DANGER);
+                    }
                     if (!logScroll.isVisible())
                         toggleLog();
                 }
@@ -465,6 +500,10 @@ final class InjectorWindow {
             } else if (!game.supported()) {
                 pill = "Unsupported";
                 pillColor = TEXT_SECONDARY;
+            } else if (!game.attachable) {
+                // visible but the attach API cannot reach it (Lunar turns attach off) - still selectable, inject will try
+                pill = "Attach off";
+                pillColor = WARNING;
             } else {
                 pill = null;
                 pillColor = null;

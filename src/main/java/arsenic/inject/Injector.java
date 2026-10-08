@@ -50,17 +50,25 @@ public final class Injector {
         final Client client;
         final String version;
         final String mainClass;
+        /** Whether the attach API lists it. Lunar turns attach off, so it only shows up in the OS process scan. */
+        final boolean attachable;
 
-        Game(String id, Client client, String version, String mainClass) {
+        Game(String id, Client client, String version, String mainClass, boolean attachable) {
             this.id = id;
             this.client = client;
             this.version = version;
             this.mainClass = mainClass;
+            this.attachable = attachable;
         }
 
         /** Unknown versions are allowed; the agent checks the game itself. */
         boolean supported() {
-            return client != Client.OTHER && (version == null || version.contains("1.8.9"));
+            if (client == Client.OTHER)
+                return false;
+            // Lunar's command line does not carry a reliable Minecraft version; the agent checks it is 1.8.9 inside
+            if (client == Client.LUNAR)
+                return true;
+            return version == null || version.contains("1.8.9");
         }
 
         String unsupportedReason() {
@@ -137,14 +145,19 @@ public final class Injector {
         }
     }
 
-    /** Running JVMs that look like Minecraft. Their command lines hold access tokens, so only the version is shown. */
+    /**
+     * Running games. Command lines hold access tokens, so only the version is ever shown. The attach API lists the
+     * games the injector can attach to; an OS process scan adds the ones it can't (Lunar turns the attach mechanism
+     * off), so they still appear in the window even though injecting them will fail.
+     */
     static List<Game> findGames(boolean all) throws Exception {
+        java.util.Map<String, Game> byPid = new java.util.LinkedHashMap<>();
+        String self = selfPid();
+
         Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
         Class<?> descClass = Class.forName("com.sun.tools.attach.VirtualMachineDescriptor");
         Method id = descClass.getMethod("id");
         Method displayName = descClass.getMethod("displayName");
-        List<Game> games = new ArrayList<>();
-        String self = selfPid();
         for (Object desc : (List<?>) vmClass.getMethod("list").invoke(null)) {
             String pid = (String) id.invoke(desc);
             String name = (String) displayName.invoke(desc);
@@ -154,9 +167,176 @@ public final class Injector {
             if (client == Client.OTHER && !all)
                 continue;
             String main = name.split(" ")[0];
-            games.add(new Game(pid, client, argument(name, "--version"), main));
+            byPid.put(pid, new Game(pid, client, argument(name, "--version"), main, true));
+        }
+
+        // games the attach API does not list (attach turned off, or no perf data): keep the attach entry when both find it
+        for (Game game : osGames(all))
+            byPid.putIfAbsent(game.id, game);
+
+        return new ArrayList<>(byPid.values());
+    }
+
+    /** The {@code -javaagent} argument that loads the client at launch, where the attach API cannot reach a game. */
+    static String agentArg() {
+        try {
+            return "-javaagent:" + ownJar().getAbsolutePath();
+        } catch (Exception e) {
+            return "-javaagent:Arsenic.jar";
+        }
+    }
+
+    // ---- OS process scan (for games the attach API misses, e.g. Lunar) ----
+
+    /** Java games from the OS process list, marked not-attachable. */
+    private static List<Game> osGames(boolean all) {
+        List<Game> games = new ArrayList<>();
+        String self = selfPid();
+        for (String[] proc : osProcesses()) {
+            String pid = proc[0], cmd = proc[1];
+            if (pid.equals(self) || cmd == null || cmd.isEmpty())
+                continue;
+            Client client = classify(cmd);
+            if (client == Client.OTHER && !all)
+                continue;
+            games.add(new Game(pid, client, argument(cmd, "--version"), mainClassOf(cmd), false));
         }
         return games;
+    }
+
+    /** {pid, commandLine} for running processes; empty when the scan is unavailable. */
+    private static List<String[]> osProcesses() {
+        String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+        try {
+            if (os.contains("win"))
+                return windowsProcesses();
+            if (os.contains("mac"))
+                return macProcesses();
+            return linuxProcesses();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static List<String[]> windowsProcesses() throws Exception {
+        // WMIC first (fast); PowerShell's CIM query is the fallback where WMIC is gone (Windows 11 24H2+)
+        String out = run("wmic", "process", "where", "name like 'java%.exe'", "get", "CommandLine,ProcessId", "/format:list");
+        List<String[]> games = parseWmic(out);
+        if (!games.isEmpty())
+            return games;
+        String script = "Get-CimInstance Win32_Process -Filter \"Name like 'java%'\" | "
+                + "ForEach-Object { \"$($_.ProcessId)`t$($_.CommandLine)\" }";
+        return parseTabbed(run("powershell", "-NoProfile", "-NonInteractive", "-Command", script));
+    }
+
+    private static List<String[]> parseWmic(String out) {
+        List<String[]> games = new ArrayList<>();
+        String cmd = null;
+        for (String line : out.split("\r?\n")) {
+            if (line.startsWith("CommandLine="))
+                cmd = line.substring("CommandLine=".length()).trim();
+            else if (line.startsWith("ProcessId=")) {
+                String pid = line.substring("ProcessId=".length()).trim();
+                if (isPid(pid))
+                    games.add(new String[]{pid, cmd == null ? "" : cmd});
+                cmd = null;
+            }
+        }
+        return games;
+    }
+
+    private static List<String[]> parseTabbed(String out) {
+        List<String[]> games = new ArrayList<>();
+        for (String line : out.split("\r?\n")) {
+            int tab = line.indexOf('\t');
+            if (tab <= 0)
+                continue;
+            String pid = line.substring(0, tab).trim();
+            if (isPid(pid))
+                games.add(new String[]{pid, line.substring(tab + 1).trim()});
+        }
+        return games;
+    }
+
+    private static List<String[]> macProcesses() throws Exception {
+        List<String[]> games = new ArrayList<>();
+        for (String line : run("ps", "-ax", "-o", "pid=,command=").split("\n")) {
+            line = line.trim();
+            int sp = line.indexOf(' ');
+            if (sp <= 0)
+                continue;
+            String pid = line.substring(0, sp);
+            String cmd = line.substring(sp + 1);
+            if (isPid(pid) && cmd.contains("java"))
+                games.add(new String[]{pid, cmd});
+        }
+        return games;
+    }
+
+    private static List<String[]> linuxProcesses() {
+        List<String[]> games = new ArrayList<>();
+        File[] dirs = new File("/proc").listFiles();
+        if (dirs == null)
+            return games;
+        for (File dir : dirs) {
+            String pid = dir.getName();
+            if (!isPid(pid))
+                continue;
+            try {
+                byte[] raw = Files.readAllBytes(new File(dir, "cmdline").toPath());
+                if (raw.length == 0)
+                    continue;
+                String cmd = new String(raw, StandardCharsets.UTF_8).replace('\0', ' ').trim();
+                if (cmd.contains("java"))
+                    games.add(new String[]{pid, cmd});
+            } catch (Exception ignored) {
+            }
+        }
+        return games;
+    }
+
+    private static boolean isPid(String s) {
+        if (s.isEmpty())
+            return false;
+        for (int i = 0; i < s.length(); i++)
+            if (!Character.isDigit(s.charAt(i)))
+                return false;
+        return true;
+    }
+
+    /** The main class in a command line, for naming a non-Minecraft Java process; "Java" when none is found. */
+    private static String mainClassOf(String commandLine) {
+        for (String part : commandLine.split(" "))
+            if (part.matches("[a-zA-Z_$][\\w$]*(\\.[a-zA-Z_$][\\w$]*)+") && part.contains("."))
+                return part;
+        return "Java";
+    }
+
+    /** Runs a short-lived command and returns its stdout, or "" on failure or timeout. */
+    private static String run(String... command) {
+        try {
+            Process p = new ProcessBuilder(command).redirectErrorStream(false).start();
+            StringBuilder sb = new StringBuilder();
+            Thread reader = new Thread(() -> {
+                try (java.io.BufferedReader r = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = r.readLine()) != null)
+                        sb.append(line).append('\n');
+                } catch (Exception ignored) {
+                }
+            });
+            reader.setDaemon(true);
+            reader.start();
+            if (!p.waitFor(8, java.util.concurrent.TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                return "";
+            }
+            reader.join(1000);
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /** Works out the client from the main class and arguments the JVM reports for the process. */
