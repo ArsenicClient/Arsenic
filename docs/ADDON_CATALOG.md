@@ -71,7 +71,7 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
 - **Batch 9 (10 of 10 addons):** `AutoBow`, `AutoPearl`, `AutoRod`, `SelfBlockIn`, `AutoTrap` (pack `combat`); `Parkour`, `AutoWalk`, `SnapTap`, `Stasis` (pack `movement-legit`); `BedDefender` (pack `bedwars`).
   - `AutoPearl` aims the pearl at the enemy's feet and does not model the arc, so it misses at long range.
   - `BedDefender` uses the nearest bed to where you stand, so stand next to your bed when you enable it.
-  - `Stasis` is the maintainer-requested exception; it is opt-in and flag-prone.
+  - `Stasis` is the maintainer-requested exception; it is opt-in and flag-prone. It is ported from the Yuri client's `StasisModule` (45-tick freeze, 1-tick release, hurtTime gate on packet cancellation, disable on landing).
   - The placement addons (`SelfBlockIn`, `AutoTrap`, `BedDefender`, `HoleFiller`, `LiquidFiller`) share one template. The aim is a simple face point with jitter, not the full solver from the catalog.
 - **Batch 10 (3 of 10 addons):** `HoleFiller`, `LiquidFiller` (pack `world`); `AutoExtinguish` (pack `world`).
   - **Deferred, client change:** `HeldItemAnimations`, `Crosshair`, `EnchantGlint` (first-person hand, crosshair and glint render hooks), `SkeletonESP`, `TrueSight`, `ItemPhysics` (player and item model access). `PatternBuilder` is deferred because its templates still need a design.
@@ -250,7 +250,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `Parkour` | MOVEMENT | While you sprint forward, presses jump at a block edge so you do not walk off it. | Presses the jump key only; never changes velocity; jittered timing; not while sneaking; never in the air. | RAV, LBR, LC, LS, LX, FDP, LBL | No | S | P2 |
 | `AutoWalk` | MOVEMENT | Holds the forward key until you toggle it off, optionally with sprint. | Holds a real key only, no motion edits; releases on GUI open and on any manual key press. | FDP, LBR, LC, LS, LBL | No | S | P3 |
 | `SnapTap` | MOVEMENT | Resolves opposing A+D and W+S presses the way SOCD keyboards do: the most recent key wins and the older one resumes on release. | Only re-times real presses, injects nothing. Confirmed acceptable by the maintainer. | FDP | No | S | P3 |
-| `Stasis` | MOVEMENT | Freezes your motion for up to 45 ticks while you are airborne: zeroes velocity, cancels the position packets in that window, then restores the saved motion. | **Maintainer-requested exception to the no-freeze rule.** Cancelled position packets and held motion break movement simulation, so expect Grim flags and lagbacks. Opt-in only, off by default, never runs with a GUI open, and ends on landing. | YUR (StasisModule) | No | M | P3 |
+| `Stasis` | MOVEMENT | Freezes your motion for 45 ticks, then releases for one tick (restoring the saved motion) and repeats. Cancels position packets during the freeze, except while hurt. Ends on landing. | **Maintainer-requested exception to the no-freeze rule.** Cancelled position packets and held motion break movement simulation, so expect Grim flags and lagbacks. Opt-in only, off by default. | YUR (StasisModule) | No | M | P3 |
 
 ### 4.3 Pack `player` (Player and QoL), 9 candidates
 
