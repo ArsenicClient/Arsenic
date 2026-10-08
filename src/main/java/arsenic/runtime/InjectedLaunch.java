@@ -1,9 +1,11 @@
 package arsenic.runtime;
 
 import arsenic.gui.ArsenicSplash;
+import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.capture.SilentView;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.resources.FileResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
@@ -101,6 +103,9 @@ public final class InjectedLaunch {
 
             stage(0.8f, "Hooking game", status);
             installHooks.run();
+            // the title screen is already up: the hooks only swap screens that are shown after they are in place
+            if (Minecraft.getMinecraft().currentScreen instanceof GuiMainMenu)
+                CustomMenu.display();
             ArsenicSplash.progress(1f, "Ready");
         } finally {
             ArsenicSplash.finish();
