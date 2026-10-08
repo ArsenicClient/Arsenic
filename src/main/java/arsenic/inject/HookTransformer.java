@@ -21,18 +21,25 @@ import static org.objectweb.asm.Opcodes.*;
  * or interfaces), which is all that class retransformation allows.
  *
  * Hook methods take the target's "this" (unless the target is static) followed by the target's arguments, except
- * redirects, which take the redirected call's receiver and arguments. Names are MCP names; {@link Names} turns them
- * into the names the running game uses.
+ * redirects, which take the redirected call's receiver and arguments. Hooks are written with MCP names; {@link Names}
+ * turns them into the names the running game uses (SRG on Forge, MCP on Lunar Client, obfuscated on vanilla), class
+ * names and descriptors included.
  *
  * This class runs on the system class loader inside the game, so it must not touch Minecraft or Arsenic classes.
  */
 public final class HookTransformer implements ClassFileTransformer {
 
-    /** Turns MCP member names into runtime names. */
+    /** Turns MCP names into runtime names. Owners and descriptors passed in are MCP names. */
     public interface Names {
         String method(String owner, String name, String desc);
 
         String field(String owner, String name, String desc);
+
+        /** Runtime internal name of a class. */
+        String type(String internalName);
+
+        /** A descriptor with its class names in runtime names. */
+        String desc(String desc);
     }
 
     enum Kind {
@@ -55,6 +62,8 @@ public final class HookTransformer implements ClassFileTransformer {
         final String hookOwner, hookName;
         String refOwner, refDeclOwner, refName, refDesc;
         boolean refStatic;
+        // the same in the running game's names, filled in once every hook is registered
+        String rOwner, rMethod, rDesc, rRefOwner, rRefName, rRefDesc, rHookDesc;
         int ordinal = -1;
         int index;
 
@@ -112,27 +121,52 @@ public final class HookTransformer implements ClassFileTransformer {
     private static final String GUI_HOOKS = HOOKS + "GuiHooks";
     private static final String MISC_HOOKS = HOOKS + "MiscHooks";
 
-    private final Map<String, List<Hook>> hooks = new LinkedHashMap<>();
+    private final Map<String, List<Hook>> hooks = new LinkedHashMap<>(); // by runtime class name
     private final Names names;
+    private final boolean forge;
+    private final ClassLoader gameLoader;
     private final Consumer<String> log;
     private final Set<String> applied = Collections.synchronizedSet(new LinkedHashSet<>());
     private final Set<String> missed = Collections.synchronizedSet(new LinkedHashSet<>());
 
-    public HookTransformer(Names names, Consumer<String> log) {
+    /**
+     * @param forge      whether the game is Forge; some hooks sit in Forge's code there and in Minecraft's elsewhere
+     * @param gameLoader the class loader of the Minecraft classes; classes of other loaders are left alone
+     */
+    public HookTransformer(Names names, boolean forge, ClassLoader gameLoader, Consumer<String> log) {
         this.names = names;
+        this.forge = forge;
+        this.gameLoader = gameLoader;
         this.log = log;
-        registerHooks();
+        List<Hook> all = new ArrayList<>();
+        registerHooks(all);
+        for (Hook hook : all) {
+            hook.rOwner = names.type(hook.owner);
+            hook.rMethod = names.method(hook.owner, hook.method, hook.desc);
+            hook.rDesc = names.desc(hook.desc);
+            if (hook.refName != null) {
+                hook.rRefOwner = names.type(hook.refOwner);
+                hook.rRefName = hook.kind == Kind.BEFORE_FIELD ? names.field(hook.refDeclOwner, hook.refName, hook.refDesc)
+                        : names.method(hook.refDeclOwner, hook.refName, hook.refDesc);
+                hook.rRefDesc = names.desc(hook.refDesc);
+            }
+            hook.rHookDesc = names.desc(hookDesc(hook));
+            hooks.computeIfAbsent(hook.rOwner, k -> new ArrayList<>()).add(hook);
+        }
     }
+
+    private List<Hook> registering;
 
     private Hook add(Kind kind, String owner, String method, String desc, String hookOwner, String hookName) {
         Hook hook = new Hook(kind, MC + owner, method, desc, hookOwner, hookName);
-        hooks.computeIfAbsent(hook.owner, k -> new ArrayList<>()).add(hook);
+        registering.add(hook);
         return hook;
     }
 
     // Mirrors the mixins in arsenic.injection.mixin, in the same order. SplashProgress and FMLHandshakeMessage are
     // left out: by the time the client is injected the splash screen and the mod list handshake are long over.
-    private void registerHooks() {
+    private void registerHooks(List<Hook> into) {
+        registering = into;
         String mc = "client/Minecraft";
         add(Kind.HEAD_RETURN, mc, "getFramebuffer", "()Lnet/minecraft/client/shader/Framebuffer;", MINECRAFT_HOOKS, "getFramebuffer");
         add(Kind.REDIRECT, mc, "runTick", "()V", MINECRAFT_HOOKS, "setKeyBindState")
@@ -182,6 +216,10 @@ public final class HookTransformer implements ClassFileTransformer {
         add(Kind.AFTER_CALL, er, "updateCameraAndRender", "(FJ)V", RENDER_HOOKS, "afterRenderGameOverlay")
                 .ref(MC + "client/gui/GuiIngame", "renderGameOverlay", "(F)V");
         add(Kind.RETURN, er, "updateCameraAndRender", "(FJ)V", RENDER_HOOKS, "updateCameraAndRenderReturn");
+        // Forge draws the open screen through ForgeHooksClient.drawScreen (hooked below); Minecraft calls it directly
+        if (!forge)
+            add(Kind.REDIRECT, er, "updateCameraAndRender", "(FJ)V", GUI_HOOKS, "drawScreen")
+                    .ref(MC + "client/gui/GuiScreen", "drawScreen", "(IIF)V");
         add(Kind.HEAD_CANCEL, er, "getMouseOver", "(F)V", RENDER_HOOKS, "getMouseOver");
         add(Kind.HEAD_CANCEL, er, "hurtCameraEffect", "(F)V", RENDER_HOOKS, "hurtCameraEffectHead");
         // the mixin changes what getFOVModifier returns when useFOVSetting is true; these are the callers that pass true
@@ -234,7 +272,9 @@ public final class HookTransformer implements ClassFileTransformer {
         add(Kind.HEAD_CANCEL, screen, "sendChatMessage", "(Ljava/lang/String;Z)V", GUI_HOOKS, "sendChatMessage");
 
         String slot = "client/gui/GuiSlot";
-        add(Kind.HEAD_CANCEL, slot, "drawContainerBackground", "(Lnet/minecraft/client/renderer/Tessellator;)V", GUI_HOOKS, "slotContainerBackground");
+        // added by Forge; without it lists keep Minecraft's dirt background
+        if (forge)
+            add(Kind.HEAD_CANCEL, slot, "drawContainerBackground", "(Lnet/minecraft/client/renderer/Tessellator;)V", GUI_HOOKS, "slotContainerBackground");
         add(Kind.HEAD_CANCEL, slot, "overlayBackground", "(IIII)V", GUI_HOOKS, "slotOverlayBackground");
 
         add(Kind.HEAD_CANCEL, "client/gui/GuiButton", "drawButton", "(Lnet/minecraft/client/Minecraft;II)V", GUI_HOOKS, "drawButton");
@@ -247,10 +287,12 @@ public final class HookTransformer implements ClassFileTransformer {
 
         add(Kind.HEAD_CANCEL, "client/gui/achievement/GuiAchievement", "updateAchievementWindow", "()V", GUI_HOOKS, "updateAchievementWindow");
 
-        Hook forgeHead = new Hook(Kind.HEAD, "net/minecraftforge/client/ForgeHooksClient", "drawScreen",
-                "(Lnet/minecraft/client/gui/GuiScreen;IIF)V", GUI_HOOKS, "forgeDrawScreenHead");
-        Hook forgeReturn = new Hook(Kind.RETURN, forgeHead.owner, forgeHead.method, forgeHead.desc, GUI_HOOKS, "forgeDrawScreenReturn");
-        hooks.computeIfAbsent(forgeHead.owner, k -> new ArrayList<>()).addAll(Arrays.asList(forgeHead, forgeReturn));
+        if (forge) {
+            Hook forgeHead = new Hook(Kind.HEAD, "net/minecraftforge/client/ForgeHooksClient", "drawScreen",
+                    "(Lnet/minecraft/client/gui/GuiScreen;IIF)V", GUI_HOOKS, "forgeDrawScreenHead");
+            Hook forgeReturn = new Hook(Kind.RETURN, forgeHead.owner, forgeHead.method, forgeHead.desc, GUI_HOOKS, "forgeDrawScreenReturn");
+            into.addAll(Arrays.asList(forgeHead, forgeReturn));
+        }
 
         String net = "network/NetworkManager";
         String channelRead0 = "(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V";
@@ -341,9 +383,8 @@ public final class HookTransformer implements ClassFileTransformer {
                     }
                     return set;
                 });
-                String desc = hookDesc(hook);
-                if (!methods.contains(hook.hookName + desc))
-                    problems.add("missing hook " + hook.hookOwner + "." + hook.hookName + desc);
+                if (!methods.contains(hook.hookName + hook.rHookDesc))
+                    problems.add("missing hook " + hook.hookOwner + "." + hook.hookName + hook.rHookDesc);
             }
         }
         return problems;
@@ -354,7 +395,7 @@ public final class HookTransformer implements ClassFileTransformer {
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-        if (className == null || !hooks.containsKey(className))
+        if (className == null || loader != gameLoader || !hooks.containsKey(className))
             return null;
         try {
             return transform(className, classfileBuffer);
@@ -374,13 +415,12 @@ public final class HookTransformer implements ClassFileTransformer {
 
         Map<MethodNode, List<Hook>> byMethod = new LinkedHashMap<>();
         for (Hook hook : classHooks) {
-            String name = names.method(hook.owner, hook.method, hook.desc);
             MethodNode target = null;
             for (MethodNode mn : cn.methods)
-                if (mn.name.equals(name) && mn.desc.equals(hook.desc))
+                if (mn.name.equals(hook.rMethod) && mn.desc.equals(hook.rDesc))
                     target = mn;
             if (target == null) {
-                missed.add(hook + " (no method " + name + hook.desc + ")");
+                missed.add(hook + " (no method " + hook.rMethod + hook.rDesc + ")");
                 continue;
             }
             byMethod.computeIfAbsent(target, k -> new ArrayList<>()).add(hook);
@@ -408,17 +448,16 @@ public final class HookTransformer implements ClassFileTransformer {
                 continue;
             List<AbstractInsnNode> found = new ArrayList<>();
             boolean field = hook.kind == Kind.BEFORE_FIELD;
-            String refName = field ? names.field(hook.refDeclOwner, hook.refName, hook.refDesc)
-                    : names.method(hook.refDeclOwner, hook.refName, hook.refDesc);
+            String refName = hook.rRefName;
             int seen = 0;
             for (AbstractInsnNode insn = insns.getFirst(); insn != null; insn = insn.getNext()) {
                 boolean match;
                 if (field) {
-                    match = insn instanceof FieldInsnNode && ((FieldInsnNode) insn).owner.equals(hook.refOwner)
-                            && ((FieldInsnNode) insn).name.equals(refName) && ((FieldInsnNode) insn).desc.equals(hook.refDesc);
+                    match = insn instanceof FieldInsnNode && ((FieldInsnNode) insn).owner.equals(hook.rRefOwner)
+                            && ((FieldInsnNode) insn).name.equals(refName) && ((FieldInsnNode) insn).desc.equals(hook.rRefDesc);
                 } else {
-                    match = insn instanceof MethodInsnNode && ((MethodInsnNode) insn).owner.equals(hook.refOwner)
-                            && ((MethodInsnNode) insn).name.equals(refName) && ((MethodInsnNode) insn).desc.equals(hook.refDesc);
+                    match = insn instanceof MethodInsnNode && ((MethodInsnNode) insn).owner.equals(hook.rRefOwner)
+                            && ((MethodInsnNode) insn).name.equals(refName) && ((MethodInsnNode) insn).desc.equals(hook.rRefDesc);
                 }
                 if (!match || !field && (insn.getOpcode() == INVOKESTATIC) != hook.refStatic)
                     continue;
@@ -469,7 +508,7 @@ public final class HookTransformer implements ClassFileTransformer {
                     head.add(new InsnNode(bool ? IRETURN : ARETURN));
                     head.add(proceed);
                     if (frames)
-                        head.add(frame(cn, mn, bool ? INTEGER : ret.getInternalName()));
+                        head.add(frame(cn, mn, bool ? INTEGER : names.type(ret.getInternalName())));
                     head.add(new InsnNode(POP));
                     count = 1;
                     break;
@@ -543,7 +582,7 @@ public final class HookTransformer implements ClassFileTransformer {
     }
 
     private MethodInsnNode call(Hook hook) {
-        return new MethodInsnNode(INVOKESTATIC, hook.hookOwner, hook.hookName, hookDesc(hook), false);
+        return new MethodInsnNode(INVOKESTATIC, hook.hookOwner, hook.hookName, hook.rHookDesc, false);
     }
 
     private static int argSlot(Hook hook, int index) {

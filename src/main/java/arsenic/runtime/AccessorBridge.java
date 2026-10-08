@@ -159,9 +159,10 @@ public final class AccessorBridge {
         }
     }
 
+    /** Loads a class named with SRG names (what the accessor interfaces are written in) under its runtime name. */
     private static Class<?> load(String name, ClassLoader loader) {
         try {
-            return Class.forName(name, false, loader);
+            return Class.forName(RuntimeNames.current().mapClass(name.replace('.', '/')).replace('/', '.'), false, loader);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }

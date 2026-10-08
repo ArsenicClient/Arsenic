@@ -1,5 +1,6 @@
 package arsenic.utils.render.capture;
 
+import arsenic.runtime.Platform;
 import arsenic.injection.accessor.IMixinMinecraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -139,7 +140,8 @@ public final class RenderTargets {
             overlay.setFramebufferColor(0, 0, 0, 0);
             overlayFresh = false;
         }
-        if (scene.isStencilEnabled() && !overlay.isStencilEnabled())
+        // framebuffer stencils are Forge's
+        if (Platform.isForge() && scene.isStencilEnabled() && !overlay.isStencilEnabled())
             overlay.enableStencil();
     }
 

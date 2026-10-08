@@ -220,7 +220,7 @@ public final class BedwarsTracker {
     private static void setOwnBed(BlockPos half) {
         ownBed.clear();
         ownBed.add(half);
-        for (net.minecraft.util.EnumFacing f : net.minecraft.util.EnumFacing.HORIZONTALS) {
+        for (net.minecraft.util.EnumFacing f : net.minecraft.util.EnumFacing.Plane.HORIZONTAL.facings()) {
             BlockPos other = half.offset(f);
             if (world.getBlockState(other).getBlock() instanceof BlockBed) {
                 ownBed.add(other);

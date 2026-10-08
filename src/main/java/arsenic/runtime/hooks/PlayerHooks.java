@@ -1,5 +1,6 @@
 package arsenic.runtime.hooks;
 
+import arsenic.runtime.Platform;
 import arsenic.event.impl.*;
 import arsenic.runtime.Access;
 import arsenic.main.Arsenic;
@@ -196,7 +197,7 @@ public final class PlayerHooks {
     /** EntityPlayer.attackTargetEntityWithCurrentItem HEAD: replaces the vanilla attack. @return true (always cancels) */
     public static boolean attackTargetEntityWithCurrentItem(EntityPlayer self, Entity target) {
         Arsenic.getInstance().getEventManager().post(new EventAttack(target));
-        if (ForgeHooks.onPlayerAttackTarget(self, target)) {
+        if (!Platform.isForge() || ForgeHooks.onPlayerAttackTarget(self, target)) {
             if (target.canAttackWithItem() && !target.hitByEntity(self)) {
                 float f = (float) self.getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue();
                 float f1;

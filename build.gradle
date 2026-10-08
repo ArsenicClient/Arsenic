@@ -44,6 +44,10 @@ minecraft {
 repositories {
     mavenCentral()
     maven {
+        name = "forge"
+        url  = "https://maven.minecraftforge.net"
+    }
+    maven {
         name = "SpongePowered"
         url  = "https://repo.spongepowered.org/repository/maven-public/"
     }
@@ -53,6 +57,7 @@ repositories {
 configurations {
     embed
     compile.extendsFrom embed
+    lunarNames
 }
 
 dependencies {
@@ -71,11 +76,73 @@ dependencies {
     embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
+    // The injector's agent rewrites game classes with ASM. Forge has it, vanilla and Lunar may not; same version as Forge's.
+    embed("org.ow2.asm:asm-debug-all:5.0.3")
+    // Lunar Client runs 1.8.9 with the last MCP names (stable_22), which name a few members stable_20 leaves as SRG
+    lunarNames "de.oceanlabs.mcp:mcp_stable:22-1.8.9@zip"
 }
+
+// SRG -> runtime names for the injector (arsenic.runtime.RuntimeNames), from the srgs ForgeGradle set up:
+//   "C srg notch super interfaces..."  every class, with its super types as SRG names (members are looked up the hierarchy)
+//   "F srgOwner srgName notchName"     fields, owner is the declaring class
+//   "M srgOwner srgName srgDesc notch" methods, owner is the declaring class
+//   "L srgName mcpName"                Lunar Client's MCP names (stable_22) for SRG member names
+def writeInjectMappings = { File srgDir, File out ->
+    def notchSrg = new File(srgDir, "notch-srg.srg")
+    def vanillaJar = file("${gradle.gradleUserHomeDir}/caches/minecraft/net/minecraft/minecraft/1.8.9/minecraft-1.8.9.jar")
+    if (!notchSrg.exists() || !vanillaJar.exists())
+        throw new GradleException("Missing ${notchSrg} or ${vanillaJar}; run the ForgeGradle setup first")
+
+    def classes = [:]   // notch -> srg
+    notchSrg.eachLine { line ->
+        def p = line.split(" ")
+        if (p[0] == "CL:") classes[p[1]] = p[2]
+    }
+    def supers = [:]    // srg -> [super, interfaces...] as SRG names
+    new java.util.zip.ZipFile(vanillaJar).withCloseable { zip ->
+        zip.entries().each { e ->
+            if (!e.name.endsWith(".class")) return
+            def reader = new org.objectweb.asm.ClassReader(zip.getInputStream(e).bytes)
+            def name = reader.className
+            def srg = classes[name] ?: name
+            def list = [reader.superName] + (reader.interfaces as List)
+            supers[srg] = list.findAll { it != null }.collect { classes[it] ?: it }
+        }
+    }
+    def notchOf = [:]
+    classes.each { notch, srg -> notchOf[srg] = notch }
+
+    out.withWriter("UTF-8") { w ->
+        supers.each { srg, list -> w.write("C ${srg} ${notchOf[srg] ?: srg} ${list.join(' ')}".trim() + "\n") }
+        notchSrg.eachLine { line ->
+            def p = line.split(" ")
+            if (p[0] == "FD:") {
+                def owner = p[2].substring(0, p[2].lastIndexOf("/"))
+                w.write("F ${owner} ${p[2].substring(owner.length() + 1)} ${p[1].substring(p[1].lastIndexOf('/') + 1)}\n")
+            } else if (p[0] == "MD:") {
+                def owner = p[3].substring(0, p[3].lastIndexOf("/"))
+                w.write("M ${owner} ${p[3].substring(owner.length() + 1)} ${p[4]} ${p[1].substring(p[1].lastIndexOf('/') + 1)}\n")
+            }
+        }
+        def zip = configurations.lunarNames.singleFile
+        new java.util.zip.ZipFile(zip).withCloseable { z ->
+            ["fields.csv", "methods.csv"].each { csv ->
+                z.getInputStream(z.getEntry(csv)).getText("UTF-8").eachLine { line, n ->
+                    if (n == 0) return
+                    def p = line.split(",")
+                    if (p.length >= 2 && p[0] != p[1]) w.write("L ${p[0]} ${p[1]}\n")
+                }
+            }
+        }
+    }
+}
+
+
 
 // MCP -> SRG member names, bundled so addons written with MCP names can be remapped inside the obfuscated game.
 def addonMappingsDir = file("$buildDir/generated/addon")
 task generateAddonMappings {
+    inputs.files configurations.lunarNames
     outputs.dir addonMappingsDir
     if (tasks.findByName("genSrgs") != null)
         dependsOn "genSrgs"
@@ -104,9 +171,9 @@ task generateAddonMappings {
                 }
             }
         }
+        writeInjectMappings(mcpSrg.parentFile, new File(addonMappingsDir, "inject-mappings.txt"))
     }
 }
-
 
 // API.md: the public surface addons can call, scanned from the sources (tools/apidump/ApiDump.java) so it cannot
 // drift from the code. Written to build/generated/addon-api and bundled into the jar next to the addons.

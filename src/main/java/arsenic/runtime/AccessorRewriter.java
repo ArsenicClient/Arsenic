@@ -1,6 +1,5 @@
 package arsenic.runtime;
 
-import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -19,19 +18,20 @@ import static org.objectweb.asm.Opcodes.*;
  * interfaces to classes that are already loaded, so every call on an accessor interface becomes a call to
  * {@link AccessorBridge}, and the interface types become Object so the casts always pass.
  *
- * Registered on the game's class loader for the client's own classes, and applied to compiled addons.
+ * Applied to the client's own classes as the game loads them ({@link AccessorTransformer} on Forge,
+ * {@link ClientTransformer} elsewhere), and to compiled addons.
  */
-public final class AccessorRewriter implements IClassTransformer {
+public final class AccessorRewriter {
 
     static final String ACCESSOR_PACKAGE = "arsenic/injection/accessor/";
     private static final String BRIDGE = "arsenic/runtime/AccessorBridge";
+    private AccessorRewriter() {}
+
     private static final byte[] MARKER = ACCESSOR_PACKAGE.getBytes(StandardCharsets.ISO_8859_1);
 
-    @Override
-    public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        if (basicClass == null || !transformedName.startsWith("arsenic.") || transformedName.startsWith("arsenic.injection.") || transformedName.startsWith("arsenic.runtime."))
-            return basicClass;
-        return rewrite(basicClass);
+    /** Accessor calls are rewritten in the client's classes, except the mixins and the code that runs them. */
+    static boolean rewrites(String internalName) {
+        return internalName.startsWith("arsenic/") && !internalName.startsWith("arsenic/injection/") && !internalName.startsWith("arsenic/runtime/");
     }
 
     static boolean isAccessor(String internalName) {

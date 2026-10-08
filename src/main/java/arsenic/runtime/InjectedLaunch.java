@@ -1,12 +1,11 @@
 package arsenic.runtime;
 
 import arsenic.main.Arsenic;
+import arsenic.utils.render.capture.SilentView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.FileResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -14,9 +13,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Starts the client inside a game that is already running, for the injector (arsenic.inject.Agent). This is the
- * work Forge does for the mod at startup: the client's assets become a resource pack, the client is created and
- * initialised, and then the agent hooks the Minecraft classes. All of it runs on the game thread, between frames.
+ * Starts the client inside a game that is already running (Forge, vanilla or Lunar Client), for the injector
+ * (arsenic.inject.Agent). This is the work Forge does for the mod at startup: the client's assets become a resource
+ * pack, the client is created and initialised, and then the agent hooks the Minecraft classes. All of it runs on the
+ * game thread, between frames.
  */
 public final class InjectedLaunch {
 
@@ -41,8 +41,11 @@ public final class InjectedLaunch {
      * @param jar          the client jar
      * @param installHooks hooks the Minecraft classes; throws if that fails
      * @param status       progress lines for the injector; "OK" or "ERROR ..." ends the injection
+     * @param namespace    the names Minecraft has in this game, a {@link RuntimeNames.Namespace}
      */
-    public static void start(File jar, Runnable installHooks, Consumer<String> status) {
+    public static void start(File jar, Runnable installHooks, Consumer<String> status, String namespace) {
+        // before anything looks a Minecraft member up by name
+        RuntimeNames.setCurrent(RuntimeNames.create(RuntimeNames.Namespace.valueOf(namespace), InjectedLaunch.class.getClassLoader()));
         Minecraft.getMinecraft().addScheduledTask(() -> {
             try {
                 launch(jar, installHooks, status);
@@ -74,17 +77,11 @@ public final class InjectedLaunch {
         Field instance = Arsenic.class.getDeclaredField("instance");
         instance.setAccessible(true);
         instance.set(null, arsenic);
-        // Forge's event bus wants to know which mod registers a listener, and Arsenic is not a mod here
-        Object controller = Access.field(Loader.class, "modController").get(Loader.instance());
-        Access.FieldRef active = Access.field(controller.getClass(), "activeContainer");
-        ModContainer previous = active.get(controller);
-        active.set(controller, Loader.instance().getMinecraftModContainer());
-        try {
-            arsenic.init(null);
-            // registers itself on the Forge event bus when first loaded
-            Class.forName("arsenic.utils.render.capture.SilentView", true, InjectedLaunch.class.getClassLoader());
-        } finally {
-            active.set(controller, previous);
+        if (Platform.isForge()) {
+            ForgeLaunch.asMinecraft(arsenic::initialize);
+        } else {
+            arsenic.initialize();
+            SilentView.register();
         }
 
         status.accept("Hooking game");

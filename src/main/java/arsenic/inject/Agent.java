@@ -1,6 +1,8 @@
 package arsenic.inject;
 
 import arsenic.addon.MappingTable;
+import arsenic.runtime.ClientTransformer;
+import arsenic.runtime.RuntimeNames;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,30 +12,54 @@ import java.io.Writer;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Java agent the {@link Injector} loads into a running Forge 1.8.9 game. It puts the client jar on the game's class
- * loader, hands over to arsenic.runtime.InjectedLaunch (which starts the client on the game thread), and then
- * hooks the Minecraft classes with a {@link HookTransformer}.
+ * Java agent the {@link Injector} loads into a running Minecraft 1.8.9 game: Forge, vanilla or Lunar Client. It
+ * finds the class loader that holds Minecraft and the names Minecraft has there, puts the client jar on that loader,
+ * hands over to arsenic.runtime.InjectedLaunch (which starts the client on the game thread), and then hooks the
+ * Minecraft classes with a {@link HookTransformer}.
  *
- * This class is loaded by the system class loader, while the game and the client live in Forge's LaunchClassLoader,
- * so everything on the game side is reached by reflection.
+ * The client jar is built against SRG names (what Forge runs). Elsewhere a {@link ClientTransformer} renames the
+ * client's classes to the game's names as they load.
+ *
+ * This class is loaded by the system class loader, while the game and the client usually live in another loader
+ * (Forge's LaunchClassLoader, Lunar's own), so everything on the game side is reached by reflection.
  */
 public final class Agent {
 
+    private static final String MINECRAFT = "net/minecraft/client/Minecraft";
+    private static final String GET_MINECRAFT = "func_71410_x";
+
     private Agent() {}
+
+    /** The running game as the agent finds it. */
+    private static final class Game {
+        final String kind;
+        final ClassLoader loader;
+        final RuntimeNames.Namespace namespace;
+        final boolean forge;
+
+        Game(String kind, ClassLoader loader, RuntimeNames.Namespace namespace, boolean forge) {
+            this.kind = kind;
+            this.loader = loader;
+            this.namespace = namespace;
+            this.forge = forge;
+        }
+    }
 
     public static void agentmain(String args, Instrumentation inst) {
         Consumer<String> status = statusWriter(args);
         try {
             inject(inst, status);
         } catch (Throwable t) {
-            status.accept("ERROR " + t);
+            status.accept("ERROR " + (t.getMessage() != null && t instanceof IllegalStateException ? t.getMessage() : t.toString()));
         }
     }
 
@@ -41,45 +67,42 @@ public final class Agent {
         if (!inst.isRetransformClassesSupported())
             throw new IllegalStateException("This Java does not allow changing loaded classes");
 
-        ClassLoader launchLoader;
-        try {
-            Class<?> launch = Class.forName("net.minecraft.launchwrapper.Launch", false, ClassLoader.getSystemClassLoader());
-            launchLoader = (ClassLoader) launch.getField("classLoader").get(null);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Not a Forge game (no launchwrapper)");
-        }
-        if (launchLoader == null)
-            throw new IllegalStateException("Minecraft has not started yet");
-        try {
-            Class.forName("net.minecraftforge.fml.common.Loader", false, launchLoader);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Not a Forge 1.8.9 game");
-        }
         for (Class<?> c : inst.getAllLoadedClasses()) {
             if (c.getName().equals("arsenic.main.Arsenic"))
                 throw new IllegalStateException("Arsenic is already loaded in this game");
         }
 
+        Game game = findGame(inst);
+        status.accept("LOG Found " + game.kind + " (" + game.namespace.name().toLowerCase() + " names, loader "
+                + (game.loader == ClassLoader.getSystemClassLoader() ? "system" : game.loader.getClass().getName()) + ")");
+
         status.accept("Loading client");
         URL jarUrl = Agent.class.getProtectionDomain().getCodeSource().getLocation();
         File jar = new File(jarUrl.toURI());
-        Method addURL = launchLoader.getClass().getMethod("addURL", URL.class);
-        addURL.invoke(launchLoader, jarUrl);
-        // the loader remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
+        RuntimeNames runtimeNames = RuntimeNames.create(game.namespace, game.loader);
+        addToLoader(inst, game.loader, jarUrl);
+        // the client's classes are prepared as they load, so this must be in place before the first one does
+        if (game.forge)
+            game.loader.getClass().getMethod("registerTransformer", String.class).invoke(game.loader, "arsenic.runtime.AccessorTransformer");
+        else
+            inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
+        // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
         for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
             try {
-                java.lang.reflect.Field f = launchLoader.getClass().getDeclaredField(cache);
+                java.lang.reflect.Field f = game.loader.getClass().getDeclaredField(cache);
                 f.setAccessible(true);
-                ((java.util.Collection<?>) f.get(launchLoader)).clear();
+                ((java.util.Collection<?>) f.get(game.loader)).clear();
             } catch (NoSuchFieldException ignored) {
             }
         }
-        // must be in place before the first client class loads
-        launchLoader.getClass().getMethod("registerTransformer", String.class)
-                .invoke(launchLoader, "arsenic.runtime.AccessorRewriter");
 
-        HookTransformer hooks = new HookTransformer(names(), line -> status.accept("LOG " + line));
-        List<String> problems = hooks.verifyHooks(launchLoader);
+        Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
+        if (launch.getClassLoader() != game.loader)
+            throw new IllegalStateException("The game's class loader (" + game.loader.getClass().getName()
+                    + ") does not load the client itself; this launcher is not supported yet");
+
+        HookTransformer hooks = new HookTransformer(names(game, runtimeNames), game.forge, game.loader, line -> status.accept("LOG " + line));
+        List<String> problems = hooks.verifyHooks(game.loader);
         if (!problems.isEmpty())
             throw new IllegalStateException("Client hooks do not match: " + problems);
 
@@ -87,7 +110,7 @@ public final class Agent {
             inst.addTransformer(hooks, true);
             List<Class<?>> targets = new ArrayList<>();
             for (Class<?> c : inst.getAllLoadedClasses())
-                if (c.getClassLoader() == launchLoader && hooks.targets().contains(c.getName().replace('.', '/')))
+                if (c.getClassLoader() == game.loader && hooks.targets().contains(c.getName().replace('.', '/')))
                     targets.add(c);
             try {
                 inst.retransformClasses(targets.toArray(new Class<?>[0]));
@@ -101,20 +124,145 @@ public final class Agent {
                 status.accept("LOG missed " + hook);
         };
 
-        Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", true, launchLoader);
-        launch.getMethod("start", File.class, Runnable.class, Consumer.class).invoke(null, jar, installHooks, status);
+        launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class)
+                .invoke(null, jar, installHooks, status, game.namespace.name());
     }
 
-    /** MCP names in a development game, SRG names (from the bundled table) in a normal game. */
-    private static HookTransformer.Names names() throws Exception {
-        boolean deobf = false;
+    // ---- finding the game ----
+
+    /**
+     * Finds the loaded Minecraft class. Forge and Lunar have it under its real name (with SRG or MCP members); vanilla
+     * has it under its obfuscated name, found through the class the game started from.
+     */
+    private static Game findGame(Instrumentation inst) throws Exception {
+        Class<?> minecraft = null, vanillaMain = null;
+        boolean lunar = false;
+        for (Class<?> c : inst.getAllLoadedClasses()) {
+            String name = c.getName();
+            if (name.equals("net.minecraft.client.Minecraft") && c.getClassLoader() != null)
+                minecraft = c;
+            else if (name.equals("net.minecraft.client.main.Main") && c.getClassLoader() != null)
+                vanillaMain = c;
+            else if (name.startsWith("com.moonsworth.lunar."))
+                lunar = true;
+        }
+
+        if (minecraft != null) {
+            ClassLoader loader = minecraft.getClassLoader();
+            boolean srg = declaresMethod(minecraft, GET_MINECRAFT);
+            boolean forge = srg && classExists("net.minecraftforge.fml.common.Loader", loader);
+            if (forge)
+                return new Game("Forge", loader, isDeobfuscatedForge() ? RuntimeNames.Namespace.MCP : RuntimeNames.Namespace.SRG, true);
+            if (srg)
+                throw new IllegalStateException("Minecraft has SRG names but Forge is missing; this launcher is not supported");
+            if (!declaresMethod(minecraft, "getMinecraft"))
+                throw new IllegalStateException("Minecraft is loaded under names this injector does not know");
+            if (classExists("net.minecraftforge.fml.common.Loader", loader))
+                return new Game("Forge (development)", loader, RuntimeNames.Namespace.MCP, true);
+            return new Game(lunar ? "Lunar Client" : "Minecraft (MCP names)", loader, RuntimeNames.Namespace.MCP, false);
+        }
+
+        if (vanillaMain != null || classExists("net.minecraft.launchwrapper.Launch", ClassLoader.getSystemClassLoader())) {
+            RuntimeNames names = RuntimeNames.create(RuntimeNames.Namespace.NOTCH, null);
+            String obfuscated = names.mapClass(MINECRAFT).replace('/', '.');
+            for (Class<?> c : inst.getAllLoadedClasses()) {
+                if (!c.getName().equals(obfuscated) || c.getClassLoader() == null)
+                    continue;
+                String getMinecraft = names.mapMethod(MINECRAFT, GET_MINECRAFT, "()L" + MINECRAFT + ";");
+                Method m;
+                try {
+                    m = c.getDeclaredMethod(getMinecraft);
+                } catch (NoSuchMethodException e) {
+                    continue;
+                }
+                if (m.getReturnType() != c || !java.lang.reflect.Modifier.isStatic(m.getModifiers()))
+                    continue;
+                boolean launchwrapper = c.getClassLoader().getClass().getName().equals("net.minecraft.launchwrapper.LaunchClassLoader");
+                return new Game(launchwrapper ? "Vanilla (launchwrapper)" : "Vanilla", c.getClassLoader(), RuntimeNames.Namespace.NOTCH, false);
+            }
+            throw new IllegalStateException("This is not Minecraft 1.8.9, or it has not finished starting");
+        }
+        throw new IllegalStateException("Minecraft has not started yet, or this is not Minecraft");
+    }
+
+    private static boolean declaresMethod(Class<?> c, String name) {
+        try {
+            for (Method m : c.getDeclaredMethods())
+                if (m.getName().equals(name))
+                    return true;
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
+    private static boolean classExists(String name, ClassLoader loader) {
+        try {
+            Class.forName(name, false, loader);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static boolean isDeobfuscatedForge() {
         try {
             Class<?> launch = Class.forName("net.minecraft.launchwrapper.Launch", false, ClassLoader.getSystemClassLoader());
             Map<?, ?> blackboard = (Map<?, ?>) launch.getField("blackboard").get(null);
-            deobf = Boolean.TRUE.equals(blackboard.get("fml.deobfuscatedEnvironment"));
-        } catch (Exception ignored) {
+            return Boolean.TRUE.equals(blackboard.get("fml.deobfuscatedEnvironment"));
+        } catch (Exception e) {
+            return false;
         }
-        if (deobf) {
+    }
+
+    // ---- getting the client onto the game's class loader ----
+
+    /**
+     * Adds the client jar to the class path of the game's class loader. The JVM already put the agent jar (the client
+     * jar) on the system class path, which is enough when the game runs there (vanilla).
+     */
+    private static void addToLoader(Instrumentation inst, ClassLoader loader, URL jar) throws Exception {
+        if (loader == ClassLoader.getSystemClassLoader())
+            return;
+        // Forge's LaunchClassLoader and some launchers' loaders make addURL public
+        try {
+            Method addURL = loader.getClass().getMethod("addURL", URL.class);
+            addURL.invoke(loader, jar);
+            return;
+        } catch (NoSuchMethodException ignored) {
+        }
+        if (!(loader instanceof URLClassLoader))
+            throw new IllegalStateException("Cannot add the client to the game's class loader (" + loader.getClass().getName() + ")");
+        Method addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+        try {
+            addURL.setAccessible(true);
+        } catch (RuntimeException closed) {
+            // Java 9+: java.net is closed to the agent until the agent opens it (InaccessibleObjectException)
+            openPackage(inst, URLClassLoader.class, "java.net");
+            addURL.setAccessible(true);
+        }
+        addURL.invoke(loader, jar);
+    }
+
+    /** Opens a JDK package to this agent with Instrumentation.redefineModule (Java 9+, called by reflection). */
+    private static void openPackage(Instrumentation inst, Class<?> inPackage, String pkg) throws Exception {
+        Method getModule = Class.class.getMethod("getModule");
+        Object target = getModule.invoke(inPackage);
+        Object self = getModule.invoke(Agent.class);
+        Class<?> moduleClass = Class.forName("java.lang.Module");
+        Method redefine = Instrumentation.class.getMethod("redefineModule", moduleClass, java.util.Set.class, Map.class, Map.class,
+                java.util.Set.class, Map.class);
+        redefine.invoke(inst, target, Collections.emptySet(), Collections.emptyMap(),
+                Collections.singletonMap(pkg, Collections.singleton(self)), Collections.emptySet(), Collections.emptyMap());
+    }
+
+    // ---- names ----
+
+    /**
+     * MCP names (what the hooks are written in) to the game's names: MCP to SRG with the bundled addon table, then SRG
+     * to the game's names with {@link RuntimeNames}. Development games keep MCP names throughout.
+     */
+    private static HookTransformer.Names names(Game game, RuntimeNames runtime) throws Exception {
+        if (game.namespace == RuntimeNames.Namespace.MCP && game.forge) {
             return new HookTransformer.Names() {
                 @Override
                 public String method(String owner, String name, String desc) {
@@ -124,6 +272,16 @@ public final class Agent {
                 @Override
                 public String field(String owner, String name, String desc) {
                     return name;
+                }
+
+                @Override
+                public String type(String internalName) {
+                    return internalName;
+                }
+
+                @Override
+                public String desc(String desc) {
+                    return desc;
                 }
             };
         }
@@ -137,13 +295,23 @@ public final class Agent {
             @Override
             public String method(String owner, String name, String desc) {
                 String srg = table.methodToSrg(owner, name, desc);
-                return srg != null ? srg : name;
+                return runtime.mapMethod(owner, srg != null ? srg : name, desc);
             }
 
             @Override
             public String field(String owner, String name, String desc) {
                 String srg = table.fieldToSrg(owner, name);
-                return srg != null ? srg : name;
+                return runtime.mapField(owner, srg != null ? srg : name);
+            }
+
+            @Override
+            public String type(String internalName) {
+                return runtime.mapClass(internalName);
+            }
+
+            @Override
+            public String desc(String desc) {
+                return runtime.mapDesc(desc);
             }
         };
     }

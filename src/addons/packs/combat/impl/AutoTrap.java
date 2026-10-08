@@ -73,7 +73,7 @@ public class AutoTrap extends Module {
         List<BlockPos> out = new ArrayList<>();
         if (enemy == null) return out;
         BlockPos feet = new BlockPos(enemy);
-        for (EnumFacing f : EnumFacing.HORIZONTALS) {
+        for (EnumFacing f : EnumFacing.Plane.HORIZONTAL.facings()) {
             out.add(feet.offset(f));
             out.add(feet.up().offset(f));
         }

@@ -232,7 +232,7 @@ public class Breaker extends Module {
     private BlockPos hypixelPick(BlockPos bed) {
         java.util.List<BlockPos> halves = new java.util.ArrayList<>();
         halves.add(bed);
-        for (EnumFacing side : EnumFacing.HORIZONTALS)
+        for (EnumFacing side : EnumFacing.Plane.HORIZONTAL.facings())
             if (mc.theWorld.getBlockState(bed.offset(side)).getBlock() instanceof BlockBed)
                 halves.add(bed.offset(side));
 
@@ -311,7 +311,7 @@ if (block.getBlockHardness(mc.theWorld, pos) < 0)                    continue;  
     private Plan planLegit(BlockPos bed) {
         java.util.List<BlockPos> halves = new java.util.ArrayList<>();
         halves.add(bed);
-        for (EnumFacing side : EnumFacing.HORIZONTALS)
+        for (EnumFacing side : EnumFacing.Plane.HORIZONTAL.facings())
             if (mc.theWorld.getBlockState(bed.offset(side)).getBlock() instanceof BlockBed)
                 halves.add(bed.offset(side));
 
