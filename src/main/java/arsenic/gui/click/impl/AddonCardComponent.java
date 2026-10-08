@@ -5,7 +5,9 @@ import arsenic.gui.click.Component;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
+import arsenic.module.Module;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
@@ -25,16 +27,17 @@ import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * One block in the Addon Manager. An addon is drawn exactly like a module row (chevron, name, the module on/off
- * switch); opening it with the chevron or a right click shows its description, its pack and what it needs. The page
- * also uses this class for the full-width blocks above the rows: the selected pack's header (icon, description,
- * Enable all / Disable all), a plain section header, or a load error.
+ * switch); opening it with the chevron or a right click shows its description, its pack, what it needs and, while
+ * it is on, its settings. The page also uses this class for the full-width blocks above the rows: the selected pack's
+ * header (icon, description, Enable all / Disable all), a plain section header, or a load error.
  */
-public class AddonCardComponent extends Component {
+public class AddonCardComponent extends Component implements IContainer<PropertyComponent<?>> {
 
     private enum Kind { PACK, SECTION, ADDON, ERROR }
 
@@ -54,7 +57,10 @@ public class AddonCardComponent extends Component {
 
     // addon rows
     private boolean on, open;
-    private float chevronZoneX2, toggleZoneX1, contentHeight;
+    private float chevronZoneX2, toggleZoneX1, contentHeight, settingsHeight;
+    /** The loaded module behind this row, and its settings as the dropdown draws them. Empty while the addon is off. */
+    private Module module;
+    private final List<PropertyComponent<?>> contents = new ArrayList<>();
     private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
     private final AnimationTimer enabledTimer = new AnimationTimer(UITheme.DUR_TOGGLE, () -> on, TickMode.CUBIC);
     private arsenic.utils.render.PosInfo posInfo;
@@ -89,6 +95,8 @@ public class AddonCardComponent extends Component {
         this.title = title;
         this.text = text;
         this.on = info != null && info.state == AddonManager.State.ENABLED;
+        if (kind == Kind.ADDON)
+            resolveModule();
     }
 
     public static AddonCardComponent addon(AddonManager.Info info) {
@@ -111,6 +119,29 @@ public class AddonCardComponent extends Component {
     public void update(AddonManager.Info info) {
         this.info = info;
         this.on = info.state == AddonManager.State.ENABLED;
+        resolveModule();
+    }
+
+    /** Finds the loaded module for this row. A reload makes new module instances, so the settings are rebuilt then. */
+    private void resolveModule() {
+        Module found = Arsenic.getArsenic().getAddonManager().findLoadedModule(info.name);
+        if (found == module)
+            return;
+        module = found;
+        contents.clear();
+        settingsHeight = 0;
+        if (module != null)
+            module.getProperties().forEach(property -> contents.add(property.createComponent()));
+    }
+
+    @Override
+    public String getName() {
+        return info == null ? "" : info.name;
+    }
+
+    @Override
+    public Collection<PropertyComponent<?>> getContents() {
+        return contents;
     }
 
     public void setShowPack(boolean showPack) {
@@ -265,25 +296,37 @@ public class AddonCardComponent extends Component {
         fr.drawString(fit(fr, info.name, chipRight - textX), textX, midPointY, titleColor, fr.CENTREY);
         RenderUtils.resetColorText();
 
-        // the dropdown: description, pack, what it needs
+        // the dropdown: description, pack, what it needs, then the settings while the addon is on
         float lineH = fr.getHeight("Ag") + 1.5f;
         float innerW = x2 - x1 - rowPad * 2.2f;
-        List<String> drop = new ArrayList<>(wrap(fr, info.description, innerW));
+        List<String> desc = new ArrayList<>(wrap(fr, info.description, innerW));
+        if (module == null && info.state != AddonManager.State.ENABLED)
+            desc.addAll(wrap(fr, "Turn it on to change its settings.", innerW));
+        int descLines = desc.size();
+        List<String> drop = new ArrayList<>(desc);
         boolean packLine = showPack && info.pack != null;
         if (packLine)
             drop.add("Pack: " + info.pack.name);
         if (!info.requires.isEmpty())
             drop.add("Needs: " + String.join(", ", info.requires));
-        contentHeight = rowPad * 1.2f + drop.size() * lineH;
+        float textH = rowPad * 1.2f + drop.size() * lineH;
+        contentHeight = textH + settingsHeight;
         if (openPct > 0.001f) {
             UITheme.divider(x1 + rowPad, y2, x2 - rowPad, openPct);
             ScissorUtils.subScissor((int) x1, (int) y2, (int) x2, (int) (y2 + expandY), 2);
             float y = y2 + rowPad * 0.5f;
-            int descLines = drop.size() - (packLine ? 1 : 0) - (info.requires.isEmpty() ? 0 : 1);
             for (int i = 0; i < drop.size(); i++) {
                 int color = i < descLines ? UITheme.textSecondary() : UITheme.alpha(UITheme.accent(), 220);
                 fr.drawString(drop.get(i), x1 + rowPad * 1.1f, y + lineH / 2f, UITheme.alpha(color, (int) (255 * openPct)), fr.CENTREY);
                 y += lineH;
+            }
+            if (!contents.isEmpty()) {
+                arsenic.utils.render.PosInfo pi = new arsenic.utils.render.PosInfo(x1 + rowPad * 1.1f, y + rowPad * 0.3f);
+                float start = pi.getY();
+                for (PropertyComponent<?> child : contents)
+                    pi.moveY(child.updateComponent(pi, ri) * 1.06f);
+                settingsHeight = rowPad * 0.3f + (pi.getY() - start);
+                contentHeight = textH + settingsHeight;
             }
             ScissorUtils.endSubScissor();
         }
@@ -397,6 +440,11 @@ public class AddonCardComponent extends Component {
             if ((mouseButton == 1 && mouseX < toggleZoneX1) || mouseX <= chevronZoneX2) {
                 open = !open;
                 SoundUtils.chordOpen();
+                if (!open) {
+                    for (PropertyComponent<?> child : contents)
+                        if (child instanceof arsenic.utils.interfaces.IAlwaysClickable)
+                            ((arsenic.utils.interfaces.IAlwaysClickable) child).setNotAlwaysClickable();
+                }
                 return;
             }
             switchComponent.handleClick(mouseX, mouseY, mouseButton);

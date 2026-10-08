@@ -58,6 +58,14 @@ public final class AddonManager {
         return Collections.unmodifiableList(loaded);
     }
 
+    /** The loaded module for an addon's file name, or null while that addon is off and its class is not loaded. */
+    public Module findLoadedModule(String addonName) {
+        for (Module module : loaded)
+            if (module.getClass().getSimpleName().equals(addonName))
+                return module;
+        return null;
+    }
+
     public List<String> getErrors() {
         return Collections.unmodifiableList(errors);
     }
