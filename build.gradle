@@ -217,7 +217,12 @@ def configureArsenicJar = { Jar task ->
             "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
             "FMLCorePluginContainsFMLMod": true,
             "ForceLoadAsMod"             : true,
-            "ModSide"                    : "CLIENT"
+            "ModSide"                    : "CLIENT",
+            // double-clicking the jar opens the injector, which loads it into a running game as a Java agent
+            "Main-Class"                 : "arsenic.inject.Injector",
+            "Agent-Class"                : "arsenic.inject.Agent",
+            "Can-Retransform-Classes"    : true,
+            "Can-Redefine-Classes"       : true
     )
 }
 

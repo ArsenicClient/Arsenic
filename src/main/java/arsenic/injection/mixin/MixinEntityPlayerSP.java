@@ -1,121 +1,45 @@
 package arsenic.injection.mixin;
 
-import arsenic.event.impl.*;
-import arsenic.injection.accessor.IMixinEntityPlayerSP;
-import org.lwjgl.input.Mouse;
+import arsenic.runtime.hooks.PlayerHooks;
+import net.minecraft.client.entity.EntityPlayerSP;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.world.World;
-import com.mojang.authlib.GameProfile;
 
-import arsenic.main.Arsenic;
-import arsenic.module.impl.ghost.HitSelect;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.util.MovingObjectPosition;
-
-import static arsenic.main.MinecraftAPI.mouseDownLastTick;
-
+/** Hook logic lives in {@link PlayerHooks}, shared with the injected client. */
 @Mixin(priority = 1111, value = EntityPlayerSP.class)
-public abstract class MixinEntityPlayerSP extends AbstractClientPlayer implements IMixinEntityPlayerSP {
-
-    private double cachedX;
-    private double cachedY;
-    private double cachedZ;
-
-    private boolean cachedOnGround;
-
-    private float cachedRotationPitch;
-    private float cachedRotationYaw;
-
-    public MixinEntityPlayerSP(World p_i45074_1_, GameProfile p_i45074_2_) {
-        super(p_i45074_1_, p_i45074_2_);
-    }
+public abstract class MixinEntityPlayerSP {
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerPre(CallbackInfo ci) {
-        cachedX = posX;
-        cachedY = posY;
-        cachedZ = posZ;
-
-        cachedOnGround = onGround;
-
-        cachedRotationYaw = rotationYaw;
-        cachedRotationPitch = rotationPitch;
-
-        EventUpdate event = new EventUpdate.Pre(posX, posY, posZ, rotationYaw, rotationPitch, onGround);
-        Arsenic.getInstance().getEventManager().post(event);
-        if(event.isCancelled()) {
+        if (PlayerHooks.onUpdateWalkingPlayerHead((EntityPlayerSP) (Object) this))
             ci.cancel();
-            return;
-        }
-
-        posX = event.getX();
-        posY = event.getY();
-        posZ = event.getZ();
-
-        onGround = event.isOnGround();
-
-        rotationYaw = event.getYaw();
-        rotationPitch = event.getPitch();
     }
 
     @Inject(method = "onUpdate", at = @At("HEAD"))
     private void onUpdate(CallbackInfo ci) {
-        Arsenic.getInstance().getEventManager().post(new EventTick());
-        for(int i = 0; i < 3; i++) {
-            if (Mouse.isButtonDown(i) && !mouseDownLastTick[i]) {
-                mouseDownLastTick[i] = true;
-                Arsenic.getArsenic().getEventManager().post(new EventMouse.Down(i));
-            } else if (!Mouse.isButtonDown(i) && mouseDownLastTick[i]) {
-                mouseDownLastTick[i] = false;
-                Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
-            }
-        }
+        PlayerHooks.onUpdateHead((EntityPlayerSP) (Object) this);
     }
 
     @Inject(method = "onUpdate", at = @At("RETURN"))
     private void onUpdatePost(CallbackInfo ci) {
-        Arsenic.getInstance().getEventManager().post(new EventTick.Post());
+        PlayerHooks.onUpdateReturn((EntityPlayerSP) (Object) this);
     }
 
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
     public void onLivingUpdate(CallbackInfo ci) {
-        Arsenic.getInstance().getEventManager().post(new EventLiving());
+        PlayerHooks.onLivingUpdateHead((EntityPlayerSP) (Object) this);
     }
 
     @Inject(method = "swingItem", at = @At("HEAD"), cancellable = true)
     private void arsenic$hitSelectSwing(CallbackInfo ci) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.objectMouseOver == null
-                || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY)
-            return;
-
-        HitSelect hitSelect = Arsenic.getArsenic().getModuleManager().getModuleByClass(HitSelect.class);
-        if (hitSelect != null && hitSelect.shouldBlock(mc.objectMouseOver.entityHit))
+        if (PlayerHooks.swingItemHead((EntityPlayerSP) (Object) this))
             ci.cancel();
     }
 
-
     @Inject(method = "onUpdateWalkingPlayer", at = @At("RETURN"))
     private void onUpdateWalkingPlayerPost(CallbackInfo ci) {
-        posX = cachedX;
-        posY = cachedY;
-        posZ = cachedZ;
-
-        onGround = cachedOnGround;
-
-        rotationYaw = cachedRotationYaw;
-        rotationPitch = cachedRotationPitch;
-
-        Arsenic.getInstance().getEventManager()
-                .post(new EventUpdate.Post(posX, posY, posZ, rotationYaw, rotationPitch, onGround));
+        PlayerHooks.onUpdateWalkingPlayerReturn((EntityPlayerSP) (Object) this);
     }
-
-
-
 }

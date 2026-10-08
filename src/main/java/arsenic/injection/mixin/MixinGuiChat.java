@@ -1,73 +1,29 @@
 package arsenic.injection.mixin;
 
+import arsenic.runtime.hooks.GuiHooks;
+import net.minecraft.client.gui.GuiChat;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import arsenic.main.Arsenic;
-import net.minecraft.client.gui.GuiChat;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
-
+/** Hook logic lives in {@link GuiHooks}, shared with the injected client. */
 @Mixin(value = GuiChat.class)
-public class MixinGuiChat extends GuiScreen {
-
-    @Shadow
-    protected GuiTextField inputField;
-
-    private String trimmedAutoCompletion;
-    private String lastArg;
-    private Boolean isLastArgValidArg;
+public class MixinGuiChat {
 
     @Inject(method = "keyTyped", at = @At("RETURN"))
     public void keyTypedReturn(char typedChar, int keyCode, CallbackInfo ci) {
-        if (inputField.getText().startsWith(".")) {
-            inputField.setTextColor(Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor());
-
-            if (keyCode != 15 && keyCode != 1) {
-                Arsenic.getArsenic().getCommandManager().updateAutoCompletions(inputField.getText());
-            }
-
-            String latestAutoCompletion = Arsenic.getArsenic().getCommandManager().getAutoCompletionWithoutRotation();
-            lastArg = inputField.getText().substring(inputField.getText().lastIndexOf((inputField.getText().contains(" ") ? ' ' : '.')) + 1);
-            // lastArg is whatever was typed, so it must not be read as a regex (a stray \ or [ crashed the game)
-            trimmedAutoCompletion = latestAutoCompletion.toLowerCase().replaceFirst(java.util.regex.Pattern.quote(lastArg.toLowerCase()), "");
-            isLastArgValidArg = (trimmedAutoCompletion.length() == latestAutoCompletion.length() || latestAutoCompletion.length() < lastArg.length()) && lastArg.length() != 0;
-        } else {
-            inputField.setTextColor(0xE0E0E0);
-        }
+        GuiHooks.chatKeyTypedReturn((GuiChat) (Object) this, typedChar, keyCode);
     }
 
     @Inject(method = "keyTyped", at = @At("HEAD"), cancellable = true)
     public void keyTypedHead(char typedChar, int keyCode, CallbackInfo ci) {
-        if (inputField.getText().startsWith(".") && keyCode == 15) {
-             inputField.setText(inputField.getText().substring(0,
-             inputField.getText().lastIndexOf((inputField.getText().contains(" ") ? ' ' : '.')) + 1));
-             inputField.writeText(Arsenic.getArsenic().getCommandManager().getAutoCompletion());
-             keyTypedReturn(typedChar, keyCode, ci);
-             ci.cancel();
-        }
+        if (GuiHooks.chatKeyTypedHead((GuiChat) (Object) this, typedChar, keyCode))
+            ci.cancel();
     }
 
     @Inject(method = "drawScreen", at = @At("RETURN"))
     public void drawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        if (inputField.getText().startsWith(".")) {
-            if(isLastArgValidArg) {
-                mc.fontRendererObj.drawStringWithShadow(
-                        trimmedAutoCompletion,
-                        inputField.xPosition + mc.fontRendererObj.getStringWidth(inputField.getText().replace(lastArg, "")),
-                        inputField.yPosition - mc.fontRendererObj.FONT_HEIGHT * 1.2f,
-                        0x999999
-                );
-            } else {
-                mc.fontRendererObj.drawStringWithShadow(
-                        trimmedAutoCompletion,
-                        inputField.xPosition + mc.fontRendererObj.getStringWidth(inputField.getText()),
-                        inputField.yPosition,
-                        0x999999);
-            }
-        }
+        GuiHooks.chatDrawScreenReturn((GuiChat) (Object) this, mouseX, mouseY, partialTicks);
     }
 }

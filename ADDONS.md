@@ -2023,6 +2023,7 @@ public final class HudElement {
     /** When true, #x is an offset from the right edge of the screen (0 = flush right). */ public boolean rightAnchored;
     public int x, y;
     public int width, height;
+    /** Whether the element is currently drawn; the HUD editor only lists elements that return true. */ public BooleanSupplier active;
     public HudElement(String label, int x, int y, int width, int height, boolean rightAnchored);
     public void setSize(int width, int height);
     public void reset();

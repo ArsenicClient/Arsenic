@@ -1,5 +1,7 @@
 package arsenic.addon;
 
+import arsenic.runtime.AccessorRewriter;
+import arsenic.runtime.InjectedLaunch;
 import org.eclipse.jdt.core.compiler.CategorizedProblem;
 import org.eclipse.jdt.internal.compiler.ClassFile;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
@@ -84,8 +86,13 @@ public final class AddonCompiler {
         Remappers.Hierarchy hierarchy = new Remappers.Hierarchy(source);
         if (table != null)
             raw.values().forEach(hierarchy::register);
-        raw.forEach((internal, bytes) -> result.classes.put(internal.replace('/', '.'),
-                table != null ? Remappers.toSrg(bytes, table, hierarchy) : bytes));
+        raw.forEach((internal, bytes) -> {
+            byte[] remapped = table != null ? Remappers.toSrg(bytes, table, hierarchy) : bytes;
+            // injected, Minecraft classes do not implement the accessor interfaces
+            if (InjectedLaunch.isInjected())
+                remapped = AccessorRewriter.rewrite(remapped);
+            result.classes.put(internal.replace('/', '.'), remapped);
+        });
         return result;
     }
 

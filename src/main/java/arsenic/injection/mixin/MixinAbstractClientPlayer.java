@@ -1,10 +1,6 @@
 package arsenic.injection.mixin;
 
-import arsenic.main.Arsenic;
-import arsenic.module.ModuleManager;
-import arsenic.module.impl.client.Cape;
-import arsenic.module.impl.client.CapeHandler;
-import net.minecraft.client.Minecraft;
+import arsenic.runtime.hooks.PlayerHooks;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
@@ -14,21 +10,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/** Hook logic lives in {@link PlayerHooks}, shared with the injected client. */
 @Mixin(AbstractClientPlayer.class)
 @SideOnly(Side.CLIENT)
 public abstract class MixinAbstractClientPlayer {
 
     @Inject(method = "getLocationCape", at = @At("HEAD"), cancellable = true)
     private void getCape(CallbackInfoReturnable<ResourceLocation> cir) {
-        if (Minecraft.getMinecraft().thePlayer != (Object) this) return;
-        Arsenic arsenic = Arsenic.getInstance();
-        ModuleManager moduleManager = arsenic.getModuleManager();
-        Cape cape = moduleManager.getModuleByClass(Cape.class);
-        if (cape.isEnabled()) {
-            CapeHandler capeHandler = CapeHandler.getInstance();
-            if (capeHandler.hasCape()) {
-                cir.setReturnValue(capeHandler.getCapeLocation());
-            }
-        }
+        ResourceLocation cape = PlayerHooks.getLocationCape((AbstractClientPlayer) (Object) this);
+        if (cape != null)
+            cir.setReturnValue(cape);
     }
 }
