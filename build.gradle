@@ -18,12 +18,10 @@ buildscript {
     }
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT"
-        classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "org.spongepowered.mixin"
 apply plugin: "idea"
 
 version          = "v2.0"
@@ -38,7 +36,6 @@ minecraft {
     version    = "1.8.9-11.15.1.2318-1.8.9"
     runDir     = "run"
     mappings   = "stable_20"
-    clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
 }
 
 repositories {
@@ -64,13 +61,8 @@ configurations {
 }
 
 dependencies {
-    embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
-        exclude module: "launchwrapper"  // provided by Forge
-        exclude module: "guava"          // provided by Minecraft
-        exclude module: "gson"           // provided by Minecraft
-        exclude module: "log4j"          // provided by Minecraft
-        exclude module: "commons-io"     // provided by Minecraft/Forge
-    }
+    // Only the annotations of arsenic.injection.accessor need it; AccessorBridge reads them from class bytes at run time
+    compileOnly "org.spongepowered:mixin:0.6.12-SNAPSHOT"
     compileOnly "org.jetbrains:annotations:23.0.0"
     embed 'com.jagrosh:DiscordIPC:0.4'
     embed("org.reflections:reflections:0.10.2") {
@@ -272,13 +264,6 @@ processResources {
     inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
-    from(sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
-        expand version: project.version, mcversion: project.minecraft.version
-    }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
-    }
 }
 
 
@@ -299,9 +284,6 @@ sourceSets {
     }
 }
 build.dependsOn "compileAddonsJava"
-mixin {
-    add sourceSets.main, "mixins.arsenic.refmap.json"
-}
 
 def configureArsenicJar = { Jar task ->
     task.from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
@@ -316,13 +298,6 @@ def configureArsenicJar = { Jar task ->
     }
 
     task.manifest.attributes(
-            "MixinConfigs"               : "mixins.arsenic.json",
-            "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
-            "TweakOrder"                 : 0,
-            "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
-            "FMLCorePluginContainsFMLMod": true,
-            "ForceLoadAsMod"             : true,
-            "ModSide"                    : "CLIENT",
             // double-clicking the jar opens the injector, which loads it into a running game as a Java agent
             "Main-Class"                 : "arsenic.inject.Injector",
             "Agent-Class"                : "arsenic.inject.Agent",

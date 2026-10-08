@@ -110,7 +110,7 @@ public final class Injector {
                 return;
             String message = "Injecting needs a Java Development Kit (JDK), and none was found.\n"
                     + "Install one (for example Eclipse Temurin JDK 8, 17 or 21 from adoptium.net) and open the jar again.\n\n"
-                    + "To use Arsenic without injecting, put the jar in .minecraft/mods instead.";
+                    + "Or start the game with -javaagent:Arsenic.jar in its JVM arguments, which needs no JDK.";
             if (console) {
                 System.err.println(message);
                 System.exit(2);

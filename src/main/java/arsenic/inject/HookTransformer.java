@@ -163,8 +163,8 @@ public final class HookTransformer implements ClassFileTransformer {
         return hook;
     }
 
-    // Mirrors the mixins in arsenic.injection.mixin, in the same order. SplashProgress and FMLHandshakeMessage are
-    // left out: by the time the client is injected the splash screen and the mod list handshake are long over.
+    // The client's hook points in Minecraft, in the order they were first written. The splash screen and the mod list
+    // handshake are not hooked: by the time the client is injected both are long over.
     private void registerHooks(List<Hook> into) {
         registering = into;
         String mc = "client/Minecraft";
@@ -200,7 +200,7 @@ public final class HookTransformer implements ClassFileTransformer {
         add(Kind.HEAD_CANCEL, entity, "moveFlying", "(FFF)V", ENTITY_HOOKS, "moveFlyingHead");
         add(Kind.ARG, entity, "setAngles", "(FF)V", ENTITY_HOOKS, "setAnglesYaw").index(0);
         add(Kind.ARG, entity, "setAngles", "(FF)V", ENTITY_HOOKS, "setAnglesPitch").index(1);
-        // the mixin modifies the second Vec3 rayTrace stores, which is the result of getLook
+        // the hook changes the second Vec3 rayTrace stores, which is the result of getLook
         add(Kind.MODIFY_RESULT, entity, "rayTrace", "(DF)Lnet/minecraft/util/MovingObjectPosition;", ENTITY_HOOKS, "rayTraceLook")
                 .ref(MC + entity, "getLook", "(F)Lnet/minecraft/util/Vec3;");
 
@@ -222,7 +222,7 @@ public final class HookTransformer implements ClassFileTransformer {
                     .ref(MC + "client/gui/GuiScreen", "drawScreen", "(IIF)V");
         add(Kind.HEAD_CANCEL, er, "getMouseOver", "(F)V", RENDER_HOOKS, "getMouseOver");
         add(Kind.HEAD_CANCEL, er, "hurtCameraEffect", "(F)V", RENDER_HOOKS, "hurtCameraEffectHead");
-        // the mixin changes what getFOVModifier returns when useFOVSetting is true; these are the callers that pass true
+        // the hook changes what getFOVModifier returns when useFOVSetting is true; these are the callers that pass true
         add(Kind.MODIFY_RESULT, er, "setupCameraTransform", "(FI)V", RENDER_HOOKS, "fovModifier")
                 .ref(MC + er, "getFOVModifier", "(FZ)F");
         add(Kind.MODIFY_RESULT, er, "renderWorldPass", "(IFJ)V", RENDER_HOOKS, "fovModifier")

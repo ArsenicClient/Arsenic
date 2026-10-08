@@ -72,7 +72,7 @@ Start from the [skeleton](#skeleton) or copy the [worked example](#worked-exampl
 - **What you can import:** whatever is on the game's classpath. That is Minecraft and Forge classes, LWJGL
   (`org.lwjgl.*`), Guava, Gson, Log4j, the JDK, and every `arsenic.*` class. Addons run with the game's full
   permissions and there is no sandbox.
-- **No mixins and no ASM in addons.** Mixins are applied once at game start, long before an addon is compiled. Addons are
+- **No mixins and no ASM in addons.** The client's hooks are applied once at injection, long before an addon is compiled. Addons are
   limited to the public Java surface of Minecraft plus the Arsenic API. For private Minecraft state use the accessor
   interfaces in `arsenic.injection.accessor` by casting (`((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw)`,
   `((IMixinEntityPlayerSP) mc.thePlayer).getLastReportedYaw()`); see the list in the [API reference](#api-reference-generated). A missing
@@ -206,7 +206,7 @@ notifications and have no effect when cancelled.
 
 ### Order inside one client tick
 
-Derived from the mixins in `arsenic.injection.mixin`:
+Derived from the hooks in `arsenic.runtime.hooks` (applied by `arsenic.inject.HookTransformer`):
 
 ```
 Minecraft.runTick (every 50 ms)
