@@ -4,21 +4,23 @@ Arsenic is a Minecraft 1.8.9 Forge client built around the Hypixel and Grim anti
 gets removed or reworked.
 
 - Module system with a themed ClickGUI and draggable HUD
-- Command system (`.help` in chat), config system, custom event bus, mixins
+- Command system (`.help` in chat), config system, custom event bus
 - **Addons**: write a module as a single `.java` file, drop it in a folder and it loads. No IDE, JDK or jar needed.
 
 ## Installing
 
-The same jar works two ways:
+Arsenic is loaded into a game that is already running (Forge, Vanilla or Lunar Client). It is not a mod: never put
+the jar in `.minecraft/mods`. Two ways in:
 
-- **As a mod**: put it in `.minecraft/mods` and start Forge 1.8.9.
-- **Injected**: start Minecraft 1.8.9 (Forge, Vanilla or Lunar Client) without it, then double-click the jar. Pick
-  the game in the window and press **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it
-  on its own. Without a window: `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
+- **Injector**: start Minecraft 1.8.9 without Arsenic, then double-click the jar. Pick the game in the window and press
+  **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it on its own. Without a window:
+  `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
+- **Launch argument**: add `-javaagent:/path/to/Arsenic.jar` to the game's JVM arguments and start the game. The client
+  loads at launch and no JDK is needed. Use this for Lunar Client, which turns the attach mechanism off.
 
-  Outside Forge, a few Forge-only extras are skipped: the mod list button, Forge's list backgrounds and framebuffer
-  stencils. Addons that use members only Forge makes public (for example `EnumFacing.HORIZONTALS`) fail to compile
-  there; use the public alternative (`EnumFacing.Plane.HORIZONTAL.facings()`).
+In Vanilla and Lunar Client a few Forge-only extras are skipped: the mod list button, Forge's list backgrounds and
+framebuffer stencils. Addons that use members only Forge makes public (for example `EnumFacing.HORIZONTALS`) fail to
+compile there; use the public alternative (`EnumFacing.Plane.HORIZONTAL.facings()`).
 
 ## Addons (make your own with AI)
 

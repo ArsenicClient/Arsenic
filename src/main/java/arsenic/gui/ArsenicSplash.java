@@ -3,9 +3,6 @@ package arsenic.gui;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.fml.client.SplashProgress;
-import net.minecraftforge.fml.common.ProgressManager;
-import net.minecraftforge.fml.common.ProgressManager.ProgressBar;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
@@ -20,9 +17,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.nio.IntBuffer;
-import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -37,7 +32,9 @@ public final class ArsenicSplash {
     private static final float FONT_BASE_SIZE = 32f;
     private static final int FIRST_CHAR = 32, LAST_CHAR = 126;
 
-    private static volatile boolean pause, done, enabled;
+    private static volatile boolean done, enabled;
+    private static volatile float goal;
+    private static volatile String message = "Starting";
     private static volatile Throwable threadError;
     private static Drawable drawable;
     private static Thread thread;
@@ -300,19 +297,18 @@ public final class ArsenicSplash {
         return ColorUtils.luminance(c);
     }
 
+    /** Sets the bar to {@code fraction} (0 to 1) and the line under it to {@code text}. Safe from any thread. */
+    public static void progress(float fraction, String text) {
+        goal = fraction;
+        message = text;
+    }
+
     public static void start() {
         try {
             loadTheme();
-            try {
-                Field f = SplashProgress.class.getDeclaredField("mutex");
-                f.setAccessible(true);
-                mutex = (Semaphore) f.get(null);
-            } catch (Throwable ignored) {  }
-
             drawable = new SharedDrawable(Display.getDrawable());
             Display.getDrawable().releaseContext();
             drawable.makeCurrent();
-            SplashProgress.getMaxTextureSize();
 
             thread = new Thread(ArsenicSplash::run, "Arsenic Splash");
             thread.setUncaughtExceptionHandler((t, e) -> {
@@ -326,30 +322,6 @@ public final class ArsenicSplash {
             enabled = false;
             try { Display.getDrawable().makeCurrent(); } catch (LWJGLException ignored) {}
         }
-    }
-
-    public static void pause() {
-        if (!usable()) return;
-        pause = true;
-        lock.lock();
-        try {
-            drawable.releaseContext();
-            Display.getDrawable().makeCurrent();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void resume() {
-        if (!usable()) return;
-        pause = false;
-        try {
-            Display.getDrawable().releaseContext();
-            drawable.makeCurrent();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        }
-        lock.unlock();
     }
 
     public static void finish() {
@@ -367,11 +339,6 @@ public final class ArsenicSplash {
         }
     }
 
-    private static boolean usable() {
-        return enabled && threadError == null && thread.getState() != Thread.State.TERMINATED;
-    }
-
-
     private static void run() {
         setGL();
         loadLogo();
@@ -386,27 +353,8 @@ public final class ArsenicSplash {
             float dt = Math.min(0.1f, (now - last) / 1000f);
             last = now;
 
-            ProgressBar first = null, last2 = null;
-            Iterator<ProgressBar> it = ProgressManager.barIterator();
-            while (it.hasNext()) {
-                ProgressBar b = it.next();
-                if (first == null) first = b;
-                else last2 = b;
-            }
-
-            float target = 0f;
-            String status = "Starting";
-            if (first != null) {
-                float steps = Math.max(1, first.getSteps());
-                target = first.getStep() / steps;
-                ProgressBar sub = last2 != null ? last2 : first;
-                if (last2 != null)
-                    target += (sub.getStep() / (float) Math.max(1, sub.getSteps())) / steps;
-                status = sub.getMessage() != null && !sub.getMessage().isEmpty()
-                        ? sub.getTitle() + "  -  " + sub.getMessage()
-                        : sub.getTitle();
-            }
-            target = Math.min(1f, target);
+            float target = Math.min(1f, goal);
+            String status = message;
             shown += (target - shown) * Math.min(1f, dt * 6f);
 
             int w = Display.getWidth(), h = Display.getHeight();
@@ -416,10 +364,6 @@ public final class ArsenicSplash {
             mutex.acquireUninterruptibly();
             Display.update();
             mutex.release();
-            if (pause) {
-                clearGL();
-                setGL();
-            }
             Display.sync(60);
         }
         clearGL();
@@ -694,7 +638,7 @@ public final class ArsenicSplash {
         IntBuffer buf = BufferUtils.createIntBuffer(argb.length);
         buf.put(argb).flip();
         int id;
-        synchronized (SplashProgress.class) {
+        synchronized (ArsenicSplash.class) {
             id = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, id);
         }

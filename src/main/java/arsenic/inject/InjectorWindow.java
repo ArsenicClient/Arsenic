@@ -10,6 +10,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,7 @@ final class InjectorWindow {
     private final JPanel cards = new JPanel();
     private final JScrollPane cardScroll;
     private final ActionButton injectButton = new ActionButton("Inject");
+    private final ActionButton injectLunarButton = new ActionButton("Inject into Lunar");
     private final IconButton refreshButton = new IconButton(IconButton.REFRESH, "Refresh");
     private final Toggle showAll = new Toggle("Show every Java process");
     private final ProgressBar progress = new ProgressBar();
@@ -424,29 +426,84 @@ final class InjectorWindow {
         appendLog("       " + Injector.agentArg());
     }
 
-    /** Lunar Client turns attach off, so Arsenic has to be loaded at launch. Always shown, under the log. */
+    /** Lunar Client turns attach off, so Arsenic goes into its launch arguments instead. Always shown, under the log. */
     private JComponent launchingInLunar() {
-        JPanel panel = transparent(new BorderLayout(0, 6));
+        JPanel panel = transparent(new BorderLayout(14, 0));
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
                 new EmptyBorder(10, 0, 0, 0)));
 
-        JPanel steps = transparent(new GridLayout(0, 1, 0, 3));
-        steps.add(label("Launching in Lunar", 13f, Font.BOLD, TEXT));
-        steps.add(label("1. In Lunar, open Settings (bottom left) -> Game.", 12f, Font.PLAIN, TEXT_SECONDARY));
-        steps.add(label("2. Turn on advanced mode (the shield icon left of \"Game Settings\").", 12f, Font.PLAIN, TEXT_SECONDARY));
-        steps.add(label("3. Under JVM arguments, add this line (keep any others already there):", 12f, Font.PLAIN, TEXT_SECONDARY));
-        panel.add(steps, BorderLayout.NORTH);
+        JPanel text = transparent(new GridLayout(0, 1, 0, 3));
+        text.add(label("Lunar Client", 13f, Font.BOLD, TEXT));
+        text.add(label("Lunar turns attach off, so Arsenic is added to its launch arguments instead.", 12f, Font.PLAIN, TEXT_SECONDARY));
+        text.add(label("This closes Lunar Client and any game running in it first.", 12f, Font.PLAIN, TEXT_SECONDARY));
+        panel.add(text, BorderLayout.CENTER);
 
-        JTextField arg = new JTextField(Injector.agentArg());
-        arg.setEditable(false);
-        arg.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
-        arg.setForeground(TEXT);
-        arg.setBackground(SURFACE);
-        arg.setCaretColor(TEXT_SECONDARY);
-        arg.setBorder(new EmptyBorder(6, 8, 6, 8));
-        panel.add(arg, BorderLayout.CENTER);
+        injectLunarButton.addActionListener(this::injectIntoLunar);
+        panel.add(injectLunarButton, BorderLayout.EAST);
         return panel;
+    }
+
+    /** Stops Lunar, then points its launch arguments at this jar. Runs off the event thread; the log says each step. */
+    private void injectIntoLunar() {
+        if (busy)
+            return;
+        int answer = JOptionPane.showConfirmDialog(frame,
+                "This closes Lunar Client and any game running in it, then adds Arsenic to Lunar's JVM arguments.\n\nContinue?",
+                "Inject into Lunar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (answer != JOptionPane.YES_OPTION)
+            return;
+        busy = true;
+        updateButtons();
+        injectLunarButton.setEnabled(false);
+        injectLunarButton.setText("Working...");
+        appendLog("Inject into Lunar");
+        setStatus("Updating Lunar Client", TEXT_SECONDARY);
+
+        new SwingWorker<Boolean, String>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                String agent = Injector.agentArg();
+                if (!agent.endsWith(".jar"))
+                    throw new IllegalStateException("Run the built Arsenic jar; the classes folder cannot be a launch argument");
+                List<String> pids = LunarInjection.runningLunar();
+                if (!pids.isEmpty()) {
+                    publish("Closing Lunar Client (" + pids.size() + " processes)");
+                    if (!LunarInjection.stop(pids, line -> publish(line)))
+                        throw new IllegalStateException("Lunar Client is still running; close it and try again");
+                }
+                File settings = LunarInjection.settingsFile();
+                if (!settings.isFile())
+                    throw new IllegalStateException("No Lunar settings at " + settings + "; open Lunar Client once first");
+                return LunarInjection.setAgent(settings, agent, line -> publish(line));
+            }
+
+            @Override
+            protected void process(List<String> lines) {
+                for (String line : lines)
+                    appendLog(line);
+            }
+
+            @Override
+            protected void done() {
+                busy = false;
+                injectLunarButton.setText("Inject into Lunar");
+                injectLunarButton.setEnabled(true);
+                updateButtons();
+                try {
+                    boolean changed = get();
+                    setStatus(changed ? "Lunar will load Arsenic when you launch a game from it" : "Lunar already loads Arsenic", SUCCESS);
+                    appendLog("Start Lunar Client and launch a game; Arsenic loads with it.");
+                } catch (java.util.concurrent.ExecutionException e) {
+                    String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                    setStatus(message, DANGER);
+                    appendLog("Failed: " + message);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                refresh();
+            }
+        }.execute();
     }
 
     // ---- components ----

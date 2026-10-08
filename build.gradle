@@ -18,12 +18,10 @@ buildscript {
     }
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT"
-        classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "org.spongepowered.mixin"
 apply plugin: "idea"
 
 version          = "v2.0"
@@ -33,12 +31,15 @@ archivesBaseName = "Arsenic"
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 compileJava.options.encoding = "UTF-8"
+// The mixin library is on the classpath only for its annotations; its annotation processor has nothing to do here
+compileJava.options.compilerArgs += ["-proc:none"]
+// local variable tables are the bulk of the debug info; line numbers stay for stack traces in bug reports
+compileJava.options.debugOptions.debugLevel = "source,lines"
 
 minecraft {
     version    = "1.8.9-11.15.1.2318-1.8.9"
     runDir     = "run"
     mappings   = "stable_20"
-    clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
 }
 
 repositories {
@@ -64,19 +65,15 @@ configurations {
 }
 
 dependencies {
-    embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
-        exclude module: "launchwrapper"  // provided by Forge
-        exclude module: "guava"          // provided by Minecraft
-        exclude module: "gson"           // provided by Minecraft
-        exclude module: "log4j"          // provided by Minecraft
-        exclude module: "commons-io"     // provided by Minecraft/Forge
-    }
+    // Only the annotations of arsenic.injection.accessor need it; AccessorBridge reads them from class bytes at run time
+    compileOnly "org.spongepowered:mixin:0.6.12-SNAPSHOT"
     compileOnly "org.jetbrains:annotations:23.0.0"
-    embed 'com.jagrosh:DiscordIPC:0.4'
+    embed 'com.jagrosh:DiscordIPC:0.4'  // its junixsocket logs through log4j 1.2, which stays: Discord RPC needs it on Mac and Linux
     embed("org.reflections:reflections:0.10.2") {
-        exclude module: "guava"  // provided by Minecraft
+        exclude module: "guava"      // provided by Minecraft
+        exclude module: "javassist"  // only Reflections' javassist metadata adapter needs it; the default one does not
+        exclude module: "jsr305"     // annotations only
     }
-    embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
     // The injector's agent rewrites game classes with ASM: a current one (Lunar runs Java 17 classes), moved to
@@ -272,13 +269,6 @@ processResources {
     inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
-    from(sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
-        expand version: project.version, mcversion: project.minecraft.version
-    }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
-    }
 }
 
 
@@ -299,9 +289,6 @@ sourceSets {
     }
 }
 build.dependsOn "compileAddonsJava"
-mixin {
-    add sourceSets.main, "mixins.arsenic.refmap.json"
-}
 
 def configureArsenicJar = { Jar task ->
     task.from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
@@ -313,16 +300,11 @@ def configureArsenicJar = { Jar task ->
         exclude "META-INF/MUMFREY.RSA"
         exclude "LICENSE.txt"
         exclude "dummyThing"
+        exclude "ecj.1"       // the compiler's man page
+        exclude "about.html"
     }
 
     task.manifest.attributes(
-            "MixinConfigs"               : "mixins.arsenic.json",
-            "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
-            "TweakOrder"                 : 0,
-            "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
-            "FMLCorePluginContainsFMLMod": true,
-            "ForceLoadAsMod"             : true,
-            "ModSide"                    : "CLIENT",
             // double-clicking the jar opens the injector, which loads it into a running game as a Java agent
             "Main-Class"                 : "arsenic.inject.Injector",
             "Agent-Class"                : "arsenic.inject.Agent",
@@ -378,6 +360,7 @@ def restoreEmbeddedLibs = { File jarFile ->
     def tmp = new File(jarFile.parentFile, jarFile.name + ".restore")
     new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
         new java.util.zip.ZipOutputStream(new FileOutputStream(tmp)).withCloseable { out ->
+            out.setLevel(java.util.zip.Deflater.BEST_COMPRESSION)
             zip.entries().each { e ->
                 def entry = new java.util.zip.ZipEntry(e.name)
                 entry.time = e.time

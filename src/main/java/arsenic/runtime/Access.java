@@ -11,8 +11,8 @@ import java.util.Arrays;
 /**
  * Reflective access to private Minecraft members, written with MCP names. Works in a development environment (MCP
  * names), in Forge (SRG names, looked up in the bundled /addon-mappings.txt) and, injected, in vanilla and Lunar
- * Client (SRG names turned into the game's names by {@link RuntimeNames}). The hooks use this instead of mixin
- * shadows so the same code runs whether the client was loaded as a mod or injected into a running game.
+ * Client (SRG names turned into the game's names by {@link RuntimeNames}). The hooks use this for private members, so
+ * the same code runs in a development environment, in Forge and in any other game the client is injected into.
  */
 public final class Access {
 
