@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.event.impl.EventFov;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.main.Arsenic;
@@ -22,6 +23,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +71,17 @@ public abstract class MixinEntityRenderer implements IResourceManagerReloadListe
     @Inject(method = "updateCameraAndRender", at = @At("RETURN"))
     private void arsenic$frameEnd(float partialTicks, long nanoTime, CallbackInfo ci) {
         RenderTargets.onFrameEnd(partialTicks, false);
+    }
+
+    // camera field of view: addons can change it through EventFov (CustomFov, Zoom)
+    @Inject(method = "getFOVModifier", at = @At("RETURN"), cancellable = true)
+    private void arsenic$fov(float partialTicks, boolean useFOVSetting, CallbackInfoReturnable<Float> cir) {
+        if (!useFOVSetting || SilentView.isRendering())
+            return;
+        EventFov event = new EventFov(cir.getReturnValue());
+        Arsenic.getArsenic().getEventManager().getBus().post(event);
+        if (event.isModified())
+            cir.setReturnValue(event.getFov());
     }
 
     @Overwrite

@@ -52,7 +52,12 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
   - `ShareCoords` sends from a button in the settings, not a key, so nothing is sent by accident.
   - `AutoScreenshot` takes the shot on the next frame and reports the file name in chat.
   - `GameProfiles` applies its lists when GameDetector's game changes, and then leaves the modules alone.
-- The remaining batches (5 to 11) are not implemented yet.
+- **Batch 5 (4 of 9 addons):** `CustomFov`, `Zoom` (pack `render`), `AntiBlind`, `Ambience` (pack `render`).
+  - Client change: a new `EventFov`, posted from `EntityRenderer.getFOVModifier` through a small mixin. Only the camera's FOV is changed; held items are not.
+  - `AntiBlind` removes the blindness and nausea effects on your client each tick. The server still applies them.
+  - `Ambience` sets time and clear weather client-side each tick. The server's own time update may flicker for a frame.
+  - **Deferred: `Freecam`, `FreeLook`, `Perspective`, `CameraClip`, `AspectRatio`.** They need a camera position and rotation hook in `orientCamera`, and a projection hook for the aspect ratio. Those are a later client change, not an addon.
+- The remaining batches (6 to 11) are not implemented yet.
 ## 1. Summary
 
 ### Counts per pack

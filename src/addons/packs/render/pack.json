@@ -17,6 +17,10 @@
     "KillEffect": "Draws a burst where a kill you made happens.",
     "WaypointMarkers": "Named world points shown as beams. Add with .waypoint add <name>, remove, list and clear.",
     "LightLevel": "Shows the light level on the ground around you, red where hostile mobs can spawn.",
-    "DeathMarker": "Marks where you last died with a beam and the distance. Clear button removes it."
+    "DeathMarker": "Marks where you last died with a beam and the distance. Clear button removes it.",
+    "CustomFov": "Sets the camera field of view, with a separate value while sprinting.",
+    "Zoom": "Hold a key to narrow the camera field of view.",
+    "AntiBlind": "Removes the blindness and nausea effects on your client.",
+    "Ambience": "Sets a client-side time of day and clear weather."
   }
 }
