@@ -159,22 +159,14 @@ public final class Agent {
             game.loader.getClass().getMethod("registerTransformer", String.class).invoke(game.loader, "arsenic.runtime.AccessorTransformer");
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
-        // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
-        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
-            try {
-                java.lang.reflect.Field f = game.loader.getClass().getDeclaredField(cache);
-                f.setAccessible(true);
-                ((java.util.Collection<?>) f.get(game.loader)).clear();
-            } catch (NoSuchFieldException ignored) {
-            }
-        }
+        clearLoaderCaches(game.loader);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)
             throw new IllegalStateException("The game's class loader (" + game.loader.getClass().getName()
                     + ") does not load the client itself; this launcher is not supported yet");
 
-        HookTransformer hooks = new HookTransformer(names(game, runtimeNames), game.forge, game.loader, line -> status.accept("LOG " + line));
+        HookTransformer hooks = new HookTransformer(names(game.namespace, game.forge, runtimeNames), game.forge, game.loader, line -> status.accept("LOG " + line));
         List<String> problems = hooks.verifyHooks(game.loader);
         if (!problems.isEmpty())
             throw new IllegalStateException("Client hooks do not match: " + problems);
@@ -304,7 +296,7 @@ public final class Agent {
         return false;
     }
 
-    private static boolean classExists(String name, ClassLoader loader) {
+    static boolean classExists(String name, ClassLoader loader) {
         try {
             Class.forName(name, false, loader);
             return true;
@@ -313,7 +305,19 @@ public final class Agent {
         }
     }
 
-    private static boolean isDeobfuscatedForge() {
+    /** launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles). */
+    static void clearLoaderCaches(ClassLoader loader) throws Exception {
+        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
+            try {
+                java.lang.reflect.Field f = loader.getClass().getDeclaredField(cache);
+                f.setAccessible(true);
+                ((java.util.Collection<?>) f.get(loader)).clear();
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
+    }
+
+    static boolean isDeobfuscatedForge() {
         try {
             Class<?> launch = Class.forName("net.minecraft.launchwrapper.Launch", false, ClassLoader.getSystemClassLoader());
             Map<?, ?> blackboard = (Map<?, ?>) launch.getField("blackboard").get(null);
@@ -370,8 +374,8 @@ public final class Agent {
      * MCP names (what the hooks are written in) to the game's names: MCP to SRG with the bundled addon table, then SRG
      * to the game's names with {@link RuntimeNames}. Development games keep MCP names throughout.
      */
-    private static HookTransformer.Names names(Game game, RuntimeNames runtime) throws Exception {
-        if (game.namespace == RuntimeNames.Namespace.MCP && game.forge) {
+    static HookTransformer.Names names(RuntimeNames.Namespace namespace, boolean forge, RuntimeNames runtime) throws Exception {
+        if (namespace == RuntimeNames.Namespace.MCP && forge) {
             return new HookTransformer.Names() {
                 @Override
                 public String method(String owner, String name, String desc) {

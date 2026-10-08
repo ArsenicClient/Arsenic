@@ -1,0 +1,18 @@
+[JuiceAgent]
+Version = 1
+
+[JuiceAgent.Loader]
+# Path to libagent.dll; empty uses ./libagent.dll next to config.toml
+JuiceAgentNativeLibraryPath = ""
+
+[JuiceAgent.Modules]
+
+[JuiceAgent.Modules.JarLoader]
+Enabled = true
+# Dependency jars for the client (none are needed; the directory may be empty)
+InjectionDir = "./injection"
+# The Arsenic jar, renamed from the build output (build/libs/...)
+JarPath = "./Arsenic.jar"
+# The entry point in arsenic.inject.JuiceEntry: public static void run()
+EntryClass = "arsenic.inject.JuiceEntry"
+EntryMethod = "run"
