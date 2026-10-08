@@ -2,6 +2,8 @@ package arsenic.gui.hud;
 
 import com.google.gson.JsonObject;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * A draggable spot on the HUD. A module creates one with {@code Module#hudElement(...)}, draws itself at
  * ({@link #x}, {@link #y}) and keeps {@link #width}/{@link #height} up to date so the HUD editor can show its box.
@@ -14,6 +16,8 @@ public final class HudElement {
     public final boolean rightAnchored;
     public int x, y;
     public int width, height;
+    /** Whether the element is currently drawn; the HUD editor only lists elements that return true. */
+    public BooleanSupplier active = () -> true;
 
     private final int defaultX, defaultY;
 

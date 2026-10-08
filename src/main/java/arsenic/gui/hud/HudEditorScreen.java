@@ -63,7 +63,9 @@ public class HudEditorScreen extends GuiScreen {
         elements.clear();
         Arsenic.getArsenic().getModuleManager().getModules().stream()
                 .sorted(Comparator.comparing(Module::getName))
-                .forEach(m -> m.getHudElements().forEach(h -> elements.add(new Element(m, h))));
+                .forEach(m -> m.getHudElements().stream()
+                        .filter(h -> m.isEnabled() && h.active.getAsBoolean())
+                        .forEach(h -> elements.add(new Element(m, h))));
 
         snapOnScreenElements();
     }

@@ -45,6 +45,10 @@ import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.scoreboard.Score;
+import net.minecraft.scoreboard.ScoreObjective;
+import net.minecraft.scoreboard.ScorePlayerTeam;
+import net.minecraft.scoreboard.Scoreboard;
 
 import java.util.function.BinaryOperator;
 
@@ -61,6 +65,7 @@ public class HUD extends Module {
     public final BooleanProperty showPing = new BooleanProperty("Show Ping", false);
     public final BooleanProperty showPotions = new BooleanProperty("Show Potions", false);
     public final BooleanProperty showKeystrokes = new BooleanProperty("Show Keystrokes", false);
+    public final BooleanProperty showScoreboard = new BooleanProperty("Show Scoreboard", false);
     public final DoubleProperty backgroundOpacity = new DoubleProperty("Opacity", new DoubleValue(0, 100, 62, 1));
     public final BooleanProperty editPosition = new BooleanProperty("Edit Position", false);
 
@@ -73,6 +78,16 @@ public class HUD extends Module {
     private final HudElement pingElement = hudElement("Ping", 4, 40, 70, 16);
     private final HudElement potions = hudElement("Potions", 76, 140, 100, 16);
     private final HudElement keystrokes = hudElement("Keystrokes", 4, 140, KEYSTROKES_W, KEYSTROKES_H);
+    private final HudElement scoreboard = hudElement("Scoreboard", 0, 120, 120, 16, true);
+
+    {
+        coords.active = showCoords::getValue;
+        keybinds.active = showKeybinds::getValue;
+        pingElement.active = showPing::getValue;
+        potions.active = showPotions::getValue;
+        keystrokes.active = showKeystrokes::getValue;
+        scoreboard.active = () -> showScoreboard.getValue() && sidebarObjective() != null;
+    }
 
     private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
     private static final float ROW_HEIGHT = 13f;
@@ -136,6 +151,8 @@ public class HUD extends Module {
             renderPotions(fr, accent);
         if (showKeystrokes.getValue())
             renderKeystrokes(fr, accent);
+        if (showScoreboard.getValue())
+            renderScoreboard(fr, sr, accent);
 
         buildEntries(fr);
         drawArrayList(fr, sr, Pass.NORMAL);
@@ -452,6 +469,65 @@ public class HUD extends Module {
         float cx = x0 + (k * 3f + gap * 2f) / 2f;
         DrawUtils.drawRect(cx - barW / 2f, row4 + spaceH / 2f - 0.5f, cx + barW / 2f, row4 + spaceH / 2f + 0.5f,
                 jump ? 0xFFFFFFFF : ThemeManager.getTextMuted());
+    }
+
+    /** The objective shown in the sidebar slot, or null when no scoreboard sidebar is up. */
+    private ScoreObjective sidebarObjective() {
+        if (mc.theWorld == null)
+            return null;
+        return mc.theWorld.getScoreboard().getObjectiveInDisplaySlot(1);
+    }
+
+    /** True while this HUD draws the scoreboard, so the vanilla sidebar should stay hidden. */
+    public boolean replacesVanillaScoreboard() {
+        return isEnabled() && showScoreboard.getValue();
+    }
+
+    private void renderScoreboard(FontRendererExtension<?> fr, ScaledResolution sr, int color) {
+        ScoreObjective objective = sidebarObjective();
+        if (objective == null)
+            return;
+
+        Scoreboard board = objective.getScoreboard();
+        List<Score> scores = new ArrayList<>();
+        for (Score score : board.getSortedScores(objective))
+            if (score.getPlayerName() != null && !score.getPlayerName().startsWith("#"))
+                scores.add(score);
+        if (scores.size() > 15)
+            scores = new ArrayList<>(scores.subList(scores.size() - 15, scores.size()));
+
+        float pad = 4f;
+        float rowH = fr.getHeight("Ag") + 2f;
+        String title = objective.getDisplayName();
+        List<String> names = new ArrayList<>();
+        List<String> points = new ArrayList<>();
+        float w = fr.getWidth(title);
+        for (Score score : scores) {
+            ScorePlayerTeam team = board.getPlayersTeam(score.getPlayerName());
+            String name = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
+            String value = String.valueOf(score.getScorePoints());
+            names.add(name);
+            points.add(value);
+            w = Math.max(w, fr.getWidth(name) + fr.getWidth("  ") + fr.getWidth(value));
+        }
+        w += pad * 2f;
+        float titleH = fr.getHeight(title) + pad * 1.2f;
+        float h = titleH + names.size() * rowH + pad * 0.6f;
+        scoreboard.width = (int) Math.ceil(w);
+        scoreboard.height = (int) Math.ceil(h);
+
+        float x1 = sr.getScaledWidth() + scoreboard.x - scoreboard.width;
+        float y1 = scoreboard.y;
+        chipBackground(x1, y1, x1 + scoreboard.width, y1 + scoreboard.height);
+        fr.drawStringWithShadow(title, x1 + scoreboard.width / 2f, y1 + titleH / 2f, color, fr.CENTREX, fr.CENTREY);
+
+        float y = y1 + titleH + rowH / 2f;
+        for (int i = 0; i < names.size(); i++) {
+            fr.drawStringWithShadow(names.get(i), x1 + pad, y, ThemeManager.getTextMuted(), fr.CENTREY);
+            fr.drawStringWithShadow(points.get(i), x1 + scoreboard.width - pad - fr.getWidth(points.get(i)), y,
+                    0xFFFF5555, fr.CENTREY);
+            y += rowH;
+        }
     }
 
     private void keyBox(FontRendererExtension<?> fr, String label, boolean down, float x, float y, float w, float h, int color) {

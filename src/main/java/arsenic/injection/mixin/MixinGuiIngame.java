@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.module.impl.visual.HUD;
 import arsenic.module.impl.visual.PostProcessing;
 import arsenic.utils.render.capture.RenderTargets;
 import arsenic.utils.render.capture.SilentView;
@@ -11,6 +12,7 @@ import arsenic.event.impl.EventRender2D;
 import arsenic.main.Arsenic;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.scoreboard.ScoreObjective;
 
 @Mixin(priority = 1111, value = GuiIngame.class)
 public class MixinGuiIngame {
@@ -24,6 +26,15 @@ public class MixinGuiIngame {
             ScaledResolution sr = new ScaledResolution(mc);
             arsenic.module.impl.visual.custommainmenu.ScreenTransition.drawOverlay(sr.getScaledWidth(), sr.getScaledHeight());
         }
+    }
+
+    @Inject(method = "renderScoreboard", at = @At("HEAD"), cancellable = true)
+    private void arsenic$replaceScoreboard(ScoreObjective objective, ScaledResolution sr, CallbackInfo ci) {
+        if (SilentView.isRenderingHud())
+            return;
+        HUD hud = Arsenic.getArsenic().getModuleManager().getModuleByClass(HUD.class);
+        if (hud.replacesVanillaScoreboard())
+            ci.cancel();
     }
 
     @Inject(method = "renderTooltip", at = @At("RETURN"))
