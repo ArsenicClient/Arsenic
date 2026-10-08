@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Java agent the {@link Injector} loads into a running Minecraft 1.8.9 game: Forge, vanilla or Lunar Client. It
@@ -124,8 +126,44 @@ public final class Agent {
                 status.accept("LOG missed " + hook);
         };
 
-        launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class)
-                .invoke(null, jar, installHooks, status, game.namespace.name());
+        launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class, Function.class)
+                .invoke(null, jar, installHooks, status, game.namespace.name(), classBytes(inst, game.loader));
+    }
+
+    /**
+     * Class files of Minecraft classes as the game defined them, for compiling addons where the loader has no class
+     * file to read (Lunar Client renames Minecraft as it loads it). Retransforming a class hands its bytes to every
+     * transformer, so a short-lived one keeps a copy.
+     */
+    private static Function<String, byte[]> classBytes(Instrumentation inst, ClassLoader loader) {
+        return internalName -> {
+            Class<?> c;
+            try {
+                c = Class.forName(internalName.replace('/', '.'), false, loader);
+            } catch (Throwable t) {
+                return null;
+            }
+            byte[][] captured = new byte[1][];
+            ClassFileTransformer capture = new ClassFileTransformer() {
+                @Override
+                public byte[] transform(ClassLoader l, String name, Class<?> redefined, java.security.ProtectionDomain domain, byte[] bytes) {
+                    if (redefined == c)
+                        captured[0] = bytes.clone();
+                    return null;
+                }
+            };
+            synchronized (Agent.class) {
+                inst.addTransformer(capture, true);
+                try {
+                    inst.retransformClasses(c);
+                } catch (Throwable t) {
+                    return null;
+                } finally {
+                    inst.removeTransformer(capture);
+                }
+            }
+            return captured[0];
+        };
     }
 
     // ---- finding the game ----

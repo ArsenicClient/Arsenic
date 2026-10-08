@@ -11,6 +11,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Starts the client inside a game that is already running (Forge, vanilla or Lunar Client), for the injector
@@ -27,8 +28,17 @@ public final class InjectedLaunch {
     };
 
     private static boolean injected;
+    private static Function<String, byte[]> classBytes;
 
     private InjectedLaunch() {}
+
+    /**
+     * The class file of a Minecraft class as the game defined it, when the class loader has none to read (Lunar
+     * Client). Null when not injected or the class does not exist.
+     */
+    public static byte[] classBytes(String internalName) {
+        return classBytes != null && internalName.startsWith("net/minecraft/") ? classBytes.apply(internalName) : null;
+    }
 
     /** True when the client was injected rather than loaded by Forge. */
     public static boolean isInjected() {
@@ -42,8 +52,10 @@ public final class InjectedLaunch {
      * @param installHooks hooks the Minecraft classes; throws if that fails
      * @param status       progress lines for the injector; "OK" or "ERROR ..." ends the injection
      * @param namespace    the names Minecraft has in this game, a {@link RuntimeNames.Namespace}
+     * @param classBytes   class files of loaded classes by internal name (null when not loaded), from the agent
      */
-    public static void start(File jar, Runnable installHooks, Consumer<String> status, String namespace) {
+    public static void start(File jar, Runnable installHooks, Consumer<String> status, String namespace, Function<String, byte[]> classBytes) {
+        InjectedLaunch.classBytes = classBytes;
         // before anything looks a Minecraft member up by name
         RuntimeNames.setCurrent(RuntimeNames.create(RuntimeNames.Namespace.valueOf(namespace), InjectedLaunch.class.getClassLoader()));
         Minecraft.getMinecraft().addScheduledTask(() -> {

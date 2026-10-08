@@ -1,5 +1,7 @@
 package arsenic.addon;
 
+import arsenic.runtime.InjectedLaunch;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
@@ -14,7 +16,9 @@ public class LoaderClassSource implements ClassSource {
 
     @Override
     public byte[] getBytes(String internalName) {
-        return readResource(loader, internalName + ".class");
+        byte[] bytes = readResource(loader, internalName + ".class");
+        // Lunar Client renames Minecraft as it loads it, so its classes may have no class file under these names
+        return bytes != null ? bytes : InjectedLaunch.classBytes(internalName);
     }
 
     static byte[] readResource(ClassLoader loader, String path) {

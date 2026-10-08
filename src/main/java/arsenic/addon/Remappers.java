@@ -1,11 +1,11 @@
 package arsenic.addon;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.commons.RemappingClassAdapter;
-import org.objectweb.asm.commons.Remapper;
+import arsenic.lib.asm.ClassReader;
+import arsenic.lib.asm.ClassVisitor;
+import arsenic.lib.asm.Opcodes;
+import arsenic.lib.asm.ClassWriter;
+import arsenic.lib.asm.commons.ClassRemapper;
+import arsenic.lib.asm.commons.Remapper;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,7 +88,7 @@ final class Remappers {
             }
         };
         ClassWriter writer = new ClassWriter(0);
-        new ClassReader(classBytes).accept(new RemappingClassAdapter(writer, remapper), ClassReader.EXPAND_FRAMES);
+        new ClassReader(classBytes).accept(new ClassRemapper(writer, remapper), ClassReader.EXPAND_FRAMES);
         return writer.toByteArray();
     }
 
@@ -110,7 +110,7 @@ final class Remappers {
         ClassWriter writer = new ClassWriter(0);
         // A deobfuscated class still carries the obfuscated simple name of its member classes ("a"), and the
         // compiler matches MovingObjectPosition.MovingObjectType by that name, so restore it from the class name.
-        ClassVisitor innerNames = new ClassVisitor(Opcodes.ASM5, writer) {
+        ClassVisitor innerNames = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
             public void visitInnerClass(String name, String outerName, String innerName, int access) {
                 if (innerName != null && outerName != null && name.startsWith(outerName + "$"))
@@ -118,7 +118,7 @@ final class Remappers {
                 super.visitInnerClass(name, outerName, innerName, access);
             }
         };
-        new ClassReader(classBytes).accept(new RemappingClassAdapter(innerNames, remapper), ClassReader.SKIP_CODE);
+        new ClassReader(classBytes).accept(new ClassRemapper(innerNames, remapper), ClassReader.SKIP_CODE);
         return writer.toByteArray();
     }
 }

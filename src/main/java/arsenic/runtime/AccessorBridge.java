@@ -1,10 +1,10 @@
 package arsenic.runtime;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import arsenic.lib.asm.ClassReader;
+import arsenic.lib.asm.Type;
+import arsenic.lib.asm.tree.AnnotationNode;
+import arsenic.lib.asm.tree.ClassNode;
+import arsenic.lib.asm.tree.MethodNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;

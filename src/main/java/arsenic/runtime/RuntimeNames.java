@@ -1,12 +1,12 @@
 package arsenic.runtime;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.Remapper;
-import org.objectweb.asm.commons.RemappingClassAdapter;
+import arsenic.lib.asm.ClassReader;
+import arsenic.lib.asm.ClassVisitor;
+import arsenic.lib.asm.ClassWriter;
+import arsenic.lib.asm.Opcodes;
+import arsenic.lib.asm.Type;
+import arsenic.lib.asm.commons.Remapper;
+import arsenic.lib.asm.commons.ClassRemapper;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -351,7 +351,7 @@ public final class RuntimeNames {
             return classBytes;
         ClassReader reader = new ClassReader(classBytes);
         ClassWriter writer = new ClassWriter(0);
-        reader.accept(new RemappingClassAdapter(writer, new Remapper() {
+        reader.accept(new ClassRemapper(writer, new Remapper() {
             @Override
             public String map(String typeName) {
                 return mapClass(typeName);
@@ -374,7 +374,7 @@ public final class RuntimeNames {
                     return mapMethodAnyDesc(made.getInternalName(), name);
                 return name;
             }
-        }), ClassReader.EXPAND_FRAMES); // the remapping method adapter sorts locals, which needs expanded frames
+        }), 0);
         return writer.toByteArray();
     }
 
@@ -403,7 +403,7 @@ public final class RuntimeNames {
                 return name.startsWith("<") ? name : unmapMethod(unmapClass(owner), name, desc);
             }
         };
-        ClassVisitor innerNames = new ClassVisitor(Opcodes.ASM5, writer) {
+        ClassVisitor innerNames = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
             public void visitInnerClass(String name, String outerName, String innerName, int access) {
                 // the remapper renames the inner class but not its simple name, which the compiler reads
@@ -415,7 +415,7 @@ public final class RuntimeNames {
                 super.visitInnerClass(name, outerName, innerName, access);
             }
         };
-        reader.accept(new RemappingClassAdapter(innerNames, remapper), ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
+        reader.accept(new ClassRemapper(innerNames, remapper), ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
         return writer.toByteArray();
     }
 

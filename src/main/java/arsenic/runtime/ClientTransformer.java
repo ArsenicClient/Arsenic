@@ -27,7 +27,7 @@ public final class ClientTransformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         if (loader != gameLoader || classBeingRedefined != null || className == null
-                || !className.startsWith("arsenic/") || className.startsWith("arsenic/inject/"))
+                || !className.startsWith("arsenic/") || className.startsWith("arsenic/inject/") || className.startsWith("arsenic/lib/"))
             return null;
         try {
             byte[] bytes = classfileBuffer;

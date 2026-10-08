@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * What runs when the client jar is double-clicked: a small window that lists the running Minecraft games and loads
- * the client into the chosen one through the Java attach API ({@link Agent} does the rest inside the game).
+ * What runs when the client jar is double-clicked: a window ({@link InjectorWindow}) that lists the running Minecraft
+ * games (Forge, vanilla, Lunar Client) and loads the client into the chosen one through the Java attach API
+ * ({@link Agent} does the rest inside the game).
  *
  * The attach API ships with JDKs only. When the Java that opened the jar has none, the injector looks for an
  * installed JDK and restarts itself with it.

@@ -1,10 +1,10 @@
 package arsenic.inject;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
+import arsenic.lib.asm.ClassReader;
+import arsenic.lib.asm.ClassWriter;
+import arsenic.lib.asm.Opcodes;
+import arsenic.lib.asm.Type;
+import arsenic.lib.asm.tree.*;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Method;
@@ -12,7 +12,7 @@ import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static org.objectweb.asm.Opcodes.*;
+import static arsenic.lib.asm.Opcodes.*;
 
 /**
  * Applies the client's hooks to Minecraft classes that are already loaded, for the injected client. Mixins can only

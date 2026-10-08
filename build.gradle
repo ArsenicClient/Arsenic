@@ -54,10 +54,13 @@ repositories {
     jcenter()
 }
 
+def relocatedAsmJar = file("$buildDir/relocated/asm-9.7-arsenic.jar")
+
 configurations {
     embed
     compile.extendsFrom embed
     lunarNames
+    shadedAsm
 }
 
 dependencies {
@@ -76,11 +79,46 @@ dependencies {
     embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
-    // The injector's agent rewrites game classes with ASM. Forge has it, vanilla and Lunar may not; same version as Forge's.
-    embed("org.ow2.asm:asm-debug-all:5.0.3")
+    // The injector's agent rewrites game classes with ASM: a current one (Lunar runs Java 17 classes), moved to
+    // arsenic.lib.asm so it never meets the game's own ASM (Forge has 5.0, vanilla none, Lunar its own). See relocateAsm.
+    shadedAsm "org.ow2.asm:asm:9.7"
+    shadedAsm "org.ow2.asm:asm-tree:9.7"
+    shadedAsm "org.ow2.asm:asm-commons:9.7"
+    embed files(relocatedAsmJar) { builtBy "relocateAsm" }
     // Lunar Client runs 1.8.9 with the last MCP names (stable_22), which name a few members stable_20 leaves as SRG
     lunarNames "de.oceanlabs.mcp:mcp_stable:22-1.8.9@zip"
 }
+
+// ASM 9 with its packages renamed from org.objectweb.asm to arsenic.lib.asm (the build's own ASM does the renaming)
+task relocateAsm {
+    inputs.files configurations.shadedAsm
+    outputs.file relocatedAsmJar
+    doLast {
+        def remapper = new org.objectweb.asm.commons.Remapper() {
+            @Override
+            String map(String typeName) {
+                return typeName.startsWith("org/objectweb/asm/") ? "arsenic/lib/asm/" + typeName.substring(18) : typeName
+            }
+        }
+        relocatedAsmJar.parentFile.mkdirs()
+        new java.util.zip.ZipOutputStream(new FileOutputStream(relocatedAsmJar)).withCloseable { out ->
+            configurations.shadedAsm.each { File lib ->
+                new java.util.zip.ZipFile(lib).withCloseable { zip ->
+                    zip.entries().each { e ->
+                        if (!e.name.endsWith(".class") || e.name.contains("module-info")) return
+                        def writer = new org.objectweb.asm.ClassWriter(0)
+                        new org.objectweb.asm.ClassReader(zip.getInputStream(e).bytes)
+                                .accept(new org.objectweb.asm.commons.RemappingClassAdapter(writer, remapper), org.objectweb.asm.ClassReader.EXPAND_FRAMES)
+                        out.putNextEntry(new java.util.zip.ZipEntry(remapper.map(e.name.substring(0, e.name.length() - 6)) + ".class"))
+                        out.write(writer.toByteArray())
+                        out.closeEntry()
+                    }
+                }
+            }
+        }
+    }
+}
+compileJava.dependsOn relocateAsm
 
 // SRG -> runtime names for the injector (arsenic.runtime.RuntimeNames), from the srgs ForgeGradle set up:
 //   "C srg notch super interfaces..."  every class, with its super types as SRG names (members are looked up the hierarchy)
@@ -343,7 +381,7 @@ def restoreEmbeddedLibs = { File jarFile ->
                 entry.time = e.time
                 out.putNextEntry(entry)
                 if (!e.isDirectory()) {
-                    boolean lib = e.name.endsWith(".class") && !e.name.startsWith("arsenic/") && originals.containsKey(e.name)
+                    boolean lib = e.name.endsWith(".class") && (!e.name.startsWith("arsenic/") || e.name.startsWith("arsenic/lib/")) && originals.containsKey(e.name)
                     out.write(lib ? originals[e.name] : zip.getInputStream(e).bytes)
                 }
                 out.closeEntry()

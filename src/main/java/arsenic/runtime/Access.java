@@ -60,7 +60,7 @@ public final class Access {
         for (Method m : owner.getDeclaredMethods()) {
             if (!Arrays.equals(m.getParameterTypes(), params))
                 continue;
-            String srg = names.unmapMethod(srgOwner, m.getName(), org.objectweb.asm.Type.getMethodDescriptor(m));
+            String srg = names.unmapMethod(srgOwner, m.getName(), arsenic.lib.asm.Type.getMethodDescriptor(m));
             if (m.getName().equals(mcpName) || srg.equals(mcpName) || mcpName.equals(table().methodToMcp(srgOwner, srg))
                     || names.mapMethod(srgOwner, mcpName, "").equals(m.getName())) {
                 m.setAccessible(true);
