@@ -44,7 +44,11 @@ public class MiddleClick extends Module {
 
     public final EnumProperty<UseItem> item = new EnumProperty<>("Item", UseItem.PEARL);
 
+    /** Longest we keep the chosen slot while an item is in use (a golden apple takes 32 ticks). */
+    private static final int MAX_USE_TICKS = 40;
+
     private int restoreSlot = -1;
+    private int useTicks;
 
     @Override
     protected void onDisable() {
@@ -64,6 +68,7 @@ public class MiddleClick extends Module {
         if (slot == -1) return;
 
         restoreSlot = mc.thePlayer.inventory.currentItem;
+        useTicks = 0;
         mc.thePlayer.inventory.currentItem = slot;
         ItemStack held = mc.thePlayer.inventory.getCurrentItem();
         if (held != null) mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held);
@@ -72,7 +77,10 @@ public class MiddleClick extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (restoreSlot != -1) restore();
+        if (restoreSlot == -1) return;
+        // Switching slots cancels eating, so a golden apple keeps the slot until it has been eaten (or the cap is hit).
+        if (mc.thePlayer.isUsingItem() && useTicks++ < MAX_USE_TICKS) return;
+        restore();
     };
 
     private void restore() {
