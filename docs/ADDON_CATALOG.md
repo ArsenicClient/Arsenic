@@ -57,7 +57,14 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
   - `AntiBlind` removes the blindness and nausea effects on your client each tick. The server still applies them.
   - `Ambience` sets time and clear weather client-side each tick. The server's own time update may flicker for a frame.
   - **Deferred: `Freecam`, `FreeLook`, `Perspective`, `CameraClip`, `AspectRatio`.** They need a camera position and rotation hook in `orientCamera`, and a projection hook for the aspect ratio. Those are a later client change, not an addon.
-- The remaining batches (6 to 11) are not implemented yet.
+- **Batch 6 (6 of 8 addons):** `PacketLogger`, `ClickRecorder`, `RotationRecorder` (pack `player`, developer tier); `AntiCrash` (pack `qol`); `BetterChat` (pack `hypixel`); `WeaponCompare` (pack `hud`).
+  - `PacketLogger` writes packet names and field values to `packetlogs/`. Movement packets are skipped by default.
+  - `ClickRecorder` and `RotationRecorder` write CSV files to `recordings/`, for tuning Clicker and silent rotation against real play.
+  - `AntiCrash` drops only incoming custom payloads above a size limit and particle bursts above a count limit.
+  - `BetterChat` adds a timestamp and a mention marker in front of the server's own text, keeping its colours. Searchable history needs a chat render hook.
+  - **Deferred: `PlayerRankColours`.** Nametags are drawn by the client, so an addon overlay would double them. Needs a client change to the nametag colour.
+  - **Deferred: `PartyList`.** Needs a sample of `/party list` output to parse.
+- The remaining batches (7 to 11) are not implemented yet.
 ## 1. Summary
 
 ### Counts per pack

@@ -18,6 +18,7 @@
     "SessionStats": "Kills, deaths, K/D and time played this session, counted from chat.",
     "PingWarning": "Shows your ping, red while it is above a limit.",
     "ItemAlerts": "Chat alert when chosen items are dropped near you, with a short HUD line.",
-    "BlockInfo": "Shows the block under your crosshair, its hardness and an approximate break time."
+    "BlockInfo": "Shows the block under your crosshair, its hardness and an approximate break time.",
+    "WeaponCompare": "Shows the held weapon's damage next to the best one in your inventory, and the slot to switch to."
   }
 }

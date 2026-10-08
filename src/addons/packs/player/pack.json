@@ -10,6 +10,9 @@
     "AutoRespawn": "Presses Respawn after a random delay when you die.",
     "ChatMacros": "Sends a chat line when a key is pressed, written as KEY=message pairs.",
     "AutoReconnect": "Reconnects to the last server after a disconnect, with a delay and a retry limit.",
-    "AutoFish": "Casts a fishing rod and reels in when you get a bite."
+    "AutoFish": "Casts a fishing rod and reels in when you get a bite.",
+    "PacketLogger": "Developer tool: logs sent and received packets with their fields to a daily file. Never changes packets.",
+    "ClickRecorder": "Developer tool: records your real clicks to a CSV file, for tuning CPS.",
+    "RotationRecorder": "Developer tool: records your real camera turns to a CSV file, for tuning silent rotation."
   }
 }

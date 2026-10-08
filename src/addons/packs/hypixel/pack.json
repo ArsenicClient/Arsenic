@@ -12,6 +12,7 @@
     "ShareCoords": "Sends your coordinates to chat when you press its button. Prefix decides the channel.",
     "PrivateMessageAlert": "Sound and HUD flash when someone sends you a private message.",
     "ChatLogger": "Writes chat to a daily log in the Arsenic folder. Off until you enable it.",
-    "GameProfiles": "Turns modules on or off when the Hypixel game changes, from per-game lists."
+    "GameProfiles": "Turns modules on or off when the Hypixel game changes, from per-game lists.",
+    "BetterChat": "Chat timestamps, and a marker on lines that mention your name. Keeps the server's colours."
   }
 }
