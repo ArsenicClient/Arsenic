@@ -155,8 +155,11 @@ public final class Agent {
         RuntimeNames runtimeNames = RuntimeNames.create(game.namespace, game.loader);
         addToLoader(inst, game.loader, jarUrl);
         // the client's classes are prepared as they load, so this must be in place before the first one does
-        if (game.forge)
-            game.loader.getClass().getMethod("registerTransformer", String.class).invoke(game.loader, "arsenic.runtime.AccessorTransformer");
+        // Forge's LaunchClassLoader takes the accessor transformer; a launcher's own loader (Lunar's Forge) does not, so
+        // the client's classes are rewritten by the ClientTransformer as they load instead
+        Method register = game.forge ? findMethod(game.loader, "registerTransformer", String.class) : null;
+        if (register != null)
+            register.invoke(game.loader, "arsenic.runtime.AccessorTransformer");
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
@@ -292,6 +295,15 @@ public final class Agent {
             throw new IllegalStateException("This is not Minecraft 1.8.9, or it has not finished starting");
         }
         throw new IllegalStateException("Minecraft has not started yet, or this is not Minecraft");
+    }
+
+    /** The public method with these parameters on the loader's class, or null when the loader does not have it. */
+    private static Method findMethod(Object target, String name, Class<?>... params) {
+        try {
+            return target.getClass().getMethod(name, params);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
     }
 
     private static boolean declaresMethod(Class<?> c, String name) {
