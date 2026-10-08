@@ -1,5 +1,6 @@
 package arsenic.runtime;
 
+import arsenic.gui.ArsenicSplash;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.capture.SilentView;
 import net.minecraft.client.Minecraft;
@@ -76,28 +77,40 @@ public final class InjectedLaunch {
     private static void launch(File jar, Runnable installHooks, Consumer<String> status) throws Exception {
         injected = true;
         System.setProperty("arsenic.loaded", "injected");
+        // the loading screen covers the stages below; it runs on its own thread and is finished before the game continues
+        ArsenicSplash.start();
+        try {
+            // the hooks resolve their private Minecraft members when first loaded; fail here rather than mid-frame
+            for (String hookClass : HOOK_CLASSES)
+                Class.forName(hookClass, true, InjectedLaunch.class.getClassLoader());
 
-        // the hooks resolve their private Minecraft members when first loaded; fail here rather than mid-frame
-        for (String hookClass : HOOK_CLASSES)
-            Class.forName(hookClass, true, InjectedLaunch.class.getClassLoader());
+            stage(0.15f, "Adding resources", status);
+            addResourcePack(jar);
 
-        status.accept("Adding resources");
-        addResourcePack(jar);
+            stage(0.45f, "Starting client", status);
+            Arsenic arsenic = new Arsenic();
+            Field instance = Arsenic.class.getDeclaredField("instance");
+            instance.setAccessible(true);
+            instance.set(null, arsenic);
+            if (Platform.isForge()) {
+                ForgeLaunch.asMinecraft(arsenic::initialize);
+            } else {
+                arsenic.initialize();
+                SilentView.register();
+            }
 
-        status.accept("Starting client");
-        Arsenic arsenic = new Arsenic();
-        Field instance = Arsenic.class.getDeclaredField("instance");
-        instance.setAccessible(true);
-        instance.set(null, arsenic);
-        if (Platform.isForge()) {
-            ForgeLaunch.asMinecraft(arsenic::initialize);
-        } else {
-            arsenic.initialize();
-            SilentView.register();
+            stage(0.8f, "Hooking game", status);
+            installHooks.run();
+            ArsenicSplash.progress(1f, "Ready");
+        } finally {
+            ArsenicSplash.finish();
         }
+    }
 
-        status.accept("Hooking game");
-        installHooks.run();
+    /** One stage of the launch: the status line for the injector and the loading screen. */
+    private static void stage(float fraction, String text, Consumer<String> status) {
+        status.accept(text);
+        ArsenicSplash.progress(fraction, text);
     }
 
     private static void addResourcePack(File jar) throws Exception {
