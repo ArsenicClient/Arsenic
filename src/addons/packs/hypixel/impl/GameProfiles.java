@@ -35,7 +35,7 @@ public class GameProfiles extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        GameDetector.Game now = GameDetector.current;
+        GameDetector.Game now = GameDetector.game();
         if (now == applied) return;
         applied = now;
         switch (now) {

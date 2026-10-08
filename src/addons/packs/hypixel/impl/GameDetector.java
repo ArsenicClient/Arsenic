@@ -21,8 +21,8 @@ import java.util.Locale;
 
 /**
  * Works out which Hypixel game you are in from the sidebar title, and shares that with other addons:
- * GameDetector.current is the game, and GameDetector.sidebar() gives the sidebar lines, top to bottom, with colour codes
- * removed. The game is one of BEDWARS, SKYWARS, PIT, DUELS, MURDER, ZOMBIES, UNKNOWN (a sidebar we do not recognise,
+ * GameDetector.game() is the game (GameDetector.current holds it too while this module is enabled), and
+ * GameDetector.sidebar() gives the sidebar lines, top to bottom, with colour codes removed. The game is one of BEDWARS, SKYWARS, PIT, DUELS, MURDER, ZOMBIES, UNKNOWN (a sidebar we do not recognise,
  * usually the lobby), or NONE (not in a world).
  *
  * The title strings are matched loosely and have not been checked against every Hypixel mode. If a game is detected as
@@ -33,8 +33,14 @@ public class GameDetector extends Module {
 
     public enum Game { NONE, UNKNOWN, BEDWARS, SKYWARS, PIT, DUELS, MURDER, ZOMBIES }
 
-    /** The game the player is in, updated every tick. */
+    /** The game the player is in, updated every tick while this module is enabled. */
     public static volatile Game current = Game.NONE;
+
+    /** The game the player is in right now, read from the sidebar; works whether or not this module is enabled. */
+    public static Game game() {
+        Minecraft mc = Minecraft.getMinecraft();
+        return mc.theWorld == null || mc.thePlayer == null ? Game.NONE : detect(title());
+    }
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);
 
@@ -47,12 +53,7 @@ public class GameDetector extends Module {
 
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.theWorld == null || mc.thePlayer == null) {
-            current = Game.NONE;
-            return;
-        }
-        current = detect(title());
+        current = game();
     };
 
     @EventLink

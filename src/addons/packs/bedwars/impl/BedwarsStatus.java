@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 /**
  * Team panel for BedWars, read from the sidebar: each team with whether its bed is still up, and how many players of
  * that team are left when the sidebar shows a number. Your own team is marked. Only active while GameDetector reports
- * BedWars. The sidebar layout is read as "Team: value" lines; the tick marks used by Hypixel (up and destroyed) have
+ * BedWars; needs the hypixel pack's GameDetector (pack.json requires). The sidebar layout is read as "Team: value" lines; the tick marks used by Hypixel (up and destroyed) have
  * not been checked on a live server, so the parser treats any line it does not recognise as no information.
  */
 @ModuleInfo(name = "BedwarsStatus", description = "Team panel from the BedWars sidebar: beds and players left", category = ModuleCategory.PLAYER)
@@ -30,7 +30,7 @@ public class BedwarsStatus extends Module {
 
     @EventLink
     public final Listener<EventRender2D> onRender = event -> {
-        if (!hud.getValue() || GameDetector.current != GameDetector.Game.BEDWARS) return;
+        if (!hud.getValue() || GameDetector.game() != GameDetector.Game.BEDWARS) return;
 
         rows.clear();
         for (String line : GameDetector.sidebar()) {

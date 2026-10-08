@@ -12,5 +12,8 @@
     "FinalKillCounter": "Counts final kills in BedWars from chat: yours and the game total.",
     "BedDefender": "Places blocks next to your bed when an enemy comes near. Stand next to your bed and enable it.",
     "GearReveal": "Shows an enemy's sword and armour tier above them, and tags invisible players."
+  },
+  "requires": {
+    "BedwarsStatus": ["hypixel/GameDetector"]
   }
 }

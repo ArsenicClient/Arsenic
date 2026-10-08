@@ -95,6 +95,8 @@ public class AddonCardComponent extends Component {
     }
 
     private String description() {
+        if (kind == Kind.ADDON && !info.requires.isEmpty())
+            return info.description + " Needs " + String.join(", ", info.requires) + ".";
         return kind == Kind.PACK ? pack.meta.description : kind == Kind.ADDON ? info.description : errorText;
     }
 

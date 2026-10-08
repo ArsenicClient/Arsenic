@@ -2,7 +2,7 @@
   "id": "hud",
   "name": "HUD and info",
   "description": "Information panels and warnings: hit feedback, hit counts, armour durability, health and enemy warnings, TPS, lagbacks, invulnerability, inventory counts, session stats, ping, detector hints, item drops and the block you aim at. Client-side only.",
-  "icon": "textures/items/clock_00.png",
+  "icon": "minecraft:clock",
   "autoInstall": false,
   "addons": {
     "HitMarker": "Flashes a cross on the crosshair when one of your hits lands.",

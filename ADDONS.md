@@ -1254,12 +1254,20 @@ pit/
   "description": "Tools for The Pit",
   "icon": "textures/items/gold_sword.png",
   "autoInstall": false,
-  "addons": { "AutoHunt": "What AutoHunt does, shown in the Addon Manager" }
+  "addons": { "AutoHunt": "What AutoHunt does, shown in the Addon Manager" },
+  "requires": { "FightBot": ["AutoHunt", "hypixel/GameDetector"] }
 }
 ```
 
-`icon` is any texture from the game's resources (an item texture by default). `autoInstall` packs are installed and
-enabled the first time the client runs. Installed packs live in `Arsenic/addons/packs/<id>/`; drop a pack `.zip`
+`icon` is either a texture from the game's resources (`textures/items/bed.png`) or an item id drawn like an inventory
+slot (`minecraft:clock`, `minecraft:wool@14`). `autoInstall` packs are installed and enabled the first time the client
+runs.
+
+Enabled addons are compiled together, so an addon can use another addon's classes only while that addon is enabled.
+`requires` (optional) lists, per addon, the addons it uses: a bare name is an addon of the same pack, `pack/Addon` one
+of another pack. Enabling an addon enables what it needs, installing a bundled pack if the needed addon is in one, and
+disabling an addon disables the addons that need it. The Addon Manager shows the needs on each addon's card. Only
+pack addons can declare needs, and only pack addons can be needed. Installed packs live in `Arsenic/addons/packs/<id>/`; drop a pack `.zip`
 into `Arsenic/addons/packs/` and it is unpacked into a folder of the same name on the next reload (the zip is
 renamed to `.zip.imported`). An addon file ending in `.java.disabled` is not loaded.
 
