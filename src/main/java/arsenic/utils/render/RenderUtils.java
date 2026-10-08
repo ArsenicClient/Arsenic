@@ -49,6 +49,18 @@ public class RenderUtils extends UtilityClass {
     public static void bindTexture(int texture) {
         glBindTexture(GL_TEXTURE_2D, texture);
     }
+
+    /**
+     * Binds a texture on a texture unit GlStateManager does not track (it only knows units 0 to 7), then leaves unit 0
+     * active. Selecting such a unit through GlStateManager.setActiveTexture makes its next bindTexture throw, and its
+     * state stays on that unit, so every later texture bind in the game fails too.
+     */
+    public static void bindTextureOnUnit(int unit, int texture) {
+        org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0 + unit);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+        GlStateManager.setActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+    }
     public static int alpha(Color color, int newAlpha) {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), newAlpha).getRGB();
     }

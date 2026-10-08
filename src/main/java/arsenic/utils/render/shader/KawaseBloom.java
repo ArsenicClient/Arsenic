@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL14;
 
 import java.util.ArrayList;
@@ -81,9 +80,7 @@ public class KawaseBloom {
         kawaseUp.setUniformi("textureToCheck", 16);
         kawaseUp.setUniformf("halfpixel", 1.0f / lastBuffer.framebufferWidth, 1.0f / lastBuffer.framebufferHeight);
         kawaseUp.setUniformf("iResolution", lastBuffer.framebufferWidth, lastBuffer.framebufferHeight);
-        GlStateManager.setActiveTexture(GL13.GL_TEXTURE16);
-        RenderUtils.bindTexture(framebufferTexture);
-        GlStateManager.setActiveTexture(GL13.GL_TEXTURE0);
+        RenderUtils.bindTextureOnUnit(16, framebufferTexture);
         RenderUtils.bindTexture(framebufferList.get(1).framebufferTexture);
         ShaderUtil.drawQuads();
         kawaseUp.unload();
