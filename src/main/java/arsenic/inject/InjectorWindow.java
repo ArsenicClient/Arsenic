@@ -44,7 +44,9 @@ final class InjectorWindow {
     private final JPanel cards = new JPanel();
     private final JScrollPane cardScroll;
     private final ActionButton injectButton = new ActionButton("Inject");
+    private final ActionButton uninjectButton = new ActionButton("Uninject");
     private final ActionButton injectLunarButton = new ActionButton("Inject into Lunar");
+    private final ActionButton removeLunarButton = new ActionButton("Remove from Lunar");
     private final IconButton refreshButton = new IconButton(IconButton.REFRESH, "Refresh");
     private final Toggle showAll = new Toggle("Show every Java process");
     private final ProgressBar progress = new ProgressBar();
@@ -200,7 +202,11 @@ final class InjectorWindow {
         statusColumn.add(linkRow);
         row.add(statusColumn, BorderLayout.CENTER);
         injectButton.addActionListener(this::injectSelected);
-        row.add(injectButton, BorderLayout.EAST);
+        uninjectButton.addActionListener(this::uninjectSelected);
+        JPanel actions = transparent(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.add(uninjectButton);
+        actions.add(injectButton);
+        row.add(actions, BorderLayout.EAST);
         footer.add(row, BorderLayout.CENTER);
 
         log.setEditable(false);
@@ -334,11 +340,42 @@ final class InjectorWindow {
             card.repaint();
         setStatus(selectedHint(), TEXT_SECONDARY);
         updateButtons();
+        checkInjected(game);
+    }
+
+    /** Asks the game whether Arsenic is in it, so the buttons follow the game rather than this window. */
+    private void checkInjected(Injector.Game game) {
+        if (!game.attachable)
+            return;
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() {
+                return Injector.loadedState(game.id);
+            }
+
+            @Override
+            protected void done() {
+                String state = null;
+                try {
+                    state = get();
+                } catch (Exception ignored) {
+                    // not reachable: treated as not injected
+                }
+                if ("injected".equals(state))
+                    injected.add(game.id);
+                else
+                    injected.remove(game.id);
+                for (GameCard card : gameCards)
+                    card.repaint();
+                updateButtons();
+            }
+        }.execute();
     }
 
     private void updateButtons() {
         Injector.Game game = selected();
         injectButton.setEnabled(!busy && game != null && game.supported() && !injected.contains(game.id));
+        uninjectButton.setEnabled(!busy && game != null && game.attachable && injected.contains(game.id));
         refreshButton.setEnabled(!busy);
         showAll.setEnabled(!busy);
     }
@@ -414,6 +451,62 @@ final class InjectorWindow {
         }.execute();
     }
 
+    /** Takes Arsenic out of the selected game, through the agent (games that turn attach off are done in Lunar's settings). */
+    private void uninjectSelected() {
+        Injector.Game game = selected();
+        if (game == null || busy)
+            return;
+        busy = true;
+        updateButtons();
+        uninjectButton.setText("Removing...");
+        progress.setState(ProgressBar.RUNNING);
+        appendLog("== " + game.label() + " (uninject) ==");
+        setStatus("Removing Arsenic...", TEXT);
+
+        new SwingWorker<String, String>() {
+            @Override
+            protected String doInBackground() {
+                return Injector.uninject(game.id, this::publish);
+            }
+
+            @Override
+            protected void process(List<String> chunks) {
+                for (String line : chunks)
+                    appendLog(line);
+                String last = chunks.get(chunks.size() - 1);
+                if (!last.startsWith("hooked ") && !last.startsWith("missed "))
+                    setStatus(last, TEXT);
+            }
+
+            @Override
+            protected void done() {
+                busy = false;
+                uninjectButton.setText("Uninject");
+                String result;
+                try {
+                    result = get();
+                } catch (Exception e) {
+                    result = "ERROR " + e;
+                }
+                appendLog(result);
+                if (result.equals("OK")) {
+                    injected.remove(game.id);
+                    progress.setState(ProgressBar.DONE);
+                    setStatus("Removed. Restart the game to inject Arsenic again.", SUCCESS);
+                } else {
+                    String reason = result.startsWith("ERROR") ? result.substring(5).trim() : result;
+                    progress.setState(ProgressBar.FAILED);
+                    setStatus("Uninject failed: " + reason, DANGER);
+                    if (!logScroll.isVisible())
+                        toggleLog();
+                }
+                for (GameCard card : gameCards)
+                    card.repaint();
+                updateButtons();
+            }
+        }.execute();
+    }
+
     /** How to load Arsenic at launch into a game that turns attach off. Lunar's steps are always shown at the bottom. */
     private void appendLaunchSteps(Injector.Game game) {
         appendLog(game.client.display + " turns off the Java attach mechanism, so the injector cannot reach it.");
@@ -440,31 +533,46 @@ final class InjectorWindow {
         panel.add(text, BorderLayout.CENTER);
 
         injectLunarButton.addActionListener(this::injectIntoLunar);
-        panel.add(injectLunarButton, BorderLayout.EAST);
+        removeLunarButton.addActionListener(this::removeFromLunar);
+        JPanel actions = transparent(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.add(removeLunarButton);
+        actions.add(injectLunarButton);
+        panel.add(actions, BorderLayout.EAST);
         return panel;
     }
 
-    /** Stops Lunar, then points its launch arguments at this jar. Runs off the event thread; the log says each step. */
     private void injectIntoLunar() {
+        lunarTask(true);
+    }
+
+    private void removeFromLunar() {
+        lunarTask(false);
+    }
+
+    /** Stops Lunar, then adds Arsenic to its launch arguments or takes it out again. Runs off the event thread. */
+    private void lunarTask(boolean add) {
         if (busy)
             return;
-        int answer = JOptionPane.showConfirmDialog(frame,
-                "This closes Lunar Client and any game running in it, then adds Arsenic to Lunar's JVM arguments.\n\nContinue?",
-                "Inject into Lunar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        String question = (add ? "This closes Lunar Client and any game running in it, then adds Arsenic to Lunar's JVM arguments."
+                : "This closes Lunar Client and any game running in it, then takes Arsenic out of Lunar's JVM arguments.")
+                + "\n\nContinue?";
+        int answer = JOptionPane.showConfirmDialog(frame, question, add ? "Inject into Lunar" : "Remove from Lunar",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION)
             return;
         busy = true;
         updateButtons();
         injectLunarButton.setEnabled(false);
-        injectLunarButton.setText("Working...");
-        appendLog("Inject into Lunar");
+        removeLunarButton.setEnabled(false);
+        (add ? injectLunarButton : removeLunarButton).setText("Working...");
+        appendLog(add ? "Inject into Lunar" : "Remove from Lunar");
         setStatus("Updating Lunar Client", TEXT_SECONDARY);
 
         new SwingWorker<Boolean, String>() {
             @Override
             protected Boolean doInBackground() throws Exception {
                 String agent = Injector.agentArg();
-                if (!agent.endsWith(".jar"))
+                if (add && !agent.endsWith(".jar"))
                     throw new IllegalStateException("Run the built Arsenic jar; the classes folder cannot be a launch argument");
                 List<String> pids = LunarInjection.runningLunar();
                 if (!pids.isEmpty()) {
@@ -475,7 +583,8 @@ final class InjectorWindow {
                 File settings = LunarInjection.settingsFile();
                 if (!settings.isFile())
                     throw new IllegalStateException("No Lunar settings at " + settings + "; open Lunar Client once first");
-                return LunarInjection.setAgent(settings, agent, line -> publish(line));
+                return add ? LunarInjection.setAgent(settings, agent, line -> publish(line))
+                        : LunarInjection.removeAgent(settings, line -> publish(line));
             }
 
             @Override
@@ -488,12 +597,18 @@ final class InjectorWindow {
             protected void done() {
                 busy = false;
                 injectLunarButton.setText("Inject into Lunar");
+                removeLunarButton.setText("Remove from Lunar");
                 injectLunarButton.setEnabled(true);
+                removeLunarButton.setEnabled(true);
                 updateButtons();
                 try {
                     boolean changed = get();
-                    setStatus(changed ? "Lunar will load Arsenic when you launch a game from it" : "Lunar already loads Arsenic", SUCCESS);
-                    appendLog("Start Lunar Client and launch a game; Arsenic loads with it.");
+                    if (add) {
+                        setStatus(changed ? "Lunar will load Arsenic when you launch a game from it" : "Lunar already loads Arsenic", SUCCESS);
+                        appendLog("Start Lunar Client and launch a game; Arsenic loads with it.");
+                    } else {
+                        setStatus(changed ? "Lunar will no longer load Arsenic" : "Arsenic was not in Lunar's settings", changed ? SUCCESS : TEXT_SECONDARY);
+                    }
                 } catch (java.util.concurrent.ExecutionException e) {
                     String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
                     setStatus(message, DANGER);
