@@ -1,7 +1,7 @@
 {
   "id": "render",
   "name": "Render",
-  "description": "Client-side visuals only: highlights for items, projectiles, TNT and the block you aim at, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
+  "description": "Client-side visuals only: highlights for blocks, items, projectiles, TNT and the block you aim at, trails, jump and kill effects, waypoints and light levels, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
   "icon": "textures/items/ender_eye.png",
   "autoInstall": false,
   "addons": {
@@ -9,6 +9,14 @@
     "ItemESP": "Highlights dropped items through walls within a chosen range, in the theme colour.",
     "ProjectileESP": "Highlights arrows, fireballs, ender pearls and other thrown items through walls, each in its own colour.",
     "TNTTimer": "Outlines primed TNT through walls and lists the closest ones with the seconds left on their fuse.",
-    "BlockOverlay": "Outlines the block your crosshair is on. Follows the silent rotation, so it shows what your clicks would hit."
+    "BlockOverlay": "Outlines the block your crosshair is on. Follows the silent rotation, so it shows what your clicks would hit.",
+    "BlockESP": "Highlights the block types you list (bed, diamond_ore, tnt...) through walls within a range.",
+    "DamageParticles": "Floats the damage of each of your hits over the target, rising and fading.",
+    "JumpCircles": "Draws a ring under you when you jump, growing and fading.",
+    "PlayerTrail": "A fading trail behind each other player through their last positions.",
+    "KillEffect": "Draws a burst where a kill you made happens.",
+    "WaypointMarkers": "Named world points shown as beams. Add with .waypoint add <name>, remove, list and clear.",
+    "LightLevel": "Shows the light level on the ground around you, red where hostile mobs can spawn.",
+    "DeathMarker": "Marks where you last died with a beam and the distance. Clear button removes it."
   }
 }

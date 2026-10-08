@@ -40,7 +40,12 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
   - `SessionStats` parses "X was killed by Y".
   - `TpsMeter` estimates TPS from time updates.
 - **Known gaps:** NPCs that are in the tab list are not caught by AntiBot yet. A sample name from one would show which rule to add.
-- The remaining batches (3 to 11) are not implemented yet.
+- **Batch 3 (11 of 12 addons):** `BlockESP`, `DamageParticles`, `JumpCircles`, `PlayerTrail`, `KillEffect`, `WaypointMarkers`, `LightLevel`, `DeathMarker` (pack `render`); `HackerDetector`, `ItemAlerts`, `BlockInfo` (pack `hud`).
+  - **Deferred: `Chams`.** It needs a per-entity render hook (a pre and post around each player model). Addons have no such event, and the built-in `ChamsRenderer` reads the ESP module's settings, so it cannot be used from an addon. Needs a client change: an entity-render event for addons.
+  - `WaypointMarkers` saves its points in its own setting, so they survive a restart. Commands: `.waypoint add|remove|list|clear`.
+  - `LightLevel` and `DeathMarker` draw text with a simple billboard transform; orientation has not been checked in game.
+  - `HackerDetector` uses fixed thresholds (0.6 blocks per tick, 0.9 with a speed potion). It will give false positives on knockback and boats.
+- The remaining batches (4 to 11) are not implemented yet.
 
 ## 1. Summary
 
