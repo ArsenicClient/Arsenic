@@ -309,6 +309,26 @@ Public fields on the manager. They are updated **after** `EventSilentRotation` h
 `EventTick.Post`/`EventUpdate`, they are the rotation **being sent this tick**; at the next tick's `EventTick` they are
 again "last sent". Use them as the "current rotation" to measure how far you still have to turn.
 
+### Interaction follows the silent rotation, not the camera
+
+While a silent rotation is active the game's own interactions use it, so the camera can look anywhere:
+
+- The crosshair target (`mc.objectMouseOver`, `mc.pointedEntity`) is computed from the **silent** yaw/pitch. The client
+  asks `EventLook` for the look direction when it works out what is under the crosshair (`getMouseOver` and the entity ray
+  trace both post it), and `SilentRotationManager` answers with the silent rotation whenever one is active.
+- Vanilla left and right clicks act on `mc.objectMouseOver`. So **a normal right click places a block where the silent
+  rotation points, and a left click attacks or mines what it points at, even though the camera looks elsewhere.** The same
+  goes for `PlayerUtils.click()`, which reads `mc.objectMouseOver`.
+- Movement packets carry the silent rotation, and with `MovementFix.SILENT` your keys still move you relative to the camera.
+
+What this means for addons:
+
+- To act on the aimed target you do not have to compute a ray yourself: read `mc.objectMouseOver` (it already reflects the
+  silent rotation) or `event.getRayTrace()` in `.Post` (the ray of the rotation being sent this tick). Both agree once the rotation has settled.
+- Use `setBlockUserInput(true)` while you hold a silent rotation. Otherwise the user's own click would also go to the silent
+  target and not to what they see on screen.
+- Do not set `EventLook` yourself to fake this; ask for a rotation through `EventSilentRotation` and let the manager answer `EventLook`.
+
 ### Movement fix, in one table
 
 | `MovementFix` | Effect | Use when |

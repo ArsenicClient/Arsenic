@@ -18,6 +18,7 @@ import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.utils.click.ClickManager;
 import arsenic.utils.minecraft.AutoBlocker;
 import arsenic.utils.minecraft.BadPacketsManager;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
@@ -47,7 +48,7 @@ public class KillAura extends Module {
 
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
     public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
-    public RangeProperty aps = new RangeProperty("APS", new RangeValue(1, 20, 8, 12, 1));
+    public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
@@ -59,11 +60,8 @@ public class KillAura extends Module {
     private final AutoBlocker blocker = new AutoBlocker();
     private AutoBlocker.Mode lastBlockMode = AutoBlocker.Mode.None;
     private boolean blockAttackOk = true;
-    private final MSTimer attackTimer = new MSTimer();
     private final MSTimer onTargetTimer = new MSTimer();
     private boolean everOnTarget = false;
-
-    private long currentAttackDelay = 100L;
 
     private static final double ATTACK_RANGE = 3.0;
 
@@ -88,6 +86,7 @@ public class KillAura extends Module {
         everOnTarget = false;
         aim.reset();
         blocker.reset();
+        ClickManager.get().reset(ClickManager.Client.KILLAURA);
     }
 
     @Override
@@ -167,7 +166,7 @@ public class KillAura extends Module {
         if ((target != null || hitPlayer != null)
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
-                && attackTimer.getTime() >= currentAttackDelay
+                && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
                 && (blocker.isCycling() ? blockAttackOk
                     : !usingItem && !wasUsingItem
                         && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false)))) {
@@ -234,15 +233,12 @@ public class KillAura extends Module {
     }
 
     private float flickBudget() {
-        long remainingMs = Math.max(0L, currentAttackDelay - attackTimer.getTime());
+        long remainingMs = ClickManager.get().remainingMs(ClickManager.Client.KILLAURA);
         return remainingMs / 50f + LagManager.getPingAsTicks() / 2f;
     }
 
     private void resetAttackCycle() {
-        long now = System.currentTimeMillis();
-        long overrun = now - (attackTimer.lastMS + currentAttackDelay);
-        attackTimer.setTime(now - (overrun >= 0 && overrun < 50 ? overrun : 0));
-        currentAttackDelay = getAttackDelay();
+        ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
     }
 
     private boolean shouldMissClick(EventSilentRotation.Post event) {
@@ -268,9 +264,5 @@ public class KillAura extends Module {
         float yawDelta = Math.abs(RotationUtils.getYawDifference(rots[0], event.getYaw()));
         float pitchDelta = Math.abs(rots[1] - event.getPitch());
         return Math.max(yawDelta, pitchDelta) / speed <= lookahead;
-    }
-
-    private long getAttackDelay() {
-        return (long) (1000.0 / aps.getValue().getRandomInRange());
     }
 }

@@ -19,6 +19,7 @@ public final class AutoBlocker {
 
     private int stage;
     private boolean cycling;
+    private boolean forcedKey;
 
     /** True while the Hypixel cycle is running, so attacks must wait for its window. */
     public boolean isCycling() {
@@ -34,9 +35,16 @@ public final class AutoBlocker {
         if (!active) {
             abort();
             cycling = false;
+            releaseForcedKey();
             return true;
         }
         cycling = true;
+        // Without the key down the client sees an item in use with no button held and sends its own release
+        // packet, which is the flag the right-click-only mode never has.
+        if (!forcedKey) {
+            forcedKey = true;
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
+        }
         int slot = mc.thePlayer.inventory.currentItem;
         switch (stage) {
             case 0:
@@ -67,6 +75,16 @@ public final class AutoBlocker {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), block || userRightClick);
     }
 
+    /** Hands the use-item key back to the real mouse state once the cycle stops forcing it. */
+    private void releaseForcedKey() {
+        if (!forcedKey)
+            return;
+        forcedKey = false;
+        int code = mc.gameSettings.keyBindUseItem.getKeyCode();
+        boolean physical = code < 0 ? Mouse.isButtonDown(code + 100) : org.lwjgl.input.Keyboard.isKeyDown(code);
+        KeyBinding.setKeyBindState(code, physical && mc.currentScreen == null);
+    }
+
     /** Puts the server back to normal if the cycle is switched off or interrupted part-way. */
     public void abort() {
         if (stage == 1)
@@ -80,6 +98,7 @@ public final class AutoBlocker {
     public void reset() {
         if (mc.thePlayer != null && mc.getNetHandler() != null)
             abort();
+        releaseForcedKey();
         stage = 0;
         cycling = false;
     }

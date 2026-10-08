@@ -95,6 +95,7 @@ public class AutoUber extends Module {
 
     public final DoubleProperty oofStreak = new DoubleProperty("Oof Streak", new DoubleValue(50, 1000, 400, 10));
     public final DoubleProperty insertionDelay = new DoubleProperty("Insertion Delay (s)", new DoubleValue(0, 30, 10, 0.5));
+    public final DoubleProperty insertionHold = new DoubleProperty("Insertion Hold (s)", new DoubleValue(0.2, 2, 0.5, 0.05));
     public final DoubleProperty checkoutBounty = new DoubleProperty("Self-checkout Bounty", new DoubleValue(500, 20000, 5000, 100));
     public final DoubleProperty chaseRange = new DoubleProperty("Chase Range", new DoubleValue(2, 20, 7, 0.5));
     public final DoubleProperty arenaRadius = new DoubleProperty("Arena Radius", new DoubleValue(10, 100, 45, 1));
@@ -102,6 +103,7 @@ public class AutoUber extends Module {
     public final BooleanProperty doOof = new BooleanProperty("Auto /oof", true);
     public final BooleanProperty doInsertion = new BooleanProperty("Tactical Insertion", true);
     public final BooleanProperty doCheckout = new BooleanProperty("Self-checkout", true);
+    public final BooleanProperty keepBlobs = new BooleanProperty("Keep Pitblob Pants On", true);
     public final BooleanProperty doMove = new BooleanProperty("Move To Crowd", true);
     public final BooleanProperty avoidSlimes = new BooleanProperty("Avoid Slimes", true);
     public final BooleanProperty friendDiamond = new BooleanProperty("Friend Diamond Chest", true);
@@ -265,7 +267,7 @@ public class AutoUber extends Module {
     private boolean wasAlive = true;
     private long insertionAt;
     private long insertionRetryAt;
-    private int insHold, insSlot, insPrev;
+    private int insTotal, insTicks, insSlot, insPrev;
     private boolean insertionActive;
     private int insertionTries;
     private volatile boolean insertionConfirmed;
@@ -282,6 +284,7 @@ public class AutoUber extends Module {
     private long coStart, coCooldown, coLastClick, coVerifyUntil;
     private String coWanted;
     private boolean warnedNoSco;
+    private boolean warnedNoBlob;
 
     // movement
     private double goalX, goalZ;
@@ -439,6 +442,7 @@ public class AutoUber extends Module {
         if (doOof.getValue()) oof();
         if (mc.currentScreen == null) {
             if (doCheckout.getValue()) checkout();
+            if (keepBlobs.getValue()) blobCheck();
             if (doInsertion.getValue()) insertion();
         }
 
@@ -647,19 +651,21 @@ public class AutoUber extends Module {
     // we keep trying every 5 s until the server confirms it, then leave it alone until the next death.
 
     private void insertion() {
-        if (insHold > 0) {
-            // keep the rod selected and keep clicking for a few ticks so the server sees it in hand (it sometimes ignored a single click)
-            if (insertionActive || mc.thePlayer.inventory.getStackInSlot(insSlot) == null) insHold = 0;
-            else {
-                clickRod();
-                insHold--;
+        if (insTotal > 0) {
+            // rod stays selected for the item's use time (0.5 s); one click shortly after selecting it, like a player would
+            insTicks++;
+            if (insertionActive || mc.thePlayer.inventory.getStackInSlot(insSlot) == null || insTicks >= insTotal) {
+                insTotal = 0;
+                mc.thePlayer.inventory.currentItem = insPrev;
+                return;
             }
-            if (insHold == 0) mc.thePlayer.inventory.currentItem = insPrev;
+            mc.thePlayer.inventory.currentItem = insSlot;
+            if (insTicks == INSERTION_CLICK_DELAY) clickRod();
             return;
         }
         long now = System.currentTimeMillis();
         if (insertionActive || now < insertionAt || now < insertionRetryAt || insertionTries >= 15) return;
-        if (!mc.thePlayer.onGround || coState != 0) return;
+        if (coState != 0) return;
         int slot = -1;
         for (int i = 0; i < 9; i++) {
             ItemStack s = mc.thePlayer.inventory.getStackInSlot(i);
@@ -676,10 +682,9 @@ public class AutoUber extends Module {
         warnedNoRod = false;
         insSlot = slot;
         insPrev = mc.thePlayer.inventory.currentItem;
-        insHold = INSERTION_CLICK_TICKS;
-        clickRod();
-        insHold--;
-        if (insHold == 0) mc.thePlayer.inventory.currentItem = insPrev;
+        insTotal = Math.max(INSERTION_CLICK_DELAY + 2, (int) Math.round(insertionHold.getValue().getInput() * 20));
+        insTicks = 0;
+        mc.thePlayer.inventory.currentItem = slot;
         insertionRetryAt = now + 5000;
         insertionTries++;
         stat("insertionTries", 1);
@@ -687,14 +692,12 @@ public class AutoUber extends Module {
         if (insertionTries == 15) info("Tactical Insertion gave up for this life (15 tries)");
     }
 
-    private static final int INSERTION_CLICK_TICKS = 3;
+    private static final int INSERTION_CLICK_DELAY = 2;
 
     private void clickRod() {
         mc.thePlayer.inventory.currentItem = insSlot;
-        BlockPos ground = new BlockPos(mc.thePlayer.posX, mc.thePlayer.posY - 0.5, mc.thePlayer.posZ);
-        Vec3 hit = new Vec3(ground.getX() + 0.5, ground.getY() + 1.0, ground.getZ() + 0.5);
         mc.thePlayer.swingItem();
-        mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), ground, EnumFacing.UP, hit);
+        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getStackInSlot(insSlot));
     }
 
     // ---------------------------------------------------------------- self-checkout
@@ -735,7 +738,7 @@ public class AutoUber extends Module {
         }
 
         if (coState == 0) {
-            if (bounty < threshold || ticks < coCooldown || coVerifyUntil > 0 || coTries >= 5 || insHold > 0) return;
+            if (bounty < threshold || ticks < coCooldown || coVerifyUntil > 0 || coTries >= 5 || insTotal > 0) return;
             int slot = -1;
             for (int i = 0; i < 9; i++)
                 if (isCheckout(mc.thePlayer.inventory.getStackInSlot(i))) {
@@ -778,8 +781,9 @@ public class AutoUber extends Module {
             return;
         }
 
-        // coState 2: make sure our normal (pitblob) pants are back on and the self-checkout is not what we are wearing
-        if (ticks - coLastClick < 6) return;
+        // coState 2: make sure our normal (pitblob) pants are back on and the self-checkout is not what we are wearing.
+        // Every click toggles the pants, so wait long enough for the server's answer before deciding anything (ping!).
+        if (ticks - coLastClick < (coFix == 0 ? 10 : 20)) return;
         ItemStack worn = mc.thePlayer.inventory.armorItemInSlot(1);
         if (worn != null && !isCheckout(worn)) {
             finishCheckout(true);
@@ -791,22 +795,33 @@ public class AutoUber extends Module {
             return;
         }
         coFix++;
+        coLastClick = ticks;
+        if (fix >= 9) {
+            // pants are in the main inventory: swap them into our hotbar slot first, the click comes next round
+            mc.playerController.windowClick(0, fix, coSlot, 2, mc.thePlayer);
+            info("Self-checkout: moving your pants into the hotbar (try " + coFix + ")");
+            return;
+        }
+        info("Self-checkout: re-equipping your pants (try " + coFix + ")");
         mc.thePlayer.inventory.currentItem = fix;
         mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getStackInSlot(fix));
-        coLastClick = ticks;
     }
 
-    /** Hotbar slot of the pants to put back on: pitblob pants first, then the ones we were wearing, then any non-self-checkout pants. */
+    /** Slot (0-8 hotbar, 9-35 inventory) of the pants to put back on: hotbar first, pitblob pants before the ones we were wearing before any others. */
     private int pantsToWear() {
-        int named = -1, any = -1;
-        for (int i = 0; i < 9; i++) {
+        int best = -1, bestScore = -1;
+        for (int i = 0; i < 36; i++) {
             ItemStack s = mc.thePlayer.inventory.getStackInSlot(i);
             if (!isLeggings(s) || isCheckout(s)) continue;
-            if (isPitblob(s)) return i;
-            if (named < 0 && coWanted != null && coWanted.equals(StringUtils.stripControlCodes(s.getDisplayName()))) named = i;
-            if (any < 0) any = i;
+            int score = (isPitblob(s) ? 4 : 0)
+                    + (coWanted != null && coWanted.equals(StringUtils.stripControlCodes(s.getDisplayName())) ? 2 : 0)
+                    + (i < 9 ? 1 : 0);
+            if (score > bestScore) {
+                bestScore = score;
+                best = i;
+            }
         }
-        return named >= 0 ? named : any;
+        return best;
     }
 
     private void finishCheckout(boolean ok) {
@@ -816,6 +831,37 @@ public class AutoUber extends Module {
         coVerifyUntil = ticks + 100;
         if (ok) info("Pants back on after Self-checkout, waiting to see if the bounty cleared");
         else PlayerUtils.addWaterMarkedMessageToChat("Could not put your normal pants back on after Self-checkout - check your pants!");
+    }
+
+    // ---------------------------------------------------------------- keep the pitblob pants on
+
+    /** Every 5 s: if what we wear on our legs is not the pitblob pants, right-click them from the hotbar. */
+    private void blobCheck() {
+        if (ticks % 100 != 0 || coState != 0 || insTotal > 0) return;
+        ItemStack worn = mc.thePlayer.inventory.armorItemInSlot(1);
+        if (worn != null && !isCheckout(worn) && isPitblob(worn)) {
+            warnedNoBlob = false;
+            return;
+        }
+        int slot = -1;
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = mc.thePlayer.inventory.getStackInSlot(i);
+            if (isLeggings(s) && !isCheckout(s) && isPitblob(s)) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot < 0) {
+            if (!warnedNoBlob) info("Not wearing pitblob pants and none in your hotbar");
+            warnedNoBlob = true;
+            return;
+        }
+        warnedNoBlob = false;
+        int previous = mc.thePlayer.inventory.currentItem;
+        mc.thePlayer.inventory.currentItem = slot;
+        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getStackInSlot(slot));
+        if (previous != slot) restoreSlot = previous;
+        info("Putting your pitblob pants back on");
     }
 
     // ---------------------------------------------------------------- friends
