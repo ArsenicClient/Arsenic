@@ -33,13 +33,19 @@ Read these before writing any addon from this catalog.
 | `world` | World and building | 4 | new |
 | `render` | Render | 29 | new |
 | `hud` | HUD and info | 26 | new |
-| `bedwars` | BedWars | 9 | **extend** existing pack |
+| `bedwars` | BedWars | 10 | **extend** existing pack |
 | `pit` | Pit | 1 | **extend** existing pack |
+| `murder` | Murder Mystery | 3 | new |
+| `zombies` | Hypixel Zombies | 5 | new |
+| `minigames` | Other minigames | 1 | new |
 | `skywars` | SkyWars | 2 | new |
 | `duels` | Duels and Sumo | 3 | new |
 | `hypixel` | Hypixel utils | 11 | new |
+| `murder` | Murder Mystery | "Murder Mystery helpers: highlights for the suspected murderer and detective by the items they hold, and an alert when the bow drops." | `textures/items/arrow.png` | false |
+| `zombies` | Hypixel Zombies | "Hypixel Zombies helpers: aim assist on the silent pipeline (it never fires on its own), auto heal, auto revive and auto ammo, with mob highlights." | `textures/items/rotten_flesh.png` | false |
+| `minigames` | Other minigames | "Other Hypixel minigame helpers, starting with Prop Hunt hider highlights." | `textures/items/nether_star.png` | false |
 | `qol` | Misc / QoL | 3 | new |
-| **Total** | | **105** | |
+| **Total** | | **115** | |
 
 Priority split: see the counts in [Section 10](#10-counts-and-priority-split). Ten candidates are P1.
 
@@ -62,8 +68,9 @@ The index is [3000IQPlay/client-library](https://github.com/3000IQPlay/client-li
 | LX | LiquidX | PrahXZ/LiquidX | `gradle.properties`: `forgeVersion=1.8.9-11.15.1.2318-1.8.9` |
 | LBL | LiquidBounce, `legacy` branch | CCBlueX/LiquidBounce (branch `legacy`) | `mcmod.info` `mcversion` 1.8.9; README "supporting version 1.8.9" |
 | SUMO | Sumo Ghost Client Mod 1.8.9 | pesshown/Sumo-Ghost-Client-Mod-1.8.9 | README title "1.8.9"; no build file, small source (lower confidence) |
+| YUR | Yuri | unleg1t/Yuri | `build.gradle`: `version = '1.8.9'`, vanilla `net.minecraft.client.main.Main`; README "Optifine 1.8.9-based". Its anti-cheat claims in the README were not used as evidence. |
 
-Eleven 1.8.x clients with source were surveyed. The brief asked for 15 to 25. The gap is explained under [Survey coverage](#survey-coverage).
+Twelve 1.8.x clients with source were surveyed, counting Yuri, which the maintainer asked me to add. The brief asked for 15 to 25. The gap is explained under [Survey coverage](#survey-coverage).
 
 ### Survey coverage
 
@@ -132,6 +139,7 @@ Each entry lists only the module names I actually saw in the source trees. Descr
 | LX | HealthWarn, HitEffect, DamageParticle, Glint, HurtCam, PerspectiveMod, AutoGG, AntiStaff, AntiVanish, MurderDetector, FollowTargetHud |
 | LBL | StaffDetector, GameDetector, AutoDisable, FreeLook, NoBob, PacketDebugger, RotationRecorder, ClickRecorder, AutoRespawn, AutoFish, AutoPlay, ChestAura, ItemPhysics |
 | SUMO | Keystrokes overlay, CPS counter, FPS display, KB modifier, aim assist, killaura, eagle, chest stealer, fullbright (small source) |
+| YUR | Minigame modules: BedWarsUtility (gear and invisibility reveal), MinigameAim (Zombies aim, auto heal, auto revive, auto ammo; Halloween Simulator farm), BedDefender, Breaker, AutoExtinguish, GUIClicker, AutoSwap, AutoF5, WTap, FreeLook, Chams, BlockESP, Skeletons, TargetESP, SessionInfo, AutoServer (mostly rejected) |
 
 ---
 
@@ -180,13 +188,13 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 |---|---|---|---|---|---|---|---|
 | `Parkour` | MOVEMENT | While you sprint forward, presses jump at a block edge so you do not walk off it. | Presses the jump key only; never changes velocity; jittered timing; not while sneaking; never in the air. | RAV, LBR, LC, LS, LX, FDP, LBL | No | S | P2 |
 | `AutoWalk` | MOVEMENT | Holds the forward key until you toggle it off, optionally with sprint. | Holds a real key only, no motion edits; releases on GUI open and on any manual key press. | FDP, LBR, LC, LS, LBL | No | S | P3 |
-| `SnapTap` | MOVEMENT | Resolves opposing A+D and W+S presses the way SOCD keyboards do: the most recent key wins and the older one resumes on release. | Only re-times real presses, injects nothing. Keyboard-level input is unusual for servers, so test before enabling. | FDP | No | S | P3 |
+| `SnapTap` | MOVEMENT | Resolves opposing A+D and W+S presses the way SOCD keyboards do: the most recent key wins and the older one resumes on release. | Only re-times real presses, injects nothing. Confirmed acceptable by the maintainer. | FDP | No | S | P3 |
 
 ### 4.3 Pack `player` (Player and QoL), 9 candidates
 
 | Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
 |---|---|---|---|---|---|---|---|
-| `MiddleClick` | PLAYER | Middle mouse uses a chosen hotbar item (pearl, rod, golden apple): switches to it, uses it, switches back. | Real click; switch with `isSwappingHotbar()` set, one use per press, restore the slot after; no action with a GUI open. | RAV, LBL, LC, LS, LBR, LX | No | S | P2 |
+| `MiddleClick` | PLAYER | Middle mouse uses a chosen hotbar item (pearl, rod, golden apple): switches to it, uses it, switches back. | Real click; switch with `isSwappingHotbar()` set, one use per press, restore the slot after; no action with a GUI open. **Conflict:** Arsenic's `TargetManager` already toggles friends on middle click, and Yuri adds friends on middle click. Recommended: item use is opt-in, and the friend toggle moves to shift + middle while it is on. Confirmed fine by the maintainer. | RAV, LBL, LC, LS, LBR, LX, YUR (friend add) | No | S | P2 |
 | `ChatMacros` | PLAYER | Binds a key to a chat command or message, for example `/play bedwars_eight_one`. | Sends only on a deliberate key press, rate-limited, never repeats on its own. Keep it manual to stay within server chat rules. | FDP | No | S | P2 |
 | `AutoRespawn` | PLAYER | Clicks Respawn after a delay when you die. | Respawn is a normal client request on the death screen; delay jitter; no packets added. | HYD, FDP, LC, LS, LBR, LBL | No | S | P2 |
 | `AutoReconnect` | PLAYER | Reconnects to the last server after a kick or disconnect, with a delay and a retry limit. | Opens the normal connect flow after a delay; nothing sent to the old connection. | LC, LS, LX, LBR, LBL | Maybe: needs access to the last server data and connect screen (verify) | M | P2 |
@@ -202,7 +210,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 |---|---|---|---|---|---|---|---|
 | `HoleFiller` | PLAYER | Fills holes in the floor around you with blocks from the hotbar, to keep a clean platform. | Placement pipeline only, from the Post ray; delays; no GUI. | FDP | No | M | P3 |
 | `LiquidFiller` | PLAYER | Places blocks into the water or lava in front of you so you can walk or bridge across it. | Same placement pipeline as AutoBlockIn; the face comes from the ray. | FDP, LBL (Liquids) | No | M | P3 |
-| `AutoExtinguish` | PLAYER | When you are on fire, places a water bucket at your feet to put it out. | Rotate, then place from the Post ray; one bucket per fire. | FDP | No | M | P3 |
+| `AutoExtinguish` | PLAYER | When you are on fire, places a water bucket at your feet to put it out. | Rotate, then place from the Post ray; one bucket per fire. | FDP, YUR | No | M | P3 |
 | `PatternBuilder` | PLAYER | Builds a chosen shape (line, bridge, wall) from a template, one block at a time. | Placement pipeline with delays, never faster than the human delay; no GUI. | FDP | No | L | P3 |
 
 ### 4.5 Pack `render` (Render), 29 candidates
@@ -211,14 +219,14 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 |---|---|---|---|---|---|---|---|
 | `BlockOverlay` | RENDER | Outlines the block your crosshair is on. Uses `mc.objectMouseOver`, so it follows silent rotations. | Client-side only. | MOON, LC, LS, LX, LBL, HAN, LBR | No | S | P3 |
 | `ItemESP` | RENDER | Highlights dropped items through walls, coloured by item type. | Render only. | MOON, LS, LX, HYD, LBR, LBL | No | S | P2 |
-| `BlockESP` | RENDER | Highlights the block types you choose (beds, diamond or emerald ore, TNT) through walls. | Render only, from your chosen list. Does not reveal unloaded chunks. | LC, LS, LBR, LBL, RAV (XRay) | No | M | P2 |
+| `BlockESP` | RENDER | Highlights the block types you choose (beds, diamond or emerald ore, TNT) through walls. | Render only, from your chosen list. Does not reveal unloaded chunks. | LC, LS, LBR, LBL, RAV (XRay), YUR | No | M | P2 |
 | `ProjectileESP` | RENDER | Highlights thrown projectiles (fireballs, arrows, pearls) through walls. | Render only. | HAN, LBL, LC, RAV | No | S | P2 |
-| `Chams` | RENDER | Draws players and mobs as coloured, see-through models, so they are visible through walls. | Render only; reuses the existing `ChamsRenderer`. | MOON, LC, LS, HYD, HAN, RAV, LBR, LBL | No | M | P2 |
-| `SkeletonESP` | RENDER | Draws bone lines on players. | Render only. | LBR | Yes: per-bone model positions from the player renderer (not in the addon API) | L | P3 |
+| `Chams` | RENDER | Draws players and mobs as coloured, see-through models, so they are visible through walls. | Render only; reuses the existing `ChamsRenderer`. | MOON, LC, LS, HYD, HAN, RAV, LBR, LBL, YUR | No | M | P2 |
+| `SkeletonESP` | RENDER | Draws bone lines on players. | Render only. | LBR, YUR | Yes: per-bone model positions from the player renderer (not in the addon API) | L | P3 |
 | `TrueSight` | RENDER | Draws invisible players as translucent models so they are visible. | Render only; shows nothing they did not already send. | LBL, LC, LBR | Partly: invisible players are not drawn, so the addon has to draw them | M | P3 |
 | `Freecam` | RENDER | Moves the camera away from your body. Your real position and packets stay where they are. | Camera offset only; movement and packets unchanged. | RAV, HYD, LC, LS, LBR, LBL | Yes: camera position override | L | P2 |
-| `FreeLook` | RENDER | Rotates the camera without turning your body or the silent rotation. | Camera only; the server sees your real rotation. | MOON, LBR, LBL | Yes: camera rotation decoupled from the silent rotation | M | P2 |
-| `Perspective` | RENDER | Third-person options: distance, over-the-shoulder side, and keeping the view from behind. | Render only. | LX | Yes for distance and side: `EventRenderThirdPerson` only changes yaw and pitch | S | P3 |
+| `FreeLook` | RENDER | Rotates the camera without turning your body or the silent rotation. | Camera only; the server sees your real rotation. | MOON, LBR, LBL, YUR | Yes: camera rotation decoupled from the silent rotation | M | P2 |
+| `Perspective` | RENDER | Third-person options: distance, over-the-shoulder side, and keeping the view from behind. | Render only. | LX, YUR (AutoF5 mode) | Yes for distance and side: `EventRenderThirdPerson` only changes yaw and pitch | S | P3 |
 | `CustomFov` | RENDER | Sets a fixed FOV, or a separate FOV while sprinting or drawing a bow. | Render only. | HAN, LC, HYD, LS, LBL | Yes: FOV hook | M | P2 |
 | `NoBob` | RENDER | Turns off view bobbing. | Sets the vanilla View Bobbing option; no packets. | LC, LS, LBR, LBL | No | S | P1 |
 | `AntiBlind` | RENDER | Removes the blindness and nausea overlays and the fog, so you can see while blinded. | Render only; nothing sent. | LC, LS, LBL, HYD, FDP | Yes: fog and nausea render hook | M | P2 |
@@ -230,7 +238,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `PlayerTrail` | RENDER | A fading line of past positions behind a moving player. | Render only; uses recorded positions. | MOON, LBR | No | S | P3 |
 | `EnchantGlint` | RENDER | Recolours or switches off the enchantment glint on items. | Render only. | MOON, LX, LBR | Yes: glint render hook | M | P3 |
 | `TNTTimer` | RENDER | Shows the fuse left on primed TNT and highlights it through walls. | Render only. | HAN, LBL, LC, LS, LBR | No | S | P2 |
-| `Ambience` | RENDER | Sets a client-only time of day and weather. | Client-side world state; no packets. | LC, LBL, LBR (Ambience), HAN (TimeChanger), MOON (Atmosphere) | Partly: server time updates may overwrite it (verify) | S | P3 |
+| `Ambience` | RENDER | Sets a client-only time of day and weather. | Client-side world state; no packets. | LC, LBL, LBR (Ambience), HAN (TimeChanger), MOON (Atmosphere), YUR | Partly: server time updates may overwrite it (verify) | S | P3 |
 | `AspectRatio` | RENDER | Forces a chosen aspect ratio for the 3D view. | Render only. | MOON | Yes: projection matrix hook | M | P3 |
 | `Zoom` | RENDER | Hold a key to zoom in with a lower FOV. | Render only. | none surveyed | Yes: FOV hook (shared with CustomFov) | M | P3 |
 | `CameraClip` | RENDER | Lets the third-person camera pass through blocks instead of stopping at walls. | Render only. | LC, LS, LBL, HYD | Yes: camera trace hook | M | P3 |
@@ -255,7 +263,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `ItemAlerts` | RENDER | Chat or sound alert when chosen items drop near you or are picked up. | Client-side only. | MOON | No | S | P3 |
 | `BlockInfo` | RENDER | Shows the name and hardness of the block under the crosshair, and your mining time on it. | Client-side only. | none surveyed | No | S | P3 |
 | `DeathMarker` | RENDER | Draws a marker at your last death and shows the distance to it. | Client-side only. | none surveyed | No | S | P3 |
-| `SessionStats` | RENDER | Kills, deaths, K/D and time played since you enabled it, counted from chat and events. | Client-side only; chat patterns differ per server. | none surveyed | No | S | P2 |
+| `SessionStats` | RENDER | Kills, deaths, K/D and time played since you enabled it, counted from chat and events. | Client-side only; chat patterns differ per server. | YUR (SessionInfo) | No | S | P2 |
 | `TpsMeter` | RENDER | Shows server TPS from time update packets, so server lag is visible. | Reads time updates through `S03PacketTimeUpdateAccessor`; client-side only. | none surveyed | No | S | P2 |
 | `PingWarning` | RENDER | Warns when your ping goes over a limit. | Uses `LagManager.getPing()`; client-side only. | none surveyed | No | S | P3 |
 | `MemoryUsage` | RENDER | HUD line with used and maximum JVM memory. | Client-side only. | none surveyed | No | S | P3 |
@@ -270,7 +278,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `ReachDisplay` | RENDER | Shows the distance of your last successful hit. | Client-side only. | none surveyed | No | S | P3 |
 | `WeaponCompare` | RENDER | Shows the damage of the held weapon next to the best weapon in your inventory. | Client-side only; uses `ContainerUtils.getDamage`. | none surveyed | No | S | P3 |
 
-### 4.7 Pack `bedwars` (extend the existing pack), 9 candidates
+### 4.7 Pack `bedwars` (extend the existing pack), 10 candidates
 
 | Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
 |---|---|---|---|---|---|---|---|
@@ -281,8 +289,9 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `ResourceCounter` | RENDER | Totals of iron, gold, diamond and emerald in your inventory. | Client-side only. | none surveyed | No | S | P3 |
 | `ShopPriceHint` | RENDER | When a shop window is open, marks the items you can afford with your current resources. | Render only; does not click. Works in a GUI, so it is the one render-only exception to the no-GUI default. | none surveyed | No | M | P3 |
 | `BedDistance` | RENDER | Shows distance to your own bed and to the enemy beds. | Client-side; finds beds near your team spawn by bed colour. | none surveyed | No | M | P3 |
-| `AutoBuy` | PLAYER | Buys items from the shop window in a priority list, with human delays. | Clicks inside the shop window with delays. **Needs the GUI exception:** acts only on a shop window you opened, and only after the first confirmed open. | FDP (AutoShop, GuiClicker) | No | M | P1 |
-| `BedDefender` | COMBAT | Places blocks around your bed when enemies come near. | Placement pipeline only, from the Post ray; delays. | FDP | No | L | P3 |
+| `AutoBuy` | PLAYER | Buys items from the shop window in a priority list, with human delays. | Clicks inside the shop window with delays. **Needs the GUI exception:** acts only on a shop window you opened, and only after the first confirmed open. | FDP (AutoShop, GuiClicker), YUR (GUIClicker) | No | M | P1 |
+| `BedDefender` | COMBAT | Places blocks around your bed when enemies come near. | Placement pipeline only, from the Post ray; delays. | FDP, YUR | No | L | P3 |
+| `GearReveal` | RENDER | Shows the gear tier of nearby enemies (stone sword, chain, iron or diamond armour), and reveals invisible players by the armour and items they hold. | Render only; reads visible equipment; invisibility detection is a heuristic, so label it as such. | YUR (BedWarsUtility) | No | M | P2 |
 
 ### 4.8 Pack `pit` (extend the existing pack), 1 candidate
 
@@ -329,6 +338,30 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `AutoScreenshot` | RENDER | Takes a screenshot when a chosen event happens (a kill, a bed broken, a death). | Client-side only. | none surveyed | No | S | P3 |
 | `BackgroundFps` | PLAYER | Lowers the frame limit while the game window is unfocused. | Client-side only. | none surveyed | Partly: check the frame-limit option is reachable | S | P3 |
 
+### 4.13 Pack `murder` (Murder Mystery), 3 candidates
+
+| Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
+|---|---|---|---|---|---|---|---|
+| `MurderRoles` | RENDER | Highlights players holding a sword (suspected murderer) in red and players holding a bow (suspected detective) in blue, through walls, with a label. | Client-side only; reads the held items of visible players. Holding a sword or bow is only a hint, so the label says "suspected". | HAN (MurdererFinder), RAV (MurderMystery), HYD (MurderMystery), LX (MurderDetector) | No | S | P2 |
+| `GunDropAlert` | RENDER | When a bow lands on the ground (a dropped detective gun), alerts you and marks it. | Client-side; reads dropped item entities. | none surveyed | No | S | P2 |
+| `MurderRoleHud` | RENDER | HUD list of alive players with the role hints collected so far in the round. | Client-side; resets each round from chat and the sidebar. | none surveyed | No | M | P3 |
+
+### 4.14 Pack `zombies` (Hypixel Zombies), 5 candidates
+
+| Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
+|---|---|---|---|---|---|---|---|
+| `ZombiesAimAssist` | COMBAT | Aim assist on zombies, aiming at the head with prediction, through the silent pipeline. The player fires; the addon never fires on its own. | Silent rotation with jitter and GCD; act only when the real ray hits the mob; aim only. Yuri's auto-fire default is rejected (see Section 6). | YUR (MinigameAim, Zombies) | No | L | P3 |
+| `ZombiesAutoHeal` | PLAYER | Uses a healing item from the hotbar when health drops below a limit. AutoPot covers potions; this covers game items. | Item use with delays; restores the hotbar slot via `isSwappingHotbar()`; never with a GUI open. | YUR (MinigameAim, Auto Heal) | No | S | P2 |
+| `ZombiesAutoRevive` | PLAYER | Sneaks and right-clicks a downed teammate in reach, so you can revive them without stopping. | Real sneak: press, wait two ticks, check `isSneaking()`. Acts only from the ray on the downed player, reach 4.5. | YUR (MinigameAim, Auto Revive) | No | M | P3 |
+| `ZombiesAutoAmmo` | PLAYER | Switches to an ammo refill item when ammo is low. Off by default, as in Yuri. | Hotbar switch with restore; `isSwappingHotbar()` while held. | YUR (MinigameAim, Auto Ammo) | No | S | P3 |
+| `ZombiesMobESP` | RENDER | Highlights zombies and other mobs through walls, with their health. | Render only. | none surveyed | No | S | P2 |
+
+### 4.15 Pack `minigames` (Other minigames), 1 candidate
+
+| Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
+|---|---|---|---|---|---|---|---|
+| `PropHuntESP` | RENDER | Highlights players hiding as props in Prop Hunt, through walls. | Render only. Needs research first: how a disguised prop looks to the client. | LS (ProphuntESP) | No | L | P3 |
+
 ---
 
 ## 5. Improvements to existing modules
@@ -336,12 +369,12 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 These belong in a module that already exists, so they are not counted in the 105.
 
 1. **KillAura**: add a LegitAura-style mode that only hits when the silent ray is on the target, with jitter. Seen in RAV (LegitAura, KvAura).
-2. **SprintReset**: add W-tap, S-tap and shift-tap modes next to the current mode. Seen in RAV (WTap, STap, ShiftTap) and HYD (SprintReset). Check the existing `wMode` enum before adding.
+2. **SprintReset**: add W-tap, S-tap and shift-tap modes next to the current mode. Seen in RAV (WTap, STap, ShiftTap), HYD (SprintReset) and YUR (WTap). Check the existing `wMode` enum before adding.
 3. **Clicker**: add an "only when the target is under the crosshair" option. That covers the trigger-bot idea without a new module. Seen in HYD (TriggerBot) and LS (Trigger). Not a separate `TriggerBot` module, because it would duplicate Clicker plus the aim logic.
 4. **AutoSoup** (addon): add a golden-apple priority and an eat-when-hit option. Seen in MOON (AutoGap). `AutoSoup` already eats golden heads and golden apples through `ItemAppleGold`, so this is a mode change, not a new module.
 5. **Clutch**: add a water-bucket clutch. Seen in RAV (WaterBucket).
 6. **BedPlates**: add a bed highlight mode. Seen in HYD (BedESP).
-7. **ESP**: add a Glow mode and a target highlight mode. Seen in MOON (GlowESP, TargetESP).
+7. **ESP**: add a Glow mode and a target highlight mode. Seen in MOON (GlowESP, TargetESP) and YUR (TargetESP).
 8. **ChestESP**: add storage blocks (furnace, dispenser, hopper). Seen in LBL and HYD (StorageESP).
 9. **NoHurtCam**: add an adjustable intensity. Seen in LX (HurtCam).
 10. **RageQuit**: add triggers for a staff alert and for health below a limit. Seen in LBL (AutoLeave).
@@ -350,6 +383,11 @@ These belong in a module that already exists, so they are not counted in the 105
 13. **TargetHUD**: show the enemy's armour (the same data as `ArmorStatus`). Seen in HAN (ArmorStatus).
 14. **Nuker** (addon): add a replant option after harvesting crops. Seen in FDP (AutoFarm).
 15. **FastBreak**: no change. It already exists as a BLATANT module, which answers the ToDo question "fastbreak?".
+16. **AutoTool / AutoWeapon**: add a "switch by crosshair target" mode (tool for blocks, sword for entities). Seen in YUR (AutoSwap).
+17. **Perspective** (catalog candidate): add an automatic third-person mode, on combat or scaffold. Seen in YUR (AutoF5).
+18. **HUD**: add a custom scoreboard style. Seen in YUR (ScoreboardModule).
+19. **PostProcessing**: add motion blur. Seen in HAN (MotionBlur) and YUR (MotionBlurModule).
+20. **SessionStats** (catalog candidate): YUR already has a session info panel (SessionInfo). Use it as a layout reference.
 
 ---
 
@@ -359,20 +397,24 @@ Grouped by reason. "Seen in" lists the clients where I saw the idea, so later se
 
 | Idea (seen as) | Reason | Seen in |
 |---|---|---|
-| Fly, Glide, Jetpack, AirJump, ClipFly, Spider, WallClimb, LadderJump, Ladders, FastClimb | Breaks movement simulation: flight or vertical movement beyond vanilla. | MOON, LBR, LC, LS, LX, FDP, LBL |
-| Speed, BHop (all AAC/NCP/Verus/Spartan hop variants), Boost, BufferSpeed, IceSpeed, CustomSpeed, Strafe, LegitSpeed, SpeedAntiCornerBump | Speed beyond vanilla. | MOON, LBR, LC, LS, LX, FDP, LBL, RAV |
+| Fly, Glide, Jetpack, AirJump, ClipFly, Spider, WallClimb, LadderJump, Ladders, FastClimb, WaterWalk | Breaks movement simulation: flight or vertical movement beyond vanilla. | MOON, LBR, LC, LS, LX, FDP, LBL, YUR |
+| Speed, BHop (all AAC/NCP/Verus/Spartan hop variants), Boost, BufferSpeed, IceSpeed, CustomSpeed, Strafe, LegitSpeed, SpeedAntiCornerBump | Speed beyond vanilla. | MOON, LBR, LC, LS, LX, FDP, LBL, RAV, YUR |
 | Clip, Phase, NoClip, VClip, Teleport, TeleportAura, ReverseStep, HighJump, SlimeJump, Step, FastStairs, LongJump | Movement simulation (step or phase beyond vanilla, or jumps beyond vanilla). | MOON, LBR, LC, LS, LX, FDP, LBL |
 | TargetStrafe, KeepRange, Freeze, Anchor, ItemMagnet, AvoidHazards, AntiDodge | Changes movement input or motion beyond the player's own keys. | MOON, HAN, LX, LBL, FDP |
-| NoFall, AlwaysSpoofNofall, MLG-nofall, AntiFall, AntiVoid | Ground or fall-damage spoofing. | MOON, HAN, LBR, LX, LBL, LS, FDP |
+| NoFall, AlwaysSpoofNofall, MLG-nofall, AntiFall, AntiVoid | Ground or fall-damage spoofing. | MOON, HAN, LBR, LX, LBL, LS, FDP, YUR |
 | AntiHunger, AntiCactus, AntiBounce, AntiDesync, Regen, FastUse | Packet or ground spoofing, or item-use speed. | MOON, LBR, LC, LS, LBL, FDP |
-| NoSlow, NoSlowBreak, NoWeb, NoFluid, NoSlowdown | Removes movement slowdown, which Grim checks. | RAV, HAN, MOON, LBR, LC, LS, LBL, FDP |
-| Velocity, SuperKnockback, MoreKB, KbModifier, CancelVelocity, NoPush, GlitchVelocity | Knockback modification (Grim velocity check). | MOON, HAN, LX, LBL, LC, SUMO |
-| Criticals (all variants: PacketCritical, MotionCritical, FakeCollideCritical, Hypixel*Critical, MoreCritical) | Fake-jump and ground-spoof crits. | MOON, LC, LS, LX, LBL, LBR |
+| NoSlow, NoSlowBreak, NoWeb, NoFluid, NoSlowdown | Removes movement slowdown, which Grim checks. | RAV, HAN, MOON, LBR, LC, LS, LBL, FDP, YUR |
+| Velocity, SuperKnockback, MoreKB, KbModifier, CancelVelocity, NoPush, GlitchVelocity | Knockback modification (Grim velocity check). | MOON, HAN, LX, LBL, LC, SUMO, YUR |
+| Criticals (all variants: PacketCritical, MotionCritical, FakeCollideCritical, Hypixel*Critical, MoreCritical) | Fake-jump and ground-spoof crits. | MOON, LC, LS, LX, LBL, LBR, YUR |
 | Reach beyond the limit, HitBox (all variants), InfiniteAura, TeleportHit, ForwardTrack, GhostHand, GhostInteract, Ghost, ClickTp, ItemTeleport | Reach or hitbox beyond limits, or interaction through walls. | RAV, HYD, LC, LS, LX, LBR, LBL, FDP |
-| Timer, TimerRange, TickBase, MatrixTimerBalance, "Timer balance" (ToDo) | Timer exploits. The rule set rejects timer. | MOON, LBR, LBL, RAV |
+| Timer, TimerRange, TickBase, MatrixTimerBalance, "Timer balance" (ToDo) | Timer exploits. The rule set rejects timer. | MOON, LBR, LBL, RAV, YUR |
 | FastBow | Releases the bow before full charge, which changes damage and timing. | HYD, LC, LS, LBL |
-| Disabler, BasicDisabler, LessFlagDisabler, Matrix*, NCP*, Verus*, Spartan*, Polar*, Vulcan*, Intave*, AAC* bypass modes, Hypixel bypass modes, OldGrim/NewGrim | Bypass and disabler modes for anticheats. | RAV, LX, LBR, LBL, LS, FDP |
-| MultiActions, ServerCrasher, Kick, ConsoleSpammer, Spammer, Insult, KillSults, Annoy | Server crash, chat spam or harassment. | MOON, LC, LS, LX, LBR, LBL |
+| Disabler, BasicDisabler, LessFlagDisabler, Matrix*, NCP*, Verus*, Spartan*, Polar*, Vulcan*, Intave*, AAC* bypass modes, Hypixel bypass modes, OldGrim/NewGrim | Bypass and disabler modes for anticheats. | RAV, LX, LBR, LBL, LS, FDP, YUR |
+| MultiActions, ServerCrasher, Kick, ConsoleSpammer, Spammer, Insult, KillSults, Annoy | Server crash, chat spam or harassment. | MOON, LC, LS, LX, LBR, LBL, YUR (Insults) |
+| AutoServer: REGISTER (cracked-server login), AUTO_REPORT (posts fake hack reports about players), AUTO_EXCUSE (chat accusations) | Account abuse and harassment through chat. AUTO_PLAY is already covered by AutoPlay. | YUR (AutoServerModule) |
+| Halloween Simulator auto-farm (MinigameAim, Halloween mode) | Automates a minigame's currency farm; bot-like, not a legitimate helper. | YUR |
+| Stasis (freezes your movement for a short time) | Movement freeze, same class of risk as Freeze. | YUR |
+| ItemDelays ("uses items faster") | Item-use speed, same class as FastUse. | YUR |
 | AutoReport, AutoChatGame, AutoType, FakeChat, FakeHud, ChatControl, AutoReply, BookBot | Automated or deceptive chat, and reporting automation. | LX, FDP, HYD, RAV |
 | AutoRole, AutoAccount, AutoAuthenticate, AutoLogin, AuthBypass | Account abuse, or credential handling for accounts that Hypixel does not need logins for. | FDP, MOON, LBR, LX, LS |
 | PingSpoof, ClientSpoofer, BrandSpoofer, ResourcePackSpoof, FPSSpoofer, PotionSpoof | Spoofing the client to the server. | MOON, FDP, HYD, RAV, LC, LS, LBR, LBL |
@@ -383,7 +425,7 @@ Grouped by reason. "Seen in" lists the clients where I saw the idea, so later se
 | SpinBot, Derp, HandDerp | Impossible rotations. | LBR, LBL, LC, FDP |
 | Fly-type boat modes (BoatFly, BoatJump) | Flight by another name. | LX |
 | Burrow, AutoCrystal, AutoTotem, Offhand, ElytraFlight, AutoWither, Auto32k | 1.9+ mechanics (crystals, totems, offhand, elytra). | Backdoored, Eso (excluded clients) |
-| Cosmetic-only: Hat, ChineseHat, AsianHat, FunnyHat, DraginWings, DeadEffect, FireFlies, LineGlyphs, GifTest, SkinDerp | No gameplay value, so not worth a catalog slot. | MOON, LBR, LC, LX, HAN |
+| Cosmetic-only: Hat, ChineseHat, AsianHat, FunnyHat, DraginWings, DeadEffect, FireFlies, LineGlyphs, GifTest, SkinDerp, Pentagram, SkinChanger, YuriChat, DDLC hotbar | No gameplay value, so not worth a catalog slot. | MOON, LBR, LC, LX, HAN, YUR |
 | SnakeGame, Fun modules (FunCraft, FunnyJump, HeadRotations) | No PvP value. | LBL, LC, FDP |
 
 ---
@@ -406,11 +448,13 @@ Not added. Each needs a look at the source before a later session decides.
 - `SumoEdgeWarning`: the arena bounds.
 - `TpsMeter`: whether Hypixel sends time updates at a steady rate.
 - `AutoBuy`: whether the shop window clicks are accepted with delays.
+- `GearReveal`: the invisibility heuristic, which can give false positives.
+- `ZombiesAimAssist`: aim only. Confirm it does not read as auto-fire on your server.
 
-### Grim-sensitive: test on a server
+### Confirmed by the maintainer
 
-- `SnapTap`, `AutoWalk`, `Parkour`: key-only, but test before enabling.
-- `AutoFish`, `MiddleClick`: real clicks, but with item switches.
+- `SnapTap`, `AutoWalk`, `Parkour` (key-only) and `AutoFish`, `MiddleClick` (item-using) are accepted as fine. They are not gated behind a test step, though the usual check on your server still applies.
+- Yuri `MediaInfo` (shows OS media playback): needs a native OS hook, so not added.
 
 ---
 
@@ -424,13 +468,13 @@ Ranked by how many catalog entries each one unblocks.
 4. **Chat render or restyle hook**: unlocks **BetterChat** (restyling), and makes **PlayerRankColours** complete (2).
 5. **Access to the last server data and the connect screen**: unlocks **AutoReconnect** (verify first; may already be reachable).
 
-No client change is needed for the other 86 candidates. The 19 that need one are the ones marked "Yes", "Partly" or "Maybe" in the tables.
+No client change is needed for the other 96 candidates. The 19 that need one are the ones marked "Yes", "Partly" or "Maybe" in the tables.
 
 ---
 
 ## 9. Implementation order
 
-Each batch is 8 to 12 addons. Batch 1 is the first to implement. Render and HUD packs come first because they carry no anticheat risk. Batch 5 needs client change 1 first. Batch 9 is the riskiest and needs server testing before merging.
+Each batch is 8 to 12 addons. Batch 1 is the first to implement. Render and HUD packs come first because they carry no anticheat risk. Batch 5 needs client change 1 first. Batch 9 is the ghost batch and follows the silent pipeline rules in the notes.
 
 | Batch | Theme | Addons | Needs first |
 |---|---|---|---|
@@ -442,8 +486,9 @@ Each batch is 8 to 12 addons. Batch 1 is the first to implement. Render and HUD 
 | 6 | Recorders and tools | PacketLogger, ClickRecorder, RotationRecorder, AntiCrash, BetterChat, PlayerRankColours, PartyList, WeaponCompare | Client change 4 (for BetterChat restyle) |
 | 7 | HUD extras | KnockbackMeter, BowCharge, FallDistance, Speedometer, StateIcons, NearbyCount, AfkDetector, ReachDisplay, MemoryUsage, RangeRing | Batch 1 |
 | 8 | Other game packs | VoidWarning, SkywarsStatus, PitStatsHud, SumoEdgeWarning, DuelsStats, DuelRoundCounter, GeneratorTimer, ResourceCounter, ShopPriceHint, BedDistance, AutoBuy | Batch 2 (GameDetector). AutoBuy needs the GUI exception. |
-| 9 | Ghost and legit actions (test on a server) | AutoBow, AutoPearl, AutoRod, Parkour, AutoWalk, SnapTap, SelfBlockIn, AutoTrap, BedDefender | Silent pipeline working (AutoBlockIn reference) |
+| 9 | Ghost and legit actions | AutoBow, AutoPearl, AutoRod, Parkour, AutoWalk, SnapTap, SelfBlockIn, AutoTrap, BedDefender | Silent pipeline working (AutoBlockIn reference) |
 | 10 | Placement and remaining render | HoleFiller, LiquidFiller, AutoExtinguish, PatternBuilder, HeldItemAnimations, ItemPhysics, Crosshair, EnchantGlint, SkeletonESP, TrueSight | Client changes 2 and 3 for the render items |
+| 11 | Minigames and server (Murder Mystery, Zombies, Prop Hunt, BedWars gear) | MurderRoles, GunDropAlert, MurderRoleHud, ZombiesAutoHeal, ZombiesAutoRevive, ZombiesAutoAmmo, ZombiesMobESP, ZombiesAimAssist, PropHuntESP, GearReveal | Silent pipeline (for ZombiesAimAssist and ZombiesAutoRevive); sidebar parsing (for the rest) |
 
 Every candidate appears in exactly one batch. The check is in [Section 11](#11-check-that-each-candidate-appears-once).
 
@@ -451,8 +496,8 @@ Every candidate appears in exactly one batch. The check is in [Section 11](#11-c
 
 ## 10. Counts and priority split
 
-- **Total accepted:** 105 across 12 packs (10 new packs and 2 extensions).
-- **P2 (35) and P3 (60)** are the rest, counted from the tables. Each table has the priority in its last column.
+- **Total accepted:** 115 across 15 packs (13 new packs and 2 extensions).
+- **P2 (40) and P3 (65)** are the rest, counted from the tables. Each table has the priority in its last column.
 - **P1 (10):** NoBob, HitMarker, HealthWarning, BedAlarm, BedwarsStatus, AutoBuy, GameDetector, StaffAlert, AutoGG, AutoPlay.
 
 Top ten P1 picks, with the reason each one is first:
