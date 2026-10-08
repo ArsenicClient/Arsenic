@@ -381,6 +381,42 @@ afterEvaluate {
     tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
 }
 
+// The default IntelliJ run configuration starts the injector, not Forge. genIntellijRuns writes ForgeGradle's own
+// configuration into the workspace; this rewrites that file: the injector is added (it loads the dev jar, built
+// before the run), and ForgeGradle's configuration stays as "Minecraft Client (Forge)" for testing the game alone.
+tasks.genIntellijRuns.doLast {
+    File workspace = file("${project.name}.iws")
+    if (!workspace.isFile())
+        return
+    def root = new XmlParser().parse(workspace)
+    def manager = root.component.find { it.'@name' == 'RunManager' }
+    if (manager == null)
+        return
+    def forge = manager.configuration.findAll { it.'@name' == 'Minecraft Client' }
+    forge.findAll { it != forge[0] }.each { manager.remove(it) }
+    manager.configuration.findAll { it.'@name' == 'Arsenic Injector' }.each { manager.remove(it) }
+    if (forge)
+        forge[0].'@name' = 'Minecraft Client (Forge)'
+
+    def injector = new Node(manager, 'configuration', [default: 'false', name: 'Arsenic Injector', type: 'Application', factoryName: 'Application'])
+    new Node(injector, 'option', [name: 'MAIN_CLASS_NAME', value: 'arsenic.inject.Injector'])
+    new Node(injector, 'option', [name: 'VM_PARAMETERS', value: '-Darsenic.jar=$PROJECT_DIR$/build/libs/Arsenic-v2.0-dev.jar'])
+    new Node(injector, 'option', [name: 'PROGRAM_PARAMETERS', value: ''])
+    new Node(injector, 'option', [name: 'WORKING_DIRECTORY', value: 'file://$PROJECT_DIR$/run'])
+    new Node(injector, 'option', [name: 'PASS_PARENT_ENVS', value: 'true'])
+    new Node(injector, 'module', [name: project.name])
+    def before = new Node(injector, 'method', [v: '2'])
+    new Node(before, 'option', [name: 'Gradle.BeforeRunTask', enabled: 'true', tasks: 'devJar', externalProjectPath: '$PROJECT_DIR$'])
+    new Node(injector, 'RunnerSettings', [RunnerId: 'Run'])
+    new Node(injector, 'ConfigurationWrapper', [RunnerId: 'Run'])
+
+    manager.'@selected' = 'Application.Arsenic Injector'
+    workspace.withWriter('UTF-8') { w ->
+        w.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        new XmlNodePrinter(new PrintWriter(w)).print(root)
+    }
+}
+
 idea {
     module {
         inheritOutputDirs = true

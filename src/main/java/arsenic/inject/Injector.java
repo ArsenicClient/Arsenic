@@ -384,6 +384,10 @@ public final class Injector {
     }
 
     static File ownJar() throws URISyntaxException {
+        // run from an IDE the code runs from a classes folder, so the IDE run configuration names the jar to load
+        String jar = System.getProperty("arsenic.jar");
+        if (jar != null)
+            return new File(jar);
         return new File(Injector.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     }
 
