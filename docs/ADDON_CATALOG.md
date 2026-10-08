@@ -12,6 +12,7 @@ Read these before writing any addon from this catalog.
 
 - **1.8.9 only.** MCP `stable_20` names, Forge 1.8.9 APIs (`mc.thePlayer`, `mc.theWorld`, `playerController`, `getHeldItem()`), Java 8 (no `var`, no `List.of`, no records). No post-1.8 mechanics: no offhand, shields, attack cooldown, sweep, elytra, totems, crystals, tridents, mending, 1.9+ potions/blocks, 1.9+ packets.
 - **Defaults from [ADDONS.md](../ADDONS.md#defaults-every-addon-follows)** apply to every addon: Render and HUD visuals on by default (`BooleanProperty("Render", true)`, `BooleanProperty("HUD", true)`), silent rotation pipeline for anything that rotates, places, breaks, attacks or moves toward something, `MovementFix.SILENT` whenever the player can move, jitter and delays, no action while a GUI is open, reach at most 4.5, honest detection notes.
+- **Maintainer override:** `Stasis` (movement freeze) is in the catalog at the maintainer's request. It conflicts with the freeze rule, so it must stay opt-in, off by default and clearly labelled as flag-prone.
 - **Exceptions to the "no GUI" default** are listed explicitly in the tables (only `AutoBuy` and `ShopPriceHint` need one). Do not add more without writing them here first.
 - **No mixins, no ASM.** Private Minecraft state goes through `arsenic.injection.accessor` by cast. Items marked "Needs client change" need a client change before the addon can be written.
 - **Pack layout:** `src/addons/packs/<id>/pack.json` plus `impl/*.java`. Add every new pack id to `src/addons/addons.json` under `"packs"`. Existing packs `bedwars` and `pit` are extended, not replaced.
@@ -28,12 +29,12 @@ Read these before writing any addon from this catalog.
 | Pack id | Name | Accepted candidates | Action |
 |---|---|---|---|
 | `combat` | Ghost Combat | 5 | new |
-| `movement-legit` | Movement (legit) | 3 | new |
+| `movement-legit` | Movement (legit) | 4 | new |
 | `player` | Player and QoL | 9 | new |
 | `world` | World and building | 4 | new |
 | `render` | Render | 29 | new |
 | `hud` | HUD and info | 26 | new |
-| `bedwars` | BedWars | 10 | **extend** existing pack |
+| `bedwars` | BedWars | 11 | **extend** existing pack |
 | `pit` | Pit | 1 | **extend** existing pack |
 | `murder` | Murder Mystery | 3 | new |
 | `zombies` | Hypixel Zombies | 5 | new |
@@ -45,7 +46,7 @@ Read these before writing any addon from this catalog.
 | `zombies` | Hypixel Zombies | "Hypixel Zombies helpers: aim assist on the silent pipeline (it never fires on its own), auto heal, auto revive and auto ammo, with mob highlights." | `textures/items/rotten_flesh.png` | false |
 | `minigames` | Other minigames | "Other Hypixel minigame helpers, starting with Prop Hunt hider highlights." | `textures/items/nether_star.png` | false |
 | `qol` | Misc / QoL | 3 | new |
-| **Total** | | **115** | |
+| **Total** | | **117** | |
 
 Priority split: see the counts in [Section 10](#10-counts-and-priority-split). Ten candidates are P1.
 
@@ -150,7 +151,7 @@ Icons are 1.8.9 item textures. The bedwars pack already uses `textures/items/bed
 | Pack id | Name | Description (pack.json) | Suggested icon | autoInstall |
 |---|---|---|---|---|
 | `combat` | Ghost Combat | "Legit-looking combat helpers: bow, rod and pearl throws, and trapping enemies with blocks, all on the silent rotation pipeline." | `textures/items/bow_standby.png` | false |
-| `movement-legit` | Movement (legit) | "Key-press helpers only: edge jumps, auto walk and keyboard-level tap resolution. No speed, no flight, no motion edits." | `textures/items/leather_boots.png` | false |
+| `movement-legit` | Movement (legit) | "Key-press helpers only: edge jumps, auto walk and keyboard-level tap resolution. No speed, no flight, no motion edits. Stasis is a maintainer-requested exception to the no-freeze rule and is opt-in." | `textures/items/leather_boots.png` | false |
 | `player` | Player and QoL | "Everyday helpers: middle click item use, chat macros, respawn and reconnect, fishing, panic key and developer recorders." | `textures/items/iron_chestplate.png` | false |
 | `world` | World and building | "Placement helpers: fill holes and liquids, put out fire with water and build shapes from templates. All placements go through the silent placement pipeline." | `textures/items/bucket_water.png` | false |
 | `render` | Render | "Client-side visuals only: highlights, cosmetic effects, camera tweaks and world markers. Nothing here sends packets." | `textures/items/ender_eye.png` | false |
@@ -182,13 +183,14 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `AutoTrap` | COMBAT | Surrounds a nearby enemy with blocks in a 3x3 box, using the AutoBlockIn placement pipeline. | Every placement from `EventSilentRotation.Post` on the ray that hits the intended face; reach 4.5; placement delays; skips faces behind walls. | FDP | No | L | P3 |
 | `SelfBlockIn` | COMBAT | Surrounds your own feet with blocks while you stand still, so enemies cannot reach you from the sides. | Same placement pipeline as AutoBlockIn; only when not moving, so no movement fix is needed; delays. | FDP | No | M | P3 |
 
-### 4.2 Pack `movement-legit` (Movement, legit), 3 candidates
+### 4.2 Pack `movement-legit` (Movement, legit), 4 candidates
 
 | Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
 |---|---|---|---|---|---|---|---|
 | `Parkour` | MOVEMENT | While you sprint forward, presses jump at a block edge so you do not walk off it. | Presses the jump key only; never changes velocity; jittered timing; not while sneaking; never in the air. | RAV, LBR, LC, LS, LX, FDP, LBL | No | S | P2 |
 | `AutoWalk` | MOVEMENT | Holds the forward key until you toggle it off, optionally with sprint. | Holds a real key only, no motion edits; releases on GUI open and on any manual key press. | FDP, LBR, LC, LS, LBL | No | S | P3 |
 | `SnapTap` | MOVEMENT | Resolves opposing A+D and W+S presses the way SOCD keyboards do: the most recent key wins and the older one resumes on release. | Only re-times real presses, injects nothing. Confirmed acceptable by the maintainer. | FDP | No | S | P3 |
+| `Stasis` | MOVEMENT | Freezes your motion for up to 45 ticks while you are airborne: zeroes velocity, cancels the position packets in that window, then restores the saved motion. | **Maintainer-requested exception to the no-freeze rule.** Cancelled position packets and held motion break movement simulation, so expect Grim flags and lagbacks. Opt-in only, off by default, never runs with a GUI open, and ends on landing. | YUR (StasisModule) | No | M | P3 |
 
 ### 4.3 Pack `player` (Player and QoL), 9 candidates
 
@@ -278,7 +280,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `ReachDisplay` | RENDER | Shows the distance of your last successful hit. | Client-side only. | none surveyed | No | S | P3 |
 | `WeaponCompare` | RENDER | Shows the damage of the held weapon next to the best weapon in your inventory. | Client-side only; uses `ContainerUtils.getDamage`. | none surveyed | No | S | P3 |
 
-### 4.7 Pack `bedwars` (extend the existing pack), 10 candidates
+### 4.7 Pack `bedwars` (extend the existing pack), 11 candidates
 
 | Name | Category | What it does | Grim approach / risks | Seen in | Needs client change? | Complexity | Priority |
 |---|---|---|---|---|---|---|---|
@@ -292,6 +294,7 @@ Columns: **Name** (unique, not clashing with an existing module) · **Category**
 | `AutoBuy` | PLAYER | Buys items from the shop window in a priority list, with human delays. | Clicks inside the shop window with delays. **Needs the GUI exception:** acts only on a shop window you opened, and only after the first confirmed open. | FDP (AutoShop, GuiClicker), YUR (GUIClicker) | No | M | P1 |
 | `BedDefender` | COMBAT | Places blocks around your bed when enemies come near. | Placement pipeline only, from the Post ray; delays. | FDP, YUR | No | L | P3 |
 | `GearReveal` | RENDER | Shows the gear tier of nearby enemies (stone sword, chain, iron or diamond armour), and reveals invisible players by the armour and items they hold. | Render only; reads visible equipment; invisibility detection is a heuristic, so label it as such. | YUR (BedWarsUtility) | No | M | P2 |
+| `ShopMiddleBuy` | PLAYER | Middle-clicks a shop item to buy it, one purchase per press, with the same delays as AutoBuy. | Clicks inside the shop window only when you opened it and pressed the button. Vanilla middle click does nothing in survival, so this sends a normal shop click. Needs the same GUI exception as AutoBuy. | none surveyed (MiddleClick idea extended into shops) | No | S | P2 |
 
 ### 4.8 Pack `pit` (extend the existing pack), 1 candidate
 
@@ -413,7 +416,6 @@ Grouped by reason. "Seen in" lists the clients where I saw the idea, so later se
 | MultiActions, ServerCrasher, Kick, ConsoleSpammer, Spammer, Insult, KillSults, Annoy | Server crash, chat spam or harassment. | MOON, LC, LS, LX, LBR, LBL, YUR (Insults) |
 | AutoServer: REGISTER (cracked-server login), AUTO_REPORT (posts fake hack reports about players), AUTO_EXCUSE (chat accusations) | Account abuse and harassment through chat. AUTO_PLAY is already covered by AutoPlay. | YUR (AutoServerModule) |
 | Halloween Simulator auto-farm (MinigameAim, Halloween mode) | Automates a minigame's currency farm; bot-like, not a legitimate helper. | YUR |
-| Stasis (freezes your movement for a short time) | Movement freeze, same class of risk as Freeze. | YUR |
 | ItemDelays ("uses items faster") | Item-use speed, same class as FastUse. | YUR |
 | AutoReport, AutoChatGame, AutoType, FakeChat, FakeHud, ChatControl, AutoReply, BookBot | Automated or deceptive chat, and reporting automation. | LX, FDP, HYD, RAV |
 | AutoRole, AutoAccount, AutoAuthenticate, AutoLogin, AuthBypass | Account abuse, or credential handling for accounts that Hypixel does not need logins for. | FDP, MOON, LBR, LX, LS |
@@ -468,7 +470,7 @@ Ranked by how many catalog entries each one unblocks.
 4. **Chat render or restyle hook**: unlocks **BetterChat** (restyling), and makes **PlayerRankColours** complete (2).
 5. **Access to the last server data and the connect screen**: unlocks **AutoReconnect** (verify first; may already be reachable).
 
-No client change is needed for the other 96 candidates. The 19 that need one are the ones marked "Yes", "Partly" or "Maybe" in the tables.
+No client change is needed for the other 98 candidates. The 19 that need one are the ones marked "Yes", "Partly" or "Maybe" in the tables.
 
 ---
 
@@ -485,8 +487,8 @@ Each batch is 8 to 12 addons. Batch 1 is the first to implement. Render and HUD 
 | 5 | Camera hooks | Freecam, FreeLook, CustomFov, AntiBlind, Perspective, CameraClip, Zoom, AspectRatio, Ambience | Client change 1 (and 2 for AntiBlind) |
 | 6 | Recorders and tools | PacketLogger, ClickRecorder, RotationRecorder, AntiCrash, BetterChat, PlayerRankColours, PartyList, WeaponCompare | Client change 4 (for BetterChat restyle) |
 | 7 | HUD extras | KnockbackMeter, BowCharge, FallDistance, Speedometer, StateIcons, NearbyCount, AfkDetector, ReachDisplay, MemoryUsage, RangeRing | Batch 1 |
-| 8 | Other game packs | VoidWarning, SkywarsStatus, PitStatsHud, SumoEdgeWarning, DuelsStats, DuelRoundCounter, GeneratorTimer, ResourceCounter, ShopPriceHint, BedDistance, AutoBuy | Batch 2 (GameDetector). AutoBuy needs the GUI exception. |
-| 9 | Ghost and legit actions | AutoBow, AutoPearl, AutoRod, Parkour, AutoWalk, SnapTap, SelfBlockIn, AutoTrap, BedDefender | Silent pipeline working (AutoBlockIn reference) |
+| 8 | Other game packs | VoidWarning, SkywarsStatus, PitStatsHud, SumoEdgeWarning, DuelsStats, DuelRoundCounter, GeneratorTimer, ResourceCounter, ShopPriceHint, BedDistance, AutoBuy, ShopMiddleBuy | Batch 2 (GameDetector). AutoBuy needs the GUI exception. |
+| 9 | Ghost and legit actions | AutoBow, AutoPearl, AutoRod, Parkour, AutoWalk, SnapTap, SelfBlockIn, AutoTrap, BedDefender, Stasis | Silent pipeline working (AutoBlockIn reference) |
 | 10 | Placement and remaining render | HoleFiller, LiquidFiller, AutoExtinguish, PatternBuilder, HeldItemAnimations, ItemPhysics, Crosshair, EnchantGlint, SkeletonESP, TrueSight | Client changes 2 and 3 for the render items |
 | 11 | Minigames and server (Murder Mystery, Zombies, Prop Hunt, BedWars gear) | MurderRoles, GunDropAlert, MurderRoleHud, ZombiesAutoHeal, ZombiesAutoRevive, ZombiesAutoAmmo, ZombiesMobESP, ZombiesAimAssist, PropHuntESP, GearReveal | Silent pipeline (for ZombiesAimAssist and ZombiesAutoRevive); sidebar parsing (for the rest) |
 
@@ -496,8 +498,8 @@ Every candidate appears in exactly one batch. The check is in [Section 11](#11-c
 
 ## 10. Counts and priority split
 
-- **Total accepted:** 115 across 15 packs (13 new packs and 2 extensions).
-- **P2 (40) and P3 (65)** are the rest, counted from the tables. Each table has the priority in its last column.
+- **Total accepted:** 117 across 15 packs (13 new packs and 2 extensions).
+- **P2 (41) and P3 (66)** are the rest, counted from the tables. Each table has the priority in its last column.
 - **P1 (10):** NoBob, HitMarker, HealthWarning, BedAlarm, BedwarsStatus, AutoBuy, GameDetector, StaffAlert, AutoGG, AutoPlay.
 
 Top ten P1 picks, with the reason each one is first:
