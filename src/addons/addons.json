@@ -6,7 +6,12 @@
     "hud",
     "hypixel",
     "player",
-    "qol"
+    "qol",
+    "combat",
+    "world",
+    "movement-legit",
+    "murder",
+    "zombies"
   ],
   "addons": [
     {

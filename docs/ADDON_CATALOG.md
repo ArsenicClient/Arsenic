@@ -63,12 +63,25 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
   - `AntiCrash` drops only incoming custom payloads above a size limit and particle bursts above a count limit.
   - `BetterChat` adds a timestamp and a mention marker in front of the server's own text, keeping its colours. Searchable history needs a chat render hook.
   - **Deferred: `PlayerRankColours`.** Nametags are drawn by the client, so an addon overlay would double them. Needs a client change to the nametag colour.
-  - **Deferred: `PartyList`.** Needs a sample of `/party list` output to parse. I checked the surveyed Hypixel clients (FDP, Raven B++, LiquidBounce+ Reborn, LiquidBounce legacy) and none parse party output, so there is no example to copy.
+  - **Dropped: `PartyList`.** I checked the surveyed Hypixel clients (FDP, Raven B++, LiquidBounce+ Reborn, LiquidBounce legacy) and none parse party output, so there is no example to copy.
 - **Batch 7 (10 of 10 addons):** `KnockbackMeter`, `BowCharge`, `FallDistance`, `Speedometer`, `StateIcons`, `NearbyCount`, `AfkDetector`, `ReachDisplay`, `MemoryUsage` (pack `hud`); `RangeRing` (pack `render`).
   - `KnockbackMeter` and `Speedometer` measure motion on the tick after the event, so they include your own movement.
   - `NearbyCount` uses the team check from PlayerUtils, so on BedWars it depends on the bed colour.
   - `AfkDetector` counts a player still when they don't move, so head-turning still counts as still.
-- The remaining batches (8 to 11) are not implemented yet.
+- **Batch 9 (10 of 10 addons):** `AutoBow`, `AutoPearl`, `AutoRod`, `SelfBlockIn`, `AutoTrap` (pack `combat`); `Parkour`, `AutoWalk`, `SnapTap`, `Stasis` (pack `movement-legit`); `BedDefender` (pack `bedwars`).
+  - `AutoPearl` aims the pearl at the enemy's feet and does not model the arc, so it misses at long range.
+  - `BedDefender` uses the nearest bed to where you stand, so stand next to your bed when you enable it.
+  - `Stasis` is the maintainer-requested exception; it is opt-in and flag-prone.
+  - The placement addons (`SelfBlockIn`, `AutoTrap`, `BedDefender`, `HoleFiller`, `LiquidFiller`) share one template. The aim is a simple face point with jitter, not the full solver from the catalog.
+- **Batch 10 (3 of 10 addons):** `HoleFiller`, `LiquidFiller` (pack `world`); `AutoExtinguish` (pack `world`).
+  - **Deferred, client change:** `HeldItemAnimations`, `Crosshair`, `EnchantGlint` (first-person hand, crosshair and glint render hooks), `SkeletonESP`, `TrueSight`, `ItemPhysics` (player and item model access). `PatternBuilder` is deferred because its templates still need a design.
+- **Batch 11 (8 of 10 addons):** `MurderRoles`, `GunDropAlert`, `MurderRoleHud` (pack `murder`); `ZombiesMobESP`, `ZombiesAutoHeal`, `ZombiesAimAssist` (pack `zombies`); `GearReveal` (pack `bedwars`).
+  - `ZombiesAimAssist` aims only and never fires.
+  - **Deferred: `ZombiesAutoAmmo`.** No source for the ammo count.
+  - **Deferred: `ZombiesAutoRevive`.** No way to tell which teammate is downed.
+  - **Deferred: `PropHuntESP`.** Needs research into how a disguised prop looks to the client.
+- **Dropped at the maintainer's request:** `RangeRing`, `PartyList`.
+- Batch 8 (the other game packs) is not implemented yet.
 ## 1. Summary
 
 ### Counts per pack

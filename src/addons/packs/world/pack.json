@@ -1,0 +1,12 @@
+{
+  "id": "world",
+  "name": "World and building",
+  "description": "Placement helpers: fill holes and liquids, and build from templates. Every placement goes through the silent placement pipeline.",
+  "icon": "textures/items/bucket_water.png",
+  "autoInstall": false,
+  "addons": {
+    "HoleFiller": "Fills holes in the floor within two blocks of you, with blocks from the hotbar.",
+    "LiquidFiller": "Places blocks into the water or lava around you, so you can walk and bridge across it.",
+    "AutoExtinguish": "Puts out fire by pouring water at your feet, aimed on the silent rotation."
+  }
+}

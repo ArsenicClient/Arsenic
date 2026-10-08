@@ -1,0 +1,12 @@
+{
+  "id": "zombies",
+  "name": "Hypixel Zombies",
+  "description": "Hypixel Zombies helpers: mob outlines, a healing item when you are low, and aim assist that never fires on its own.",
+  "icon": "textures/items/rotten_flesh.png",
+  "autoInstall": false,
+  "addons": {
+    "ZombiesMobESP": "Outlines hostile mobs through walls within a range.",
+    "ZombiesAutoHeal": "Uses a healing item from the hotbar when your health is low.",
+    "ZombiesAimAssist": "Aims the silent rotation at the nearest mob's head. Aim only; never fires."
+  }
+}
