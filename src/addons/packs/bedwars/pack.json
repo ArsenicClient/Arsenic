@@ -7,10 +7,10 @@
   "addons": {
     "AntiFireball": "BedWars: silently aims at fireballs that come within reach and punches them away before they hit you. Ignores brand new fireballs for a moment so it never swings at your own.",
     "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode.",
-    "BedAlarm": "Finds your bed automatically after you join or respawn, outlines it, and alerts in chat, with a sound and a HUD flash, if it is broken.",
+    "BedAlarm": "Highlights your bed once the game starts (the bed nearest your spawn, corrected if you ever hit your own bed) and alerts in chat, with a sound and a HUD flash, when it is broken.",
     "BedwarsStatus": "Team panel from the BedWars sidebar: which beds are up, and how many players are left per team.",
     "FinalKillCounter": "Counts final kills in BedWars from chat: yours and the game total.",
-    "BedDefender": "Places blocks next to your bed when an enemy comes near. Stand next to your bed and enable it.",
+    "BedDefender": "Places blocks next to your bed when an enemy comes near. Guards your own bed once it is known (from the game start), or any bed next to you before then.",
     "GearReveal": "Shows an enemy's sword and armour tier above them, and tags invisible players."
   },
   "requires": {

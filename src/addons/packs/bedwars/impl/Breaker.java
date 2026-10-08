@@ -18,6 +18,7 @@ import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.injection.accessor.IMixinPlayerControllerMp;
+import arsenic.utils.minecraft.BedwarsTracker;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
@@ -34,7 +35,7 @@ import net.minecraft.util.Vec3;
 
 /**
  * BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it; if something is in the
- * way it mines whatever the line to the bed hits first instead.
+ * way it mines whatever the line to the bed hits first instead. Your own bed (from BedwarsTracker) is skipped.
  */
 @ModuleInfo(name = "Breaker", category = ModuleCategory.PLAYER, tier = ModuleTier.BLATANT)
 public class Breaker extends Module {
@@ -379,7 +380,7 @@ if (block.getBlockHardness(mc.theWorld, pos) < 0)                    continue;  
         return breakMode.getValue() == BreakMode.Hypixel;
     }
 
-    /** The nearest bed block within reach (either half). */
+    /** The nearest bed block within reach (either half), never your own bed (see BedwarsTracker). */
     private BlockPos nearestBed(double radius) {
         BlockPos best = null;
         double bestDist = radius * radius;
@@ -389,7 +390,7 @@ if (block.getBlockHardness(mc.theWorld, pos) < 0)                    continue;  
             for (int y = -r; y <= r; y++) {
                 for (int z = -r; z <= r; z++) {
                     BlockPos pos = origin.add(x, y, z);
-                    if (!(mc.theWorld.getBlockState(pos).getBlock() instanceof BlockBed))
+                    if (!(mc.theWorld.getBlockState(pos).getBlock() instanceof BlockBed) || BedwarsTracker.isOwnBed(pos))
                         continue;
                     double d = mc.thePlayer.getDistanceSq(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
                     if (d < bestDist) {

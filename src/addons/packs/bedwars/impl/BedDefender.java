@@ -18,6 +18,7 @@ import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.rotations.SilentRotationManager;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.block.Block;
+import arsenic.utils.minecraft.BedwarsTracker;
 import net.minecraft.block.BlockBed;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
@@ -67,9 +68,16 @@ public class BedDefender extends Module {
         return restoreSlot != -1;
     }
 
-    /** Candidate positions to fill, from the player's position. */
+    /** Candidate positions to fill: around your bed when BedwarsTracker knows it, else around any bed near you. */
     private List<BlockPos> targets() {
         List<BlockPos> out = new ArrayList<>();
+        List<BlockPos> own = BedwarsTracker.ownBed();
+        if (!own.isEmpty()) {
+            for (BlockPos bed : own)
+                if (mc.theWorld.isBlockLoaded(bed) && mc.theWorld.getBlockState(bed).getBlock() instanceof BlockBed)
+                    for (EnumFacing f : EnumFacing.HORIZONTALS) out.add(bed.offset(f));
+            return out;
+        }
         BlockPos origin = new BlockPos(mc.thePlayer);
         for (int x = -3; x <= 3; x++) for (int y = -2; y <= 2; y++) for (int z = -3; z <= 3; z++) {
             BlockPos bed = origin.add(x, y, z);
