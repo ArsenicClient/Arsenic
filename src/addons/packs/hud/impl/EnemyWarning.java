@@ -5,6 +5,7 @@ import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventTick;
 import arsenic.gui.hud.HudElement;
 import arsenic.main.Arsenic;
+import arsenic.module.impl.client.AntiBot;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -23,7 +24,7 @@ import java.util.Set;
 /**
  * Warns when a player who is not on your friend list comes within the chosen distance. Plays a sound each time someone
  * enters the range, and lists the closest players (name and distance) in a HUD panel while anyone is in range.
- * AntiBot filtering is not applied, so bots inside the range are listed too.
+ * Players the built-in AntiBot filters (NPCs, lobby bots) are ignored.
  */
 @ModuleInfo(name = "EnemyWarning", description = "Warns when a non-friend player comes within a chosen distance", category = ModuleCategory.RENDER)
 public class EnemyWarning extends Module {
@@ -51,7 +52,7 @@ public class EnemyWarning extends Module {
         List<EntityPlayer> close = new ArrayList<>();
 
         for (EntityPlayer p : PlayerUtils.getPlayersWithin(range)) {
-            if (p.isDead) continue;
+            if (p.isDead || AntiBot.isBot(p)) continue;
             if (ignoreFriends.getValue() && Arsenic.getArsenic().getFriendManager().isFriend(p)) continue;
             now.add(p.getEntityId());
             close.add(p);

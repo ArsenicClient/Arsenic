@@ -1,12 +1,14 @@
 {
   "id": "bedwars",
   "name": "BedWars",
-  "description": "Everything for BedWars: shoot down fireballs and break beds. Installed and enabled by default.",
+  "description": "Everything for BedWars: shoot down fireballs, break beds, find and guard your own bed, read the team status from the sidebar and count final kills.",
   "icon": "textures/items/bed.png",
   "autoInstall": true,
   "addons": {
     "AntiFireball": "BedWars: silently aims at fireballs that come within reach and punches them away before they hit you. Ignores brand new fireballs for a moment so it never swings at your own.",
     "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode.",
-    "BedAlarm": "Alerts in chat, with a sound and a HUD flash, when your bed is broken. Enable it while standing next to your bed."
+    "BedAlarm": "Finds your bed automatically after you join or respawn, outlines it, and alerts in chat, with a sound and a HUD flash, if it is broken.",
+    "BedwarsStatus": "Team panel from the BedWars sidebar: which beds are up, and how many players are left per team.",
+    "FinalKillCounter": "Counts final kills in BedWars from chat: yours and the game total."
   }
 }

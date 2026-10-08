@@ -24,15 +24,23 @@ Read these before writing any addon from this catalog.
 
 ## Implementation status
 
-- **Batch 1 is implemented** (12 addons, compiled with `./gradlew compileAddonsJava` on Java 8, Gradle 4.9, against the real Minecraft 1.8.9 deps): `NoBob`, `ItemESP`, `ProjectileESP`, `TNTTimer`, `BlockOverlay` (pack `render`); `HitMarker`, `HitSound`, `HitCounter`, `ArmorStatus`, `HealthWarning`, `EnemyWarning` (new pack `hud`); `BedAlarm` (pack `bedwars`).
-- Deviations from the catalog text, kept deliberately small:
-  - `NoBob` has no Render/HUD visuals: it is a vanilla option toggle.
-  - `HitMarker` draws on the crosshair, not in a HUD panel; `HitSound` plays fixed sounds (no sound picker yet) and does not do the per-game sound lists.
-  - `EnemyWarning` does not apply AntiBot filtering yet.
-  - `ProjectileESP` recognises ender pearls by class name, because the 1.8.9 pearl class is not importable from the addon classpath.
-  - `BedAlarm` guards the bed blocks within 3 blocks at the moment it is enabled, so enable it next to your bed.
-- In-game behaviour has not been tested on a server. Compile is verified, behaviour is not.
-- The remaining batches (2 to 11) are not implemented yet.
+Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the real Minecraft 1.8.9 dependencies. Nothing here has been run in game or on a server yet.
+
+- **Batch 1 (12 addons):** `NoBob`, `ItemESP`, `ProjectileESP`, `TNTTimer`, `BlockOverlay` (pack `render`); `HitMarker`, `HitSound`, `HitCounter`, `ArmorStatus`, `HealthWarning`, `EnemyWarning` (pack `hud`); `BedAlarm` (pack `bedwars`).
+- **Batch 2 (12 addons):** `GameDetector`, `StaffAlert`, `AutoGG`, `AutoPlay` (pack `hypixel`, new); `BedwarsStatus`, `FinalKillCounter` (pack `bedwars`); `TpsMeter`, `LagbackAlert`, `InvulnTimer`, `ItemCounter`, `SessionStats`, `PingWarning` (pack `hud`).
+- **Fixes in this round:**
+  - `BedAlarm` finds your bed by itself: after you join or respawn it takes your position as home, picks the bed nearest home within the search radius, and highlights both halves. It gives up after 30 seconds.
+  - `HitSound` has options: the hit and kill sounds (confirm, click, orb, pop, anvil, level-up, or none), volume, pitch, and an "Only Players" switch.
+  - `AntiBot` (built-in) rewritten. Tab lookups use one snapshot per world tick instead of a scan per entity. A grace period (default 2 s) stops late tab entries being flagged. Singleplayer no longer treats everyone as a bot. Name checks are split: names with a space or an `[NPC]` tag are always bots, looser patterns only count for players missing from the tab list. A new Stationary Checks setting flags players missing from the tab list who have not moved for 15 s (default). `EnemyWarning` now ignores what AntiBot filters.
+- **Assumptions to check on Hypixel:**
+  - `GameDetector` matches sidebar titles loosely. Unknown titles report `UNKNOWN`.
+  - `AutoGG` and `AutoPlay` spot the game end from chat text. The trigger list is editable.
+  - `BedwarsStatus` reads team lines with ✔ and ✖ marks.
+  - `FinalKillCounter` assumes the killer's name comes before "FINAL KILL".
+  - `SessionStats` parses "X was killed by Y".
+  - `TpsMeter` estimates TPS from time updates.
+- **Known gaps:** NPCs that are in the tab list are not caught by AntiBot yet. A sample name from one would show which rule to add.
+- The remaining batches (3 to 11) are not implemented yet.
 
 ## 1. Summary
 
