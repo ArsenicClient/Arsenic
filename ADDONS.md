@@ -1652,6 +1652,17 @@ public class EventDisplayGuiScreen extends CancellableEvent {
 }
 ```
 
+### arsenic.event.impl.EventFov
+
+```java
+public class EventFov implements Event {
+    public EventFov(float fov);
+    public float getFov();
+    public void setFov(float fov);
+    public boolean isModified();
+}
+```
+
 ### arsenic.event.impl.EventGameLoop
 
 ```java
@@ -2000,6 +2011,7 @@ public @interface CommandInfo {
 ```java
 public class Arsenic {
     public void init(FMLInitializationEvent event);
+    /** Starts the client; Forge calls it through #init, the injector directly. */ public void initialize();
     public String getName();
     public static Arsenic getInstance();
     public static Arsenic getArsenic();
@@ -2468,6 +2480,25 @@ public final class BadPacketsManager {
 }
 ```
 
+### arsenic.utils.minecraft.BedwarsTracker
+
+```java
+public final class BedwarsTracker {
+    /** True from the start of a BedWars game (or the first respawn or bed message in it) until the world changes. */ public static boolean inGame();
+    /** Changes every time a new game starts, so addons can reset per-game counters. */ public static int gameId();
+    /** Both halves of your bed, empty while it is not known or after it was destroyed. */ public static List<BlockPos> ownBed();
+    /** Whether the position is a half of your bed. */ public static boolean isOwnBed(BlockPos pos);
+    /** True once the server said "You can't destroy your own bed!" about it, rather than it being the nearest bed. */ public static boolean isOwnBedConfirmed();
+    /** True after "BED DESTRUCTION > Your Bed was destroyed". */ public static boolean ownBedDestroyed();
+    /** System time of "Your Bed was destroyed", or 0. */ public static long ownBedDestroyedAt();
+    /** Colour names of the other teams whose bed is gone this game, e.g. "Red". */ public static Set<String> destroyedBeds();
+    /** Colour names of the teams eliminated this game. */ public static Set<String> eliminatedTeams();
+    public Listener<EventPacket.Incoming.Post> onPacket;
+    public Listener<EventPacket.OutGoing> onSend;
+    public Listener<EventTick> onTick;
+}
+```
+
 ### arsenic.utils.minecraft.ContainerUtils
 
 ```java
@@ -2640,6 +2671,7 @@ public class RenderUtils extends UtilityClass {
     public static void resetColorText();
     public static void resetColor();
     public static void bindTexture(int texture);
+    /** Binds a texture on a texture unit GlStateManager does not track (it only knows units 0 to 7), then leaves unit 0 */ public static void bindTextureOnUnit(int unit, int texture);
     public static int alpha(Color color, int newAlpha);
     public static void setAlphaLimit(float alphaLimit);
     public static boolean captureCoverage;

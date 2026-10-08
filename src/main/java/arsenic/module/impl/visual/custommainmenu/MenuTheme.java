@@ -1,6 +1,7 @@
 package arsenic.module.impl.visual.custommainmenu;
 
 import arsenic.gui.themes.ThemeManager;
+import arsenic.runtime.Access;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.render.DrawUtils;
@@ -217,20 +218,32 @@ public final class MenuTheme {
     }
     // ---- buttons ----------------------------------------------------------------------------------
 
+    // GuiButton's size is protected in Minecraft (Forge makes it public); read it by reflection to work in every game
+    private static final Access.FieldRef BUTTON_HEIGHT = Access.field(GuiButton.class, "height");
+
+    public static int buttonWidth(GuiButton b) {
+        return b.getButtonWidth();
+    }
+
+    public static int buttonHeight(GuiButton b) {
+        return BUTTON_HEIGHT.getInt(b);
+    }
+
     /** Draws the button and returns whether the mouse is over it. */
     public static boolean drawButton(GuiButton b, Minecraft mc, int mx, int my) {
-        boolean over = MathUtils.insideSized(mx, my, b.xPosition, b.yPosition, b.width, b.height);
+        int bw = buttonWidth(b), bh = buttonHeight(b);
+        boolean over = MathUtils.insideSized(mx, my, b.xPosition, b.yPosition, bw, bh);
         float hover = HOVER.computeIfAbsent(b, k -> new HoverAnimation()).update(over && b.enabled);
 
-        float x1 = b.xPosition, y1 = b.yPosition, x2 = x1 + b.width, y2 = y1 + b.height;
+        float x1 = b.xPosition, y1 = b.yPosition, x2 = x1 + bw, y2 = y1 + bh;
         int baseFill = (b.enabled ? 125 : 75) << 24 | ColorUtils.mixRgb(0x000000, main(), 0.12f);
         int fill = ColorUtils.mixArgb(baseFill, accent(105), hover);
-        drawPill(x1, y1, x2, y2, Math.min(b.height, b.width) / 2f, 1f, fill,
+        drawPill(x1, y1, x2, y2, Math.min(bh, bw) / 2f, 1f, fill,
                 ColorUtils.mixArgb(ink(b.enabled ? 55 : 28), accent(235), hover));
 
         int textColour = !b.enabled ? ink(110) : ColorUtils.mixArgb(ink(225), ink(255), hover);
         int tw = mc.fontRendererObj.getStringWidth(b.displayString);
-        mc.fontRendererObj.drawStringWithShadow(b.displayString, x1 + (b.width - tw) / 2f, y1 + (b.height - 8) / 2f, textColour);
+        mc.fontRendererObj.drawStringWithShadow(b.displayString, x1 + (bw - tw) / 2f, y1 + (bh - 8) / 2f, textColour);
         return over;
     }
 

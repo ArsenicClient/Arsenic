@@ -12,9 +12,13 @@ gets removed or reworked.
 The same jar works two ways:
 
 - **As a mod**: put it in `.minecraft/mods` and start Forge 1.8.9.
-- **Injected**: start Forge 1.8.9 without it, then double-click the jar. Pick the game in the window and press
-  **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it on its own. Without a window:
-  `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
+- **Injected**: start Minecraft 1.8.9 (Forge, Vanilla or Lunar Client) without it, then double-click the jar. Pick
+  the game in the window and press **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it
+  on its own. Without a window: `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
+
+  Outside Forge, a few Forge-only extras are skipped: the mod list button, Forge's list backgrounds and framebuffer
+  stencils. Addons that use members only Forge makes public (for example `EnumFacing.HORIZONTALS`) fail to compile
+  there; use the public alternative (`EnumFacing.Plane.HORIZONTAL.facings()`).
 
 ## Addons (make your own with AI)
 

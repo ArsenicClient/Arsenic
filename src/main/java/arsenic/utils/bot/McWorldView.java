@@ -1,5 +1,6 @@
 package arsenic.utils.bot;
 
+import arsenic.runtime.Platform;
 import arsenic.utils.botcore.BlockView;
 import arsenic.utils.botcore.Box;
 import arsenic.utils.minecraft.ContainerUtils;
@@ -122,7 +123,7 @@ public final class McWorldView implements BlockView {
         BlockPos off = pos.offset(side);
         Block b = world.getBlockState(off).getBlock();
         return b.isFullBlock() || b == self || b == Blocks.glass || b == Blocks.stained_glass || b instanceof BlockPane
-                || b.isSideSolid(world, off, side.getOpposite());
+                || (Platform.isForge() ? b.isSideSolid(world, off, side.getOpposite()) : b.isBlockSolid(world, off, side.getOpposite()));
     }
 
     private void paneBoxes(BlockPos pos, Block self, List<Box> out) {

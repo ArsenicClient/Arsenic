@@ -1,10 +1,10 @@
 package arsenic.runtime;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import arsenic.lib.asm.ClassReader;
+import arsenic.lib.asm.Type;
+import arsenic.lib.asm.tree.AnnotationNode;
+import arsenic.lib.asm.tree.ClassNode;
+import arsenic.lib.asm.tree.MethodNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -159,9 +159,10 @@ public final class AccessorBridge {
         }
     }
 
+    /** Loads a class named with SRG names (what the accessor interfaces are written in) under its runtime name. */
     private static Class<?> load(String name, ClassLoader loader) {
         try {
-            return Class.forName(name, false, loader);
+            return Class.forName(RuntimeNames.current().mapClass(name.replace('.', '/')).replace('/', '.'), false, loader);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }

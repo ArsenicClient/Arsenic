@@ -46,6 +46,12 @@ public class Arsenic {
 
     @Mod.EventHandler
     public final void init(FMLInitializationEvent event) {
+        initialize();
+        arsenic.utils.render.capture.SilentView.register();
+    }
+
+    /** Starts the client; Forge calls it through {@link #init}, the injector directly. */
+    public final void initialize() {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         getEventManager().subscribe(silentRotationManager);

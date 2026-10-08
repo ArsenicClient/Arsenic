@@ -1,6 +1,10 @@
 package arsenic.utils.render.capture;
 
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
+import arsenic.runtime.Platform;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -31,27 +35,48 @@ public final class SilentView {
     // held-item sway towards the silent rotation, stepped per tick like EntityPlayerSP#renderArmYaw
     private static float armYaw, armPitch, prevArmYaw, prevArmPitch;
 
-    static {
-        MinecraftForge.EVENT_BUS.register(new SilentView());
-    }
-
     private SilentView() {
     }
 
-    // Forge (and OptiFine) apply this as the final camera rotation; overriding it here wins over anything that reads
-    // or rewrites the player's rotation fields during the pass
-    @SubscribeEvent
-    public void onCameraSetup(EntityViewRenderEvent.CameraSetup event) {
-        if (!rendering)
-            return;
-        event.yaw = viewYaw + 180.0F;
-        event.pitch = viewPitch;
+    /**
+     * Starts following ticks (and, on Forge, the camera). Forge posts its own events; elsewhere the tick comes from the
+     * client's event bus and the camera follows the player's rotation fields, which the pass sets.
+     */
+    public static void register() {
+        if (Platform.isForge())
+            MinecraftForge.EVENT_BUS.register(new ForgeListener());
+        else
+            Arsenic.getArsenic().getEventManager().subscribe(new TickListener());
     }
 
-    @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent event) {
+    /** Forge's events. Only loaded on Forge. */
+    public static final class ForgeListener {
+        // Forge (and OptiFine) apply this as the final camera rotation; overriding it here wins over anything that
+        // reads or rewrites the player's rotation fields during the pass
+        @SubscribeEvent
+        public void onCameraSetup(EntityViewRenderEvent.CameraSetup event) {
+            if (!rendering)
+                return;
+            event.yaw = viewYaw + 180.0F;
+            event.pitch = viewPitch;
+        }
+
+        @SubscribeEvent
+        public void onTick(TickEvent.ClientTickEvent event) {
+            if (event.phase == TickEvent.Phase.END)
+                tick();
+        }
+    }
+
+    /** The client's own tick, after the player updates, for games without Forge. */
+    public static final class TickListener {
+        @EventLink
+        public final Listener<EventTick.Post> onTick = event -> tick();
+    }
+
+    private static void tick() {
         EntityPlayerSP player = mc.thePlayer;
-        if (event.phase != TickEvent.Phase.END || player == null)
+        if (player == null)
             return;
         SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
         float yaw = srm.isModified() ? srm.yaw : player.rotationYaw;

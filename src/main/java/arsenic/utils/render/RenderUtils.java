@@ -96,7 +96,7 @@ public class RenderUtils extends UtilityClass {
         try {
             assert inputStream != null;
             bf = ImageIO.read(inputStream);
-            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
+            return Minecraft.getMinecraft().getTextureManager().getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
         } catch (IOException | IllegalArgumentException | NullPointerException e) {
             e.printStackTrace();
             return new ResourceLocation("null");

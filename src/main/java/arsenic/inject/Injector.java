@@ -1,7 +1,6 @@
 package arsenic.inject;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.io.File;
 import java.lang.reflect.Method;
@@ -14,8 +13,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * What runs when the client jar is double-clicked: a small window that lists the running Minecraft games and loads
- * the client into the chosen one through the Java attach API ({@link Agent} does the rest inside the game).
+ * What runs when the client jar is double-clicked: a window ({@link InjectorWindow}) that lists the running Minecraft
+ * games (Forge, vanilla, Lunar Client) and loads the client into the chosen one through the Java attach API
+ * ({@link Agent} does the rest inside the game).
  *
  * The attach API ships with JDKs only. When the Java that opened the jar has none, the injector looks for an
  * installed JDK and restarts itself with it.
@@ -27,20 +27,77 @@ public final class Injector {
     private static final String RELAUNCHED = "--relaunched";
     private static final long TIMEOUT_MS = 60_000;
 
-    /** A running game: its process id and what to call it. */
+    /** Which launcher or loader a game runs under, from its command line. */
+    enum Client {
+        FORGE("Forge", new Color(0xE0812F)),
+        LUNAR("Lunar Client", new Color(0x3B82F6)),
+        VANILLA("Vanilla", new Color(0x3FA34D)),
+        UNKNOWN("Minecraft", new Color(0x7C3AED)),
+        OTHER("Java", new Color(0x55555F));
+
+        final String display;
+        final Color color;
+
+        Client(String display, Color color) {
+            this.display = display;
+            this.color = color;
+        }
+    }
+
+    /** A running game: its process id, what runs it and which Minecraft version (null when unknown). */
     static final class Game {
         final String id;
-        final String label;
+        final Client client;
+        final String version;
+        final String mainClass;
+        /** Whether the attach API lists it. Lunar turns attach off, so it only shows up in the OS process scan. */
+        final boolean attachable;
 
-        Game(String id, String label) {
+        Game(String id, Client client, String version, String mainClass, boolean attachable) {
             this.id = id;
-            this.label = label;
+            this.client = client;
+            this.version = version;
+            this.mainClass = mainClass;
+            this.attachable = attachable;
+        }
+
+        /** Unknown versions are allowed; the agent checks the game itself. */
+        boolean supported() {
+            if (client == Client.OTHER)
+                return false;
+            // Lunar's command line does not carry a reliable Minecraft version; the agent checks it is 1.8.9 inside
+            if (client == Client.LUNAR)
+                return true;
+            return version == null || version.contains("1.8.9");
+        }
+
+        String unsupportedReason() {
+            if (client == Client.OTHER)
+                return "This is not a Minecraft game.";
+            return "Only Minecraft 1.8.9 is supported (this is " + version + ").";
+        }
+
+        String title() {
+            if (client == Client.OTHER)
+                return mainClass.substring(mainClass.lastIndexOf('.') + 1);
+            return "Minecraft " + (version == null ? "" : shortVersion(version));
+        }
+
+        /** Stable text for the game, to tell whether the list changed. Command lines hold access tokens, so only this is shown. */
+        String label() {
+            return title() + " (" + client.display + ", pid " + id + ")";
         }
 
         @Override
         public String toString() {
-            return label;
+            return label();
         }
+    }
+
+    /** "1.8.9-forge1.8.9-11.15.1.2318-1.8.9" -> "1.8.9" */
+    private static String shortVersion(String version) {
+        int dash = version.indexOf('-');
+        return dash > 0 ? version.substring(0, dash) : version;
     }
 
     public static void main(String[] args) throws Exception {
@@ -64,7 +121,7 @@ public final class Injector {
 
         if (argList.contains("--list")) {
             for (Game game : findGames(false))
-                System.out.println(game.id + "  " + game.label);
+                System.out.println(game.id + "  " + game.label() + (game.supported() ? "" : "  [unsupported]"));
             return;
         }
         int pid = argList.indexOf("--pid");
@@ -74,7 +131,7 @@ public final class Injector {
             System.exit(result.startsWith("OK") ? 0 : 1);
         }
 
-        SwingUtilities.invokeLater(() -> new Window().show());
+        InjectorWindow.open();
     }
 
     // ---- attach API (reflection: it is not on the compile class path, and not in every Java) ----
@@ -88,37 +145,215 @@ public final class Injector {
         }
     }
 
-    /** Running JVMs that look like Minecraft. Their command lines hold access tokens, so only the version is shown. */
+    /**
+     * Running games. Command lines hold access tokens, so only the version is ever shown. The attach API lists the
+     * games the injector can attach to; an OS process scan adds the ones it can't (Lunar turns the attach mechanism
+     * off), so they still appear in the window even though injecting them will fail.
+     */
     static List<Game> findGames(boolean all) throws Exception {
+        java.util.Map<String, Game> byPid = new java.util.LinkedHashMap<>();
+        String self = selfPid();
+
         Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
         Class<?> descClass = Class.forName("com.sun.tools.attach.VirtualMachineDescriptor");
         Method id = descClass.getMethod("id");
         Method displayName = descClass.getMethod("displayName");
-        List<Game> games = new ArrayList<>();
-        String self = selfPid();
         for (Object desc : (List<?>) vmClass.getMethod("list").invoke(null)) {
             String pid = (String) id.invoke(desc);
             String name = (String) displayName.invoke(desc);
             if (pid.equals(self))
                 continue;
-            boolean minecraft = name.contains("net.minecraft.launchwrapper.Launch") || name.contains("net.minecraft.client.main.Main")
-                    || name.toLowerCase(Locale.ROOT).contains("minecraft");
-            if (!minecraft && !all)
+            Client client = classify(name);
+            if (client == Client.OTHER && !all)
                 continue;
-            games.add(new Game(pid, describe(pid, name, minecraft)));
+            String main = name.split(" ")[0];
+            byPid.put(pid, new Game(pid, client, argument(name, "--version"), main, true));
+        }
+
+        // games the attach API does not list (attach turned off, or no perf data): keep the attach entry when both find it
+        for (Game game : osGames(all))
+            byPid.putIfAbsent(game.id, game);
+
+        return new ArrayList<>(byPid.values());
+    }
+
+    /** The {@code -javaagent} argument that loads the client at launch, where the attach API cannot reach a game. */
+    static String agentArg() {
+        try {
+            return "-javaagent:" + ownJar().getAbsolutePath();
+        } catch (Exception e) {
+            return "-javaagent:Arsenic.jar";
+        }
+    }
+
+    // ---- OS process scan (for games the attach API misses, e.g. Lunar) ----
+
+    /** Java games from the OS process list, marked not-attachable. */
+    private static List<Game> osGames(boolean all) {
+        List<Game> games = new ArrayList<>();
+        String self = selfPid();
+        for (String[] proc : osProcesses()) {
+            String pid = proc[0], cmd = proc[1];
+            if (pid.equals(self) || cmd == null || cmd.isEmpty())
+                continue;
+            Client client = classify(cmd);
+            if (client == Client.OTHER && !all)
+                continue;
+            games.add(new Game(pid, client, argument(cmd, "--version"), mainClassOf(cmd), false));
         }
         return games;
     }
 
-    private static String describe(String pid, String commandLine, boolean minecraft) {
-        if (!minecraft) {
-            String main = commandLine.split(" ")[0];
-            return main.substring(main.lastIndexOf('.') + 1) + "  (pid " + pid + ")";
+    /** {pid, commandLine} for running processes; empty when the scan is unavailable. */
+    private static List<String[]> osProcesses() {
+        String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+        try {
+            if (os.contains("win"))
+                return windowsProcesses();
+            if (os.contains("mac"))
+                return macProcesses();
+            return linuxProcesses();
+        } catch (Exception e) {
+            return Collections.emptyList();
         }
+    }
+
+    private static List<String[]> windowsProcesses() throws Exception {
+        // WMIC first (fast); PowerShell's CIM query is the fallback where WMIC is gone (Windows 11 24H2+)
+        String out = run("wmic", "process", "where", "name like 'java%.exe'", "get", "CommandLine,ProcessId", "/format:list");
+        List<String[]> games = parseWmic(out);
+        if (!games.isEmpty())
+            return games;
+        String script = "Get-CimInstance Win32_Process -Filter \"Name like 'java%'\" | "
+                + "ForEach-Object { \"$($_.ProcessId)`t$($_.CommandLine)\" }";
+        return parseTabbed(run("powershell", "-NoProfile", "-NonInteractive", "-Command", script));
+    }
+
+    private static List<String[]> parseWmic(String out) {
+        List<String[]> games = new ArrayList<>();
+        String cmd = null;
+        for (String line : out.split("\r?\n")) {
+            if (line.startsWith("CommandLine="))
+                cmd = line.substring("CommandLine=".length()).trim();
+            else if (line.startsWith("ProcessId=")) {
+                String pid = line.substring("ProcessId=".length()).trim();
+                if (isPid(pid))
+                    games.add(new String[]{pid, cmd == null ? "" : cmd});
+                cmd = null;
+            }
+        }
+        return games;
+    }
+
+    private static List<String[]> parseTabbed(String out) {
+        List<String[]> games = new ArrayList<>();
+        for (String line : out.split("\r?\n")) {
+            int tab = line.indexOf('\t');
+            if (tab <= 0)
+                continue;
+            String pid = line.substring(0, tab).trim();
+            if (isPid(pid))
+                games.add(new String[]{pid, line.substring(tab + 1).trim()});
+        }
+        return games;
+    }
+
+    private static List<String[]> macProcesses() throws Exception {
+        List<String[]> games = new ArrayList<>();
+        for (String line : run("ps", "-ax", "-o", "pid=,command=").split("\n")) {
+            line = line.trim();
+            int sp = line.indexOf(' ');
+            if (sp <= 0)
+                continue;
+            String pid = line.substring(0, sp);
+            String cmd = line.substring(sp + 1);
+            if (isPid(pid) && cmd.contains("java"))
+                games.add(new String[]{pid, cmd});
+        }
+        return games;
+    }
+
+    private static List<String[]> linuxProcesses() {
+        List<String[]> games = new ArrayList<>();
+        File[] dirs = new File("/proc").listFiles();
+        if (dirs == null)
+            return games;
+        for (File dir : dirs) {
+            String pid = dir.getName();
+            if (!isPid(pid))
+                continue;
+            try {
+                byte[] raw = Files.readAllBytes(new File(dir, "cmdline").toPath());
+                if (raw.length == 0)
+                    continue;
+                String cmd = new String(raw, StandardCharsets.UTF_8).replace('\0', ' ').trim();
+                if (cmd.contains("java"))
+                    games.add(new String[]{pid, cmd});
+            } catch (Exception ignored) {
+            }
+        }
+        return games;
+    }
+
+    private static boolean isPid(String s) {
+        if (s.isEmpty())
+            return false;
+        for (int i = 0; i < s.length(); i++)
+            if (!Character.isDigit(s.charAt(i)))
+                return false;
+        return true;
+    }
+
+    /** The main class in a command line, for naming a non-Minecraft Java process; "Java" when none is found. */
+    private static String mainClassOf(String commandLine) {
+        for (String part : commandLine.split(" "))
+            if (part.matches("[a-zA-Z_$][\\w$]*(\\.[a-zA-Z_$][\\w$]*)+") && part.contains("."))
+                return part;
+        return "Java";
+    }
+
+    /** Runs a short-lived command and returns its stdout, or "" on failure or timeout. */
+    private static String run(String... command) {
+        try {
+            Process p = new ProcessBuilder(command).redirectErrorStream(false).start();
+            StringBuilder sb = new StringBuilder();
+            Thread reader = new Thread(() -> {
+                try (java.io.BufferedReader r = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = r.readLine()) != null)
+                        sb.append(line).append('\n');
+                } catch (Exception ignored) {
+                }
+            });
+            reader.setDaemon(true);
+            reader.start();
+            if (!p.waitFor(8, java.util.concurrent.TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                return "";
+            }
+            reader.join(1000);
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Works out the client from the main class and arguments the JVM reports for the process. */
+    static Client classify(String commandLine) {
+        String lower = commandLine.toLowerCase(Locale.ROOT);
         String version = argument(commandLine, "--version");
-        boolean forge = commandLine.contains("launchwrapper") && (commandLine.contains("FMLTweaker") || (version != null && version.contains("forge")));
-        String what = "Minecraft" + (version != null ? " " + version : "") + (forge || version == null ? "" : " (not Forge)");
-        return what + "  (pid " + pid + ")";
+        if (lower.contains("com.moonsworth.lunar") || lower.contains("lunarclient"))
+            return Client.LUNAR;
+        if (commandLine.contains("net.minecraft.launchwrapper.Launch")) {
+            boolean forge = commandLine.contains("FMLTweaker") || version != null && version.toLowerCase(Locale.ROOT).contains("forge");
+            return forge ? Client.FORGE : Client.VANILLA;
+        }
+        if (commandLine.contains("net.minecraft.client.main.Main"))
+            return Client.VANILLA;
+        if (lower.contains("minecraft"))
+            return Client.UNKNOWN;
+        return Client.OTHER;
     }
 
     private static String argument(String commandLine, String key) {
@@ -276,131 +511,5 @@ public final class Injector {
             if (isJdk(candidate))
                 return candidate;
         return null;
-    }
-
-    // ---- window ----
-
-    private static final class Window {
-        private final JFrame frame = new JFrame("Arsenic Injector");
-        private final DefaultListModel<Game> model = new DefaultListModel<>();
-        private final JList<Game> list = new JList<>(model);
-        private final JCheckBox showAll = new JCheckBox("Show all Java processes");
-        private final JButton injectButton = new JButton("Inject");
-        private final JButton refreshButton = new JButton("Refresh");
-        private final JLabel statusLabel = new JLabel(" ");
-        private boolean busy;
-
-        void show() {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                SwingUtilities.updateComponentTreeUI(frame);
-            } catch (Exception ignored) {
-            }
-
-            JPanel root = new JPanel(new BorderLayout(0, 10));
-            root.setBorder(new EmptyBorder(14, 14, 14, 14));
-
-            JLabel title = new JLabel("Arsenic");
-            title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
-            JLabel hint = new JLabel("Pick a running Minecraft Forge 1.8.9 game and press Inject.");
-            JPanel header = new JPanel(new GridLayout(2, 1, 0, 2));
-            header.add(title);
-            header.add(hint);
-            root.add(header, BorderLayout.NORTH);
-
-            list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            list.setVisibleRowCount(6);
-            list.addListSelectionListener(e -> updateButtons());
-            root.add(new JScrollPane(list), BorderLayout.CENTER);
-
-            injectButton.addActionListener(e -> injectSelected());
-            refreshButton.addActionListener(e -> refresh());
-            showAll.addActionListener(e -> refresh());
-            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-            buttons.add(refreshButton);
-            buttons.add(injectButton);
-            JPanel controls = new JPanel(new BorderLayout());
-            controls.add(showAll, BorderLayout.WEST);
-            controls.add(buttons, BorderLayout.EAST);
-
-            JPanel footer = new JPanel(new BorderLayout(0, 8));
-            footer.add(controls, BorderLayout.NORTH);
-            footer.add(statusLabel, BorderLayout.SOUTH);
-            root.add(footer, BorderLayout.SOUTH);
-
-            frame.setContentPane(root);
-            frame.getRootPane().setDefaultButton(injectButton);
-            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            frame.setSize(460, 320);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-            refresh();
-        }
-
-        private void updateButtons() {
-            injectButton.setEnabled(!busy && list.getSelectedValue() != null);
-            refreshButton.setEnabled(!busy);
-            showAll.setEnabled(!busy);
-        }
-
-        private void setStatus(String text) {
-            statusLabel.setText(text.isEmpty() ? " " : text);
-        }
-
-        private void refresh() {
-            try {
-                List<Game> games = findGames(showAll.isSelected());
-                model.clear();
-                for (Game game : games)
-                    model.addElement(game);
-                if (!games.isEmpty())
-                    list.setSelectedIndex(0);
-                setStatus(games.isEmpty() ? "No running Minecraft found. Start the game, then press Refresh." : "");
-            } catch (Exception e) {
-                setStatus("Could not list Java processes: " + e);
-            }
-            updateButtons();
-        }
-
-        private void injectSelected() {
-            Game game = list.getSelectedValue();
-            if (game == null)
-                return;
-            busy = true;
-            updateButtons();
-            new SwingWorker<String, String>() {
-                @Override
-                protected String doInBackground() {
-                    return inject(game.id, this::publish);
-                }
-
-                @Override
-                protected void process(List<String> chunks) {
-                    setStatus(chunks.get(chunks.size() - 1));
-                }
-
-                @Override
-                protected void done() {
-                    busy = false;
-                    updateButtons();
-                    String result;
-                    try {
-                        result = get();
-                    } catch (Exception e) {
-                        result = "ERROR " + e;
-                    }
-                    if (result.equals("OK")) {
-                        setStatus("Injected. Press Right Shift in game for the ClickGUI.");
-                        JOptionPane.showMessageDialog(frame, "Arsenic is loaded. Press Right Shift in game to open the ClickGUI.",
-                                "Arsenic Injector", JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        String reason = result.startsWith("ERROR") ? result.substring(5).trim() : result;
-                        setStatus("Injection failed.");
-                        JOptionPane.showMessageDialog(frame, "Could not inject Arsenic:\n" + reason,
-                                "Arsenic Injector", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-            }.execute();
-        }
     }
 }

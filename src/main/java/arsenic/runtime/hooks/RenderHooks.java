@@ -1,5 +1,6 @@
 package arsenic.runtime.hooks;
 
+import arsenic.runtime.Platform;
 import arsenic.event.impl.EventFov;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRender2D;
@@ -168,7 +169,8 @@ public final class RenderHooks {
                 } else if (movingobjectposition != null) {
                     double d3 = vec3.distanceTo(movingobjectposition.hitVec);
                     if (d3 < d2 || d2 == 0.0D) {
-                        if (entity1 == entity.ridingEntity && !entity.canRiderInteract()) {
+                        // canRiderInteract is Forge's; Minecraft never lets the rider interact
+                        if (entity1 == entity.ridingEntity && !(Platform.isForge() && entity.canRiderInteract())) {
                             if (d2 == 0.0D) {
                                 pointedEntity = entity1;
                                 vec33 = movingobjectposition.hitVec;

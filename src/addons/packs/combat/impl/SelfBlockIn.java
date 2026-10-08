@@ -71,7 +71,7 @@ public class SelfBlockIn extends Module {
     private List<BlockPos> targets() {
         BlockPos feet = new BlockPos(mc.thePlayer);
         List<BlockPos> out = new ArrayList<>();
-        for (EnumFacing f : EnumFacing.HORIZONTALS) out.add(feet.offset(f));
+        for (EnumFacing f : EnumFacing.Plane.HORIZONTAL.facings()) out.add(feet.offset(f));
         return out;
     }
 

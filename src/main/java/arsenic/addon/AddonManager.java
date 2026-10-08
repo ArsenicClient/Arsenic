@@ -4,6 +4,8 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleManager;
+import arsenic.runtime.Platform;
+import arsenic.runtime.RuntimeNames;
 import arsenic.utils.java.FileUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -41,7 +43,8 @@ public final class AddonManager {
         // FML's remapper rewrites every class it loads with an ASM that corrupts the stack map frames of the
         // compiler's larger methods (VerifyError), so keep the embedded compiler away from the transformers.
         try {
-            Launch.classLoader.addTransformerExclusion("org.eclipse.jdt.");
+            if (Platform.isForge())
+                Launch.classLoader.addTransformerExclusion("org.eclipse.jdt.");
         } catch (Throwable t) {
             org.apache.logging.log4j.LogManager.getLogger("Arsenic").warn("Could not exclude the addon compiler from class transformation", t);
         }
@@ -53,6 +56,14 @@ public final class AddonManager {
 
     public List<Module> getLoadedModules() {
         return Collections.unmodifiableList(loaded);
+    }
+
+    /** The loaded module for an addon's file name, or null while that addon is off and its class is not loaded. */
+    public Module findLoadedModule(String addonName) {
+        for (Module module : loaded)
+            if (module.getClass().getSimpleName().equals(addonName))
+                return module;
+        return null;
     }
 
     public List<String> getErrors() {
@@ -699,12 +710,17 @@ public final class AddonManager {
     }
 
     private AddonCompiler newCompiler() throws Exception {
-        if (isMcpRuntime())
+        // Lunar Client (injected) runs MCP names too
+        RuntimeNames.Namespace namespace = RuntimeNames.current().namespace();
+        if (namespace == RuntimeNames.Namespace.MCP || isMcpRuntime())
             return new AddonCompiler(new LoaderClassSource(Arsenic.class.getClassLoader()), null);
 
         try (InputStream in = AddonManager.class.getResourceAsStream("/addon-mappings.txt")) {
             if (in == null)
                 throw new IllegalStateException("addon-mappings.txt is missing from this build");
+            // vanilla (injected): compiled against SRG names like Forge, then renamed to the game's names
+            if (namespace == RuntimeNames.Namespace.NOTCH)
+                return new AddonCompiler(new VanillaClassSource(Arsenic.class.getClassLoader(), RuntimeNames.current()), MappingTable.load(in));
             return new AddonCompiler(new FmlClassSource(), MappingTable.load(in));
         }
     }

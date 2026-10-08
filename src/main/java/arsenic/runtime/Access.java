@@ -10,8 +10,9 @@ import java.util.Arrays;
 
 /**
  * Reflective access to private Minecraft members, written with MCP names. Works in a development environment (MCP
- * names) and in the game (SRG names, looked up in the bundled /addon-mappings.txt). The hooks use this instead of
- * mixin shadows so the same code runs whether the client was loaded as a mod or injected into a running game.
+ * names), in Forge (SRG names, looked up in the bundled /addon-mappings.txt) and, injected, in vanilla and Lunar
+ * Client (SRG names turned into the game's names by {@link RuntimeNames}). The hooks use this instead of mixin
+ * shadows so the same code runs whether the client was loaded as a mod or injected into a running game.
  */
 public final class Access {
 
@@ -30,8 +31,9 @@ public final class Access {
         return table;
     }
 
+    /** SRG (= MCP) internal name of a runtime class. */
     private static String internal(Class<?> c) {
-        return c.getName().replace('.', '/');
+        return RuntimeNames.current().unmapClass(c.getName().replace('.', '/'));
     }
 
     public static FieldRef field(Class<?> owner, String mcpName) {
@@ -39,9 +41,11 @@ public final class Access {
         try {
             f = owner.getDeclaredField(mcpName);
         } catch (NoSuchFieldException e) {
-            String srg = table().fieldToSrg(internal(owner), mcpName);
+            String srgOwner = internal(owner);
+            String srg = mcpName.startsWith("field_") ? mcpName : table().fieldToSrg(srgOwner, mcpName);
+            String runtime = RuntimeNames.current().mapField(srgOwner, srg != null ? srg : mcpName);
             try {
-                f = owner.getDeclaredField(srg != null ? srg : mcpName);
+                f = owner.getDeclaredField(runtime);
             } catch (NoSuchFieldException e2) {
                 throw new IllegalStateException("No field " + owner.getName() + "." + mcpName, e2);
             }
@@ -51,10 +55,14 @@ public final class Access {
     }
 
     public static MethodRef method(Class<?> owner, String mcpName, Class<?>... params) {
+        RuntimeNames names = RuntimeNames.current();
+        String srgOwner = internal(owner);
         for (Method m : owner.getDeclaredMethods()) {
             if (!Arrays.equals(m.getParameterTypes(), params))
                 continue;
-            if (m.getName().equals(mcpName) || mcpName.equals(table().methodToMcp(internal(owner), m.getName()))) {
+            String srg = names.unmapMethod(srgOwner, m.getName(), arsenic.lib.asm.Type.getMethodDescriptor(m));
+            if (m.getName().equals(mcpName) || srg.equals(mcpName) || mcpName.equals(table().methodToMcp(srgOwner, srg))
+                    || names.mapMethod(srgOwner, mcpName, "").equals(m.getName())) {
                 m.setAccessible(true);
                 return new MethodRef(m);
             }

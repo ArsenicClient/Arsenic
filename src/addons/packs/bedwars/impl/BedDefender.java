@@ -75,14 +75,14 @@ public class BedDefender extends Module {
         if (!own.isEmpty()) {
             for (BlockPos bed : own)
                 if (mc.theWorld.isBlockLoaded(bed) && mc.theWorld.getBlockState(bed).getBlock() instanceof BlockBed)
-                    for (EnumFacing f : EnumFacing.HORIZONTALS) out.add(bed.offset(f));
+                    for (EnumFacing f : EnumFacing.Plane.HORIZONTAL.facings()) out.add(bed.offset(f));
             return out;
         }
         BlockPos origin = new BlockPos(mc.thePlayer);
         for (int x = -3; x <= 3; x++) for (int y = -2; y <= 2; y++) for (int z = -3; z <= 3; z++) {
             BlockPos bed = origin.add(x, y, z);
             if (!mc.theWorld.isBlockLoaded(bed) || !(mc.theWorld.getBlockState(bed).getBlock() instanceof BlockBed)) continue;
-            for (EnumFacing f : EnumFacing.HORIZONTALS) out.add(bed.offset(f));
+            for (EnumFacing f : EnumFacing.Plane.HORIZONTAL.facings()) out.add(bed.offset(f));
         }
         return out;
     }

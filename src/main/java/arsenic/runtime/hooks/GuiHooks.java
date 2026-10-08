@@ -22,6 +22,12 @@ public final class GuiHooks {
     private static final Access.FieldRef BUTTON_LIST = Access.field(GuiScreen.class, "buttonList");
     private static final Access.FieldRef HOVERED = Access.field(GuiButton.class, "hovered");
     private static final Access.MethodRef MOUSE_DRAGGED = Access.method(GuiButton.class, "mouseDragged", Minecraft.class, int.class, int.class);
+    // protected in Minecraft (Forge makes them public), so read by reflection to work in every game
+    private static final Access.FieldRef SLOT_WIDTH = Access.field(GuiSlot.class, "width");
+    private static final Access.FieldRef SLOT_TOP = Access.field(GuiSlot.class, "top");
+    private static final Access.FieldRef SLOT_BOTTOM = Access.field(GuiSlot.class, "bottom");
+    private static final Access.FieldRef SLOT_LEFT = Access.field(GuiSlot.class, "left");
+    private static final Access.FieldRef SLOT_RIGHT = Access.field(GuiSlot.class, "right");
 
     private static final ResourceLocation WIDGETS = new ResourceLocation("textures/gui/widgets.png");
 
@@ -76,7 +82,7 @@ public final class GuiHooks {
         GuiTextField inputField = INPUT_FIELD.get(self);
         if (!inputField.getText().startsWith(".") || trimmedAutoCompletion == null)
             return;
-        FontRenderer font = self.mc.fontRendererObj;
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
         if (isLastArgValidArg) {
             font.drawStringWithShadow(
                     trimmedAutoCompletion,
@@ -122,9 +128,10 @@ public final class GuiHooks {
 
     /** GuiContainer.mouseClicked HEAD (GuiContainer doesn't declare actionPerformed). @return true to cancel */
     public static boolean containerMouseClickedHead(GuiContainer self, int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton != 0 || killAuraButton == null || !killAuraButton.mousePressed(self.mc, mouseX, mouseY))
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mouseButton != 0 || killAuraButton == null || !killAuraButton.mousePressed(mc, mouseX, mouseY))
             return false;
-        killAuraButton.playPressSound(self.mc.getSoundHandler());
+        killAuraButton.playPressSound(mc.getSoundHandler());
         KillAura aura = killAura();
         if (aura != null)
             aura.toggle();
@@ -151,7 +158,7 @@ public final class GuiHooks {
         if (!msg.startsWith("."))
             return false;
         Arsenic.getInstance().getCommandManager().executeCommand(msg);
-        self.mc.ingameGUI.getChatGUI().addToSentMessages(msg);
+        Minecraft.getMinecraft().ingameGUI.getChatGUI().addToSentMessages(msg);
         return true;
     }
 
@@ -159,13 +166,14 @@ public final class GuiHooks {
 
     /** GuiSlot.drawContainerBackground HEAD (added by Forge). @return true */
     public static boolean slotContainerBackground(GuiSlot self, Tessellator tessellator) {
-        MenuTheme.drawListPane(self.left, self.top, self.right, self.bottom);
+        MenuTheme.drawListPane(SLOT_LEFT.getInt(self), SLOT_TOP.getInt(self), SLOT_RIGHT.getInt(self), SLOT_BOTTOM.getInt(self));
         return true;
     }
 
     /** GuiSlot.overlayBackground HEAD. @return true */
     public static boolean slotOverlayBackground(GuiSlot self, int startY, int endY, int startAlpha, int endAlpha) {
-        MenuTheme.drawListBar(self.left, self.left + self.width, startY, endY);
+        int left = SLOT_LEFT.getInt(self);
+        MenuTheme.drawListBar(left, left + SLOT_WIDTH.getInt(self), startY, endY);
         return true;
     }
 
@@ -194,6 +202,19 @@ public final class GuiHooks {
     /** GuiAchievement.updateAchievementWindow HEAD: never draws the "Achievement get!" toast. @return true */
     public static boolean updateAchievementWindow(GuiAchievement self) {
         return true;
+    }
+
+    /**
+     * EntityRenderer.updateCameraAndRender, the call to GuiScreen.drawScreen (games without Forge, which draw the
+     * screen there): the same cross-fade as {@link #forgeDrawScreenHead}.
+     */
+    public static void drawScreen(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
+        forgeDrawScreenHead(screen, mouseX, mouseY, partialTicks);
+        try {
+            screen.drawScreen(mouseX, mouseY, partialTicks);
+        } finally {
+            forgeDrawScreenReturn(screen, mouseX, mouseY, partialTicks);
+        }
     }
 
     /** ForgeHooksClient.drawScreen HEAD: wraps every screen draw with the cross-fade from the previous screen. */

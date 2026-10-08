@@ -76,7 +76,7 @@ public class ContainerUtils {
 
     public static int getBiggestStack(Item item) {
         return getInventoryItems().stream()
-                .filter(si -> si.item.getItem().getRegistryName().equals(item.getRegistryName()))
+                .filter(si -> si.item.getItem() == item)
                 .max(Comparator.comparingDouble(si -> si.item.stackSize))
                 .map(si -> si.slot).
                 orElse(-1);

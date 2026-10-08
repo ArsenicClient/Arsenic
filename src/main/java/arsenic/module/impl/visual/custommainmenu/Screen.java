@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual.custommainmenu;
 
+import arsenic.runtime.Platform;
 import arsenic.utils.render.RenderUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
@@ -62,8 +63,12 @@ public class Screen extends GuiScreen {
         String[] labels = {I18n.format("menu.singleplayer"), I18n.format("menu.multiplayer"), "Mods",
                 I18n.format("menu.options"), I18n.format("menu.quit")};
         int[] ids = {1, 2, 3, 0, 4};
-        for (int i = 0; i < 5; i++)
-            this.buttonList.add(new CustomGuiButton(ids[i], x, y + (bh + gap) * i, bw, bh, labels[i], opened, i));
+        for (int i = 0; i < 5; i++) {
+            CustomGuiButton button = new CustomGuiButton(ids[i], x, y + (bh + gap) * i, bw, bh, labels[i], opened, i);
+            // the mod list is Forge's
+            button.enabled = ids[i] != 3 || Platform.isForge();
+            this.buttonList.add(button);
+        }
         this.buttonList.add(new CustomGuiButton(5, this.width - 108, this.height - 28, 100, 20, "Vanilla Menu", opened, 5));
     }
 
@@ -127,7 +132,18 @@ public class Screen extends GuiScreen {
         drawFooter(fade);
     }
 
+    /** Forge's mod list, made by reflection: naming the class here would fail verification without Forge. */
+    private GuiScreen forgeModList() {
+        try {
+            return (GuiScreen) Class.forName("net.minecraftforge.fml.client.GuiModList").getConstructor(GuiScreen.class).newInstance(this);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static String modVersion() {
+        if (!Platform.isForge())
+            return Arsenic.getArsenic().getClientVersionString();
         net.minecraftforge.fml.common.ModContainer c = net.minecraftforge.fml.common.Loader.instance().getIndexedModList().get("arsenic");
         return c != null ? c.getVersion() : "?";
     }
@@ -137,8 +153,10 @@ public class Screen extends GuiScreen {
         int h = mc.fontRendererObj.FONT_HEIGHT;
         String user = "Logged in as " + mc.getSession().getUsername();
         mc.fontRendererObj.drawStringWithShadow(user, 6, this.height - h * 2 - 8, ink(a * 160 / 255));
-        String mods = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
-        mc.fontRendererObj.drawStringWithShadow(mods, 6, this.height - h - 6, ink(a * 110 / 255));
+        if (Platform.isForge()) {
+            String mods = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
+            mc.fontRendererObj.drawStringWithShadow(mods, 6, this.height - h - 6, ink(a * 110 / 255));
+        }
 
         int modules = Arsenic.getArsenic().getModuleManager().getModules().size();
         long settings = Arsenic.getArsenic().getModuleManager().getModules().stream().mapToLong(m -> m.getProperties().size()).sum();
@@ -193,7 +211,7 @@ public class Screen extends GuiScreen {
         boolean overPanel = MathUtils.inside(mouseX, mouseY, panelX, panelY, panelX + panelW, panelY + panelH);
         boolean overButton = false;
         for (GuiButton b : this.buttonList)
-            if (MathUtils.insideSized(mouseX, mouseY, b.xPosition, b.yPosition, b.width, b.height))
+            if (MathUtils.insideSized(mouseX, mouseY, b.xPosition, b.yPosition, MenuTheme.buttonWidth(b), MenuTheme.buttonHeight(b)))
                 overButton = true;
         if (mouseButton == 0 && !overPanel && !overButton)
             MenuTheme.click(mouseX, mouseY);
@@ -212,7 +230,8 @@ public class Screen extends GuiScreen {
                 this.mc.displayGuiScreen(new GuiMultiplayer(this));
                 break;
             case 3:
-                this.mc.displayGuiScreen(new net.minecraftforge.fml.client.GuiModList(this));
+                if (Platform.isForge())
+                    this.mc.displayGuiScreen(forgeModList());
                 break;
             case 4:
                 this.mc.shutdown();
