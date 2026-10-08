@@ -21,6 +21,7 @@
     "CustomFov": "Sets the camera field of view, with a separate value while sprinting.",
     "Zoom": "Hold a key to narrow the camera field of view.",
     "AntiBlind": "Removes the blindness and nausea effects on your client.",
-    "Ambience": "Sets a client-side time of day and clear weather."
+    "Ambience": "Sets a client-side time of day and clear weather.",
+    "RangeRing": "Draws a ring on the ground at your reach."
   }
 }

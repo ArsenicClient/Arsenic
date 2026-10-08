@@ -63,8 +63,12 @@ Compiled with `./gradlew compileAddonsJava` on Java 8 (Gradle 4.9) against the r
   - `AntiCrash` drops only incoming custom payloads above a size limit and particle bursts above a count limit.
   - `BetterChat` adds a timestamp and a mention marker in front of the server's own text, keeping its colours. Searchable history needs a chat render hook.
   - **Deferred: `PlayerRankColours`.** Nametags are drawn by the client, so an addon overlay would double them. Needs a client change to the nametag colour.
-  - **Deferred: `PartyList`.** Needs a sample of `/party list` output to parse.
-- The remaining batches (7 to 11) are not implemented yet.
+  - **Deferred: `PartyList`.** Needs a sample of `/party list` output to parse. I checked the surveyed Hypixel clients (FDP, Raven B++, LiquidBounce+ Reborn, LiquidBounce legacy) and none parse party output, so there is no example to copy.
+- **Batch 7 (10 of 10 addons):** `KnockbackMeter`, `BowCharge`, `FallDistance`, `Speedometer`, `StateIcons`, `NearbyCount`, `AfkDetector`, `ReachDisplay`, `MemoryUsage` (pack `hud`); `RangeRing` (pack `render`).
+  - `KnockbackMeter` and `Speedometer` measure motion on the tick after the event, so they include your own movement.
+  - `NearbyCount` uses the team check from PlayerUtils, so on BedWars it depends on the bed colour.
+  - `AfkDetector` counts a player still when they don't move, so head-turning still counts as still.
+- The remaining batches (8 to 11) are not implemented yet.
 ## 1. Summary
 
 ### Counts per pack

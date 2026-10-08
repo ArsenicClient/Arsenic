@@ -19,6 +19,15 @@
     "PingWarning": "Shows your ping, red while it is above a limit.",
     "ItemAlerts": "Chat alert when chosen items are dropped near you, with a short HUD line.",
     "BlockInfo": "Shows the block under your crosshair, its hardness and an approximate break time.",
-    "WeaponCompare": "Shows the held weapon's damage next to the best one in your inventory, and the slot to switch to."
+    "WeaponCompare": "Shows the held weapon's damage next to the best one in your inventory, and the slot to switch to.",
+    "KnockbackMeter": "Shows how hard the last hit you took, and the last one you gave, pushed.",
+    "BowCharge": "Shows the bow charge percentage while you draw.",
+    "FallDistance": "Shows how far you have fallen since you last touched the ground.",
+    "Speedometer": "Shows your horizontal speed in blocks per second.",
+    "StateIcons": "Labels for sprinting, sneaking, blocking, using and airborne.",
+    "NearbyCount": "Counts players nearby, split into teammates and enemies.",
+    "AfkDetector": "Lists players who have stood still for a long time.",
+    "ReachDisplay": "Shows the distance to the last entity you attacked.",
+    "MemoryUsage": "Shows the memory the game is using, in megabytes."
   }
 }
