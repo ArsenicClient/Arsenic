@@ -1,5 +1,6 @@
 package arsenic.injection.mixin;
 
+import arsenic.runtime.hooks.GuiHooks;
 import net.minecraft.client.gui.achievement.GuiAchievement;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +13,7 @@ public abstract class MixinGuiAchievement {
 
     @Inject(method = "updateAchievementWindow", at = @At("HEAD"), cancellable = true)
     private void arsenic$noToast(CallbackInfo ci) {
-        ci.cancel();
+        if (GuiHooks.updateAchievementWindow((GuiAchievement) (Object) this))
+            ci.cancel();
     }
 }

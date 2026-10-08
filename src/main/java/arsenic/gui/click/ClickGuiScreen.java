@@ -12,7 +12,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysClickable;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
-import arsenic.utils.interfaces.IFontRenderer;
+import arsenic.utils.font.VanillaFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.*;
 import net.minecraft.client.Minecraft;
@@ -555,7 +555,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         try {
             return GuiStyle.fontEnabled() ?
                     Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
-                    ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+                    VanillaFontRenderer.of(mc.fontRendererObj).getFontRendererExtension();
         } catch (NullPointerException e) {
             return null;
         }

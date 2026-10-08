@@ -7,6 +7,15 @@ gets removed or reworked.
 - Command system (`.help` in chat), config system, custom event bus, mixins
 - **Addons**: write a module as a single `.java` file, drop it in a folder and it loads. No IDE, JDK or jar needed.
 
+## Installing
+
+The same jar works two ways:
+
+- **As a mod**: put it in `.minecraft/mods` and start Forge 1.8.9.
+- **Injected**: start Forge 1.8.9 without it, then double-click the jar. Pick the game in the window and press
+  **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it on its own. Without a window:
+  `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
+
 ## Addons (make your own with AI)
 
 Addons are plain `.java` modules in `.minecraft/Arsenic/addons/`. They are compiled when the client starts, or when

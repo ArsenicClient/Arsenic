@@ -1,0 +1,104 @@
+package arsenic.runtime;
+
+import arsenic.main.Arsenic;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.FileResourcePack;
+import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.client.resources.SimpleReloadableResourceManager;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.ModContainer;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * Starts the client inside a game that is already running, for the injector (arsenic.inject.Agent). This is the
+ * work Forge does for the mod at startup: the client's assets become a resource pack, the client is created and
+ * initialised, and then the agent hooks the Minecraft classes. All of it runs on the game thread, between frames.
+ */
+public final class InjectedLaunch {
+
+    private static final String[] HOOK_CLASSES = {
+            "arsenic.runtime.hooks.MinecraftHooks", "arsenic.runtime.hooks.PlayerHooks",
+            "arsenic.runtime.hooks.EntityHooks", "arsenic.runtime.hooks.RenderHooks",
+            "arsenic.runtime.hooks.GuiHooks", "arsenic.runtime.hooks.MiscHooks"
+    };
+
+    private static boolean injected;
+
+    private InjectedLaunch() {}
+
+    /** True when the client was injected rather than loaded by Forge. */
+    public static boolean isInjected() {
+        return injected;
+    }
+
+    /**
+     * Called by the agent on its own thread.
+     *
+     * @param jar          the client jar
+     * @param installHooks hooks the Minecraft classes; throws if that fails
+     * @param status       progress lines for the injector; "OK" or "ERROR ..." ends the injection
+     */
+    public static void start(File jar, Runnable installHooks, Consumer<String> status) {
+        Minecraft.getMinecraft().addScheduledTask(() -> {
+            try {
+                launch(jar, installHooks, status);
+                status.accept("OK");
+            } catch (Throwable t) {
+                Arsenic arsenic = Arsenic.getInstance();
+                if (arsenic != null)
+                    arsenic.getLogger().error("Injection failed", t);
+                else
+                    t.printStackTrace();
+                status.accept("ERROR " + t);
+            }
+        });
+    }
+
+    private static void launch(File jar, Runnable installHooks, Consumer<String> status) throws Exception {
+        injected = true;
+        System.setProperty("arsenic.loaded", "injected");
+
+        // the hooks resolve their private Minecraft members when first loaded; fail here rather than mid-frame
+        for (String hookClass : HOOK_CLASSES)
+            Class.forName(hookClass, true, InjectedLaunch.class.getClassLoader());
+
+        status.accept("Adding resources");
+        addResourcePack(jar);
+
+        status.accept("Starting client");
+        Arsenic arsenic = new Arsenic();
+        Field instance = Arsenic.class.getDeclaredField("instance");
+        instance.setAccessible(true);
+        instance.set(null, arsenic);
+        // Forge's event bus wants to know which mod registers a listener, and Arsenic is not a mod here
+        Object controller = Access.field(Loader.class, "modController").get(Loader.instance());
+        Access.FieldRef active = Access.field(controller.getClass(), "activeContainer");
+        ModContainer previous = active.get(controller);
+        active.set(controller, Loader.instance().getMinecraftModContainer());
+        try {
+            arsenic.init(null);
+            // registers itself on the Forge event bus when first loaded
+            Class.forName("arsenic.utils.render.capture.SilentView", true, InjectedLaunch.class.getClassLoader());
+        } finally {
+            active.set(controller, previous);
+        }
+
+        status.accept("Hooking game");
+        installHooks.run();
+    }
+
+    private static void addResourcePack(File jar) throws Exception {
+        Minecraft mc = Minecraft.getMinecraft();
+        IResourcePack pack = new FileResourcePack(jar);
+        // kept in the default packs so resource reloads (F3+T, changing packs) keep the client's assets
+        List<IResourcePack> defaults = Access.field(Minecraft.class, "defaultResourcePacks").get(mc);
+        defaults.add(pack);
+        ((SimpleReloadableResourceManager) mc.getResourceManager()).reloadResourcePack(pack);
+        // sounds.json is only read on a reload
+        mc.getSoundHandler().onResourceManagerReload(mc.getResourceManager());
+    }
+}

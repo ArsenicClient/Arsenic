@@ -4,7 +4,7 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.interfaces.IFontRenderer;
+import arsenic.utils.font.VanillaFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.render.DrawUtils;
@@ -112,7 +112,7 @@ public class Screen extends GuiScreen {
         int end = (ColorUtils.mixRgb(main, light ? 0x000000 : 0xFFFFFF, 0.35f) & 0xFFFFFF) | a << 24;
         drawHorizontalGradient(this.width / 2 - ulHalf, ulY, this.width / 2 + ulHalf, ulY + 2, accent(a), end);
 
-        FontRendererExtension<?> fr = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+        FontRendererExtension<?> fr = VanillaFontRenderer.of(mc.fontRendererObj).getFontRendererExtension();
         String tag = "Arsenic Client  -  v" + modVersion();
         fr.drawStringWithShadow(tag, this.width / 2f, ulY + 12, ink((int) (140 * fade)), fr.CENTREX, fr.CENTREY);
 
@@ -249,7 +249,7 @@ public class Screen extends GuiScreen {
             int fill = ColorUtils.mixArgb(ink((int) (20 * in)), accent((int) (80 * in)), hover);
             MenuTheme.drawPill(xPosition, y0, xPosition + width, y0 + height, height / 2f, 1f, fill,
                     ColorUtils.mixArgb(ink((int) (55 * in)), accent((int) (235 * in)), hover));
-            FontRendererExtension<?> fr = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+            FontRendererExtension<?> fr = VanillaFontRenderer.of(mc.fontRendererObj).getFontRendererExtension();
             int tc = ColorUtils.mixArgb(ink((int) (205 * in)), ink((int) (255 * in)), hover);
             fr.drawStringWithShadow(displayString, xPosition + width / 2f + 2 * hover, y0 + height / 2f, tc, fr.CENTREX, fr.CENTREY);
         }
