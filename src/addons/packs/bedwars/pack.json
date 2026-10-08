@@ -6,6 +6,7 @@
   "autoInstall": true,
   "addons": {
     "AntiFireball": "BedWars: silently aims at fireballs that come within reach and punches them away before they hit you. Ignores brand new fireballs for a moment so it never swings at your own.",
-    "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode."
+    "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode.",
+    "BedAlarm": "Alerts in chat, with a sound and a HUD flash, when your bed is broken. Enable it while standing next to your bed."
   }
 }

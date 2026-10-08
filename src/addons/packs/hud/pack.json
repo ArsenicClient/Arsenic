@@ -1,0 +1,15 @@
+{
+  "id": "hud",
+  "name": "HUD and info",
+  "description": "Information panels and warnings: hit feedback, hit counts, armour durability, low-health and nearby-enemy warnings. Client-side only.",
+  "icon": "textures/items/clock_00.png",
+  "autoInstall": false,
+  "addons": {
+    "HitMarker": "Flashes a cross on the crosshair when one of your hits lands.",
+    "HitSound": "Plays a sound when one of your hits lands, and another on a kill.",
+    "HitCounter": "Counts the hits you land and take in the current fight, and resets after a quiet period.",
+    "ArmorStatus": "Panel with the durability of your armour and held item, and the nearest player's.",
+    "HealthWarning": "Flashes the screen, plays a sound and turns the HUD panel red when your health drops below a limit.",
+    "EnemyWarning": "Warns when a player who is not on your friend list comes within a chosen distance, and lists the closest ones."
+  }
+}

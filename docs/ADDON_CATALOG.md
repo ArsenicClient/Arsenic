@@ -22,6 +22,18 @@ Read these before writing any addon from this catalog.
 
 ---
 
+## Implementation status
+
+- **Batch 1 is implemented** (12 addons, compiled with `./gradlew compileAddonsJava` on Java 8, Gradle 4.9, against the real Minecraft 1.8.9 deps): `NoBob`, `ItemESP`, `ProjectileESP`, `TNTTimer`, `BlockOverlay` (pack `render`); `HitMarker`, `HitSound`, `HitCounter`, `ArmorStatus`, `HealthWarning`, `EnemyWarning` (new pack `hud`); `BedAlarm` (pack `bedwars`).
+- Deviations from the catalog text, kept deliberately small:
+  - `NoBob` has no Render/HUD visuals: it is a vanilla option toggle.
+  - `HitMarker` draws on the crosshair, not in a HUD panel; `HitSound` plays fixed sounds (no sound picker yet) and does not do the per-game sound lists.
+  - `EnemyWarning` does not apply AntiBot filtering yet.
+  - `ProjectileESP` recognises ender pearls by class name, because the 1.8.9 pearl class is not importable from the addon classpath.
+  - `BedAlarm` guards the bed blocks within 3 blocks at the moment it is enabled, so enable it next to your bed.
+- In-game behaviour has not been tested on a server. Compile is verified, behaviour is not.
+- The remaining batches (2 to 11) are not implemented yet.
+
 ## 1. Summary
 
 ### Counts per pack

@@ -1,0 +1,14 @@
+{
+  "id": "render",
+  "name": "Render",
+  "description": "Client-side visuals only: highlights for items, projectiles, TNT and the block you aim at, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
+  "icon": "textures/items/ender_eye.png",
+  "autoInstall": false,
+  "addons": {
+    "NoBob": "Turns off view bobbing while enabled and gives the setting back when disabled.",
+    "ItemESP": "Highlights dropped items through walls within a chosen range, in the theme colour.",
+    "ProjectileESP": "Highlights arrows, fireballs, ender pearls and other thrown items through walls, each in its own colour.",
+    "TNTTimer": "Outlines primed TNT through walls and lists the closest ones with the seconds left on their fuse.",
+    "BlockOverlay": "Outlines the block your crosshair is on. Follows the silent rotation, so it shows what your clicks would hit."
+  }
+}
