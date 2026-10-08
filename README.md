@@ -1,26 +1,20 @@
 # [Arsenic](https://arsenicclient.github.io/)
 
-Arsenic is a Minecraft 1.8.9 Forge client built around the Hypixel and Grim anti-cheats. Anything that flags GrimAC
-gets removed or reworked.
-
-- Module system with a themed ClickGUI and draggable HUD
-- Command system (`.help` in chat), config system, custom event bus
-- **Addons**: write a module as a single `.java` file, drop it in a folder and it loads. No IDE, JDK or jar needed.
+Arsenic is a Minecraft 1.8.9 client built around the Hypixel and Prediction anti-cheats. Anything that flags gets removed from the base client.
+The philosophy of this client is to make the experience for the user as simple as possible.
+Because of this we have tried to minimise the amount of settings for each module, making sure they 'just work' and the user should not need to spend time configuring them.
+We have an extremely open addon system, such that if you want more customisation, you can easily add more modules.
 
 ## Installing
 
-Arsenic is loaded into a game that is already running (Forge, Vanilla or Lunar Client). It is not a mod: never put
-the jar in `.minecraft/mods`. Two ways in:
+Arsenic is loaded into a game that is already running (Forge, Vanilla or Lunar Client). It is no longer a mod: never put
+the jar in `.minecraft/mods`. This needs a JDK installed (any of 8, 17, 21...).
 
-- **Injector**: start Minecraft 1.8.9 without Arsenic, then double-click the jar. Pick the game in the window and press
-  **Inject**. This needs a JDK installed (any of 8, 17, 21...); the injector finds it on its own. Without a window:
-  `java -jar Arsenic.jar --list`, then `java -jar Arsenic.jar --pid <pid>`.
-- **Launch argument**: add `-javaagent:/path/to/Arsenic.jar` to the game's JVM arguments and start the game. The client
-  loads at launch and no JDK is needed. Use this for Lunar Client, which turns the attach mechanism off.
+Two ways in:
 
-In Vanilla and Lunar Client a few Forge-only extras are skipped: the mod list button, Forge's list backgrounds and
-framebuffer stencils. Addons that use members only Forge makes public (for example `EnumFacing.HORIZONTALS`) fail to
-compile there; use the public alternative (`EnumFacing.Plane.HORIZONTAL.facings()`).
+- **Forge/Vanilla**: Start Minecraft 1.8.9, then double-click the jar. Pick the game in the window and press Inject.
+- **Lunar Client**: Double click the downloaded jar. Click "inject into lunar", this will close lunar client if its open. Reopen Lunar and play 1.8.9 optifine.
+  
 
 ## Addons (make your own with AI)
 
@@ -32,8 +26,8 @@ you run `.addon reload` in chat. Full reference: [ADDONS.md](ADDONS.md).
 Give any AI (Claude, ChatGPT, ...) the link to [ADDONS.md](https://raw.githubusercontent.com/ArsenicClient/Arsenic/main/ADDONS.md)
 and describe what you want. That is the whole prompt:
 
-> Read https://raw.githubusercontent.com/ArsenicClient/Arsenic/main/ADDONS.md and write me an AutoWaterBucket clutch
-> addon. Give me the complete `.java` file.
+> Download and read the whole of https://raw.githubusercontent.com/ArsenicClient/Arsenic/main/ADDONS.md 
+> Write me an AutoWaterBucket clutch addon. Give me the complete `.java` file.
 
 Then:
 
