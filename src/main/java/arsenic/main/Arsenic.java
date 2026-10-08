@@ -54,6 +54,7 @@ public class Arsenic {
         getEventManager().subscribe(new LagManager());
         getEventManager().subscribe(new arsenic.utils.lag.PingTracker());
         getEventManager().subscribe(new arsenic.utils.minecraft.BadPacketsManager());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BedwarsTracker());
         getEventManager().subscribe(errorOverlay);
 
         logger.info("Subscribed managers");

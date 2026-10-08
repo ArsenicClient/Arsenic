@@ -1,5 +1,6 @@
 package arsenic.runtime.hooks;
 
+import arsenic.event.impl.EventFov;
 import arsenic.event.impl.EventLook;
 import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventRenderThirdPerson;
@@ -105,6 +106,18 @@ public final class RenderHooks {
     /** hurtCameraEffect HEAD. @return true to cancel */
     public static boolean hurtCameraEffectHead(EntityRenderer self, float partialTicks) {
         return Arsenic.getArsenic().getModuleManager().getModuleByClass(NoHurtCam.class).isEnabled();
+    }
+
+    /**
+     * The camera field of view (getFOVModifier with useFOVSetting true): addons can change it through EventFov
+     * (CustomFov, Zoom). Not applied while SilentView renders its own pass. @return the field of view to use
+     */
+    public static float fovModifier(EntityRenderer self, float fov) {
+        if (SilentView.isRendering())
+            return fov;
+        EventFov event = new EventFov(fov);
+        Arsenic.getArsenic().getEventManager().getBus().post(event);
+        return event.isModified() ? event.getFov() : fov;
     }
 
     /** getMouseOver HEAD: replaces the vanilla method. @return true (always cancels) */

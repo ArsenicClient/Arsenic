@@ -1,0 +1,18 @@
+{
+  "id": "player",
+  "name": "Player and QoL",
+  "description": "Everyday helpers: middle click item use, one key to switch every module off, chat macros, respawn and reconnect, fishing, and developer recorders.",
+  "icon": "textures/items/iron_chestplate.png",
+  "autoInstall": false,
+  "addons": {
+    "MiddleClick": "Middle click uses a chosen hotbar item (pearl, rod or golden apple). Leaves the friend toggle alone when you aim at a player.",
+    "PanicKey": "One key turns every other module off, and back on when pressed again.",
+    "AutoRespawn": "Presses Respawn after a random delay when you die.",
+    "ChatMacros": "Sends a chat line when a key is pressed, written as KEY=message pairs.",
+    "AutoReconnect": "Reconnects to the last server after a disconnect, with a delay and a retry limit.",
+    "AutoFish": "Casts a fishing rod and reels in when you get a bite.",
+    "PacketLogger": "Developer tool: logs sent and received packets with their fields to a daily file. Never changes packets.",
+    "ClickRecorder": "Developer tool: records your real clicks to a CSV file, for tuning CPS.",
+    "RotationRecorder": "Developer tool: records your real camera turns to a CSV file, for tuning silent rotation."
+  }
+}

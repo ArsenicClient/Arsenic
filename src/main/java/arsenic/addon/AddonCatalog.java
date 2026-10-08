@@ -41,6 +41,12 @@ public final class AddonCatalog {
         public boolean autoInstall;
         /** Addon name (file name without .java) to its description, in display order. */
         public Map<String, String> addons = new LinkedHashMap<>();
+        /**
+         * Addons other addons need, by addon name: "GameDetector" is an addon of this pack, "hypixel/GameDetector" one
+         * of another pack. Enabling an addon enables what it needs (installing a bundled pack if it has to), and
+         * disabling an addon disables the addons that need it, since addons only compile together with what they use.
+         */
+        public Map<String, List<String>> requires = new LinkedHashMap<>();
     }
 
     public List<Entry> addons = new ArrayList<>();

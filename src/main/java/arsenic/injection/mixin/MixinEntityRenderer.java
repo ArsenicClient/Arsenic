@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Hook logic lives in {@link RenderHooks}, shared with the injected client. */
 @Mixin(value = EntityRenderer.class, priority = 995)
@@ -41,6 +42,13 @@ public abstract class MixinEntityRenderer {
     private void arsenic$getMouseOver(float partialTicks, CallbackInfo ci) {
         if (RenderHooks.getMouseOver((EntityRenderer) (Object) this, partialTicks))
             ci.cancel();
+    }
+
+    // camera field of view: addons can change it through EventFov (CustomFov, Zoom); not the held-item pass
+    @Inject(method = "getFOVModifier", at = @At("RETURN"), cancellable = true)
+    private void arsenic$fov(float partialTicks, boolean useFOVSetting, CallbackInfoReturnable<Float> cir) {
+        if (useFOVSetting)
+            cir.setReturnValue(RenderHooks.fovModifier((EntityRenderer) (Object) this, cir.getReturnValue()));
     }
 
     @Inject(method = "hurtCameraEffect", at = @At("HEAD"), cancellable = true)

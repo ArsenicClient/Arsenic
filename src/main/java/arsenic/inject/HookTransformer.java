@@ -184,6 +184,13 @@ public final class HookTransformer implements ClassFileTransformer {
         add(Kind.RETURN, er, "updateCameraAndRender", "(FJ)V", RENDER_HOOKS, "updateCameraAndRenderReturn");
         add(Kind.HEAD_CANCEL, er, "getMouseOver", "(F)V", RENDER_HOOKS, "getMouseOver");
         add(Kind.HEAD_CANCEL, er, "hurtCameraEffect", "(F)V", RENDER_HOOKS, "hurtCameraEffectHead");
+        // the mixin changes what getFOVModifier returns when useFOVSetting is true; these are the callers that pass true
+        add(Kind.MODIFY_RESULT, er, "setupCameraTransform", "(FI)V", RENDER_HOOKS, "fovModifier")
+                .ref(MC + er, "getFOVModifier", "(FZ)F");
+        add(Kind.MODIFY_RESULT, er, "renderWorldPass", "(IFJ)V", RENDER_HOOKS, "fovModifier")
+                .ref(MC + er, "getFOVModifier", "(FZ)F");
+        add(Kind.MODIFY_RESULT, er, "renderCloudsCheck", "(Lnet/minecraft/client/renderer/RenderGlobal;FI)V", RENDER_HOOKS, "fovModifier")
+                .ref(MC + er, "getFOVModifier", "(FZ)F");
 
         add(Kind.HEAD_CANCEL, "client/renderer/ItemRenderer", "renderItemInFirstPerson", "(F)V", RENDER_HOOKS, "renderItemInFirstPerson");
 

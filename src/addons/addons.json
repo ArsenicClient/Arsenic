@@ -1,5 +1,18 @@
 {
-  "packs": ["bedwars", "pit"],
+  "packs": [
+    "bedwars",
+    "pit",
+    "render",
+    "hud",
+    "hypixel",
+    "player",
+    "qol",
+    "combat",
+    "world",
+    "movement-legit",
+    "murder",
+    "zombies"
+  ],
   "addons": [
     {
       "file": "AutoSoup",

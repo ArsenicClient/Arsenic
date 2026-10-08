@@ -1,0 +1,12 @@
+{
+  "id": "qol",
+  "name": "Misc / QoL",
+  "description": "Small quality-of-life tools: a lower frame limit while the window is unfocused, and screenshots on kills and deaths.",
+  "icon": "minecraft:redstone",
+  "autoInstall": false,
+  "addons": {
+    "BackgroundFps": "Lowers the frame limit while the game window is not focused.",
+    "AutoScreenshot": "Takes a screenshot on a kill or on your death.",
+    "AntiCrash": "Drops incoming packets known to crash clients: oversized payloads and particle floods."
+  }
+}

@@ -68,12 +68,15 @@ public final class AddonManager {
         public final String description;
         /** The pack this addon belongs to, or null for a loose addon. */
         public final AddonCatalog.PackMeta pack;
+        /** Addons this one needs, as "pack/Addon"; enabled along with it. */
+        public final List<String> requires;
 
         Info(String name, State state, String description, AddonCatalog.PackMeta pack) {
             this.name = name;
             this.state = state;
             this.description = description;
             this.pack = pack;
+            this.requires = pack == null ? Collections.<String>emptyList() : requirements(pack, name);
         }
     }
 
@@ -439,7 +442,11 @@ public final class AddonManager {
             if (!new File(packsDirectory(), info.pack.id).exists()) {
                 extractBundledPack(info.pack, false);
             }
-            rename(impl, info.name, enable, null);
+            rename(findDirectory(impl, info.name), info.name, enable, null);
+            if (enable)
+                enableRequirements();
+            else
+                disableDependents(info.pack.id + "/" + info.name);
         } else {
             rename(directory, info.name, enable, catalog.source(info.name));
         }
@@ -452,6 +459,104 @@ public final class AddonManager {
         File impl = implDirectory(pack.meta.id);
         for (Info info : pack.addons)
             rename(findDirectory(impl, info.name), info.name, enable, null);
+        if (enable)
+            enableRequirements();
+        else
+            for (Info info : pack.addons)
+                disableDependents(pack.meta.id + "/" + info.name);
+    }
+
+    /** What an addon of a pack needs, from the pack's requires, as "pack/Addon". */
+    private static List<String> requirements(AddonCatalog.PackMeta pack, String addon) {
+        List<String> needs = pack.requires == null ? null : pack.requires.get(addon);
+        if (needs == null)
+            return Collections.emptyList();
+        List<String> result = new ArrayList<>();
+        for (String need : needs)
+            result.add(need.contains("/") ? need : pack.id + "/" + need);
+        return result;
+    }
+
+    /** Every pack addon that needs something, "pack/Addon" to what it needs. */
+    private Map<String, List<String>> requirementGraph() {
+        Map<String, List<String>> graph = new LinkedHashMap<>();
+        for (PackInfo pack : listPacks())
+            for (Info info : pack.addons)
+                if (!info.requires.isEmpty())
+                    graph.put(pack.meta.id + "/" + info.name, info.requires);
+        return graph;
+    }
+
+    private boolean isEnabled(String key) {
+        int slash = key.indexOf('/');
+        String packId = key.substring(0, slash), name = key.substring(slash + 1);
+        return on(findDirectory(implDirectory(packId), name), name).exists();
+    }
+
+    /**
+     * Enables what every enabled addon needs, following chains, and installs a bundled pack when a needed addon is in
+     * one. Returns the needs that could not be met (no such pack or addon).
+     */
+    private synchronized Set<String> enableRequirements() {
+        Set<String> missing = new LinkedHashSet<>();
+        Map<String, List<String>> graph = requirementGraph();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            missing.clear();
+            for (Map.Entry<String, List<String>> e : graph.entrySet()) {
+                if (!isEnabled(e.getKey()))
+                    continue;
+                for (String need : e.getValue()) {
+                    if (isEnabled(need))
+                        continue;
+                    if (enableAddon(need)) {
+                        Arsenic.getArsenic().getLogger().info("Enabled addon {}, needed by {}", need, e.getKey());
+                        changed = true;
+                        if (!graph.containsKey(need)) // a pack that was just installed may bring needs of its own
+                            graph = requirementGraph();
+                    } else {
+                        missing.add(e.getKey() + " needs " + need + ", which is not installed");
+                    }
+                }
+                if (changed)
+                    break;
+            }
+        }
+        return missing;
+    }
+
+    private boolean enableAddon(String key) {
+        int slash = key.indexOf('/');
+        String packId = key.substring(0, slash), name = key.substring(slash + 1);
+        try {
+            if (!new File(packsDirectory(), packId).exists()) {
+                AddonCatalog.PackMeta meta = catalog.bundledPack(packId);
+                if (meta == null)
+                    return false;
+                extractBundledPack(meta, false);
+            }
+            File dir = findDirectory(implDirectory(packId), name);
+            if (!off(dir, name).exists())
+                return false;
+            rename(dir, name, true, null);
+            return true;
+        } catch (java.io.IOException ex) {
+            Arsenic.getArsenic().getLogger().error("Could not enable addon " + key, ex);
+            return false;
+        }
+    }
+
+    /** Disables every enabled addon that needs the given one, and in turn whatever needs those. */
+    private void disableDependents(String key) throws java.io.IOException {
+        for (Map.Entry<String, List<String>> e : requirementGraph().entrySet()) {
+            if (!e.getValue().contains(key) || !isEnabled(e.getKey()))
+                continue;
+            int slash = e.getKey().indexOf('/');
+            String packId = e.getKey().substring(0, slash), name = e.getKey().substring(slash + 1);
+            rename(findDirectory(implDirectory(packId), name), name, false, null);
+            disableDependents(e.getKey());
+        }
     }
 
     /** The folder inside impl that holds the given addon (addons may sit in sub folders). */
@@ -509,6 +614,7 @@ public final class AddonManager {
         try {
             directory.mkdirs();
             importPackZips();
+            errors.addAll(enableRequirements());
             Map<String, String> sources = readSources();
             if (sources.isEmpty())
                 return 0;

@@ -53,14 +53,8 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        if (gui.isAddonMode()) {
-            // the addon manager keeps the left of the header for its buttons, so the box sits on the right
-            x = (int) (ri.getGuiScreen().width * 0.58f);
-            x1 = ri.getGuiScreen().width * 0.855f;
-        } else {
-            x = (int) (ri.getGuiScreen().width / (3 + (1 * activateTimer.getPercent())));
-            x1 = ri.getGuiScreen().width - x;
-        }
+        x = (int) (ri.getGuiScreen().width / (3 + (1 * activateTimer.getPercent())));
+        x1 = ri.getGuiScreen().width - x;
         y = ri.getGuiScreen().height / 10;
         y1 = ri.getGuiScreen().height - y;
 

@@ -11,7 +11,6 @@ import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.entity.Entity;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 
 import java.nio.FloatBuffer;
@@ -165,9 +164,7 @@ public final class GlowRenderer {
             }
 
             setupGlow(radius, texelX, texelY, 0f, 1f, strength, outlineOnly);
-            GlStateManager.setActiveTexture(GL13.GL_TEXTURE16);
-            RenderUtils.bindTexture(maskBuffer.framebufferTexture);
-            GlStateManager.setActiveTexture(GL13.GL_TEXTURE0);
+            RenderUtils.bindTextureOnUnit(16, maskBuffer.framebufferTexture);
             RenderUtils.bindTexture(blurBuffer.framebufferTexture);
             ShaderUtil.drawQuads();
             glowShader.unload();
@@ -248,9 +245,7 @@ public final class GlowRenderer {
 
     private void end2D(int previousBuffer) {
         GL20.glUseProgram(previousProgram);
-        GlStateManager.setActiveTexture(GL13.GL_TEXTURE16);
-        GlStateManager.bindTexture(0);
-        GlStateManager.setActiveTexture(GL13.GL_TEXTURE0);
+        RenderUtils.bindTextureOnUnit(16, 0);
         GlStateManager.bindTexture(0);
 
         GL11.glMatrixMode(GL11.GL_PROJECTION);
