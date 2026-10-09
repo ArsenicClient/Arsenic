@@ -147,6 +147,28 @@ public final class Agent {
         return frames.length > 0 ? " at " + frames[0] : "";
     }
 
+    private static void clearLoaderCaches(ClassLoader loader) throws Exception {
+        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
+            try {
+                java.lang.reflect.Field f = loader.getClass().getDeclaredField(cache);
+                f.setAccessible(true);
+                ((java.util.Collection<?>) f.get(loader)).clear();
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
+    }
+
+    /** Every exception in the cause chain with its top frame, for the injector's log. */
+    private static String chain(Throwable t) {
+        StringBuilder out = new StringBuilder();
+        for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
+            if (out.length() > 0)
+                out.append(" <- caused by ");
+            out.append(c).append(where(c));
+        }
+        return out.toString();
+    }
+
     /**
      * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
      * "java.lang.reflect.InvocationTargetException", which says nothing about what failed. A class that failed to load
@@ -237,14 +259,18 @@ public final class Agent {
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
-        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
+        clearLoaderCaches(game.loader);
+        // Loads the client's classes the injector needs, so a failure shows its own cause in the injector's log. Forge's
+        // loader records a failed class and hides the exception behind a NoClassDefFoundError with no cause.
+        for (String name : new String[]{"arsenic.utils.java.UtilityClass", "arsenic.utils.java.FileUtils"}) {
             try {
-                java.lang.reflect.Field f = game.loader.getClass().getDeclaredField(cache);
-                f.setAccessible(true);
-                ((java.util.Collection<?>) f.get(game.loader)).clear();
-            } catch (NoSuchFieldException ignored) {
+                game.loader.loadClass(name);
+                status.accept("LOG loaded " + name);
+            } catch (Throwable t) {
+                status.accept("LOG could not load " + name + ": " + chain(t));
             }
         }
+        clearLoaderCaches(game.loader);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)
