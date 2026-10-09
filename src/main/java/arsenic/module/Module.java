@@ -35,6 +35,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     private boolean hidden;
     private String displayName;
     private int keybind;
+    /** Set for modules that came from an addon. They stay out of the category lists and appear in search and the Addon Manager. */
+    private boolean addon;
 
     private boolean registered;
 
@@ -232,6 +234,14 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 
     public final void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public final boolean isAddon() {
+        return addon;
+    }
+
+    final void markAddon() {
+        addon = true;
     }
 
     public final int getKeybind() {

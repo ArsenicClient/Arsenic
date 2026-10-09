@@ -24,7 +24,7 @@ import java.util.WeakHashMap;
  * One look for every screen the game draws: the ocean as the backdrop (the full scene when there is
  * no world behind the screen, a tinted veil with light rays and bubbles when there is), pill buttons
  * with an animated hover, and solid deep-water bars for the headers and footers of list screens.
- * The vanilla drawing is replaced through mixins, so every screen picks it up, and the one shared
+ * The vanilla drawing is replaced through the background hooks, so every screen picks it up, and the one shared
  * scene keeps the fish where they were when you move between screens.
  */
 public final class MenuTheme {

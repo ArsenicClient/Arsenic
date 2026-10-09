@@ -48,6 +48,55 @@ public final class AddonManager {
         } catch (Throwable t) {
             org.apache.logging.log4j.LogManager.getLogger("Arsenic").warn("Could not exclude the addon compiler from class transformation", t);
         }
+        loadKeybinds();
+    }
+
+    /** Keybinds by addon name. Kept for addons that are off, so a bind set in the Addon Manager is there when it turns on. */
+    private final Map<String, Integer> keybinds = new HashMap<>();
+
+    private File keybindsFile() {
+        return new File(directory, "keybinds.json");
+    }
+
+    private void loadKeybinds() {
+        File file = keybindsFile();
+        if (!file.isFile())
+            return;
+        try (FileReader reader = new FileReader(file)) {
+            for (java.util.Map.Entry<String, JsonElement> e : new JsonParser().parse(reader).getAsJsonObject().entrySet())
+                keybinds.put(e.getKey(), e.getValue().getAsInt());
+        } catch (Exception e) {
+            Arsenic.getArsenic().getLogger().error("Could not read addon keybinds", e);
+        }
+    }
+
+    private void saveKeybinds() {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, Integer> e : keybinds.entrySet())
+            obj.addProperty(e.getKey(), e.getValue());
+        try {
+            directory.mkdirs();
+            write(keybindsFile(), obj.toString());
+        } catch (java.io.IOException e) {
+            Arsenic.getArsenic().getLogger().error("Could not save addon keybinds", e);
+        }
+    }
+
+    /** The key for an addon: its loaded module's bind while it is on, otherwise the bind kept for it. 0 is no key. */
+    public synchronized int getKeybind(String addonName) {
+        Module module = findLoadedModule(addonName);
+        if (module != null)
+            return module.getKeybind();
+        Integer key = keybinds.get(addonName);
+        return key == null ? 0 : key;
+    }
+
+    public synchronized void setKeybind(String addonName, int key) {
+        keybinds.put(addonName, key);
+        Module module = findLoadedModule(addonName);
+        if (module != null)
+            module.setKeybind(key);
+        saveKeybinds();
     }
 
     public File getDirectory() {
@@ -63,6 +112,22 @@ public final class AddonManager {
         for (Module module : loaded)
             if (module.getClass().getSimpleName().equals(addonName))
                 return module;
+        return null;
+    }
+
+    /** Every addon, loose ones and those in packs, installed or not. */
+    public synchronized List<Info> listAll() {
+        List<Info> all = new ArrayList<>(listLoose());
+        for (PackInfo pack : listPacks())
+            all.addAll(pack.addons);
+        return all;
+    }
+
+    /** The addon with this name (ignoring case), or null. */
+    public Info findAddon(String name) {
+        for (Info info : listAll())
+            if (info.name.equalsIgnoreCase(name))
+                return info;
         return null;
     }
 
@@ -463,20 +528,6 @@ public final class AddonManager {
         }
     }
 
-    /** Installing a pack enables all of its addons (unpacking a bundled pack first); uninstalling disables them. */
-    public synchronized void setPackEnabled(PackInfo pack, boolean enable) throws java.io.IOException {
-        if (!pack.installed)
-            extractBundledPack(pack.meta, false);
-        File impl = implDirectory(pack.meta.id);
-        for (Info info : pack.addons)
-            rename(findDirectory(impl, info.name), info.name, enable, null);
-        if (enable)
-            enableRequirements();
-        else
-            for (Info info : pack.addons)
-                disableDependents(pack.meta.id + "/" + info.name);
-    }
-
     /** What an addon of a pack needs, from the pack's requires, as "pack/Addon". */
     private static List<String> requirements(AddonCatalog.PackMeta pack, String addon) {
         List<String> needs = pack.requires == null ? null : pack.requires.get(addon);
@@ -615,7 +666,7 @@ public final class AddonManager {
         } catch (Exception ignored) {
             // unreadable file: fall through
         }
-        return "No description.";
+        return "";
     }
 
     /** Unloads whatever was loaded before, then compiles and registers everything in the addons folder. */
@@ -648,11 +699,13 @@ public final class AddonManager {
         Map<String, JsonObject> state = new HashMap<>();
         for (Module module : loaded) {
             state.put(module.getName(), module.saveInfoToJson(new JsonObject()));
+            keybinds.put(module.getClass().getSimpleName(), module.getKeybind());
             if (module.isEnabled())
                 module.setEnabled(false);
             modules.unregisterExternal(module);
         }
         loaded.clear();
+        saveKeybinds();
         return state;
     }
 
@@ -664,6 +717,9 @@ public final class AddonManager {
                 return;
 
             Module module = (Module) clazz.newInstance();
+            // every addon is loaded now, so a dev-tier one in a normal build is skipped quietly, not reported
+            if (module.getTier() == arsenic.module.ModuleTier.DEV && !ModuleManager.isDevBuild())
+                return;
             String problem = modules.registerExternal(module);
             if (problem != null) {
                 errors.add(className + ": " + problem);
@@ -676,6 +732,9 @@ public final class AddonManager {
                 module.loadFromJson(saved);
             else if (Arsenic.getArsenic().getConfigManager().getCurrentConfig() != null)
                 applyConfig(module);
+            Integer key = keybinds.get(module.getClass().getSimpleName());
+            if (key != null)
+                module.setKeybind(key);
         } catch (Throwable t) {
             errors.add(className + ": " + t);
             Arsenic.getArsenic().getLogger().error("Failed to load addon class " + className, t);
@@ -698,12 +757,20 @@ public final class AddonManager {
         Map<String, String> sources = new TreeMap<>();
         Path root = directory.toPath();
         try (Stream<Path> files = Files.walk(root)) {
-            for (Path p : files.filter(f -> f.toString().endsWith(".java")).collect(Collectors.toList())) {
-                if (p.getFileName().toString().equals(".java")) {
+            // every addon is loaded, switched on or off, so each one is a module with its settings like any other;
+            // whether its module is on comes from the config
+            for (Path p : files.filter(f -> f.toString().endsWith(".java") || f.toString().endsWith(".java.disabled"))
+                    .collect(Collectors.toList())) {
+                String name = p.getFileName().toString();
+                if (name.equals(".java") || name.equals(".java.disabled")) {
                     errors.add(root.relativize(p) + ": the file needs a name, e.g. MyAddon.java for public class MyAddon");
                     continue;
                 }
-                sources.put(root.relativize(p).toString().replace('\\', '/'), new String(Files.readAllBytes(p), StandardCharsets.UTF_8));
+                String key = root.relativize(p).toString().replace('\\', '/');
+                if (key.endsWith(".disabled"))
+                    key = key.substring(0, key.length() - ".disabled".length());
+                if (!sources.containsKey(key) || p.toString().endsWith(".java"))
+                    sources.put(key, new String(Files.readAllBytes(p), StandardCharsets.UTF_8));
             }
         }
         return sources;

@@ -158,7 +158,7 @@ public class AutoUber extends Module {
     private static long lastSave;
 
     private static File statsFile() {
-        return new File(new File(net.minecraft.client.Minecraft.getMinecraft().mcDataDir, "Arsenic"), "autouber-stats.json");
+        return new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "autouber-stats.json");
     }
 
     private static void loadStats() {

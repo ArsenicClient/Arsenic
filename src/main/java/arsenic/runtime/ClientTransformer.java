@@ -31,7 +31,8 @@ public final class ClientTransformer implements ClassFileTransformer {
             return null;
         try {
             byte[] bytes = classfileBuffer;
-            if (AccessorRewriter.rewrites(className))
+            // the runtime and injection packages are never rewritten; checked by name so AccessorRewriter is not loaded for them
+            if (!className.startsWith("arsenic/runtime/") && !className.startsWith("arsenic/injection/") && AccessorRewriter.rewrites(className))
                 bytes = AccessorRewriter.rewrite(bytes);
             bytes = names.toRuntime(bytes);
             return bytes == classfileBuffer ? null : bytes;

@@ -7,23 +7,47 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.java.ColorUtils;
+import arsenic.utils.render.GlowRenderer;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.util.BlockPos;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Highlights dropped items within a chosen range through walls. Each item is outlined on the block it lies in, in the
- * theme colour, so you can see drops from across the room.
+ * Highlights dropped items within a chosen range through walls, in the theme colour. Glow outlines each item itself, the
+ * same as the player Glow mode; Box marks the block each item lies in.
  */
 @ModuleInfo(name = "ItemESP", description = "Highlights dropped items through walls", category = ModuleCategory.RENDER)
 public class ItemESP extends Module {
 
+    public enum Mode {
+        Glow,
+        Box
+    }
+
+    private static final int GLOW_RADIUS = 8;
+    private static final float GLOW_STRENGTH = 3f;
+    private static final float GLOW_FILL = 0.15f;
+
+    public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Glow);
     public final BooleanProperty render = new BooleanProperty("Render", true);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(8, 128, 48, 1));
+
+    private final GlowRenderer glowRenderer = new GlowRenderer();
+    private final List<Entity> glowTargets = new ArrayList<>();
+
+    @Override
+    protected void onDisable() {
+        glowRenderer.release();
+        glowTargets.clear();
+    }
 
     @RequiresPlayer
     @EventLink
@@ -31,11 +55,19 @@ public class ItemESP extends Module {
         if (!render.getValue()) return;
         int main = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
         double max = range.getValue().getInput();
+        glowTargets.clear();
         for (Entity e : mc.theWorld.loadedEntityList) {
             if (!(e instanceof EntityItem) || mc.thePlayer.getDistanceToEntity(e) > max) continue;
+            if (mode.getValue() == Mode.Glow) {
+                glowTargets.add(e);
+                continue;
+            }
             BlockPos pos = new BlockPos(e.posX, e.posY, e.posZ);
             RenderUtils.renderBlock(pos, ColorUtils.withAlpha(main, 70), false, true);
             RenderUtils.renderBlock(pos, ColorUtils.withAlpha(main, 220), true, false);
         }
+        if (!glowTargets.isEmpty())
+            glowRenderer.render(glowTargets, event.partialTicks, main, GLOW_RADIUS, GLOW_STRENGTH, true, GLOW_FILL);
+        glowTargets.clear();
     };
 }

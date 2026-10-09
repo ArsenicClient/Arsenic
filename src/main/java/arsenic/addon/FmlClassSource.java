@@ -11,8 +11,8 @@ import java.io.IOException;
  * Production class source: Minecraft classes as the running game sees them. The game jar holds notch-named classes
  * that Forge's class loader renames to SRG and runs its deobfuscation and access transformers over. This repeats
  * exactly those steps (using the loader's own name transformer, so inner classes resolve too), because the compiler
- * needs the same member names and the same visibility the game ends up with. Other transformers (mixins, other
- * mods) are left out on purpose.
+ * needs the same member names and the same visibility the game ends up with. Other transformers (other mods) are
+ * left out on purpose.
  */
 public class FmlClassSource extends LoaderClassSource {
 

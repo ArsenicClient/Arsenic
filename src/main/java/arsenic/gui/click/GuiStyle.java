@@ -32,29 +32,17 @@ public final class GuiStyle implements ISerializable {
 
     public enum Preset {
 
-        CLEAN("Clean", "Flat surfaces, no shaders",
+        CLEAN("Performance", "No shaders, no shadows",
                 false, BgShader.AURORA, 0, 1f,
                 false, 0f, 100f,
-                true, 55, 60, 40,
-                false, true, Transition.FADE, 0.25f, LogoMode.MODERN),
+                false, 0, 0, 0,
+                false, false, Transition.FADE, 0.15f, LogoMode.MODERN),
 
         GLASS("Glass", "Frosted panels over a live backdrop",
                 true, BgShader.FIRESTORM, 45, 1f,
                 true, 1f, 55f,
                 true, 100, 100, 100,
-                true, true, Transition.BURN, 0.7f, LogoMode.CLASSIC),
-
-        OVERDONE("Overdone", "Every effect, turned up",
-                true, BgShader.SYNTHWAVE, 80, 1.6f,
-                true, 1.8f, 40f,
-                true, 170, 160, 280,
-                true, true, Transition.BURN, 1.2f, LogoMode.MODERN),
-
-        PERFORMANCE("Performance", "No shaders, no shadows",
-                false, BgShader.AURORA, 0, 1f,
-                false, 0f, 100f,
-                false, 0, 0, 0,
-                false, false, Transition.FADE, 0.15f, LogoMode.MODERN);
+                true, true, Transition.BURN, 0.7f, LogoMode.CLASSIC);
 
         public final String label, description;
 
@@ -110,6 +98,21 @@ public final class GuiStyle implements ISerializable {
     private boolean showBlatant = true;
     /** The whole menu look: "Element" (default) or "Ocean". The loading screen reads it straight from the config file at start-up. */
     private String screenStyle = "Element";
+    /** Key that opens the ClickGUI. 0 leaves it with no key. */
+    private int clickGuiKey = org.lwjgl.input.Keyboard.KEY_RSHIFT;
+    /** Whether the client's custom menus are on: its main menu, ocean backgrounds, themed buttons and lists, container buttons and screen fades. */
+    private boolean customMenus = true;
+
+    public int getClickGuiKey() { return clickGuiKey; }
+
+    public void setClickGuiKey(int clickGuiKey) { this.clickGuiKey = clickGuiKey; }
+
+    public boolean isCustomMenus() { return customMenus; }
+
+    public void setCustomMenus(boolean customMenus) { this.customMenus = customMenus; }
+
+    /** For the game's hooks: when false they leave the vanilla menus alone. */
+    public static boolean customMenus() { return INSTANCE.customMenus; }
 
     public Preset getPreset() { return preset; }
 
@@ -236,6 +239,8 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("sounds", sounds);
         obj.addProperty("showBlatant", showBlatant);
         obj.addProperty("screenStyle", screenStyle);
+        obj.addProperty("clickGuiKey", clickGuiKey);
+        obj.addProperty("customMenus", customMenus);
         return obj;
     }
 
@@ -256,6 +261,12 @@ public final class GuiStyle implements ISerializable {
                 setScreenStyle(obj.get("screenStyle").getAsString());
             if (obj.has("showBlatant"))
                 showBlatant = obj.get("showBlatant").getAsBoolean();
+            if (obj.has("clickGuiKey"))
+                clickGuiKey = obj.get("clickGuiKey").getAsInt();
+            if (obj.has("customMainMenu"))          // the old name for this setting
+                customMenus = obj.get("customMainMenu").getAsBoolean();
+            if (obj.has("customMenus"))
+                customMenus = obj.get("customMenus").getAsBoolean();
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

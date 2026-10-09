@@ -71,9 +71,14 @@ public class CommandManager {
     }
 
     private boolean handleModuleCommand(String name, String[] args) {
-        Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(name);
-        if (module == null)
+        Module module = CommandUtils.findModule(name);
+        if (module == null) {
+            if (CommandUtils.isAddon(name)) {
+                PlayerUtils.addWaterMarkedMessageToChat(CommandUtils.missingModule(name));
+                return true;
+            }
             return false;
+        }
 
         if (args.length == 0) {
             module.toggle();

@@ -206,9 +206,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
     private void refreshLocalConfigs() {
         localConfigs.clear();
-        File configDir = new File(
-                Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
-        );
+        File configDir = new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "Configs");
         for (String name : configManager.getConfigList().stream().sorted().collect(Collectors.toList())) {
             File f = new File(configDir, name + ".json");
             long mod = f.exists() ? f.lastModified() : 0;
@@ -659,9 +657,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
     private void exportConfig(String name) {
         try {
-            File configDir = new File(
-                    Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
-            );
+            File configDir = new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "Configs");
             File configFile = new File(configDir, name + ".json");
             String content = new String(Files.readAllBytes(configFile.toPath()));
             StringSelection selection = new StringSelection(content);
@@ -780,9 +776,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
             try {
                 setOnlineStatus("Downloading " + cfg.name + "...", ThemeManager.getStatus());
 
-                File configDir = new File(
-                        Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic" + File.separator + "Configs"
-                );
+                File configDir = new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "Configs");
                 File configFile = new File(configDir, cfg.name + ".json");
                 Files.write(configFile.toPath(), cfg.configJson.getBytes(StandardCharsets.UTF_8));
 

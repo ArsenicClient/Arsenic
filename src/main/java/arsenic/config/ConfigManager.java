@@ -27,7 +27,7 @@ public class ConfigManager implements ISerializable {
 
         System.out.println("initialized config manager");
 
-        File clientConfigFile = new File(Minecraft.getMinecraft().mcDataDir + File.separator + "Arsenic", "clientConfig.json");
+        File clientConfigFile = new File(FileUtils.getArsenicFolderDirAsFile(), "clientConfig.json");
         clientConfig = new ClientConfig(clientConfigFile);
 
         reloadConfigs();

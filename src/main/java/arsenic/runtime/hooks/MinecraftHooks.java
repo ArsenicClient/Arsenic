@@ -25,7 +25,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 
-/** {@link Minecraft} hooks, called from MixinMinecraft or from the injected bytecode. */
+/** {@link Minecraft} hooks, called from the injected bytecode. */
 public final class MinecraftHooks {
 
     private static final Access.FieldRef RIGHT_CLICK_DELAY = Access.field(Minecraft.class, "rightClickDelayTimer");
@@ -84,13 +84,14 @@ public final class MinecraftHooks {
 
     /** displayGuiScreen HEAD. */
     public static void displayGuiScreenHead(Minecraft self, GuiScreen guiScreenIn) {
-        if (guiScreenIn != self.currentScreen)
+        if (guiScreenIn != self.currentScreen && arsenic.gui.click.GuiStyle.customMenus())
             ScreenTransition.capture(self);
     }
 
     /** displayGuiScreen RETURN. */
     public static void displayGuiScreenReturn(Minecraft self, GuiScreen guiScreenIn) {
-        if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()) {
+        if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()
+                && arsenic.gui.click.GuiStyle.customMenus()) {
             CustomMenu.display();
         }
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);

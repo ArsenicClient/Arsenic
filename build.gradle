@@ -18,12 +18,10 @@ buildscript {
     }
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT"
-        classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
     }
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "org.spongepowered.mixin"
 apply plugin: "idea"
 
 version          = "v2.0"
@@ -33,12 +31,15 @@ archivesBaseName = "Arsenic"
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 compileJava.options.encoding = "UTF-8"
+// The mixin library is on the classpath only for its annotations; its annotation processor has nothing to do here
+compileJava.options.compilerArgs += ["-proc:none"]
+// local variable tables are the bulk of the debug info; line numbers stay for stack traces in bug reports
+compileJava.options.debugOptions.debugLevel = "source,lines"
 
 minecraft {
     version    = "1.8.9-11.15.1.2318-1.8.9"
     runDir     = "run"
     mappings   = "stable_20"
-    clientJvmArgs += "-Dfml.coreMods.load=arsenic.injection.MixinLoader"
 }
 
 repositories {
@@ -64,18 +65,14 @@ configurations {
 }
 
 dependencies {
-    embed("org.spongepowered:mixin:0.6.12-SNAPSHOT") {
-        exclude module: "launchwrapper"  // provided by Forge
-        exclude module: "guava"          // provided by Minecraft
-        exclude module: "gson"           // provided by Minecraft
-        exclude module: "log4j"          // provided by Minecraft
-        exclude module: "commons-io"     // provided by Minecraft/Forge
-    }
+    // Only the annotations of arsenic.injection.accessor need it; AccessorBridge reads them from class bytes at run time
+    compileOnly "org.spongepowered:mixin:0.6.12-SNAPSHOT"
     compileOnly "org.jetbrains:annotations:23.0.0"
-    embed 'com.jagrosh:DiscordIPC:0.4'
+    embed 'com.jagrosh:DiscordIPC:0.4'  // its junixsocket logs through log4j 1.2, which stays: Discord RPC needs it on Mac and Linux
     embed("org.reflections:reflections:0.10.2") {
         exclude module: "guava"  // provided by Minecraft
     }
+    // Reflections loads javassist when it scans (the game hit this on a plain start); keep it
     embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
@@ -272,13 +269,6 @@ processResources {
     inputs.property "version",   project.version
     inputs.property "mcversion", project.minecraft.version
 
-    from(sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
-        expand version: project.version, mcversion: project.minecraft.version
-    }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
-    }
 }
 
 
@@ -292,16 +282,17 @@ file("src/addons/packs").listFiles({ File f -> f.isDirectory() } as FileFilter)?
     File impl = new File(pack, "impl")
     if (impl.isDirectory()) addonSourceDirs << impl
 }
-sourceSets {
-    addons {
-        java.srcDirs = addonSourceDirs
-        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-    }
+// Compiled as a check against the client, and nothing else. Not a source set: IntelliJ would give it a module of its
+// own with no dependency on the client, so every import of the client would show as unresolved there.
+task compileAddonsJava(type: JavaCompile) {
+    source addonSourceDirs
+    destinationDir = file("$buildDir/classes/addons")
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = "UTF-8"
 }
 build.dependsOn "compileAddonsJava"
-mixin {
-    add sourceSets.main, "mixins.arsenic.refmap.json"
-}
 
 def configureArsenicJar = { Jar task ->
     task.from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
@@ -313,16 +304,11 @@ def configureArsenicJar = { Jar task ->
         exclude "META-INF/MUMFREY.RSA"
         exclude "LICENSE.txt"
         exclude "dummyThing"
+        exclude "ecj.1"       // the compiler's man page
+        exclude "about.html"
     }
 
     task.manifest.attributes(
-            "MixinConfigs"               : "mixins.arsenic.json",
-            "tweakClass"                 : "org.spongepowered.asm.launch.MixinTweaker",
-            "TweakOrder"                 : 0,
-            "FMLCorePlugin"              : "arsenic.injection.MixinLoader",
-            "FMLCorePluginContainsFMLMod": true,
-            "ForceLoadAsMod"             : true,
-            "ModSide"                    : "CLIENT",
             // double-clicking the jar opens the injector, which loads it into a running game as a Java agent
             "Main-Class"                 : "arsenic.inject.Injector",
             "Agent-Class"                : "arsenic.inject.Agent",
@@ -378,6 +364,7 @@ def restoreEmbeddedLibs = { File jarFile ->
     def tmp = new File(jarFile.parentFile, jarFile.name + ".restore")
     new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
         new java.util.zip.ZipOutputStream(new FileOutputStream(tmp)).withCloseable { out ->
+            out.setLevel(java.util.zip.Deflater.BEST_COMPRESSION)
             zip.entries().each { e ->
                 def entry = new java.util.zip.ZipEntry(e.name)
                 entry.time = e.time
@@ -396,6 +383,46 @@ def restoreEmbeddedLibs = { File jarFile ->
 afterEvaluate {
     tasks.reobfJar.doLast { restoreEmbeddedLibs(tasks.getByName("jar").archivePath) }
     tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
+    // A jar left with development names cannot run in Forge (NoSuchMethodError on the first Minecraft call), so building
+    // either jar on its own (the IntelliJ injector run builds only devJar) always obfuscates it too
+    tasks.jar.finalizedBy tasks.reobfJar
+    tasks.devJar.finalizedBy tasks.reobfDevJar
+}
+
+// The default IntelliJ run configuration starts the injector, not Forge. genIntellijRuns writes ForgeGradle's own
+// configuration into the workspace; this rewrites that file: the injector is added (it loads the dev jar, built
+// before the run), and ForgeGradle's configuration stays as "Minecraft Client (Forge)" for testing the game alone.
+tasks.genIntellijRuns.doLast {
+    File workspace = file("${project.name}.iws")
+    if (!workspace.isFile())
+        return
+    def root = new XmlParser().parse(workspace)
+    def manager = root.component.find { it.'@name' == 'RunManager' }
+    if (manager == null)
+        return
+    def forge = manager.configuration.findAll { it.'@name' == 'Minecraft Client' }
+    forge.findAll { it != forge[0] }.each { manager.remove(it) }
+    manager.configuration.findAll { it.'@name' == 'Arsenic Injector' }.each { manager.remove(it) }
+    if (forge)
+        forge[0].'@name' = 'Minecraft Client (Forge)'
+
+    def injector = new Node(manager, 'configuration', [default: 'false', name: 'Arsenic Injector', type: 'Application', factoryName: 'Application'])
+    new Node(injector, 'option', [name: 'MAIN_CLASS_NAME', value: 'arsenic.inject.Injector'])
+    new Node(injector, 'option', [name: 'VM_PARAMETERS', value: '-Darsenic.jar=$PROJECT_DIR$/build/libs/Arsenic-v2.0-dev.jar'])
+    new Node(injector, 'option', [name: 'PROGRAM_PARAMETERS', value: ''])
+    new Node(injector, 'option', [name: 'WORKING_DIRECTORY', value: 'file://$PROJECT_DIR$/run'])
+    new Node(injector, 'option', [name: 'PASS_PARENT_ENVS', value: 'true'])
+    new Node(injector, 'module', [name: project.name])
+    def before = new Node(injector, 'method', [v: '2'])
+    new Node(before, 'option', [name: 'Gradle.BeforeRunTask', enabled: 'true', tasks: 'devJar', externalProjectPath: '$PROJECT_DIR$'])
+    new Node(injector, 'RunnerSettings', [RunnerId: 'Run'])
+    new Node(injector, 'ConfigurationWrapper', [RunnerId: 'Run'])
+
+    manager.'@selected' = 'Application.Arsenic Injector'
+    workspace.withWriter('UTF-8') { w ->
+        w.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        new XmlNodePrinter(new PrintWriter(w)).print(root)
+    }
 }
 
 idea {
