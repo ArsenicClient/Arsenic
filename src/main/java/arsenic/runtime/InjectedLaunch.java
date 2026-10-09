@@ -78,6 +78,7 @@ public final class InjectedLaunch {
                         || root instanceof NoClassDefFoundError || root instanceof ClassNotFoundException)
                         && root.getCause() != null)
                     root = root.getCause();
+                logTrace(t, "", status);
                 status.accept("ERROR " + root + where(root));
             }
         });
@@ -194,6 +195,24 @@ public final class InjectedLaunch {
         Names.RELOAD_RESOURCE_PACK.invoke(resources, pack);
         // sounds.json is only read on a reload
         Names.ON_RESOURCE_MANAGER_RELOAD.invoke(Names.GET_SOUND_HANDLER.invoke(mc), resources);
+    }
+
+    /**
+     * The whole failure for the injector's log, with its causes and suppressed exceptions. The game's own log may be
+     * out of reach, and the one-line error cannot say which earlier failure left a class unusable.
+     */
+    private static void logTrace(Throwable t, String prefix, Consumer<String> status) {
+        status.accept("LOG " + prefix + t);
+        StackTraceElement[] frames = t.getStackTrace();
+        int shown = Math.min(frames.length, 25);
+        for (int i = 0; i < shown; i++)
+            status.accept("LOG     at " + frames[i]);
+        if (frames.length > shown)
+            status.accept("LOG     ... " + (frames.length - shown) + " more");
+        for (Throwable s : t.getSuppressed())
+            logTrace(s, "Suppressed: ", status);
+        if (t.getCause() != null && t.getCause() != t)
+            logTrace(t.getCause(), "Caused by: ", status);
     }
 
     /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */

@@ -260,14 +260,16 @@ public final class Agent {
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
         clearLoaderCaches(game.loader);
-        // Loads the client's classes the injector needs, so a failure shows its own cause in the injector's log. Forge's
-        // loader records a failed class and hides the exception behind a NoClassDefFoundError with no cause.
+        // Loads and initialises the client's base classes, so a failure shows its own cause in the injector's log. A class
+        // that failed to link or initialise once only gives a NoClassDefFoundError without a cause after that.
         for (String name : new String[]{"arsenic.utils.java.UtilityClass", "arsenic.utils.java.FileUtils"}) {
             try {
                 game.loader.loadClass(name);
                 status.accept("LOG loaded " + name);
+                Class.forName(name, true, game.loader);
+                status.accept("LOG initialised " + name);
             } catch (Throwable t) {
-                status.accept("LOG could not load " + name + ": " + chain(t));
+                status.accept("LOG could not prepare " + name + ": " + chain(t));
             }
         }
         clearLoaderCaches(game.loader);
