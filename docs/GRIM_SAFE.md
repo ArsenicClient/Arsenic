@@ -63,7 +63,7 @@ right-click or a release.
 | `Clicker` / `KillAura` attacks | Risky | Attacks run from the frame loop and can land after movement (rule 1). |
 | `BlockHit` Legit | Risky | Holds the use key from the frame loop, so right-click packets can fall after movement. |
 | `BlockHit` TwoSword | Removed | The mode was removed. Its swap-while-blocking pattern is what `PacketOrderE` and `MultiActionsA` flag. |
-| `JumpReset` | Probably safe (unverified) | Direct jump in the tick hook. Ground and water are checked first. |
+| `JumpReset` | Jumps before the knockback is applied | Jumping after the velocity packet overwrote the knockback's Y speed, which flagged `AntiKB` and then `Simulation` (the decay is vertical drag, 0.98). The jump now runs when the packet arrives, so the server's Y speed applies on top. Unverified. |
 | `KnockbackDelay` | Still flags (unverified) | Holds all outgoing packets for up to 300 ms, in order. Holding only movement let swings and attacks overtake it, which flagged `Post`. Holding everything still makes the client's position arrive late, so `Simulation` can flag while attacking. |
 | `BackTrack` | Partly safe | Lag is capped at 150 ms (Grim's 3-tick interpolation window), and tracking stops once the server position is out of reach (2.95). Hits on a stale position still rely on Grim's interpolation window, so it can still flag `Hitboxes` (unverified). |
 | `SprintReset` | Risky | Changes sprint state around attacks. `SprintB`, `SprintC` and `PacketOrderF` check this. |

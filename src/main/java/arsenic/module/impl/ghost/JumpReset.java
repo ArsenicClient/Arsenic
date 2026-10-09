@@ -4,7 +4,6 @@ import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventLiving;
 import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -36,7 +35,6 @@ public class JumpReset extends Module {
     public final BooleanProperty sound = new BooleanProperty("Sound", true);
 
     private static final long SWING_WINDOW_MS = 400;
-    private static final long REQUEST_TTL_MS = 250;
     private static final double MELEE_RANGE = 4.5;
     // Same upward speed as a normal jump in 1.8
     private static final double JUMP_VELOCITY = 0.42;
@@ -45,13 +43,11 @@ public class JumpReset extends Module {
 
     private final Map<Integer, Long> swings = new ConcurrentHashMap<>();
     private volatile long lastHurtAt;
-    private volatile long jumpRequestedAt;
 
     @Override
     protected void onDisable() {
         swings.clear();
         lastHurtAt = 0;
-        jumpRequestedAt = 0;
     }
 
     @RequiresPlayer
@@ -71,31 +67,19 @@ public class JumpReset extends Module {
                 lastHurtAt = now;
         } else if (event.getPacket() instanceof S12PacketEntityVelocity) {
             S12PacketEntityVelocity velocity = (S12PacketEntityVelocity) event.getPacket();
+            // Jump before the velocity packet is applied, so the knockback's own Y speed replaces the jump's. Jumping after
+            // it leaves our Y speed higher than the server's, which Grim flags (AntiKB, then Simulation on the vertical drag).
             if (velocity.getEntityID() == mc.thePlayer.getEntityId()
                     && (velocity.getMotionX() != 0 || velocity.getMotionZ() != 0)
                     && now - lastHurtAt <= HURT_WINDOW_MS
-                    && Math.random() <= chance.getValue().getInput()) {
-                jumpRequestedAt = now;
+                    && Math.random() <= chance.getValue().getInput()
+                    && mc.thePlayer.onGround && !mc.thePlayer.isInWater()
+                    && hitByPlayerMelee(now)) {
+                jump();
+                if (sound.getValue())
+                    SoundUtils.playEvent("cmaj5", 1.5f);
             }
         }
-    };
-
-    // Runs at the start of the player's update, before the movement packet, and jumps directly instead of relying on
-    // the movement input being copied into the jump state afterwards
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventLiving> eventLivingListener = event -> {
-        long requestedAt = jumpRequestedAt;
-        if (requestedAt == 0)
-            return;
-        jumpRequestedAt = 0;
-        if (System.currentTimeMillis() - requestedAt > REQUEST_TTL_MS || !mc.thePlayer.onGround || mc.thePlayer.isInWater())
-            return;
-        if (!hitByPlayerMelee(requestedAt))
-            return;
-        jump();
-        if (sound.getValue())
-            SoundUtils.playEvent("cmaj5", 1.5f);
     };
 
     private boolean hitByPlayerMelee(long hitAt) {
