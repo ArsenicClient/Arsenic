@@ -1,7 +1,6 @@
 package arsenic.module.impl.ghost;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
-import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -123,9 +122,9 @@ public class JumpReset extends Module {
                 || item instanceof ItemBow || item instanceof ItemEnderPearl || item instanceof ItemPotion;
     }
 
-    @SyntheticKey(SyntheticKeys.Key.JUMP)
     private void jump() {
         mc.thePlayer.motionY = JUMP_VELOCITY;
         mc.thePlayer.isAirBorne = true;
+        SyntheticKeys.press(SyntheticKeys.Key.JUMP);
     }
 }

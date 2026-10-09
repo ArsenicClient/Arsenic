@@ -1,7 +1,6 @@
 package arsenic.module.impl.ghost;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
-import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -70,8 +69,8 @@ public class Clicker extends Module {
         }
     };
 
-    @SyntheticKey(SyntheticKeys.Key.LMB)
     private void clickOnce() {
         KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
+        SyntheticKeys.press(SyntheticKeys.Key.LMB);
     }
 }

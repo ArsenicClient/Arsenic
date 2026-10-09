@@ -82,10 +82,9 @@ right-click or a release.
 
 ## Synthetic key presses
 
-Two ways to get a press onto the Keystrokes HUD, both added by the class transformer:
+Presses for the Keystrokes HUD come from two places:
 
-- Every `PlayerControllerMP.attackEntity` call in Arsenic or addon code gets an LMB press just before it.
-- `@SyntheticKey(SyntheticKeys.Key.X)` on a method adds a press at the start of that method. It only works on a method
-  where every call is one press.
+- The class transform adds an LMB press before every `PlayerControllerMP.attackEntity` call in Arsenic or addon code.
+- Other actions (sprint reset, jump reset, clicker) call `SyntheticKeys.press` directly where they act.
 
 Addon classes go through the same transform before they are defined, so both work in addons too.
