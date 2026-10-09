@@ -44,9 +44,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
 
         if(getContentByJsonKey("Classic") == null) {
             Theme classic = new Theme("Classic", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
-            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.AURORA);
+            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.FIRESTORM);
             themeList.add(classic);
         }
+        
         if (getContentByJsonKey("Void") == null) {
             Theme voidTheme = new Theme("Void", 0xFF7C3AED, new Color(0xFF7C3AED).darker().getRGB(), 0xFFF0EEFF, 0xFF1A1025);
             voidTheme.setClickGuiBackground(0xDD0F081A);

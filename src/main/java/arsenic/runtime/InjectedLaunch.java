@@ -1,12 +1,15 @@
 package arsenic.runtime;
 
 import arsenic.gui.ArsenicSplash;
+import arsenic.gui.click.GuiStyle;
 import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.capture.SilentView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiMainMenu;
+import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.resources.FileResourcePack;
+import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
 
@@ -61,7 +64,7 @@ public final class InjectedLaunch {
         InjectedLaunch.classBytes = classBytes;
         // before anything looks a Minecraft member up by name
         RuntimeNames.setCurrent(RuntimeNames.create(RuntimeNames.Namespace.valueOf(namespace), InjectedLaunch.class.getClassLoader()));
-        Minecraft.getMinecraft().addScheduledTask(() -> {
+        schedule(() -> {
             try {
                 launch(jar, installHooks, status);
                 status.accept("OK");
@@ -71,7 +74,13 @@ public final class InjectedLaunch {
                     arsenic.getLogger().error("Injection failed", t);
                 else
                     t.printStackTrace();
-                status.accept("ERROR " + t);
+                Throwable root = t;
+                while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError
+                        || root instanceof NoClassDefFoundError || root instanceof ClassNotFoundException)
+                        && root.getCause() != null)
+                    root = root.getCause();
+                logTrace(t, "", status);
+                status.accept("ERROR " + root + where(root));
             }
         });
     }
@@ -104,7 +113,7 @@ public final class InjectedLaunch {
             stage(0.8f, "Hooking game", status);
             installHooks.run();
             // the title screen is already up: the hooks only swap screens that are shown after they are in place
-            if (Minecraft.getMinecraft().currentScreen instanceof GuiMainMenu)
+            if (currentScreen() instanceof GuiMainMenu && GuiStyle.customMenus())
                 CustomMenu.display();
             ArsenicSplash.progress(1f, "Ready");
         } finally {
@@ -118,7 +127,7 @@ public final class InjectedLaunch {
      * classes stay loaded (the JVM cannot unload them), so the game has to be restarted before Arsenic can be injected again.
      */
     public static void stop(Consumer<String> status, Runnable restoreClasses) {
-        Minecraft.getMinecraft().addScheduledTask(() -> {
+        schedule(() -> {
             try {
                 status.accept("Switching off modules");
                 for (arsenic.module.Module module : Arsenic.getArsenic().getModuleManager().getModules()) {
@@ -148,14 +157,71 @@ public final class InjectedLaunch {
         ArsenicSplash.progress(fraction, text);
     }
 
+    /**
+     * The Minecraft members this class uses, looked up by name for the game it runs in. They are compiled with the
+     * development names, which the game does not have under Forge (SRG) or Lunar, so a direct call fails with a
+     * NoSuchMethodError. Resolved on first use, which is after {@link RuntimeNames#setCurrent} in start.
+     */
+    private static final class Names {
+        static final Access.MethodRef GET_MINECRAFT = Access.method(Minecraft.class, "getMinecraft");
+        static final Access.MethodRef ADD_SCHEDULED_TASK = Access.method(Minecraft.class, "addScheduledTask", Runnable.class);
+        static final Access.MethodRef GET_RESOURCE_MANAGER = Access.method(Minecraft.class, "getResourceManager");
+        static final Access.MethodRef GET_SOUND_HANDLER = Access.method(Minecraft.class, "getSoundHandler");
+        static final Access.FieldRef CURRENT_SCREEN = Access.field(Minecraft.class, "currentScreen");
+        static final Access.MethodRef RELOAD_RESOURCE_PACK =
+                Access.method(SimpleReloadableResourceManager.class, "reloadResourcePack", IResourcePack.class);
+        static final Access.MethodRef ON_RESOURCE_MANAGER_RELOAD =
+                Access.method(SoundHandler.class, "onResourceManagerReload", IResourceManager.class);
+    }
+
+    private static Minecraft minecraft() {
+        return Names.GET_MINECRAFT.invoke(null);
+    }
+
+    private static void schedule(Runnable task) {
+        Names.ADD_SCHEDULED_TASK.invoke(minecraft(), task);
+    }
+
+    private static Object currentScreen() {
+        return Names.CURRENT_SCREEN.get(minecraft());
+    }
+
     private static void addResourcePack(File jar) throws Exception {
-        Minecraft mc = Minecraft.getMinecraft();
+        Minecraft mc = minecraft();
         IResourcePack pack = new FileResourcePack(jar);
         // kept in the default packs so resource reloads (F3+T, changing packs) keep the client's assets
         List<IResourcePack> defaults = Access.field(Minecraft.class, "defaultResourcePacks").get(mc);
         defaults.add(pack);
-        ((SimpleReloadableResourceManager) mc.getResourceManager()).reloadResourcePack(pack);
+        Object resources = Names.GET_RESOURCE_MANAGER.invoke(mc);
+        Names.RELOAD_RESOURCE_PACK.invoke(resources, pack);
         // sounds.json is only read on a reload
-        mc.getSoundHandler().onResourceManagerReload(mc.getResourceManager());
+        Names.ON_RESOURCE_MANAGER_RELOAD.invoke(Names.GET_SOUND_HANDLER.invoke(mc), resources);
+    }
+
+    /**
+     * The whole failure for the injector's log, with its causes and suppressed exceptions. The game's own log may be
+     * out of reach, and the one-line error cannot say which earlier failure left a class unusable.
+     */
+    private static void logTrace(Throwable t, String prefix, Consumer<String> status) {
+        status.accept("LOG " + prefix + t);
+        StackTraceElement[] frames = t.getStackTrace();
+        int shown = Math.min(frames.length, 25);
+        for (int i = 0; i < shown; i++)
+            status.accept("LOG     at " + frames[i]);
+        if (frames.length > shown)
+            status.accept("LOG     ... " + (frames.length - shown) + " more");
+        for (Throwable s : t.getSuppressed())
+            logTrace(s, "Suppressed: ", status);
+        if (t.getCause() != null && t.getCause() != t)
+            logTrace(t.getCause(), "Caused by: ", status);
+    }
+
+    /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */
+    static String where(Throwable t) {
+        StackTraceElement[] frames = t.getStackTrace();
+        for (StackTraceElement f : frames)
+            if (f.getClassName().startsWith("arsenic."))
+                return " at " + f;
+        return frames.length > 0 ? " at " + frames[0] : "";
     }
 }

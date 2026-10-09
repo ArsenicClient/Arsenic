@@ -37,9 +37,14 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
         return name;
     }
 
+    /** Addons are left out here; they are reached from the Addon Manager and from search. */
     @Override
     public Collection<Module> getContents() {
-        return new ArrayList<>(Arsenic.getArsenic().getModuleManager().getModulesByCategory(this));
+        ArrayList<Module> list = new ArrayList<>();
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModulesByCategory(this))
+            if (!m.isAddon())
+                list.add(m);
+        return list;
     }
 
 }

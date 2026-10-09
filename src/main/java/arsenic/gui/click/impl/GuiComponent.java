@@ -6,15 +6,17 @@ import arsenic.gui.themes.Theme;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
+import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class GuiComponent extends ModuleCategoryComponent {
+public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
 
     private static final class Hit {
         float x1, y1, x2, y2;
@@ -31,6 +33,8 @@ public class GuiComponent extends ModuleCategoryComponent {
     }
 
     private final List<Hit> hits = new ArrayList<>();
+    /** True after the keybind row is clicked, until the next key is pressed. */
+    private boolean binding;
 
     private static final float BOTTOM_MARGIN = 28f;
 
@@ -134,6 +138,11 @@ public class GuiComponent extends ModuleCategoryComponent {
         drawSectionLabel("Interface", x + 5, y, ri);
         y += 16;
 
+        y = drawChoice(ri, x + 5, y, rowW, mx, my, "Open GUI Key",
+                binding ? "Press a key" : keyName(GuiStyle.get().getClickGuiKey()), () -> {
+                    binding = true;
+                    Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(this);
+                });
         y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Custom Font",
                 GuiStyle.get().isCustomFont(), () -> {
                     GuiStyle.get().setCustomFont(!GuiStyle.get().isCustomFont());
@@ -149,6 +158,10 @@ public class GuiComponent extends ModuleCategoryComponent {
                     GuiStyle.get().setScreenStyle("Ocean".equals(GuiStyle.get().getScreenStyle()) ? "Element" : "Ocean");
                     Arsenic.getArsenic().getConfigManager().saveConfig();
                 });
+        y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Custom Menus", GuiStyle.get().isCustomMenus(), () -> {
+            GuiStyle.get().setCustomMenus(!GuiStyle.get().isCustomMenus());
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+        });
 
         arsenic.module.Module postProcessing = Arsenic.getArsenic().getModuleManager()
                 .getModuleByClass(arsenic.module.impl.visual.PostProcessing.class);
@@ -236,6 +249,31 @@ public class GuiComponent extends ModuleCategoryComponent {
         }
         ri.getFr().drawString(sb.toString(), x, y, ThemeManager.getTextMuted(),
                 ri.getFr().getScaleModifier(0.78f));
+    }
+
+    private static String keyName(int key) {
+        if (key == 0)
+            return "None";
+        String name = Keyboard.getKeyName(key);
+        return name == null ? "Key " + key : name;
+    }
+
+    @Override
+    public void setNotAlwaysRecieveInput() {
+        binding = false;
+    }
+
+    /** Escape cancels, so the GUI cannot be left without a key. Any other key becomes the GUI key. */
+    @Override
+    public boolean recieveInput(int key) {
+        Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
+        binding = false;
+        SoundUtils.chordKeybind();
+        if (key != Keyboard.KEY_ESCAPE) {
+            GuiStyle.get().setClickGuiKey(key);
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+        }
+        return true;
     }
 
     @Override

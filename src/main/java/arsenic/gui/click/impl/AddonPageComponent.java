@@ -2,6 +2,7 @@ package arsenic.gui.click.impl;
 
 import arsenic.addon.AddonManager;
 import arsenic.gui.click.Component;
+import arsenic.module.Module;
 import arsenic.gui.click.GuiStyle;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.themes.ThemeManager;
@@ -34,7 +35,7 @@ import java.util.function.Supplier;
  * What the ClickGUI shows while the Addon Manager is open, laid out like the module view. The category column becomes
  * a list of "All addons", every pack, "Loose addons" and (when something failed to load) "Errors", grouped and drawn
  * like the module categories, and scrollable when it does not fit. The main area shows the selected pack's header
- * (icon, description, Enable all / Disable all) and then its addons in two columns, each drawn like a module: a switch
+ * (icon, description and how many of its addons are on) and then its addons in two columns, each drawn like a module: a switch
  * on the right, and a dropdown (chevron or right click) with the description and what it needs. Typing in the search
  * box searches every addon, whatever is selected.
  */
@@ -56,10 +57,10 @@ public class AddonPageComponent {
     private float sideScroll, sideTargetScroll, sideMaxScroll;
     private float sideX1, sideY1, sideX2, sideY2;
 
-    /** Addon rows by "pack/name", kept across reloads so their switches and dropdowns keep their state. */
-    private final Map<String, AddonCardComponent> rows = new HashMap<>();
+    /** Module rows for search results, kept like the addon rows so their state survives typing. */
+    private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
     private List<AddonCardComponent> blocks = new ArrayList<>();
-    private List<AddonCardComponent> left = new ArrayList<>(), right = new ArrayList<>();
+    private List<Component> left = new ArrayList<>(), right = new ArrayList<>();
     private String laidOutFor;
     private String lastQuery;
     private boolean resetScroll = true;
@@ -136,39 +137,46 @@ public class AddonPageComponent {
         laidOutFor = null;
     }
 
-    private AddonCardComponent row(AddonManager.Info info, boolean showPack) {
-        String key = (info.pack == null ? "" : info.pack.id) + "/" + info.name;
-        AddonCardComponent row = rows.get(key);
-        if (row == null)
-            rows.put(key, row = AddonCardComponent.addon(info));
-        else
-            row.update(info);
-        row.setShowPack(showPack);
-        return row;
+    /** An addon as a module row: the same row a module gets, kept across layouts and reloads. */
+    private ModuleComponent row(AddonManager.Info info) {
+        return AddonRow.of(info).component();
+    }
+
+    private ModuleComponent moduleRow(Module module) {
+        return moduleRows.computeIfAbsent(module, ModuleComponent::new);
     }
 
     private void layout(String q) {
         List<AddonCardComponent> top = new ArrayList<>();
-        List<AddonCardComponent> list = new ArrayList<>();
+        List<Component> list = new ArrayList<>();
         if (!q.isEmpty()) {
-            for (AddonManager.Info info : addons) {
-                AddonCardComponent r = row(info, true);
-                if (r.matches(q))
-                    list.add(r);
+            // modules first (addons that are modules are found through their addon row below)
+            int modules = 0;
+            for (Module module : Arsenic.getArsenic().getModuleManager().getModules()) {
+                if (!module.isAddon() && ModuleComponent.matches(module, q)) {
+                    list.add(moduleRow(module));
+                    modules++;
+                }
             }
-            top.add(AddonCardComponent.section("Search: " + q, list.isEmpty()
-                    ? "No addon matches. Search looks at names, descriptions and pack names."
-                    : list.size() + (list.size() == 1 ? " addon" : " addons") + " in all packs."));
+            int addonHits = 0;
+            for (AddonManager.Info info : addons) {
+                if (AddonSource.matches(info, q)) {
+                    list.add(row(info));
+                    addonHits++;
+                }
+            }
+            String found = list.isEmpty() ? "No addon or module matches. Search looks at names, descriptions and pack names."
+                    : addonHits + (addonHits == 1 ? " addon" : " addons") + " and " + modules
+                    + (modules == 1 ? " module" : " modules") + " found.";
+            top.add(AddonCardComponent.section("Search: " + q, found));
         } else if (selected.equals(ALL)) {
-            top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Turned on addons show up in "
-                    + "their module category in the ClickGUI. Open an addon (arrow or right click) to read what it does."));
             for (AddonManager.Info info : addons)
-                list.add(row(info, true));
+                list.add(row(info));
         } else if (selected.equals(LOOSE)) {
             top.add(AddonCardComponent.section("Loose addons", "Single .java files in the Arsenic/addons folder that are "
                     + "not part of a pack."));
             for (AddonManager.Info info : loose)
-                list.add(row(info, false));
+                list.add(row(info));
         } else if (selected.equals(ERRORS)) {
             top.add(AddonCardComponent.section("Errors", "Problems from the last time addons were loaded. An addon that "
                     + "fails to compile is not loaded; the others still are."));
@@ -179,13 +187,13 @@ public class AddonPageComponent {
             if (pack != null) {
                 top.add(AddonCardComponent.pack(pack));
                 for (AddonManager.Info info : pack.addons)
-                    list.add(row(info, false));
+                    list.add(row(info));
             }
         }
         blocks = top;
         left = new ArrayList<>();
         right = new ArrayList<>();
-        for (AddonCardComponent r : list)
+        for (Component r : list)
             (left.size() <= right.size() ? left : right).add(r);
         laidOutFor = q;
         // only a different list sends you back to the top; reloading after a switch keeps your place
@@ -259,10 +267,10 @@ public class AddonPageComponent {
         }
         float columnsTop = pi.getY();
         PosInfo l = new PosInfo(leftX, columnsTop);
-        for (AddonCardComponent r : left)
+        for (Component r : left)
             l.moveY(r.updateComponent(l, ri) + gap);
         PosInfo rr = new PosInfo(rightX, columnsTop);
-        for (AddonCardComponent r : right)
+        for (Component r : right)
             rr.moveY(r.updateComponent(rr, ri) + gap);
         maxHeight = Math.max(l.getY(), rr.getY()) - (top + scroll);
     }
@@ -278,9 +286,9 @@ public class AddonPageComponent {
     public void clickContent(int mouseX, int mouseY, int mouseButton) {
         for (AddonCardComponent card : new ArrayList<>(blocks))
             card.handleClick(mouseX, mouseY, mouseButton);
-        for (AddonCardComponent card : new ArrayList<>(left))
+        for (Component card : new ArrayList<>(left))
             card.handleClick(mouseX, mouseY, mouseButton);
-        for (AddonCardComponent card : new ArrayList<>(right))
+        for (Component card : new ArrayList<>(right))
             card.handleClick(mouseX, mouseY, mouseButton);
     }
 

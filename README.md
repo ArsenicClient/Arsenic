@@ -14,11 +14,15 @@ Two ways in:
 
 - **Forge/Vanilla**: Start Minecraft 1.8.9, then double-click the jar. Pick the game in the window and press Inject.
 - **Lunar Client**: Double click the downloaded jar. Click "inject into lunar", this will close lunar client if its open. Reopen Lunar and play 1.8.9 optifine.
+
+Configs, addons, themes and everything else Arsenic saves live in one `Arsenic` folder in your home folder
+(`C:\Users\<name>\Arsenic` on Windows, `~/Arsenic` elsewhere), so they are the same whichever launcher you play on.
+An `Arsenic` folder left in a game folder by an older version is copied there the first time.
   
 
 ## Addons (make your own with AI)
 
-Addons are plain `.java` modules in `.minecraft/Arsenic/addons/`. They are compiled when the client starts, or when
+Addons are plain `.java` modules in `~/Arsenic/addons/` (`C:\Users\<name>\Arsenic\addons` on Windows). They are compiled when the client starts, or when
 you run `.addon reload` in chat. Full reference: [ADDONS.md](ADDONS.md).
 
 ### The fast way: let an AI write it
@@ -31,7 +35,7 @@ and describe what you want. That is the whole prompt:
 
 Then:
 
-1. Save the file as `AutoWaterBucketClutch.java` (the name of the public class) in `.minecraft/Arsenic/addons/`.
+1. Save the file as `AutoWaterBucketClutch.java` (the name of the public class) in `~/Arsenic/addons/`.
 2. Run `.addon reload` in game. Compile errors are printed in chat; paste them back to the AI to fix them.
 3. Enable the module in the ClickGUI.
 

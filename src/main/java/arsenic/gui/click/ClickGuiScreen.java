@@ -93,10 +93,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return GuiStyle.transition().ordinal();
     }
 
+    @Override
+    protected boolean fixedCanvas() {
+        return true;
+    }
+
     public float[] getBurnBoxPx() {
-        float s = this.scale;
         int bx = width / 8, by = height / 6;
-        return new float[]{bx * s, by * s, (width - bx) * s, (height - by) * s, 30f * s};
+        return new float[]{GuiCanvas.pixelX(bx), GuiCanvas.pixelY(by),
+                GuiCanvas.pixelX(width - bx), GuiCanvas.pixelY(height - by), 30f * GuiCanvas.scale()};
     }
 
     public void init() {
@@ -118,24 +123,29 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void drawBloom() {
         if (getFontRenderer() == null)
             return;
-        rescale(this.scale);
-        DrawUtils.overrideScaleFactor = this.scale;
-        int x = width / 8;
-        int y = height / 6;
-        x1 = width - x;
-        y1 = height - y;
+        GuiCanvas.setActive(true);
+        try {
+            rescaleGui();
+            DrawUtils.overrideScaleFactor = this.scale;
+            int x = width / 8;
+            int y = height / 6;
+            x1 = width - x;
+            y1 = height - y;
 
-        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
-        float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
-        int glowAlpha = (int) (glowFactor * 255);
+            float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
+            float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
+            int glowAlpha = (int) (glowFactor * 255);
 
-        RenderUtils.resetColor();
-        int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
-        int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
-        ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
-        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
-        DrawUtils.overrideScaleFactor = -1f;
-        rescaleMC();
+            RenderUtils.resetColor();
+            int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
+            int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
+            ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
+            DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
+            DrawUtils.overrideScaleFactor = -1f;
+            rescaleMC();
+        } finally {
+            GuiCanvas.setActive(false);
+        }
     }
 
     @Override
@@ -249,9 +259,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         GlStateManager.popMatrix();
 
-        if (!addonMode)
-            drawHudEditorButton(mouseX, mouseY);
+        drawHudEditorButton(mouseX, mouseY);
         drawAddonManagerButton(mouseX, mouseY);
+        if (addonMode)
+            drawReloadButton(mouseX, mouseY);
         if (!addonMode)
             drawTierToggles(mouseX, mouseY);
 
@@ -264,10 +275,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (captured) {
             mc.getFramebuffer().bindFramebuffer(true);
             try {
-                float s = this.scale;
                 arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
                         burnFbo.framebufferTexture, burnProgress, ThemeManager.getMainColor(),
-                        getTransitionStyleId(), x * s, y * s, x1 * s, y1 * s, 30f * s);
+                        getTransitionStyleId(), GuiCanvas.pixelX(x), GuiCanvas.pixelY(y),
+                        GuiCanvas.pixelX(x1), GuiCanvas.pixelY(y1), 30f * GuiCanvas.scale());
             } catch (Exception e) {
                 try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
             }
@@ -285,7 +296,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         hudBtnX1 = margin;
         // sits above the tier pill(s) that take the corner below it
-        hudBtnY1 = height - margin - h - TIER_TOGGLES.length * h * 1.3f;
+        hudBtnY1 = height - margin - h;
         hudBtnX2 = margin + w;
         hudBtnY2 = hudBtnY1 + h;
 
@@ -336,6 +347,35 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderUtils.resetColorText();
     }
 
+    private float reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2;
+
+    /** Top right, in the addon manager: loads the addons' current state (switches and binds apply here). */
+    private void drawReloadButton(int mouseX, int mouseY) {
+        String label = "Reload addons";
+        float pad = height / 100f * 1.6f;
+        float h = height / 100f * 4.2f;
+        float w = getFontRenderer().getWidth(label) + pad * 3f;
+        float margin = height / 100f * 2.5f;
+
+        reloadBtnX2 = width - margin;
+        reloadBtnX1 = reloadBtnX2 - w;
+        reloadBtnY1 = margin;
+        reloadBtnY2 = margin + h;
+
+        boolean hovered = MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
+        float radius = h / 2f;
+        DrawUtils.drawShadow(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius,
+                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha(hovered ? 170 : 110), 5);
+        DrawUtils.drawRoundedRect(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius,
+                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        DrawUtils.drawRoundedOutline(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius, 1f,
+                ColorUtils.setColor(ThemeManager.getMainColor(), 0, hovered ? 220 : 120));
+        getFontRenderer().drawString(label, (reloadBtnX1 + reloadBtnX2) / 2f, (reloadBtnY1 + reloadBtnY2) / 2f,
+                hovered ? ThemeManager.getWhite() : ThemeManager.getTextSecondary(),
+                getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+        RenderUtils.resetColorText();
+    }
+
     private static final arsenic.module.ModuleTier[] TIER_TOGGLES = {
             arsenic.module.ModuleTier.BLATANT};
     private final float[][] tierRects = new float[TIER_TOGGLES.length][4];
@@ -370,7 +410,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
             arsenic.module.ModuleTier tier = TIER_TOGGLES[i];
             boolean locked = tier == arsenic.module.ModuleTier.LEGIT;
             float x1 = hudBtnX1, x2 = x1 + w;
-            float y1 = height - margin - h - (TIER_TOGGLES.length - 1 - i) * step, y2 = y1 + h;
+            // the tier pills stack above the HUD Editor button, which always sits in the bottom left corner
+            float y1 = height - margin - h - (i + 1) * step, y2 = y1 + h;
             tierRects[i][0] = x1;
             tierRects[i][1] = y1;
             tierRects[i][2] = x2;
@@ -444,12 +485,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
+        if (addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2)) {
+            arsenic.utils.java.SoundUtils.chordOpen();
+            Arsenic.getArsenic().getAddonManager().reload();
+            return;
+        }
         if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
             setAddonMode(!addonMode);
             return;
         }
-        if (!addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
             mc.displayGuiScreen(new arsenic.gui.hud.HudEditorScreen());
             return;
@@ -570,8 +616,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        int mouseX = Mouse.getEventX() * width / mc.displayWidth;
-        int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
+        int mouseX = (int) GuiCanvas.unitX(Mouse.getEventX());
+        int mouseY = (int) GuiCanvas.unitY(mc.displayHeight - Mouse.getEventY());
         if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
             addonPage.scrollSidebar(i * 30);
         else if (addonMode)

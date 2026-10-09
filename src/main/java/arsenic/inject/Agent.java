@@ -138,8 +138,71 @@ public final class Agent {
         });
     }
 
+    /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */
+    static String where(Throwable t) {
+        StackTraceElement[] frames = t.getStackTrace();
+        for (StackTraceElement f : frames)
+            if (f.getClassName().startsWith("arsenic."))
+                return " at " + f;
+        return frames.length > 0 ? " at " + frames[0] : "";
+    }
+
+    private static void clearLoaderCaches(ClassLoader loader) throws Exception {
+        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
+            try {
+                java.lang.reflect.Field f = loader.getClass().getDeclaredField(cache);
+                f.setAccessible(true);
+                ((java.util.Collection<?>) f.get(loader)).clear();
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
+    }
+
+    /**
+     * Initialises the class nearly every client class extends (it calls Minecraft.getMinecraft() as it starts), so a jar
+     * with the wrong Minecraft names fails here with a clear message. Otherwise it fails while the client starts, and every
+     * later use of the class only gives a NoClassDefFoundError without a cause.
+     */
+    private static void checkClientNames(Game game) {
+        try {
+            Class.forName("arsenic.utils.java.UtilityClass", true, game.loader);
+        } catch (NoSuchMethodError | NoSuchFieldError e) {
+            if (String.valueOf(e.getMessage()).startsWith("net.minecraft."))
+                throw new IllegalStateException("This Arsenic jar does not use the names of the game ("
+                        + game.namespace.name().toLowerCase() + "): " + e.getMessage() + ". It was built without"
+                        + " reobfuscation; build it with `gradlew build` and inject the jar from build/libs", e);
+            throw new IllegalStateException("Could not start the client: " + chain(e), e);
+        } catch (Throwable t) {
+            throw new IllegalStateException("Could not start the client: " + chain(t), t);
+        }
+    }
+
+    /** Every exception in the cause chain with its top frame, for the injector's log. */
+    private static String chain(Throwable t) {
+        StringBuilder out = new StringBuilder();
+        for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
+            if (out.length() > 0)
+                out.append(" <- caused by ");
+            out.append(c).append(where(c));
+        }
+        return out.toString();
+    }
+
+    /**
+     * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
+     * "java.lang.reflect.InvocationTargetException", which says nothing about what failed. A class that failed to load
+     * under Forge's LaunchClassLoader is a NoClassDefFoundError whose cause is the load failure, so that is followed too.
+     */
     private static String describe(Throwable t) {
-        return t.getMessage() != null && t instanceof IllegalStateException ? t.getMessage() : t.toString();
+        if (t instanceof IllegalStateException && t.getMessage() != null)
+            return t.getMessage();
+        Throwable root = t;
+        while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError
+                || root instanceof NoClassDefFoundError || root instanceof ClassNotFoundException)
+                && root.getCause() != null)
+            root = root.getCause();
+        String where = where(root);
+        return root == t ? root + where : root + where + " (from " + t.getClass().getName() + ")";
     }
 
     // ---- waiting for the game (premain) ----
@@ -215,14 +278,8 @@ public final class Agent {
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
-        for (String cache : new String[]{"invalidClasses", "negativeResourceCache"}) {
-            try {
-                java.lang.reflect.Field f = game.loader.getClass().getDeclaredField(cache);
-                f.setAccessible(true);
-                ((java.util.Collection<?>) f.get(game.loader)).clear();
-            } catch (NoSuchFieldException ignored) {
-            }
-        }
+        clearLoaderCaches(game.loader);
+        checkClientNames(game);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)

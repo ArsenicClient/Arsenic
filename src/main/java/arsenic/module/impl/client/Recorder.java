@@ -64,12 +64,12 @@ public class Recorder extends Module {
             attach(window);
             return;
         }
-        File dir = new File(mc.mcDataDir, "Arsenic" + File.separator + "Recordings");
+        File dir = new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "Recordings");
         String name = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         File output = new File(dir, name + ".mp4");
         // with sound the video is muxed into the output once the audio track has been mixed
         File video = sounds.getValue() ? new File(dir, name + ".video.mp4") : output;
-        File bundled = new File(mc.mcDataDir, "Arsenic" + File.separator + "ffmpeg.exe");
+        File bundled = new File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "ffmpeg.exe");
         String ffmpeg = bundled.isFile() ? bundled.getAbsolutePath() : "ffmpeg";
 
         SoundCapture capture = sounds.getValue() ? new SoundCapture(perspective.getValue() == Perspective.Silent) : null;

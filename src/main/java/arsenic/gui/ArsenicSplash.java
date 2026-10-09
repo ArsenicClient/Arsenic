@@ -55,13 +55,13 @@ public final class ArsenicSplash {
 
     private static void loadTheme() {
         element = true;
-        try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
+        try (java.io.Reader r = new java.io.FileReader(new java.io.File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "clientConfig.json"))) {
             com.google.gson.JsonObject style = new com.google.gson.JsonParser().parse(r).getAsJsonObject().getAsJsonObject("GuiStyle");
             String chosen = style.has("screenStyle") ? style.get("screenStyle").getAsString() : style.get("loadingScreen").getAsString();
             element = !"Ocean".equals(chosen);          // anything but Ocean (including the old Toxic) is Element 33
         } catch (Throwable ignored) { }
         int main = 0xDD425E, back = 0x494949;      // Classic, the default theme
-        try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
+        try (java.io.Reader r = new java.io.FileReader(new java.io.File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "clientConfig.json"))) {
             String name = new com.google.gson.JsonParser().parse(r).getAsJsonObject()
                     .getAsJsonObject("themeManager").get("currentTheme").getAsString();
             for (Object[] t : THEMES)
