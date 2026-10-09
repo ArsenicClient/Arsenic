@@ -1,6 +1,6 @@
 # Arsenic addons
 
-Addons are modules written as plain `.java` files. Drop them in `.minecraft/Arsenic/addons/` and they are compiled
+Addons are modules written as plain `.java` files. Drop them in `~/Arsenic/addons/` (`C:\Users\<name>\Arsenic\addons` on Windows) and they are compiled
 and loaded when the client starts. No JDK, no jar, no obfuscation step.
 
 Contents: [Quick start](#quick-start) · [Platform facts](#platform-facts) · [Module basics](#module-basics) ·
