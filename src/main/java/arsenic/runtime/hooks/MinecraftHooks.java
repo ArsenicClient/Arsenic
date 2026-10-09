@@ -90,7 +90,8 @@ public final class MinecraftHooks {
 
     /** displayGuiScreen RETURN. */
     public static void displayGuiScreenReturn(Minecraft self, GuiScreen guiScreenIn) {
-        if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()) {
+        if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()
+                && arsenic.gui.click.GuiStyle.get().isCustomMainMenu()) {
             CustomMenu.display();
         }
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);

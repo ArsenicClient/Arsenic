@@ -93,10 +93,15 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return GuiStyle.transition().ordinal();
     }
 
+    @Override
+    protected boolean fixedCanvas() {
+        return true;
+    }
+
     public float[] getBurnBoxPx() {
-        float s = this.scale;
         int bx = width / 8, by = height / 6;
-        return new float[]{bx * s, by * s, (width - bx) * s, (height - by) * s, 30f * s};
+        return new float[]{GuiCanvas.pixelX(bx), GuiCanvas.pixelY(by),
+                GuiCanvas.pixelX(width - bx), GuiCanvas.pixelY(height - by), 30f * GuiCanvas.scale()};
     }
 
     public void init() {
@@ -118,24 +123,29 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void drawBloom() {
         if (getFontRenderer() == null)
             return;
-        rescale(this.scale);
-        DrawUtils.overrideScaleFactor = this.scale;
-        int x = width / 8;
-        int y = height / 6;
-        x1 = width - x;
-        y1 = height - y;
+        GuiCanvas.setActive(true);
+        try {
+            rescaleGui();
+            DrawUtils.overrideScaleFactor = this.scale;
+            int x = width / 8;
+            int y = height / 6;
+            x1 = width - x;
+            y1 = height - y;
 
-        float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
-        float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
-        int glowAlpha = (int) (glowFactor * 255);
+            float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
+            float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
+            int glowAlpha = (int) (glowFactor * 255);
 
-        RenderUtils.resetColor();
-        int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
-        int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
-        ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
-        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
-        DrawUtils.overrideScaleFactor = -1f;
-        rescaleMC();
+            RenderUtils.resetColor();
+            int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
+            int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
+            ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
+            DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC,mainC,gradientC, gradientC);
+            DrawUtils.overrideScaleFactor = -1f;
+            rescaleMC();
+        } finally {
+            GuiCanvas.setActive(false);
+        }
     }
 
     @Override
@@ -264,10 +274,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (captured) {
             mc.getFramebuffer().bindFramebuffer(true);
             try {
-                float s = this.scale;
                 arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
                         burnFbo.framebufferTexture, burnProgress, ThemeManager.getMainColor(),
-                        getTransitionStyleId(), x * s, y * s, x1 * s, y1 * s, 30f * s);
+                        getTransitionStyleId(), GuiCanvas.pixelX(x), GuiCanvas.pixelY(y),
+                        GuiCanvas.pixelX(x1), GuiCanvas.pixelY(y1), 30f * GuiCanvas.scale());
             } catch (Exception e) {
                 try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
             }
@@ -570,8 +580,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.handleMouseInput();
         int i = Mouse.getEventDWheel();
         i = Integer.compare(i, 0);
-        int mouseX = Mouse.getEventX() * width / mc.displayWidth;
-        int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
+        int mouseX = (int) GuiCanvas.unitX(Mouse.getEventX());
+        int mouseY = (int) GuiCanvas.unitY(mc.displayHeight - Mouse.getEventY());
         if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
             addonPage.scrollSidebar(i * 30);
         else if (addonMode)

@@ -18,6 +18,7 @@ public class ScissorUtils extends UtilityClass {
         subScissor(x, y, width, height, new ScaledResolution(mc).getScaleFactor());
     }
 
+    /** While a {@link GuiCanvas} screen is drawing, the coordinates are canvas units and {@code scale} is ignored. */
     public static void subScissor(int x1, int y1, int x2, int y2, int scale) {
         GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
         int[] rahhhh = rahhh.get(rahhh.size() - 1);
@@ -25,7 +26,10 @@ public class ScissorUtils extends UtilityClass {
         y1 = Math.max(y1, rahhhh[1]);
         x2 = Math.min(x2, rahhhh[2]);
         y2 = Math.min(y2, rahhhh[3]);
-        int[] rah = new int[] {x1 * scale, mc.displayHeight - (y2 * scale), (x2 - x1) * scale, (y2 - y1) * scale};
+        float s = GuiCanvas.isActive() ? GuiCanvas.scale() : scale;
+        float ox = GuiCanvas.isActive() ? GuiCanvas.offsetX() : 0f;
+        float oy = GuiCanvas.isActive() ? GuiCanvas.offsetY() : 0f;
+        int[] rah = new int[] {(int) (x1 * s + ox), (int) (mc.displayHeight - (y2 * s + oy)), (int) ((x2 - x1) * s), (int) ((y2 - y1) * s)};
         for(int i = 0; i <= 3; i++) {
             rah[i] = Math.max(rah[i], 0);
         }

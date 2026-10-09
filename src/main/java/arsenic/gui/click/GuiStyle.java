@@ -110,6 +110,18 @@ public final class GuiStyle implements ISerializable {
     private boolean showBlatant = true;
     /** The whole menu look: "Element" (default) or "Ocean". The loading screen reads it straight from the config file at start-up. */
     private String screenStyle = "Element";
+    /** Key that opens the ClickGUI. 0 leaves it with no key. */
+    private int clickGuiKey = org.lwjgl.input.Keyboard.KEY_RSHIFT;
+    /** Whether the client's own main menu replaces the vanilla one. */
+    private boolean customMainMenu = true;
+
+    public int getClickGuiKey() { return clickGuiKey; }
+
+    public void setClickGuiKey(int clickGuiKey) { this.clickGuiKey = clickGuiKey; }
+
+    public boolean isCustomMainMenu() { return customMainMenu; }
+
+    public void setCustomMainMenu(boolean customMainMenu) { this.customMainMenu = customMainMenu; }
 
     public Preset getPreset() { return preset; }
 
@@ -236,6 +248,8 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("sounds", sounds);
         obj.addProperty("showBlatant", showBlatant);
         obj.addProperty("screenStyle", screenStyle);
+        obj.addProperty("clickGuiKey", clickGuiKey);
+        obj.addProperty("customMainMenu", customMainMenu);
         return obj;
     }
 
@@ -256,6 +270,10 @@ public final class GuiStyle implements ISerializable {
                 setScreenStyle(obj.get("screenStyle").getAsString());
             if (obj.has("showBlatant"))
                 showBlatant = obj.get("showBlatant").getAsBoolean();
+            if (obj.has("clickGuiKey"))
+                clickGuiKey = obj.get("clickGuiKey").getAsInt();
+            if (obj.has("customMainMenu"))
+                customMainMenu = obj.get("customMainMenu").getAsBoolean();
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

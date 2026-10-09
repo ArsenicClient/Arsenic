@@ -72,11 +72,10 @@ public class ModuleManager {
         return null;
     }
 
-    private static final int CLICK_GUI_KEY = org.lwjgl.input.Keyboard.KEY_RSHIFT;
-
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
-        if (event.getKeycode() == CLICK_GUI_KEY) {
+        int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
+        if (clickGuiKey != 0 && event.getKeycode() == clickGuiKey) {
             Minecraft.getMinecraft().displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
             return;
         }
