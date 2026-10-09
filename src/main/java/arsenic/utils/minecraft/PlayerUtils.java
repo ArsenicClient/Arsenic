@@ -1,7 +1,5 @@
 package arsenic.utils.minecraft;
 
-import arsenic.utils.keystrokes.SyntheticKeys;
-import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.UtilityClass;
 import arsenic.utils.rotations.RotationUtils;
@@ -84,7 +82,7 @@ public class PlayerUtils extends UtilityClass {
         mc.thePlayer.swingItem();
         switch (mc.objectMouseOver.typeOfHit) {
             case ENTITY:
-                attackEntity(mc.objectMouseOver.entityHit);
+                mc.playerController.attackEntity(mc.thePlayer, mc.objectMouseOver.entityHit);
                 break;
             case BLOCK:
                 BlockPos blockpos = mc.objectMouseOver.getBlockPos();
@@ -184,8 +182,4 @@ public class PlayerUtils extends UtilityClass {
         return getStrVsBlock;
     }
 
-    @SyntheticKey(SyntheticKeys.Key.LMB)
-    private static void attackEntity(Entity target) {
-        mc.playerController.attackEntity(mc.thePlayer, target);
-    }
 }

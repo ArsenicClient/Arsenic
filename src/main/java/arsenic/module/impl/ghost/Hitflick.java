@@ -1,7 +1,5 @@
 package arsenic.module.impl.ghost;
 
-import arsenic.utils.keystrokes.SyntheticKeys;
-import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -162,7 +160,7 @@ public class Hitflick extends Module {
                 if (pendingTarget != null) {
                     attackTick = mc.thePlayer.ticksExisted;
                     mc.thePlayer.swingItem();
-                    attack(pendingTarget);
+                    mc.playerController.attackEntity(mc.thePlayer, pendingTarget);
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
                     pendingTarget = null;
@@ -457,8 +455,4 @@ public class Hitflick extends Module {
         }
     }
 
-    @SyntheticKey(SyntheticKeys.Key.LMB)
-    private void attack(Entity target) {
-        mc.playerController.attackEntity(mc.thePlayer, target);
-    }
 }

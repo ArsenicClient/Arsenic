@@ -11,8 +11,9 @@ import org.objectweb.asm.Opcodes;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
- * Applies Arsenic's annotation-driven bytecode changes to a class: {@link RequiresPlayer} (return early until a
- * player is loaded) and {@link arsenic.utils.keystrokes.SyntheticKey} (press a key at the start of the method).
+ * Applies Arsenic's bytecode changes to a class: {@link RequiresPlayer} (return early until a player is loaded),
+ * {@link arsenic.utils.keystrokes.SyntheticKey} (press a key at the start of the method), and every attack call to
+ * PlayerControllerMP.attackEntity (press LMB before it).
  * Used both by the launch transformer and on compiled addon classes, which the game's transformers never see.
  */
 public final class AnnotationTransformer {
@@ -21,7 +22,20 @@ public final class AnnotationTransformer {
     private static final String SYNTHETIC_KEY = "Larsenic/utils/keystrokes/SyntheticKey;";
     private static final String KEY_TYPE = "Larsenic/utils/keystrokes/SyntheticKeys$Key;";
 
+    // PlayerControllerMP.attackEntity: MCP name, and the SRG name used by Forge builds
+    private static final String ATTACK_OWNER = "PlayerControllerMP";
+    private static final String[] ATTACK_NAMES = {"attackEntity", "func_78764_a"};
+
     private AnnotationTransformer() {}
+
+    private static boolean isAttack(String owner, String name) {
+        if (!owner.endsWith(ATTACK_OWNER))
+            return false;
+        for (String attack : ATTACK_NAMES)
+            if (attack.equals(name))
+                return true;
+        return false;
+    }
 
     public static byte[] transform(byte[] basicClass) {
         ClassReader classReader = new ClassReader(basicClass);
@@ -53,6 +67,17 @@ public final class AnnotationTransformer {
                             };
                         }
                         return super.visitAnnotation(descriptor, visible);
+                    }
+
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                        // Every attack the client sends is one LMB press, wherever it is made
+                        if (isAttack(owner, name)) {
+                            this.visitFieldInsn(GETSTATIC, "arsenic/utils/keystrokes/SyntheticKeys$Key", "LMB", KEY_TYPE);
+                            this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/keystrokes/SyntheticKeys", "press",
+                                    "(" + KEY_TYPE + ")V", false);
+                        }
+                        super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                     }
 
                     @Override

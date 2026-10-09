@@ -82,6 +82,10 @@ right-click or a release.
 
 ## Synthetic key presses
 
-`@SyntheticKey(SyntheticKeys.Key.X)` on a method makes the class transformer add a `SyntheticKeys.press` call at the
-start of that method, so the Keystrokes HUD shows it. It only works on a method where every call is one press. Addon
-classes go through the same transform before they are defined, so the annotation works in addons too.
+Two ways to get a press onto the Keystrokes HUD, both added by the class transformer:
+
+- Every `PlayerControllerMP.attackEntity` call in Arsenic or addon code gets an LMB press just before it.
+- `@SyntheticKey(SyntheticKeys.Key.X)` on a method adds a press at the start of that method. It only works on a method
+  where every call is one press.
+
+Addon classes go through the same transform before they are defined, so both work in addons too.
