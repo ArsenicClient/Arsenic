@@ -36,10 +36,8 @@ import java.util.function.Predicate;
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT)
 public class BackTrack extends Module {
 
-    // Transactions are delayed too: Grim measures ping from them, so holding only the entity packets makes the
-    // lag look like it came from nowhere and gets flagged
     private static final Predicate<Packet<?>> ALL_TRACKED =
-            p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport || p instanceof S32PacketConfirmTransaction;
+            p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
     public enum BacktrackMode {NORMAL, PULSE}
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
@@ -87,13 +85,7 @@ public class BackTrack extends Module {
             return onEntityTeleport(raw);
         if (raw instanceof S14PacketEntity)
             return onEntityMove(raw);
-        if (raw instanceof S32PacketConfirmTransaction)
-            return currentLatency();
         return 0L;
-    }
-
-    private long currentLatency() {
-        return tracked.values().stream().mapToLong(entry -> entry.latency).max().orElse(0L);
     }
 
     @EventLink
@@ -191,9 +183,6 @@ public class BackTrack extends Module {
 
             return shouldRemove;
         });
-        // Held transactions have no entity to belong to, so let them go once nothing is tracked
-        if (tracked.isEmpty())
-            LagManager.releaseDelayedFor(BackTrack.class);
     };
 
 

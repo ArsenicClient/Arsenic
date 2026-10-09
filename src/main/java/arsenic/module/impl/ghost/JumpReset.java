@@ -4,7 +4,7 @@ import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventMovementInput;
+import arsenic.event.impl.EventLiving;
 import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -38,6 +38,8 @@ public class JumpReset extends Module {
     private static final long SWING_WINDOW_MS = 400;
     private static final long REQUEST_TTL_MS = 250;
     private static final double MELEE_RANGE = 4.5;
+    // Same upward speed as a normal jump in 1.8
+    private static final double JUMP_VELOCITY = 0.42;
 
     private static final long HURT_WINDOW_MS = 150;
 
@@ -78,16 +80,21 @@ public class JumpReset extends Module {
         }
     };
 
+    // Runs at the start of the player's update, before the movement packet, and jumps directly instead of relying on
+    // the movement input being copied into the jump state afterwards
     @RequiresPlayer
     @EventLink
-    public final Listener<EventMovementInput> eventMotionListener = event -> {
+    public final Listener<EventLiving> eventLivingListener = event -> {
         long requestedAt = jumpRequestedAt;
         if (requestedAt == 0)
             return;
         jumpRequestedAt = 0;
-        if (System.currentTimeMillis() - requestedAt > REQUEST_TTL_MS || !hitByPlayerMelee(requestedAt))
+        if (System.currentTimeMillis() - requestedAt > REQUEST_TTL_MS || !mc.thePlayer.onGround || mc.thePlayer.isInWater())
             return;
-        event.setJump(true);
+        if (!hitByPlayerMelee(requestedAt))
+            return;
+        mc.thePlayer.motionY = JUMP_VELOCITY;
+        mc.thePlayer.isAirBorne = true;
         SyntheticKeys.press(SyntheticKeys.Key.JUMP);
         if (sound.getValue())
             SoundUtils.playEvent("cmaj5", 1.5f);
