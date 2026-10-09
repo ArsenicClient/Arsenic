@@ -126,11 +126,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         boolean isHidden = self.isHidden();
         float hiddenChipRight = bindZoneX1 - pad * 0.6f;
         if (isHidden || hover > 0.02f) {
-            int hiddenChipFill = chipBacking(Math.max(hover, isHidden ? 1f : 0f), 0f);
-            int hiddenChipText = isHidden
-                    ? UITheme.textPrimary()
-                    : UITheme.alpha(UITheme.textMuted(), (int) (255 * Math.max(hover, 0.35f)));
-            float hiddenChipW = UITheme.chip(ri.getFr(), "Hidden",
+            // hidden: a grey "Hidden" chip; not hidden: a red "Hide" chip, shown while the row is hovered
+            float chipAlpha = isHidden ? 1f : hover;
+            int hiddenChipFill = UITheme.alpha(isHidden ? 0xFF6E6E6E : 0xFFD94040, (int) (200 * chipAlpha));
+            int hiddenChipText = UITheme.alpha(0xFFFFFFFF, (int) (255 * chipAlpha));
+            float hiddenChipW = UITheme.chip(ri.getFr(), isHidden ? "Hidden" : "Hide",
                     hiddenChipRight, midPointY, chipHeight, hiddenChipText, hiddenChipFill);
             hiddenZoneX2 = hiddenChipRight;
             hiddenZoneX1 = hiddenChipRight - hiddenChipW;
