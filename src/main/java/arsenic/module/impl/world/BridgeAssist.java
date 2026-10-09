@@ -49,6 +49,8 @@ public class BridgeAssist extends Module {
         lane.diagonals = true;
         lane.window = 15;
         lane.snap = true;
+        // Safety is the lead in ticks, so no minimum lead is forced above 1.0 (the shared default is 3)
+        presses.needLead = 0;
     }
 
     private float[] nudge;
@@ -122,6 +124,8 @@ public class BridgeAssist extends Module {
             in.moveStrafe /= in.moveScale;
         }
         boolean diagonal = SneakPresses.diagonal(forward, strafe, mc.thePlayer.rotationYaw);
+        // Safety is how many ticks ahead to shift, fractions included (0.5 checks half a tick of motion)
+        presses.hardLead = safety.getValue().getInput();
         setSneak(presses.next(ticks -> ScaffoldCore.willFall(in, ScaffoldUtil.WORLD, ticks, FALL_MARGIN),
                 true, safety.getValue().getInput(), diagonal, placed));
         if (!smartMode.getValue())
