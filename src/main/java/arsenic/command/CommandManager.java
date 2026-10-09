@@ -71,7 +71,7 @@ public class CommandManager {
     }
 
     private boolean handleModuleCommand(String name, String[] args) {
-        Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(name);
+        Module module = CommandUtils.findModule(name);
         if (module == null)
             return false;
 

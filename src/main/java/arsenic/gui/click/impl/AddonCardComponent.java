@@ -58,23 +58,29 @@ public class AddonCardComponent extends Component implements IContainer<Property
     private float btnX1, btnY1, btnX2, btnY2;
 
     // addon rows
-    private boolean on, open, binding;
+    private boolean open, binding;
     private float chevronZoneX2, toggleZoneX1, bindZoneX1, bindZoneX2, contentHeight, settingsHeight;
     /** The loaded module behind this row, and its settings as the dropdown draws them. Empty while the addon is off. */
     private Module module;
     private final List<PropertyComponent<?>> contents = new ArrayList<>();
     private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
-    private final AnimationTimer enabledTimer = new AnimationTimer(UITheme.DUR_TOGGLE, () -> on, TickMode.CUBIC);
+    private final AnimationTimer enabledTimer = new AnimationTimer(UITheme.DUR_TOGGLE, this::isOn, TickMode.CUBIC);
     private arsenic.utils.render.PosInfo posInfo;
     private final ButtonComponent switchComponent = new ButtonComponent(this) {
         @Override
         protected boolean isEnabled() {
-            return on;
+            return isOn();
         }
 
         @Override
         protected void setEnabled(boolean enabled) {
-            on = enabled;
+            if (module != null) {
+                // loaded: the switch is the module's own on/off, like any module's
+                module.setEnabled(enabled);
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+                return;
+            }
+            // not loaded yet: the switch turns the addon's file on or off, and Reload loads it
             AddonManager manager = Arsenic.getArsenic().getAddonManager();
             try {
                 manager.setEnabled(info, enabled);
@@ -96,7 +102,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
         this.pack = pack;
         this.title = title;
         this.text = text;
-        this.on = info != null && info.state == AddonManager.State.ENABLED;
         if (kind == Kind.ADDON)
             resolveModule();
     }
@@ -120,7 +125,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
     /** Points a reused addon row at fresh data after a reload; the switch animates from its old position. */
     public void update(AddonManager.Info info) {
         this.info = info;
-        this.on = info.state == AddonManager.State.ENABLED;
         resolveModule();
     }
 
@@ -134,6 +138,13 @@ public class AddonCardComponent extends Component implements IContainer<Property
         settingsHeight = 0;
         if (module != null)
             module.getProperties().forEach(property -> contents.add(property.createComponent()));
+    }
+
+    /** The module's state while it is loaded; otherwise whether the addon's file is on. */
+    private boolean isOn() {
+        if (module != null)
+            return module.isEnabled();
+        return info != null && info.state == AddonManager.State.ENABLED;
     }
 
     @Override
