@@ -112,16 +112,19 @@ public final class GuiStyle implements ISerializable {
     private String screenStyle = "Element";
     /** Key that opens the ClickGUI. 0 leaves it with no key. */
     private int clickGuiKey = org.lwjgl.input.Keyboard.KEY_RSHIFT;
-    /** Whether the client's own main menu replaces the vanilla one. */
-    private boolean customMainMenu = true;
+    /** Whether the client's custom menus are on: its main menu, ocean backgrounds, themed buttons and lists, container buttons and screen fades. */
+    private boolean customMenus = true;
 
     public int getClickGuiKey() { return clickGuiKey; }
 
     public void setClickGuiKey(int clickGuiKey) { this.clickGuiKey = clickGuiKey; }
 
-    public boolean isCustomMainMenu() { return customMainMenu; }
+    public boolean isCustomMenus() { return customMenus; }
 
-    public void setCustomMainMenu(boolean customMainMenu) { this.customMainMenu = customMainMenu; }
+    public void setCustomMenus(boolean customMenus) { this.customMenus = customMenus; }
+
+    /** For the game's hooks: when false they leave the vanilla menus alone. */
+    public static boolean customMenus() { return INSTANCE.customMenus; }
 
     public Preset getPreset() { return preset; }
 
@@ -249,7 +252,7 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("showBlatant", showBlatant);
         obj.addProperty("screenStyle", screenStyle);
         obj.addProperty("clickGuiKey", clickGuiKey);
-        obj.addProperty("customMainMenu", customMainMenu);
+        obj.addProperty("customMenus", customMenus);
         return obj;
     }
 
@@ -272,8 +275,10 @@ public final class GuiStyle implements ISerializable {
                 showBlatant = obj.get("showBlatant").getAsBoolean();
             if (obj.has("clickGuiKey"))
                 clickGuiKey = obj.get("clickGuiKey").getAsInt();
-            if (obj.has("customMainMenu"))
-                customMainMenu = obj.get("customMainMenu").getAsBoolean();
+            if (obj.has("customMainMenu"))          // the old name for this setting
+                customMenus = obj.get("customMainMenu").getAsBoolean();
+            if (obj.has("customMenus"))
+                customMenus = obj.get("customMenus").getAsBoolean();
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

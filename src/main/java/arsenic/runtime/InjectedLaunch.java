@@ -112,7 +112,7 @@ public final class InjectedLaunch {
             stage(0.8f, "Hooking game", status);
             installHooks.run();
             // the title screen is already up: the hooks only swap screens that are shown after they are in place
-            if (currentScreen() instanceof GuiMainMenu)
+            if (currentScreen() instanceof GuiMainMenu && arsenic.gui.click.GuiStyle.customMenus())
                 CustomMenu.display();
             ArsenicSplash.progress(1f, "Ready");
         } finally {

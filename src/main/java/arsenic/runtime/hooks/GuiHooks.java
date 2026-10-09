@@ -2,6 +2,7 @@ package arsenic.runtime.hooks;
 
 import arsenic.runtime.Access;
 import arsenic.main.Arsenic;
+import arsenic.gui.click.GuiStyle;
 import arsenic.module.impl.blatant.KillAura;
 import arsenic.module.impl.visual.custommainmenu.MenuTheme;
 import arsenic.module.impl.visual.custommainmenu.ScreenTransition;
@@ -113,7 +114,7 @@ public final class GuiHooks {
     /** GuiContainer.initGui TAIL. */
     public static void containerInitGuiTail(GuiContainer self) {
         killAuraButton = null;
-        if (killAura() == null)
+        if (killAura() == null || !GuiStyle.customMenus())
             return;
         killAuraButton = new GuiButton(KILLAURA_BUTTON_ID, 4, 4, 92, 20, killAuraLabel());
         List<GuiButton> buttonList = BUTTON_LIST.get(self);
@@ -122,14 +123,14 @@ public final class GuiHooks {
 
     /** GuiContainer.drawScreen HEAD. */
     public static void containerDrawScreenHead(GuiContainer self, int mouseX, int mouseY, float partialTicks) {
-        if (killAuraButton != null)
+        if (killAuraButton != null && GuiStyle.customMenus())
             killAuraButton.displayString = killAuraLabel();
     }
 
     /** GuiContainer.mouseClicked HEAD (GuiContainer doesn't declare actionPerformed). @return true to cancel */
     public static boolean containerMouseClickedHead(GuiContainer self, int mouseX, int mouseY, int mouseButton) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mouseButton != 0 || killAuraButton == null || !killAuraButton.mousePressed(mc, mouseX, mouseY))
+        if (mouseButton != 0 || killAuraButton == null || !GuiStyle.customMenus() || !killAuraButton.mousePressed(mc, mouseX, mouseY))
             return false;
         killAuraButton.playPressSound(mc.getSoundHandler());
         KillAura aura = killAura();
@@ -143,12 +144,16 @@ public final class GuiHooks {
 
     /** GuiScreen.drawWorldBackground HEAD: the plain dark veil is replaced by the ocean theme. @return true */
     public static boolean drawWorldBackground(GuiScreen self, int tint) {
+        if (!GuiStyle.customMenus())
+            return false;
         MenuTheme.drawBackground(self.width, self.height);
         return true;
     }
 
     /** GuiScreen.drawBackground HEAD: the dirt tile is replaced by the ocean theme. @return true */
     public static boolean drawBackground(GuiScreen self, int tint) {
+        if (!GuiStyle.customMenus())
+            return false;
         MenuTheme.drawBackground(self.width, self.height);
         return true;
     }
@@ -166,12 +171,16 @@ public final class GuiHooks {
 
     /** GuiSlot.drawContainerBackground HEAD (added by Forge). @return true */
     public static boolean slotContainerBackground(GuiSlot self, Tessellator tessellator) {
+        if (!GuiStyle.customMenus())
+            return false;
         MenuTheme.drawListPane(SLOT_LEFT.getInt(self), SLOT_TOP.getInt(self), SLOT_RIGHT.getInt(self), SLOT_BOTTOM.getInt(self));
         return true;
     }
 
     /** GuiSlot.overlayBackground HEAD. @return true */
     public static boolean slotOverlayBackground(GuiSlot self, int startY, int endY, int startAlpha, int endAlpha) {
+        if (!GuiStyle.customMenus())
+            return false;
         int left = SLOT_LEFT.getInt(self);
         MenuTheme.drawListBar(left, left + SLOT_WIDTH.getInt(self), startY, endY);
         return true;
@@ -179,6 +188,8 @@ public final class GuiHooks {
 
     /** GuiButton.drawButton HEAD: every vanilla button is drawn as a themed pill. @return true */
     public static boolean drawButton(GuiButton self, Minecraft mc, int mouseX, int mouseY) {
+        if (!GuiStyle.customMenus())
+            return false;
         if (self.visible) {
             HOVERED.setBoolean(self, MenuTheme.drawButton(self, mc, mouseX, mouseY));
             // sliders do their dragging (and used to draw their knob) here; the sound sliders draw a vanilla
@@ -192,11 +203,17 @@ public final class GuiHooks {
 
     /** GuiOptionSlider.mouseDragged: the first drawTexturedModalRect (left knob half) becomes one themed pill. */
     public static void sliderKnob(GuiOptionSlider self, int x, int y, int u, int v, int w, int h) {
+        if (!GuiStyle.customMenus()) {
+            self.drawTexturedModalRect(x, y, u, v, w, h);      // the vanilla knob, which this redirect replaced
+            return;
+        }
         MenuTheme.drawSlider(self.xPosition, x, y, 20);
     }
 
     /** GuiOptionSlider.mouseDragged: the second drawTexturedModalRect (right knob half) is dropped. */
     public static void sliderKnobSecondHalf(GuiOptionSlider self, int x, int y, int u, int v, int w, int h) {
+        if (!GuiStyle.customMenus())
+            self.drawTexturedModalRect(x, y, u, v, w, h);
     }
 
     /** GuiAchievement.updateAchievementWindow HEAD: never draws the "Achievement get!" toast. @return true */
@@ -219,11 +236,15 @@ public final class GuiHooks {
 
     /** ForgeHooksClient.drawScreen HEAD: wraps every screen draw with the cross-fade from the previous screen. */
     public static void forgeDrawScreenHead(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
+        if (!GuiStyle.customMenus())
+            return;
         ScreenTransition.beginContent(screen.width, screen.height);
     }
 
     /** ForgeHooksClient.drawScreen RETURN. */
     public static void forgeDrawScreenReturn(GuiScreen screen, int mouseX, int mouseY, float partialTicks) {
+        if (!GuiStyle.customMenus())
+            return;
         ScreenTransition.endContent(screen.width, screen.height);
     }
 }

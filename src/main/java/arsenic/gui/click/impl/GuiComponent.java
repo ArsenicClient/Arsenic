@@ -158,8 +158,8 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
                     GuiStyle.get().setScreenStyle("Ocean".equals(GuiStyle.get().getScreenStyle()) ? "Element" : "Ocean");
                     Arsenic.getArsenic().getConfigManager().saveConfig();
                 });
-        y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Custom Main Menu", GuiStyle.get().isCustomMainMenu(), () -> {
-            GuiStyle.get().setCustomMainMenu(!GuiStyle.get().isCustomMainMenu());
+        y = drawSwitch(ri, x + 5, y, rowW, mx, my, "Custom Menus", GuiStyle.get().isCustomMenus(), () -> {
+            GuiStyle.get().setCustomMenus(!GuiStyle.get().isCustomMenus());
             Arsenic.getArsenic().getConfigManager().saveConfig();
         });
 

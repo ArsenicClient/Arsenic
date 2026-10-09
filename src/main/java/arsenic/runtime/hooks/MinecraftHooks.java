@@ -84,14 +84,14 @@ public final class MinecraftHooks {
 
     /** displayGuiScreen HEAD. */
     public static void displayGuiScreenHead(Minecraft self, GuiScreen guiScreenIn) {
-        if (guiScreenIn != self.currentScreen)
+        if (guiScreenIn != self.currentScreen && arsenic.gui.click.GuiStyle.customMenus())
             ScreenTransition.capture(self);
     }
 
     /** displayGuiScreen RETURN. */
     public static void displayGuiScreenReturn(Minecraft self, GuiScreen guiScreenIn) {
         if (guiScreenIn instanceof GuiMainMenu && !CustomMenu.consumeVanillaRequest()
-                && arsenic.gui.click.GuiStyle.get().isCustomMainMenu()) {
+                && arsenic.gui.click.GuiStyle.customMenus()) {
             CustomMenu.display();
         }
         EventDisplayGuiScreen event = new EventDisplayGuiScreen(guiScreenIn);
