@@ -77,8 +77,7 @@ public final class InjectedLaunch {
                 while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
                         && root.getCause() != null)
                     root = root.getCause();
-                StackTraceElement[] frames = root.getStackTrace();
-                status.accept("ERROR " + root + (frames.length > 0 ? " at " + frames[0] : ""));
+                status.accept("ERROR " + root + where(root));
             }
         });
     }
@@ -194,5 +193,14 @@ public final class InjectedLaunch {
         Names.RELOAD_RESOURCE_PACK.invoke(resources, pack);
         // sounds.json is only read on a reload
         Names.ON_RESOURCE_MANAGER_RELOAD.invoke(Names.GET_SOUND_HANDLER.invoke(mc), resources);
+    }
+
+    /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */
+    static String where(Throwable t) {
+        StackTraceElement[] frames = t.getStackTrace();
+        for (StackTraceElement f : frames)
+            if (f.getClassName().startsWith("arsenic."))
+                return " at " + f;
+        return frames.length > 0 ? " at " + frames[0] : "";
     }
 }

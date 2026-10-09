@@ -142,6 +142,15 @@ public final class Agent {
      * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
      * "java.lang.reflect.InvocationTargetException", which says nothing about what failed.
      */
+    /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */
+    static String where(Throwable t) {
+        StackTraceElement[] frames = t.getStackTrace();
+        for (StackTraceElement f : frames)
+            if (f.getClassName().startsWith("arsenic."))
+                return " at " + f;
+        return frames.length > 0 ? " at " + frames[0] : "";
+    }
+
     private static String describe(Throwable t) {
         if (t instanceof IllegalStateException && t.getMessage() != null)
             return t.getMessage();
@@ -149,8 +158,7 @@ public final class Agent {
         while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
                 && root.getCause() != null)
             root = root.getCause();
-        StackTraceElement[] frames = root.getStackTrace();
-        String where = frames.length > 0 ? " at " + frames[0] : "";
+        String where = where(root);
         return root == t ? root + where : root + where + " (from " + t.getClass().getName() + ")";
     }
 
