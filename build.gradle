@@ -282,11 +282,15 @@ file("src/addons/packs").listFiles({ File f -> f.isDirectory() } as FileFilter)?
     File impl = new File(pack, "impl")
     if (impl.isDirectory()) addonSourceDirs << impl
 }
-sourceSets {
-    addons {
-        java.srcDirs = addonSourceDirs
-        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-    }
+// Compiled as a check against the client, and nothing else. Not a source set: IntelliJ would give it a module of its
+// own with no dependency on the client, so every import of the client would show as unresolved there.
+task compileAddonsJava(type: JavaCompile) {
+    source addonSourceDirs
+    destinationDir = file("$buildDir/classes/addons")
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = "UTF-8"
 }
 build.dependsOn "compileAddonsJava"
 
