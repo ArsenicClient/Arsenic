@@ -57,8 +57,6 @@ public class AddonPageComponent {
     private float sideScroll, sideTargetScroll, sideMaxScroll;
     private float sideX1, sideY1, sideX2, sideY2;
 
-    /** Addon rows by "pack/name", kept across reloads so their switches and dropdowns keep their state. */
-    private final Map<String, AddonRow> rows = new HashMap<>();
     /** Module rows for search results, kept like the addon rows so their state survives typing. */
     private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
     private List<AddonCardComponent> blocks = new ArrayList<>();
@@ -139,15 +137,9 @@ public class AddonPageComponent {
         laidOutFor = null;
     }
 
-    /** An addon as a module row: the same row a module gets, kept across layouts. */
+    /** An addon as a module row: the same row a module gets, kept across layouts and reloads. */
     private ModuleComponent row(AddonManager.Info info) {
-        String key = (info.pack == null ? "" : info.pack.id) + "/" + info.name;
-        AddonRow row = rows.get(key);
-        if (row == null)
-            rows.put(key, row = new AddonRow(info));
-        else
-            row.update(info);
-        return row.component();
+        return AddonRow.of(info).component();
     }
 
     private ModuleComponent moduleRow(Module module) {
@@ -178,8 +170,8 @@ public class AddonPageComponent {
                     + (modules == 1 ? " module" : " modules") + " found.";
             top.add(AddonCardComponent.section("Search: " + q, found));
         } else if (selected.equals(ALL)) {
-            top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Turned on addons show up in "
-                    + "their module category in the ClickGUI. Open an addon (arrow or right click) to read what it does."));
+            top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Each one works like a module: "
+                    + "the switch turns it on, and opening it (arrow or right click) shows what it does and its settings."));
             for (AddonManager.Info info : addons)
                 list.add(row(info));
         } else if (selected.equals(LOOSE)) {

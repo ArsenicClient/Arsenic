@@ -130,7 +130,12 @@ public class AddonCardComponent extends Component {
         drawIcon(pack.meta.icon, ix, iy, icon);
 
         float tx = ix + icon + pad * 0.8f;
-        int enabled = pack.enabledCount();
+        int enabled = 0;
+        for (AddonManager.Info addon : pack.addons) {
+            arsenic.module.Module module = arsenic.main.Arsenic.getArsenic().getAddonManager().findLoadedModule(addon.name);
+            if (module != null && module.isEnabled())
+                enabled++;
+        }
         fr.drawString(pack.meta.name, tx, iy + icon * 0.3f, UITheme.textPrimary(), fr.CENTREY);
         String status = enabled + " of " + pack.addons.size() + " on" + (pack.installed ? "" : "  (not installed)");
         fr.drawString(status, tx, iy + icon * 0.74f, enabled > 0 ? UITheme.accent() : UITheme.textMuted(), fr.CENTREY);

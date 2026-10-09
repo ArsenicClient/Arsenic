@@ -1288,12 +1288,14 @@ so a default you **edited is never overwritten**; to take the new version, delet
 (installed before this tracking existed) is replaced after a backup is written next to it (`Name.java.bak`). Addons a
 new version adds to an already installed pack appear in it automatically (disabled unless the pack is `autoInstall`).
 
-Click **Addon Manager** in the ClickGUI's bottom right corner: the main card drops the logo and category column and
-shows cards in two columns (scrolled like a module category). The **Packs** and **Addons** buttons in the header
-switch between all packs and all addons. Left or right click a pack to open its page, which lists the pack's addons
-(its Install / Uninstall button handles the whole pack, each addon has its own Install / Uninstall, and a Back button returns to the list). The ClickGUI's
-search box filters whichever list is showing, and the bottom right button, now **ClickGUI**, goes back to modules.
-Every change reloads the addons straight away.
+Click **Addon Manager** in the ClickGUI's bottom right corner: the category column lists **All addons**, every pack
+and any loose addons, and the main area shows the selected list's addons in two columns. Each addon is drawn and
+behaves exactly like a module row: the switch turns its module on and off, opening it (arrow or right click) shows its
+description and settings, and it has a keybind and a Hidden chip. An addon that is not loaded yet is loaded the moment
+you switch it on, open it, bind it or hide it; `.toggle`, `.enable` and `.<Addon> <setting> <value>` load it the same
+way. Turning an addon off leaves it loaded, like a module that is off. Addons are not listed in the module categories;
+find them in the Addon Manager or with the search box. **Reload addons** (or `.addon reload`) recompiles everything,
+e.g. after you edit a file.
 
 `registerCommand(new MyCommand())` (see the cookbook), `allowsTarget(player)` and `isSwappingHotbar()` are the hooks
 beyond a plain module; see [Module basics](#module-basics).

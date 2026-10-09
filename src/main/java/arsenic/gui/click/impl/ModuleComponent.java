@@ -64,6 +64,12 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         self.getProperties().forEach(property -> contents.add(property.createComponent()));
     }
 
+    /** Builds the settings again from the source, for an addon whose module was loaded or reloaded. */
+    void refreshContents() {
+        contents.clear();
+        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+    }
+
     @Override
     public float updateComponent(PosInfo pi, RenderInfo ri) {
         posInfo = pi;
@@ -212,6 +218,8 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private void toggleOpen() {
         open = !open;
         SoundUtils.chordOpen();
+        if (open)
+            self.prepare();
         if (!open) {
             contents.forEach(component -> {
                 if (component instanceof arsenic.utils.interfaces.IAlwaysClickable)

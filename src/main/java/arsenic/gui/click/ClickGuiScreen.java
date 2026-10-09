@@ -525,11 +525,6 @@ public class ClickGuiScreen extends CustomGuiScreen {
             cmcc.clickChildren(mouseX, mouseY, mouseButton);
     }
 
-    /** Re-reads the addons' on/off state after a switch renamed a file. Loaded addons only change on Reload. */
-    public void refreshAddonPage() {
-        addonPage.refresh();
-    }
-
     public boolean isAddonMode() {
         return addonMode;
     }

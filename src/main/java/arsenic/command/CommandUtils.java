@@ -19,26 +19,24 @@ import java.util.stream.Collectors;
 
 public final class CommandUtils {
 
-    /** A loaded module by name. An addon that is only switched on is not loaded until Reload addons is pressed. */
+    /** A module by name. An addon is a module too: one that is not loaded yet is loaded, as the ClickGUI does. */
     public static arsenic.module.Module findModule(String name) {
-        return arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
+        arsenic.module.Module module = arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
+        if (module != null)
+            return module;
+        arsenic.addon.AddonManager addons = arsenic.main.Arsenic.getArsenic().getAddonManager();
+        arsenic.addon.AddonManager.Info info = addons.findAddon(name);
+        return info == null ? null : addons.loadAddon(info);
     }
 
     /** What to tell the player when {@link #findModule} finds nothing. */
     public static String missingModule(String name) {
-        return turnedOnAddon(name) ? name + " is turned on but not loaded yet, run .addon reload" : name + " is not a valid module";
+        return isAddon(name) ? name + " could not be loaded, see Errors in the Addon Manager" : name + " is not a valid module";
     }
 
-    /** True when an addon with this name is switched on in the Addon Manager (loaded or not). */
-    public static boolean turnedOnAddon(String name) {
-        arsenic.addon.AddonManager addons = arsenic.main.Arsenic.getArsenic().getAddonManager();
-        java.util.List<arsenic.addon.AddonManager.Info> all = new java.util.ArrayList<>(addons.listLoose());
-        for (arsenic.addon.AddonManager.PackInfo pack : addons.listPacks())
-            all.addAll(pack.addons);
-        for (arsenic.addon.AddonManager.Info info : all)
-            if (info.state == arsenic.addon.AddonManager.State.ENABLED && info.name.equalsIgnoreCase(name))
-                return true;
-        return false;
+    /** True when there is an addon with this name. */
+    public static boolean isAddon(String name) {
+        return arsenic.main.Arsenic.getArsenic().getAddonManager().findAddon(name) != null;
     }
 
     private CommandUtils() {}

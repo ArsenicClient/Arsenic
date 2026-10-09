@@ -29,6 +29,9 @@ public interface ModuleSource {
 
     List<? extends Property<?>> getProperties();
 
+    /** Called before the row opens, so the settings are there to show. */
+    default void prepare() {}
+
     static ModuleSource of(Module module) {
         return new ModuleSource() {
             @Override

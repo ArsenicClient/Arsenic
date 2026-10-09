@@ -115,6 +115,40 @@ public final class AddonManager {
         return null;
     }
 
+    /**
+     * An addon's module, loading the addon first when it is not loaded: its file is switched on (with whatever it
+     * needs) and the addons are reloaded. Null when it does not load; the reason is in {@link #getErrors()}.
+     */
+    public Module loadAddon(Info info) {
+        Module module = findLoadedModule(info.name);
+        if (module != null)
+            return module;
+        try {
+            setEnabled(info, true);
+        } catch (java.io.IOException e) {
+            Arsenic.getArsenic().getLogger().error("Could not turn on " + info.name, e);
+            return null;
+        }
+        reload();
+        return findLoadedModule(info.name);
+    }
+
+    /** Every addon, loose ones and those in packs, installed or not. */
+    public synchronized List<Info> listAll() {
+        List<Info> all = new ArrayList<>(listLoose());
+        for (PackInfo pack : listPacks())
+            all.addAll(pack.addons);
+        return all;
+    }
+
+    /** The addon with this name (ignoring case), or null. */
+    public Info findAddon(String name) {
+        for (Info info : listAll())
+            if (info.name.equalsIgnoreCase(name))
+                return info;
+        return null;
+    }
+
     public List<String> getErrors() {
         return Collections.unmodifiableList(errors);
     }
