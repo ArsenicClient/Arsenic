@@ -74,7 +74,8 @@ public final class InjectedLaunch {
                 else
                     t.printStackTrace();
                 Throwable root = t;
-                while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
+                while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError
+                        || root instanceof NoClassDefFoundError || root instanceof ClassNotFoundException)
                         && root.getCause() != null)
                     root = root.getCause();
                 status.accept("ERROR " + root + where(root));

@@ -138,10 +138,6 @@ public final class Agent {
         });
     }
 
-    /**
-     * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
-     * "java.lang.reflect.InvocationTargetException", which says nothing about what failed.
-     */
     /** The first frame in Arsenic's own code (JDK frames say little), else the first frame. */
     static String where(Throwable t) {
         StackTraceElement[] frames = t.getStackTrace();
@@ -151,11 +147,17 @@ public final class Agent {
         return frames.length > 0 ? " at " + frames[0] : "";
     }
 
+    /**
+     * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
+     * "java.lang.reflect.InvocationTargetException", which says nothing about what failed. A class that failed to load
+     * under Forge's LaunchClassLoader is a NoClassDefFoundError whose cause is the load failure, so that is followed too.
+     */
     private static String describe(Throwable t) {
         if (t instanceof IllegalStateException && t.getMessage() != null)
             return t.getMessage();
         Throwable root = t;
-        while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
+        while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError
+                || root instanceof NoClassDefFoundError || root instanceof ClassNotFoundException)
                 && root.getCause() != null)
             root = root.getCause();
         String where = where(root);
