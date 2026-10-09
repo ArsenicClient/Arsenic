@@ -1,6 +1,7 @@
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventMovementInput;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
@@ -16,8 +17,9 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Draws a ring under your feet when you jump, which grows and fades over about half a second. Only your own jumps are
- * shown; the ring is drawn where you left the ground.
+ * Draws a ring under your feet when you press jump on the ground, which grows and fades over about half a second. Only
+ * the jump key counts: knockback, jump reset and falling off an edge do not draw one. The ring is drawn where you left
+ * the ground.
  */
 @ModuleInfo(name = "JumpCircles", description = "Draws a ring under you when you jump", category = ModuleCategory.RENDER)
 public class JumpCircles extends Module {
@@ -38,16 +40,19 @@ public class JumpCircles extends Module {
     }
 
     private final List<Ring> rings = new ArrayList<>();
-    private boolean wasOnGround = true;
+
+    // Runs in the player's update just before the jump is decided, so the key and onGround are the ones the jump uses
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventMovementInput> onMovementInput = event -> {
+        if (!mc.gameSettings.keyBindJump.isKeyDown() || mc.currentScreen != null || !mc.thePlayer.onGround)
+            return;
+        rings.add(new Ring(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
+    };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        boolean onGround = mc.thePlayer.onGround;
-        if (wasOnGround && !onGround && mc.thePlayer.motionY > 0) {
-            rings.add(new Ring(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
-        }
-        wasOnGround = onGround;
         Iterator<Ring> it = rings.iterator();
         while (it.hasNext()) {
             if (++it.next().age > LIFE_TICKS) it.remove();

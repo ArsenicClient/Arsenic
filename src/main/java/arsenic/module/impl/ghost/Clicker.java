@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -65,6 +66,7 @@ public class Clicker extends Module {
             }
             int key = mc.gameSettings.keyBindAttack.getKeyCode();
             KeyBinding.onTick(key);
+            SyntheticKeys.press(SyntheticKeys.Key.LMB);
             clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue());
         }
     };

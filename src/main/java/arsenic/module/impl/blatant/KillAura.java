@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -176,6 +177,7 @@ public class KillAura extends Module {
                 } else {
                     mc.thePlayer.swingItem();
                     mc.playerController.attackEntity(mc.thePlayer, hit);
+                    SyntheticKeys.press(SyntheticKeys.Key.LMB);
                     resetAttackCycle();
                 }
             } else if (hit == null && target != null

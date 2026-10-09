@@ -160,7 +160,7 @@ No new module is needed for any ToDo item.
 | Folder | Count | Modules |
 |---|---|---|
 | `blatant` | 1 | KillAura |
-| `ghost` | 14 | AimAssist, BackTrack (name "Backtrack"), BlockHit, BowAimbot, Clicker, DoubleHit, LagRange (FakeLag class), SprintReset, NoHitDelay, JumpReset, HitSelect, Hitflick, KnockbackDelay, Reach |
+| `ghost` | 13 | AimAssist, BackTrack (name "Backtrack"), BlockHit, Clicker, DoubleHit, LagRange (FakeLag class), SprintReset, NoHitDelay, JumpReset, HitSelect, Hitflick, KnockbackDelay, Reach |
 | `movement` | 3 | InvMove (DEV), NoJumpDelay, Sprint |
 | `world` | 5 | Breadcrumbs, BridgeAssist, Clutch, Scaffold, TellyScaffold |
 | `player` | 15 | AntiAFK, AutoBlockIn, AutoGrinder (DEV), AutoPot, AutoTool, AutoWeapon, Blink, ChatBypass, ChestStealer, FastBreak, Fastplace, InvManager, NameHider (RENDER), RageQuit, Refill |

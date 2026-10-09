@@ -1,5 +1,3 @@
-package arsenic.module.impl.ghost;
-
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
@@ -15,7 +13,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemBow;
 import net.minecraft.util.MathHelper;
 
-@ModuleInfo(name = "BowAimbot", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "BowAimbot", description = "Turns the camera onto the nearest enemy while a bow is drawn, leading the shot", category = ModuleCategory.COMBAT)
 public class BowAimbot extends Module {
     public final BooleanProperty predict = new BooleanProperty("Predict", true);
 

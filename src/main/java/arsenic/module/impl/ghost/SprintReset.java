@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -70,7 +71,7 @@ public class SprintReset extends Module {
                 }
                 if(!hasTapped || (targetDistToPlayer < 3.05 && distToTarget < 2.95)) {
                     event.setSpeed(0);
-                    mc.thePlayer.setSprinting(false);
+                    resetSprint();
                     hasTapped = true;
                     return;
                 }
@@ -79,14 +80,14 @@ public class SprintReset extends Module {
             case NORMAL:
                 if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
                     event.setSpeed(0);
-                    mc.thePlayer.setSprinting(false);
+                    resetSprint();
                     target = null;
                 }
                 break;
             case UNSPRINT:
                 if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
                     KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
-                    mc.thePlayer.setSprinting(false);
+                    resetSprint();
                     target = null;
                 }
                 break;
@@ -99,4 +100,8 @@ public class SprintReset extends Module {
         UNSPRINT
     }
 
+    private void resetSprint() {
+        mc.thePlayer.setSprinting(false);
+        SyntheticKeys.press(SyntheticKeys.Key.SPRINT);
+    }
 }

@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -8,8 +9,10 @@ import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.java.SoundUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -30,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT)
 public class JumpReset extends Module {
     public final DoubleProperty chance = new DoubleProperty("Chance", new DoubleValue(0.0, 1, 1, 0.01));
+    public final BooleanProperty sound = new BooleanProperty("Sound", true);
 
     private static final long SWING_WINDOW_MS = 400;
     private static final long REQUEST_TTL_MS = 250;
@@ -84,6 +88,9 @@ public class JumpReset extends Module {
         if (System.currentTimeMillis() - requestedAt > REQUEST_TTL_MS || !hitByPlayerMelee(requestedAt))
             return;
         event.setJump(true);
+        SyntheticKeys.press(SyntheticKeys.Key.JUMP);
+        if (sound.getValue())
+            SoundUtils.playEvent("cmaj5", 1.5f);
     };
 
     private boolean hitByPlayerMelee(long hitAt) {

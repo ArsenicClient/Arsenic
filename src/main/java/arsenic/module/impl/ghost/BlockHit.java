@@ -46,7 +46,7 @@ public class BlockHit extends Module {
         if (event.getTarget() != null && event.getTarget() instanceof EntityLivingBase) {
             target = (EntityLivingBase) event.getTarget();
             hasSwapped = false;
-            swapHurtTime = Math.max(1, getPing() / 20) + 1;
+            swapHurtTime = Math.min(9, Math.max(1, getPing() / 20) + 1);
         }
     };
 
@@ -85,13 +85,16 @@ public class BlockHit extends Module {
 
         List<Integer> swords = swordSlots();
         if (!aimingAtPlayer || swords.isEmpty()) {
-            if (down) release();
+            releaseBlock();
             return;
         }
 
+        // Block first, then swap: the swap cancels the block and the held use key blocks again with the new sword
         if (!down) press();
 
-        if (swords.size() >= 2 && target != null && !hasSwapped && target.hurtTime == swapHurtTime) {
+        EntityPlayer victim = (EntityPlayer) mop.entityHit;
+        // hurtTime is 10 on the hit and counts down, so the window is reachable as long as swapHurtTime <= 10
+        if (swords.size() >= 2 && !hasSwapped && victim.hurtTime > 0 && victim.hurtTime <= swapHurtTime) {
             int current = mc.thePlayer.inventory.currentItem;
             int next = current == swords.get(0) ? swords.get(1) : swords.get(0);
             mc.thePlayer.inventory.currentItem = next;
@@ -124,6 +127,13 @@ public class BlockHit extends Module {
         KeyBinding.setKeyBindState(key, false);
         down = false;
         target = null;
+    }
+
+    // Like release(), but keeps the attack target so the two-sword swap can still read its hurtTime
+    private void releaseBlock() {
+        if (!down) return;
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
+        down = false;
     }
 
     private void press() {
