@@ -65,7 +65,7 @@ right-click or a release.
 | `BlockHit` TwoSword | **Not Grim safe** | Swaps while blocking (`PacketOrderE`), attacks while using an item (`MultiActionsA`), and sends use and dig packets from the frame loop. |
 | `JumpReset` | Probably safe (unverified) | Direct jump in the tick hook. Ground and water are checked first. |
 | `KnockbackDelay` | Risky (unverified) | Holds movement and transaction replies for up to 300 ms. Watch `Timer` on release and `TransactionOrder`. |
-| `BackTrack` | **Not Grim safe** | Shows entities at a past position. `Hitboxes` and `Reach` see the hit at a position older than the ping allows. |
+| `BackTrack` | Partly safe | Lag is capped at 150 ms (Grim's 3-tick interpolation window), and tracking stops once the server position is out of reach (2.95). Hits on a stale position still rely on Grim's interpolation window, so it can still flag `Hitboxes` (unverified). |
 | `SprintReset` | Risky | Changes sprint state around attacks. `SprintB`, `SprintC` and `PacketOrderF` check this. |
 | `LagManager` incoming delay | **Unsafe for combat** | Breaks the knockback sandwich and transaction order. |
 | `LagManager` outgoing hold / `acquire` (blink) | Risky | Bursts trip `Timer` and `TimerLimit`. Keep holds short. |

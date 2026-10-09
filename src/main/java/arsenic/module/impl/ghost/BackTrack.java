@@ -24,6 +24,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 
@@ -38,6 +39,11 @@ public class BackTrack extends Module {
 
     private static final Predicate<Packet<?>> ALL_TRACKED =
             p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
+
+    // Grim interpolates living entities over 3 ticks and only accepts hits on positions inside that window
+    private static final long GRIM_MAX_LAG_MS = 150L;
+    // Grim's reach limit is 3.0; stay just inside it against the server position
+    private static final double REACH_LIMIT = 2.95;
 
     public enum BacktrackMode {NORMAL, PULSE}
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
@@ -66,6 +72,24 @@ public class BackTrack extends Module {
 
     }
 
+
+    private int pickLatency() {
+        return (int) Math.min(latencyRange.getValue().getRandomInRange(), GRIM_MAX_LAG_MS);
+    }
+
+    // Distance from our eyes to where the server has the target, which is where Grim measures reach
+    private double serverDistance(TrackEntry entry) {
+        EntityPlayer target = entry.player;
+        AxisAlignedBB serverBox = target.getEntityBoundingBox().offset(
+                entry.vec3.xCoord - target.posX,
+                entry.vec3.yCoord - target.posY,
+                entry.vec3.zCoord - target.posZ);
+        Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
+        double x = MathHelper.clamp_double(eyes.xCoord, serverBox.minX, serverBox.maxX);
+        double y = MathHelper.clamp_double(eyes.yCoord, serverBox.minY, serverBox.maxY);
+        double z = MathHelper.clamp_double(eyes.zCoord, serverBox.minZ, serverBox.maxZ);
+        return eyes.distanceTo(new Vec3(x, y, z));
+    }
 
     @Override
     public void onEnable() {
@@ -129,7 +153,7 @@ public class BackTrack extends Module {
         tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
                 target,
                 target.getPositionVector(),
-                (int) latencyRange.getValue().getRandomInRange()
+                pickLatency()
         ));
     };
 
@@ -153,7 +177,7 @@ public class BackTrack extends Module {
         tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
                 target,
                 target.getPositionVector(),
-                (int) latencyRange.getValue().getRandomInRange()
+                pickLatency()
         ));
 
     };
@@ -172,7 +196,8 @@ public class BackTrack extends Module {
 
             boolean shouldRemove = false;
             if (backtrackMode.getValue() == BacktrackMode.NORMAL) {
-                shouldRemove = RotationUtils.getDistanceToEntityBox(target) > 3.0;
+                // Grim checks reach against the server position, so stop once that is out of reach
+                shouldRemove = serverDistance(entry) > REACH_LIMIT;
             } else if (backtrackMode.getValue() == BacktrackMode.PULSE) {
                 shouldRemove = System.currentTimeMillis() - entry.trackStart > entry.latency;
             }
