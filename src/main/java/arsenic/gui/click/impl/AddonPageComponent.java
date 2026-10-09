@@ -35,7 +35,7 @@ import java.util.function.Supplier;
  * What the ClickGUI shows while the Addon Manager is open, laid out like the module view. The category column becomes
  * a list of "All addons", every pack, "Loose addons" and (when something failed to load) "Errors", grouped and drawn
  * like the module categories, and scrollable when it does not fit. The main area shows the selected pack's header
- * (icon, description, Enable all / Disable all) and then its addons in two columns, each drawn like a module: a switch
+ * (icon, description and how many of its addons are on) and then its addons in two columns, each drawn like a module: a switch
  * on the right, and a dropdown (chevron or right click) with the description and what it needs. Typing in the search
  * box searches every addon, whatever is selected.
  */

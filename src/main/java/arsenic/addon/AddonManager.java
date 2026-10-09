@@ -512,20 +512,6 @@ public final class AddonManager {
         }
     }
 
-    /** Installing a pack enables all of its addons (unpacking a bundled pack first); uninstalling disables them. */
-    public synchronized void setPackEnabled(PackInfo pack, boolean enable) throws java.io.IOException {
-        if (!pack.installed)
-            extractBundledPack(pack.meta, false);
-        File impl = implDirectory(pack.meta.id);
-        for (Info info : pack.addons)
-            rename(findDirectory(impl, info.name), info.name, enable, null);
-        if (enable)
-            enableRequirements();
-        else
-            for (Info info : pack.addons)
-                disableDependents(pack.meta.id + "/" + info.name);
-    }
-
     /** What an addon of a pack needs, from the pack's requires, as "pack/Addon". */
     private static List<String> requirements(AddonCatalog.PackMeta pack, String addon) {
         List<String> needs = pack.requires == null ? null : pack.requires.get(addon);

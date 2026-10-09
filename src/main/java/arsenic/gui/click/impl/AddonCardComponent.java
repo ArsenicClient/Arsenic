@@ -37,7 +37,7 @@ import java.util.Locale;
  * One block in the Addon Manager. An addon is drawn exactly like a module row (chevron, name, the module on/off
  * switch); opening it with the chevron or a right click shows its description, its pack, what it needs and, while
  * it is on, its settings. The page also uses this class for the full-width blocks above the rows: the selected pack's
- * header (icon, description, Enable all / Disable all), a plain section header, or a load error.
+ * header (icon, description and how many addons are on), a plain section header, or a load error.
  */
 public class AddonCardComponent extends Component implements IContainer<PropertyComponent<?>>, IAlwaysKeyboardInput {
 
@@ -53,9 +53,8 @@ public class AddonCardComponent extends Component implements IContainer<Property
 
     private float pixelWidth = 100f;
     private float contentH = 1f;
-    private float pad, lh, icon, btnH;
+    private float pad, lh, icon;
     private List<String> lines = new ArrayList<>();
-    private float btnX1, btnY1, btnX2, btnY2;
 
     // addon rows
     private boolean open, binding;
@@ -213,7 +212,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
         pad = gh / 100f * 1.5f;
         lh = fr.getHeight("Ag") + 1.5f;
         icon = lh * 2.4f;
-        btnH = lh * 1.35f;
         switch (kind) {
             case PACK:
                 lines = wrap(fr, body(), pixelWidth - pad * 2.5f);
@@ -234,7 +232,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
             return drawAddon(ri, fr);
         height = contentH;
         y2 = y1 + height;
-        btnX1 = btnX2 = btnY1 = btnY2 = 0;
         if (kind == Kind.PACK)
             drawPack(ri, fr);
         else if (kind == Kind.SECTION)
@@ -257,12 +254,9 @@ public class AddonCardComponent extends Component implements IContainer<Property
 
         float tx = ix + icon + pad * 0.8f;
         int enabled = pack.enabledCount();
-        boolean all = pack.allEnabled();
         fr.drawString(pack.meta.name, tx, iy + icon * 0.3f, UITheme.textPrimary(), fr.CENTREY);
         String status = enabled + " of " + pack.addons.size() + " on" + (pack.installed ? "" : "  (not installed)");
         fr.drawString(status, tx, iy + icon * 0.74f, enabled > 0 ? UITheme.accent() : UITheme.textMuted(), fr.CENTREY);
-
-        drawPill(ri, fr, all ? "Disable all" : "Enable all", x2 - pad, iy + icon / 2f, !all);
 
         float y = iy + icon + pad * 0.6f;
         for (int i = 0; i < lines.size(); i++)
@@ -386,31 +380,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
             fr.drawString(lines.get(i), tx, y + lh + i * lh + lh / 2f, 0xFFFF8888, fr.CENTREY);
     }
 
-    /** A pill button with its right edge at {@code rightX}; remembers its area for clicks. */
-    private void drawPill(RenderInfo ri, FontRendererExtension<?> fr, String label, float rightX, float midY, boolean primary) {
-        float w = Math.max(fr.getWidth("Disable all"), fr.getWidth(label)) + btnH * 1.1f;
-        btnX1 = rightX - w;
-        btnX2 = rightX;
-        btnY1 = midY - btnH / 2f;
-        btnY2 = midY + btnH / 2f;
-        boolean over = MathUtils.inside(ri.getMouseX(), ri.getMouseY(), btnX1, btnY1, btnX2, btnY2);
-        float radius = btnH / 2f;
-        if (primary) {
-            DrawUtils.drawGradientRoundedRect(btnX1, btnY1, btnX2, btnY2, radius,
-                    UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
-            DrawUtils.drawRoundedOutline(btnX1, btnY1, btnX2, btnY2, radius, 1f,
-                    UITheme.alpha(ThemeManager.getWhite(), over ? 150 : 60));
-            fr.drawString(label, (btnX1 + btnX2) / 2f, midY, ThemeManager.getWhite(), fr.CENTREX, fr.CENTREY);
-        } else {
-            UITheme.surface(btnX1, btnY1, btnX2, btnY2, radius, UITheme.alpha(0x000000, over ? 190 : 150),
-                    UITheme.Elevation.RAISED, 0.6f);
-            DrawUtils.drawRoundedOutline(btnX1, btnY1, btnX2, btnY2, radius, 1f,
-                    UITheme.alpha(ThemeManager.getWhite(), over ? 150 : 70));
-            fr.drawString(label, (btnX1 + btnX2) / 2f, midY,
-                    over ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200), fr.CENTREX, fr.CENTREY);
-        }
-    }
-
     /** A texture path (textures/...) is drawn flat; anything else is an item id drawn like an inventory slot. */
     public static void drawIcon(String icon, float x, float y, float size) {
         if (icon == null)
@@ -485,16 +454,6 @@ public class AddonCardComponent extends Component implements IContainer<Property
             switchComponent.handleClick(mouseX, mouseY, mouseButton);
             return;
         }
-        if (kind != Kind.PACK || mouseButton != 0 || btnX2 <= btnX1 || !MathUtils.inside(mouseX, mouseY, btnX1, btnY1, btnX2, btnY2))
-            return;
-        SoundUtils.chordClick();
-        AddonManager manager = Arsenic.getArsenic().getAddonManager();
-        try {
-            manager.setPackEnabled(pack, !pack.allEnabled());
-        } catch (IOException e) {
-            Arsenic.getArsenic().getLogger().error("Could not change " + pack.meta.name, e);
-        }
-        refreshPage();
     }
 
     /** Re-reads which addon files are on, so the counts are right. Nothing is loaded or compiled; Reload does that. */
