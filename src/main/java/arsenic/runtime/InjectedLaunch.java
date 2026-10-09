@@ -1,6 +1,7 @@
 package arsenic.runtime;
 
 import arsenic.gui.ArsenicSplash;
+import arsenic.gui.click.GuiStyle;
 import arsenic.module.impl.visual.custommainmenu.CustomMenu;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.capture.SilentView;
@@ -112,7 +113,7 @@ public final class InjectedLaunch {
             stage(0.8f, "Hooking game", status);
             installHooks.run();
             // the title screen is already up: the hooks only swap screens that are shown after they are in place
-            if (currentScreen() instanceof GuiMainMenu && arsenic.gui.click.GuiStyle.customMenus())
+            if (currentScreen() instanceof GuiMainMenu && GuiStyle.customMenus())
                 CustomMenu.display();
             ArsenicSplash.progress(1f, "Ready");
         } finally {
