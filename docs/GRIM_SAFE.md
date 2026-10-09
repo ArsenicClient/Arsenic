@@ -65,7 +65,7 @@ right-click or a release.
 | `BlockHit` TwoSword | Removed | The mode was removed. Its swap-while-blocking pattern is what `PacketOrderE` and `MultiActionsA` flag. |
 | `JumpReset` | Jumps before the knockback is applied | Jumping after the velocity packet overwrote the knockback's Y speed, which flagged `AntiKB` and then `Simulation` (the decay is vertical drag, 0.98). The jump now runs when the packet arrives, so the server's Y speed applies on top. Unverified. |
 | `KnockbackDelay` | Still flags (unverified) | Holds all outgoing packets for up to 300 ms, in order. Holding only movement let swings and attacks overtake it, which flagged `Post`. Holding everything still makes the client's position arrive late, so `Simulation` can flag while attacking. |
-| `BackTrack` | Partly safe | Lag is capped at 150 ms (Grim's 3-tick interpolation window), and tracking stops once the server position is out of reach (2.95). Hits on a stale position still rely on Grim's interpolation window, so it can still flag `Hitboxes` (unverified). |
+| `BackTrack` | Partly safe | Latency is capped at 100 ms (two ticks, inside Grim's three-tick interpolation window) in both the slider and the code. Pulse mode is removed. Tracking stops once the server position is 2.95 blocks away. Hits on a stale position still rely on Grim's interpolation window, so it can still flag `Hitboxes` (unverified). |
 | `SprintReset` | Risky | Changes sprint state around attacks. `SprintB`, `SprintC` and `PacketOrderF` check this. |
 | `LagManager` incoming delay | **Unsafe for combat** | Breaks the knockback sandwich and transaction order. |
 | `LagManager` outgoing hold / `acquire` (blink) | Risky | Bursts trip `Timer` and `TimerLimit`. Keep holds short. |

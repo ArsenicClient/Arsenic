@@ -40,20 +40,15 @@ public class BackTrack extends Module {
     private static final Predicate<Packet<?>> ALL_TRACKED =
             p -> p instanceof S14PacketEntity || p instanceof S18PacketEntityTeleport;
 
-    // Grim interpolates living entities over 3 ticks and only accepts hits on positions inside that window
-    private static final long GRIM_MAX_LAG_MS = 150L;
+    // Grim interpolates living entities over 3 ticks and only accepts hits on positions inside that window. 100 ms
+    // (2 ticks) leaves one tick of margin for jitter. The slider and the clamp both use this, so settings cannot go past it.
+    private static final long GRIM_MAX_LAG_MS = 100L;
+    private static final long GRIM_MIN_LAG_MS = 10L;
     // Grim's reach limit is 3.0; stay just inside it against the server position
     private static final double REACH_LIMIT = 2.95;
 
-    public enum BacktrackMode {NORMAL, PULSE}
-    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
-    public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
+    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(GRIM_MIN_LAG_MS, GRIM_MAX_LAG_MS, 40, 80, 10), SliderScale.LOG);
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
-
-    @Override
-    public String getHudInfo() {
-        return backtrackMode.getValue().name().toLowerCase();
-    }
 
     private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();
 
@@ -61,20 +56,19 @@ public class BackTrack extends Module {
         volatile Vec3 vec3;
         final int latency;
         final EntityPlayer player;
-        final long trackStart;
 
         TrackEntry(EntityPlayer player, Vec3 vec3, int latency) {
             this.player = player;
             this.vec3 = vec3;
             this.latency = latency;
-            trackStart = System.currentTimeMillis();
         }
 
     }
 
 
     private int pickLatency() {
-        return (int) Math.min(latencyRange.getValue().getRandomInRange(), GRIM_MAX_LAG_MS);
+        long picked = (long) latencyRange.getValue().getRandomInRange();
+        return (int) Math.max(GRIM_MIN_LAG_MS, Math.min(picked, GRIM_MAX_LAG_MS));
     }
 
     // Distance from our eyes to where the server has the target, which is where Grim measures reach
@@ -145,7 +139,6 @@ public class BackTrack extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventAttack> eventAttack = event -> {
-        if(backtrackMode.getValue() != BacktrackMode.NORMAL) return;
         if (!(event.getTarget() instanceof EntityPlayer)) return;
 
         EntityPlayer target = (EntityPlayer) event.getTarget();
@@ -160,30 +153,6 @@ public class BackTrack extends Module {
 
     @RequiresPlayer
     @EventLink
-    public final Listener<EventPacket.Incoming.Pre> listener = event -> {
-        if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
-        if (!(event.getPacket() instanceof S19PacketEntityStatus)) return;
-
-        S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
-        if (packet.getOpCode() != 2) return;
-
-        Entity entity = packet.getEntity(mc.theWorld);
-        if (!(entity instanceof EntityPlayer)) return;
-
-        EntityPlayer target = (EntityPlayer) entity;
-        if (entity == mc.thePlayer) return;
-        if (RotationUtils.getDistanceToEntityBox(target) >= 3.0) return;
-
-        tracked.computeIfAbsent(target.getEntityId(), id -> new TrackEntry(
-                target,
-                target.getPositionVector(),
-                pickLatency()
-        ));
-
-    };
-
-    @RequiresPlayer
-    @EventLink
     public final Listener<EventTick> eventTick = event -> {
         if (tracked.isEmpty())
             return;
@@ -194,13 +163,8 @@ public class BackTrack extends Module {
             int entityId = target.getEntityId();
 
 
-            boolean shouldRemove = false;
-            if (backtrackMode.getValue() == BacktrackMode.NORMAL) {
-                // Grim checks reach against the server position, so stop once that is out of reach
-                shouldRemove = serverDistance(entry) > REACH_LIMIT;
-            } else if (backtrackMode.getValue() == BacktrackMode.PULSE) {
-                shouldRemove = System.currentTimeMillis() - entry.trackStart > entry.latency;
-            }
+            // Grim checks reach against the server position, so stop once that is out of reach
+            boolean shouldRemove = serverDistance(entry) > REACH_LIMIT;
 
             if (shouldRemove) {
                 LagManager.releaseDelayedFor(BackTrack.class, filterFor(entityId));
