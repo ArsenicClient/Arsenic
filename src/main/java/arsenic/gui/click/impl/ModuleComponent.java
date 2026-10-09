@@ -25,7 +25,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
     private boolean open, binding;
-    private Module self;
+    private final ModuleSource self;
     private PosInfo posInfo;
 
     private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
@@ -55,9 +55,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private final String name;
 
     public ModuleComponent(@NotNull Module self) {
-        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+        this(ModuleSource.of(self));
+    }
+
+    public ModuleComponent(@NotNull ModuleSource self) {
         this.self = self;
         this.name = self.getName();
+        self.getProperties().forEach(property -> contents.add(property.createComponent()));
     }
 
     @Override
@@ -230,7 +234,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
                 || (description != null && description.toLowerCase(java.util.Locale.ROOT).contains(query));
     }
 
-    public final Module getModule() { return self; }
+    public final arsenic.module.ModuleTier getTier() { return self.getTier(); }
 
     @Override
     public int getWidth(int i) {

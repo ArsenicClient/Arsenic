@@ -48,7 +48,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     /** Results for the query in {@link #builtFor}; rebuilt whenever the query changes. */
     private final List<Component> resultsL = new ArrayList<>(), resultsR = new ArrayList<>();
     private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
-    private final Map<String, AddonCardComponent> addonRows = new HashMap<>();
+    private final Map<String, AddonRow> addonRows = new HashMap<>();
     private String builtFor;
 
     int x,y;
@@ -167,11 +167,9 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
             if (!module.isAddon() && ModuleComponent.matches(module, q))
                 found.add(moduleRow(module));
         if (!q.isEmpty()) {
-            for (AddonManager.Info info : addonInfos()) {
-                AddonCardComponent row = addonRow(info);
-                if (row.matches(q))
-                    found.add(row);
-            }
+            for (AddonManager.Info info : addonInfos())
+                if (AddonSource.matches(info, q))
+                    found.add(addonRow(info).component());
         }
         for (Component component : found)
             (resultsL.size() <= resultsR.size() ? resultsL : resultsR).add(component);
@@ -181,14 +179,13 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         return moduleRows.computeIfAbsent(module, ModuleComponent::new);
     }
 
-    private AddonCardComponent addonRow(AddonManager.Info info) {
+    private AddonRow addonRow(AddonManager.Info info) {
         String key = (info.pack == null ? "" : info.pack.id) + "/" + info.name;
-        AddonCardComponent row = addonRows.get(key);
+        AddonRow row = addonRows.get(key);
         if (row == null)
-            addonRows.put(key, row = AddonCardComponent.addon(info));
+            addonRows.put(key, row = new AddonRow(info));
         else
             row.update(info);
-        row.setShowPack(true);
         return row;
     }
 

@@ -60,7 +60,7 @@ refreshListing();
 
     private boolean isListed(ModuleComponent module) {
         return !followsMoreToggle()
-                || GuiStyle.get().isTierShown(module.getModule().getTier());
+                || GuiStyle.get().isTierShown(module.getTier());
     }
 
     public void refreshListing() {

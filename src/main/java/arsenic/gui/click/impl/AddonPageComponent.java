@@ -58,7 +58,7 @@ public class AddonPageComponent {
     private float sideX1, sideY1, sideX2, sideY2;
 
     /** Addon rows by "pack/name", kept across reloads so their switches and dropdowns keep their state. */
-    private final Map<String, AddonCardComponent> rows = new HashMap<>();
+    private final Map<String, AddonRow> rows = new HashMap<>();
     /** Module rows for search results, kept like the addon rows so their state survives typing. */
     private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
     private List<AddonCardComponent> blocks = new ArrayList<>();
@@ -139,15 +139,15 @@ public class AddonPageComponent {
         laidOutFor = null;
     }
 
-    private AddonCardComponent row(AddonManager.Info info, boolean showPack) {
+    /** An addon as a module row: the same row a module gets, kept across layouts. */
+    private ModuleComponent row(AddonManager.Info info) {
         String key = (info.pack == null ? "" : info.pack.id) + "/" + info.name;
-        AddonCardComponent row = rows.get(key);
+        AddonRow row = rows.get(key);
         if (row == null)
-            rows.put(key, row = AddonCardComponent.addon(info));
+            rows.put(key, row = new AddonRow(info));
         else
             row.update(info);
-        row.setShowPack(showPack);
-        return row;
+        return row.component();
     }
 
     private ModuleComponent moduleRow(Module module) {
@@ -168,9 +168,8 @@ public class AddonPageComponent {
             }
             int addonHits = 0;
             for (AddonManager.Info info : addons) {
-                AddonCardComponent r = row(info, true);
-                if (r.matches(q)) {
-                    list.add(r);
+                if (AddonSource.matches(info, q)) {
+                    list.add(row(info));
                     addonHits++;
                 }
             }
@@ -182,12 +181,12 @@ public class AddonPageComponent {
             top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Turned on addons show up in "
                     + "their module category in the ClickGUI. Open an addon (arrow or right click) to read what it does."));
             for (AddonManager.Info info : addons)
-                list.add(row(info, true));
+                list.add(row(info));
         } else if (selected.equals(LOOSE)) {
             top.add(AddonCardComponent.section("Loose addons", "Single .java files in the Arsenic/addons folder that are "
                     + "not part of a pack."));
             for (AddonManager.Info info : loose)
-                list.add(row(info, false));
+                list.add(row(info));
         } else if (selected.equals(ERRORS)) {
             top.add(AddonCardComponent.section("Errors", "Problems from the last time addons were loaded. An addon that "
                     + "fails to compile is not loaded; the others still are."));
@@ -198,7 +197,7 @@ public class AddonPageComponent {
             if (pack != null) {
                 top.add(AddonCardComponent.pack(pack));
                 for (AddonManager.Info info : pack.addons)
-                    list.add(row(info, false));
+                    list.add(row(info));
             }
         }
         blocks = top;
