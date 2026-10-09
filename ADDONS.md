@@ -1263,13 +1263,14 @@ pit/
 slot (`minecraft:clock`, `minecraft:wool@14`). `autoInstall` packs are installed and enabled the first time the client
 runs.
 
-Enabled addons are compiled together, so an addon can use another addon's classes only while that addon is enabled.
+Every addon in the folder is compiled together, so an addon can use another addon's classes.
 `requires` (optional) lists, per addon, the addons it uses: a bare name is an addon of the same pack, `pack/Addon` one
 of another pack. Enabling an addon enables what it needs, installing a bundled pack if the needed addon is in one, and
 disabling an addon disables the addons that need it. The Addon Manager shows the needs on each addon's card. Only
 pack addons can declare needs, and only pack addons can be needed. Installed packs live in `Arsenic/addons/packs/<id>/`; drop a pack `.zip`
 into `Arsenic/addons/packs/` and it is unpacked into a folder of the same name on the next reload (the zip is
-renamed to `.zip.imported`). An addon file ending in `.java.disabled` is not loaded.
+renamed to `.zip.imported`). Files ending in `.java.disabled` are loaded too; whether an addon's module is on comes from
+the config, like any module.
 
 ## Default addons and the Addon Manager
 
@@ -1291,11 +1292,11 @@ new version adds to an already installed pack appear in it automatically (disabl
 Click **Addon Manager** in the ClickGUI's bottom right corner: the category column lists **All addons**, every pack
 and any loose addons, and the main area shows the selected list's addons in two columns. Each addon is drawn and
 behaves exactly like a module row: the switch turns its module on and off, opening it (arrow or right click) shows its
-description and settings, and it has a keybind and a Hidden chip. An addon that is not loaded yet is loaded the moment
-you switch it on, open it, bind it or hide it; `.toggle`, `.enable` and `.<Addon> <setting> <value>` load it the same
-way. Turning an addon off leaves it loaded, like a module that is off. Addons are not listed in the module categories;
-find them in the Addon Manager or with the search box. **Reload addons** (or `.addon reload`) recompiles everything,
-e.g. after you edit a file.
+description and settings, and it has a keybind and a Hidden chip. `.toggle`, `.enable` and `.<Addon> <setting> <value>`
+work on it too. Addons are only loaded when the game starts or Arsenic is injected, by **Reload addons** and by
+`.addon reload`, and every addon in the folder is loaded, on or off. An addon added since then, or one that does not
+compile (see Errors), has no module until the next reload. Addons are not listed in the module categories; find them
+in the Addon Manager or with the search box.
 
 `registerCommand(new MyCommand())` (see the cookbook), `allowsTarget(player)` and `isSwappingHotbar()` are the hooks
 beyond a plain module; see [Module basics](#module-basics).

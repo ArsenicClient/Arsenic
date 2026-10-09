@@ -115,24 +115,6 @@ public final class AddonManager {
         return null;
     }
 
-    /**
-     * An addon's module, loading the addon first when it is not loaded: its file is switched on (with whatever it
-     * needs) and the addons are reloaded. Null when it does not load; the reason is in {@link #getErrors()}.
-     */
-    public Module loadAddon(Info info) {
-        Module module = findLoadedModule(info.name);
-        if (module != null)
-            return module;
-        try {
-            setEnabled(info, true);
-        } catch (java.io.IOException e) {
-            Arsenic.getArsenic().getLogger().error("Could not turn on " + info.name, e);
-            return null;
-        }
-        reload();
-        return findLoadedModule(info.name);
-    }
-
     /** Every addon, loose ones and those in packs, installed or not. */
     public synchronized List<Info> listAll() {
         List<Info> all = new ArrayList<>(listLoose());
@@ -735,6 +717,9 @@ public final class AddonManager {
                 return;
 
             Module module = (Module) clazz.newInstance();
+            // every addon is loaded now, so a dev-tier one in a normal build is skipped quietly, not reported
+            if (module.getTier() == arsenic.module.ModuleTier.DEV && !ModuleManager.isDevBuild())
+                return;
             String problem = modules.registerExternal(module);
             if (problem != null) {
                 errors.add(className + ": " + problem);
@@ -772,12 +757,20 @@ public final class AddonManager {
         Map<String, String> sources = new TreeMap<>();
         Path root = directory.toPath();
         try (Stream<Path> files = Files.walk(root)) {
-            for (Path p : files.filter(f -> f.toString().endsWith(".java")).collect(Collectors.toList())) {
-                if (p.getFileName().toString().equals(".java")) {
+            // every addon is loaded, switched on or off, so each one is a module with its settings like any other;
+            // whether its module is on comes from the config
+            for (Path p : files.filter(f -> f.toString().endsWith(".java") || f.toString().endsWith(".java.disabled"))
+                    .collect(Collectors.toList())) {
+                String name = p.getFileName().toString();
+                if (name.equals(".java") || name.equals(".java.disabled")) {
                     errors.add(root.relativize(p) + ": the file needs a name, e.g. MyAddon.java for public class MyAddon");
                     continue;
                 }
-                sources.put(root.relativize(p).toString().replace('\\', '/'), new String(Files.readAllBytes(p), StandardCharsets.UTF_8));
+                String key = root.relativize(p).toString().replace('\\', '/');
+                if (key.endsWith(".disabled"))
+                    key = key.substring(0, key.length() - ".disabled".length());
+                if (!sources.containsKey(key) || p.toString().endsWith(".java"))
+                    sources.put(key, new String(Files.readAllBytes(p), StandardCharsets.UTF_8));
             }
         }
         return sources;

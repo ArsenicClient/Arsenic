@@ -11,9 +11,9 @@ import arsenic.module.ModuleTier;
 import arsenic.module.property.Property;
 
 /**
- * An addon as a module row. Every value comes from its module, so the row behaves like any module's. An addon that is
- * not loaded yet is loaded as soon as the row needs its module: when it is switched on, opened to show its settings,
- * bound or hidden.
+ * An addon as a module row. Every value comes from its module, so the row behaves like any module's. Addons are only
+ * loaded at start-up, on injection, by Reload addons and by .addon reload; until then (or when it fails to compile)
+ * the row has no module, its switch stays off and the dropdown says so.
  */
 final class AddonSource implements ModuleSource {
 
@@ -30,11 +30,6 @@ final class AddonSource implements ModuleSource {
     /** The loaded module, or null while the addon is not loaded. */
     Module module() {
         return Arsenic.getArsenic().getAddonManager().findLoadedModule(info.name);
-    }
-
-    /** The module, loading the addon first if needed. Null when it does not load. */
-    private Module load() {
-        return Arsenic.getArsenic().getAddonManager().loadAddon(info);
     }
 
     static boolean matches(AddonManager.Info info, String query) {
@@ -54,7 +49,8 @@ final class AddonSource implements ModuleSource {
     @Override
     public String getDescription() {
         Module module = module();
-        return module != null ? module.getDescription() : info.description;
+        return module != null ? module.getDescription() : info.description
+                + " (Not loaded: press Reload addons, or see Errors if it does not compile.)";
     }
 
     @Override
@@ -71,9 +67,19 @@ final class AddonSource implements ModuleSource {
 
     @Override
     public void setEnabled(boolean enabled) {
-        Module module = enabled ? load() : module();
-        if (module != null)
+        Module module = module();
+        if (module != null) {
             module.setEnabled(enabled);
+            return;
+        }
+        // a bundled addon not in the folder yet: put it there so the next reload loads it
+        if (enabled && info.state == AddonManager.State.AVAILABLE) {
+            try {
+                Arsenic.getArsenic().getAddonManager().setEnabled(info, true);
+            } catch (java.io.IOException e) {
+                Arsenic.getArsenic().getLogger().error("Could not install " + info.name, e);
+            }
+        }
     }
 
     @Override
@@ -83,8 +89,6 @@ final class AddonSource implements ModuleSource {
 
     @Override
     public void setKeybind(int key) {
-        if (key != 0)
-            load();
         Arsenic.getArsenic().getAddonManager().setKeybind(info.name, key);
     }
 
@@ -96,14 +100,9 @@ final class AddonSource implements ModuleSource {
 
     @Override
     public void setHidden(boolean hidden) {
-        Module module = load();
+        Module module = module();
         if (module != null)
             module.setHidden(hidden);
-    }
-
-    @Override
-    public void prepare() {
-        load();
     }
 
     @Override

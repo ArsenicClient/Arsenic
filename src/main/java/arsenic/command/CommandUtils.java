@@ -19,19 +19,14 @@ import java.util.stream.Collectors;
 
 public final class CommandUtils {
 
-    /** A module by name. An addon is a module too: one that is not loaded yet is loaded, as the ClickGUI does. */
+    /** A loaded module by name; addons are modules once loaded (at start-up, injection or .addon reload). */
     public static arsenic.module.Module findModule(String name) {
-        arsenic.module.Module module = arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
-        if (module != null)
-            return module;
-        arsenic.addon.AddonManager addons = arsenic.main.Arsenic.getArsenic().getAddonManager();
-        arsenic.addon.AddonManager.Info info = addons.findAddon(name);
-        return info == null ? null : addons.loadAddon(info);
+        return arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
     }
 
     /** What to tell the player when {@link #findModule} finds nothing. */
     public static String missingModule(String name) {
-        return isAddon(name) ? name + " could not be loaded, see Errors in the Addon Manager" : name + " is not a valid module";
+        return isAddon(name) ? name + " is not loaded, run .addon reload (or see Errors in the Addon Manager)" : name + " is not a valid module";
     }
 
     /** True when there is an addon with this name. */

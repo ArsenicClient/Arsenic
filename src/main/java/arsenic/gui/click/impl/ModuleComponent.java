@@ -218,8 +218,6 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private void toggleOpen() {
         open = !open;
         SoundUtils.chordOpen();
-        if (open)
-            self.prepare();
         if (!open) {
             contents.forEach(component -> {
                 if (component instanceof arsenic.utils.interfaces.IAlwaysClickable)
