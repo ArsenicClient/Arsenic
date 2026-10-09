@@ -32,29 +32,17 @@ public final class GuiStyle implements ISerializable {
 
     public enum Preset {
 
-        CLEAN("Clean", "Flat surfaces, no shaders",
+        CLEAN("Performance", "No shaders, no shadows",
                 false, BgShader.AURORA, 0, 1f,
                 false, 0f, 100f,
-                true, 55, 60, 40,
-                false, true, Transition.FADE, 0.25f, LogoMode.MODERN),
+                false, 0, 0, 0,
+                false, false, Transition.FADE, 0.15f, LogoMode.MODERN),
 
         GLASS("Glass", "Frosted panels over a live backdrop",
                 true, BgShader.FIRESTORM, 45, 1f,
                 true, 1f, 55f,
                 true, 100, 100, 100,
-                true, true, Transition.BURN, 0.7f, LogoMode.CLASSIC),
-
-        OVERDONE("Overdone", "Every effect, turned up",
-                true, BgShader.SYNTHWAVE, 80, 1.6f,
-                true, 1.8f, 40f,
-                true, 170, 160, 280,
-                true, true, Transition.BURN, 1.2f, LogoMode.MODERN),
-
-        PERFORMANCE("Performance", "No shaders, no shadows",
-                false, BgShader.AURORA, 0, 1f,
-                false, 0f, 100f,
-                false, 0, 0, 0,
-                false, false, Transition.FADE, 0.15f, LogoMode.MODERN);
+                true, true, Transition.BURN, 0.7f, LogoMode.CLASSIC);
 
         public final String label, description;
 

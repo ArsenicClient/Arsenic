@@ -1356,6 +1356,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public void setHidden(boolean hidden);
     public String getDisplayName();
     public void setDisplayName(String displayName);
+    public boolean isAddon();
     public int getKeybind();
     public void setKeybind(int keybind);
     public Collection<Property<?>> getContents();
@@ -1387,7 +1388,7 @@ public @interface ModuleInfo {
 public enum ModuleCategory implements IContainer<Module>, IContainable {
     COMBAT, MOVEMENT, PLAYER, RENDER, CLIENT, CONFIGS, GUI, SEARCH;
     public String getName();
-    public Collection<Module> getContents();
+    /** Addons are left out here; they are reached from the Addon Manager and from search. */ public Collection<Module> getContents();
 }
 ```
 
@@ -1397,53 +1398,6 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
 public enum ModuleTier {
     LEGIT, BLATANT, DEV;
     public String getDisplayName();
-}
-```
-
-### arsenic.module.property.IReliable
-
-```java
-public interface IReliable {
-    Supplier<Boolean> valueCheck(String value);
-}
-```
-
-### arsenic.module.property.Property
-
-```java
-public abstract class Property<T> implements IContainable {
-    protected T value;
-    protected Module parent;
-    protected Supplier<Boolean> visible;
-    public void setParent(Module parent);
-    protected Property(T value);
-    public T getValue();
-    public void setValueSilently(T value);
-    public void setValue(T value);
-    public void onValueUpdate();
-    public void setVisible(Supplier<Boolean> visible);
-    public boolean isVisible();
-    public String getName();
-}
-```
-
-### arsenic.module.property.PropertyInfo
-
-```java
-public @interface PropertyInfo {
-    String reliesOn();
-    String value();
-}
-```
-
-### arsenic.module.property.SerializableProperty
-
-```java
-public abstract class SerializableProperty<T> extends Property<T> implements ISerializable {
-    protected String name;
-    protected SerializableProperty(String name, T value);
-    public String getJsonKey();
-    public String getName();
 }
 ```
 
@@ -1497,62 +1451,6 @@ public enum DisplayMode {
 }
 ```
 
-### arsenic.module.property.impl.EnumProperty
-
-```java
-public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
-    public EnumProperty(String name, T value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void nextMode();
-    public void prevMode();
-    public boolean setByName(String name);
-    public List<String> getModeNames();
-    public Supplier<Boolean> valueCheck(String value);
-}
-```
-
-### arsenic.module.property.impl.FolderProperty
-
-```java
-public class FolderProperty extends SerializableProperty<List<Property<?>>> {
-    public FolderProperty(String name, Property<?>... values);
-    public void loadFromJson(JsonObject obj);
-    public JsonObject saveInfoToJson(JsonObject obj);
-}
-```
-
-### arsenic.module.property.impl.SliderScale
-
-```java
-public enum SliderScale {
-    LINEAR, LOG;
-    public float toPercent(double v, double lo, double hi);
-    public double fromPercent(double pct, double lo, double hi);
-}
-```
-
-### arsenic.module.property.impl.StringProperty
-
-```java
-public class StringProperty extends Property<String> {
-    public StringProperty(String value);
-}
-```
-
-### arsenic.module.property.impl.TextProperty
-
-```java
-public class TextProperty extends SerializableProperty<String> {
-    public TextProperty(String name, String value);
-    public TextProperty(String name, String value, int maxLength);
-    public void setValue(String value);
-    public void setValueSilently(String value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-}
-```
-
 ### arsenic.module.property.impl.doubleproperty.DoubleProperty
 
 ```java
@@ -1577,6 +1475,31 @@ public class DoubleValue {
     public double getMaxBound();
     public double getMinBound();
     public void onUpdate();
+}
+```
+
+### arsenic.module.property.impl.EnumProperty
+
+```java
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
+    public EnumProperty(String name, T value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void nextMode();
+    public void prevMode();
+    public boolean setByName(String name);
+    public List<String> getModeNames();
+    public Supplier<Boolean> valueCheck(String value);
+}
+```
+
+### arsenic.module.property.impl.FolderProperty
+
+```java
+public class FolderProperty extends SerializableProperty<List<Property<?>>> {
+    public FolderProperty(String name, Property<?>... values);
+    public void loadFromJson(JsonObject obj);
+    public JsonObject saveInfoToJson(JsonObject obj);
 }
 ```
 
@@ -1613,6 +1536,84 @@ public class RangeValue {
     public double getMinBound();
     public double getRandomInRange();
     public void onUpdate();
+}
+```
+
+### arsenic.module.property.impl.SliderScale
+
+```java
+public enum SliderScale {
+    LINEAR, LOG;
+    public float toPercent(double v, double lo, double hi);
+    public double fromPercent(double pct, double lo, double hi);
+}
+```
+
+### arsenic.module.property.impl.StringProperty
+
+```java
+public class StringProperty extends Property<String> {
+    public StringProperty(String value);
+}
+```
+
+### arsenic.module.property.impl.TextProperty
+
+```java
+public class TextProperty extends SerializableProperty<String> {
+    public TextProperty(String name, String value);
+    public TextProperty(String name, String value, int maxLength);
+    public void setValue(String value);
+    public void setValueSilently(String value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+}
+```
+
+### arsenic.module.property.IReliable
+
+```java
+public interface IReliable {
+    Supplier<Boolean> valueCheck(String value);
+}
+```
+
+### arsenic.module.property.Property
+
+```java
+public abstract class Property<T> implements IContainable {
+    protected T value;
+    protected Module parent;
+    protected Supplier<Boolean> visible;
+    public void setParent(Module parent);
+    protected Property(T value);
+    public T getValue();
+    public void setValueSilently(T value);
+    public void setValue(T value);
+    public void onValueUpdate();
+    public void setVisible(Supplier<Boolean> visible);
+    public boolean isVisible();
+    public String getName();
+}
+```
+
+### arsenic.module.property.PropertyInfo
+
+```java
+public @interface PropertyInfo {
+    String reliesOn();
+    String value();
+}
+```
+
+### arsenic.module.property.SerializableProperty
+
+```java
+public abstract class SerializableProperty<T> extends Property<T> implements ISerializable {
+    protected String name;
+    protected SerializableProperty(String name, T value);
+    public String getJsonKey();
+    public String getName();
 }
 ```
 
@@ -2328,14 +2329,6 @@ public enum TickMode {
 }
 ```
 
-### arsenic.utils.timer.TimeUtils
-
-```java
-public final class TimeUtils {
-    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
-}
-```
-
 ### arsenic.utils.timer.Timer
 
 ```java
@@ -2351,6 +2344,14 @@ public class Timer {
     public long getElapsedTimeAsPercent();
     public long getTimeLeft();
     public boolean hasExceededTimeBy(long additionalThreshold);
+}
+```
+
+### arsenic.utils.timer.TimeUtils
+
+```java
+public final class TimeUtils {
+    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
 }
 ```
 
