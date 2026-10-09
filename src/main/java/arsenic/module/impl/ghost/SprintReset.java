@@ -1,6 +1,7 @@
 package arsenic.module.impl.ghost;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
+import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -100,8 +101,8 @@ public class SprintReset extends Module {
         UNSPRINT
     }
 
+    @SyntheticKey(SyntheticKeys.Key.SPRINT)
     private void resetSprint() {
         mc.thePlayer.setSprinting(false);
-        SyntheticKeys.press(SyntheticKeys.Key.SPRINT);
     }
 }

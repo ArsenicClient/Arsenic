@@ -1,6 +1,7 @@
 package arsenic.module.impl.blatant;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
+import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -176,8 +177,7 @@ public class KillAura extends Module {
                     resetAttackCycle();
                 } else {
                     mc.thePlayer.swingItem();
-                    mc.playerController.attackEntity(mc.thePlayer, hit);
-                    SyntheticKeys.press(SyntheticKeys.Key.LMB);
+                    attack(hit);
                     resetAttackCycle();
                 }
             } else if (hit == null && target != null
@@ -266,5 +266,10 @@ public class KillAura extends Module {
         float yawDelta = Math.abs(RotationUtils.getYawDifference(rots[0], event.getYaw()));
         float pitchDelta = Math.abs(rots[1] - event.getPitch());
         return Math.max(yawDelta, pitchDelta) / speed <= lookahead;
+    }
+
+    @SyntheticKey(SyntheticKeys.Key.LMB)
+    private void attack(Entity target) {
+        mc.playerController.attackEntity(mc.thePlayer, target);
     }
 }

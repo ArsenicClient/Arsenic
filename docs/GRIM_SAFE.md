@@ -62,7 +62,7 @@ right-click or a release.
 | `AutoWeapon` | Mostly safe | Swaps in the tick hook. It must not swap while using an item or attacking. |
 | `Clicker` / `KillAura` attacks | Risky | Attacks run from the frame loop and can land after movement (rule 1). |
 | `BlockHit` Legit | Risky | Holds the use key from the frame loop, so right-click packets can fall after movement. |
-| `BlockHit` TwoSword | **Not Grim safe** | Swaps while blocking (`PacketOrderE`), attacks while using an item (`MultiActionsA`), and sends use and dig packets from the frame loop. |
+| `BlockHit` TwoSword | Removed | The mode was removed. Its swap-while-blocking pattern is what `PacketOrderE` and `MultiActionsA` flag. |
 | `JumpReset` | Probably safe (unverified) | Direct jump in the tick hook. Ground and water are checked first. |
 | `KnockbackDelay` | Risky (unverified) | Holds movement and transaction replies for up to 300 ms. Watch `Timer` on release and `TransactionOrder`. |
 | `BackTrack` | Partly safe | Lag is capped at 150 ms (Grim's 3-tick interpolation window), and tracking stops once the server position is out of reach (2.95). Hits on a stale position still rely on Grim's interpolation window, so it can still flag `Hitboxes` (unverified). |
@@ -77,5 +77,11 @@ right-click or a release.
   Rule 1 assumes so.
 - Whether Grim tolerates a 300 ms outgoing hold on a 1.8 client without `Timer`. This is the main thing to test for
   KnockbackDelay.
-- Whether a two-sword sequence released into a single pre-movement tick (release, swap, attack, swap, re-block)
-  passes `PacketOrderE` and `MultiActionsA`. The source suggests it does, but I have not verified the exact order.
+- Whether any future two-sword style sequence (release, swap, attack, re-block in one pre-movement tick) passes
+  `PacketOrderE` and `MultiActionsA`. The mode was removed, so this is only relevant if it is rebuilt.
+
+## Synthetic key presses
+
+`@SyntheticKey(SyntheticKeys.Key.X)` on a method makes the class transformer add a `SyntheticKeys.press` call at the
+start of that method, so the Keystrokes HUD shows it. It only works on a method where every call is one press. Addon
+classes go through the same transform before they are defined, so the annotation works in addons too.

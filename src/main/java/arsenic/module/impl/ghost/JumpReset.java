@@ -1,6 +1,7 @@
 package arsenic.module.impl.ghost;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
+import arsenic.utils.keystrokes.SyntheticKey;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -93,9 +94,7 @@ public class JumpReset extends Module {
             return;
         if (!hitByPlayerMelee(requestedAt))
             return;
-        mc.thePlayer.motionY = JUMP_VELOCITY;
-        mc.thePlayer.isAirBorne = true;
-        SyntheticKeys.press(SyntheticKeys.Key.JUMP);
+        jump();
         if (sound.getValue())
             SoundUtils.playEvent("cmaj5", 1.5f);
     };
@@ -122,5 +121,11 @@ public class JumpReset extends Module {
         Item item = stack.getItem();
         return item instanceof ItemFishingRod || item instanceof ItemEgg || item instanceof ItemSnowball
                 || item instanceof ItemBow || item instanceof ItemEnderPearl || item instanceof ItemPotion;
+    }
+
+    @SyntheticKey(SyntheticKeys.Key.JUMP)
+    private void jump() {
+        mc.thePlayer.motionY = JUMP_VELOCITY;
+        mc.thePlayer.isAirBorne = true;
     }
 }
