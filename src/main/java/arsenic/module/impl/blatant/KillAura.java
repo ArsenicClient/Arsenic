@@ -51,6 +51,7 @@ public class KillAura extends Module {
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
     @PropertyInfo(reliesOn = "Auto Block", value = "Hypixel")
     public final BooleanProperty blockOnRightClickOnly = new BooleanProperty("Only On Right Click", true);
@@ -202,7 +203,7 @@ public class KillAura extends Module {
         if(target == null)
             return;
         int col = Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
-        RenderUtils.drawCircle(target, event.partialTicks, 0.7, col, 255);
+        RenderUtils.drawRing(target, event.partialTicks, 0.7, col, 255, circleStyle.getValue());
     };
 
     private Hitflick hitflick() {

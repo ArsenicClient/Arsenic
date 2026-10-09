@@ -464,7 +464,24 @@ public class RenderUtils extends UtilityClass {
     public static double ticks = 0;
     public static long lastFrame = 0;
 
+    public enum RingStyle {
+        /** A bobbing ring that fills down to the ground, with a faint edge line. */
+        CLASSIC,
+        /** The same bobbing ring with no fill: a bright line only. */
+        OUTLINE,
+        /** The classic ring, breathing in and out. */
+        PULSE,
+        /** A fixed ring at head height, no bobbing. */
+        HALO,
+        /** Dashes around the ground that turn slowly. */
+        SPIN
+    }
+
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
+        drawRing(entity, partialTicks, rad, colored, alpha, RingStyle.CLASSIC);
+    }
+
+    public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, RingStyle style) {
         ticks += .004 * (System.currentTimeMillis() - lastFrame);
 
         lastFrame = System.currentTimeMillis();
@@ -481,10 +498,36 @@ public class RenderUtils extends UtilityClass {
         glDisable(GL_DEPTH_TEST);
         glDepthMask(false);
         glShadeModel(GL_SMOOTH);
-        final double x = interpolate(entity.lastTickPosX, entity.posX, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosX;
-        final double y = interpolate(entity.lastTickPosY, entity.posY, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosY + Math.sin(ticks) + 1;
-        final double z = interpolate(entity.lastTickPosZ, entity.posZ, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosZ;
+        final double pt = ((IMixinMinecraft) mc).getTimer().renderPartialTicks;
+        final double x = interpolate(entity.lastTickPosX, entity.posX, pt) - mc.getRenderManager().viewerPosX;
+        final double baseY = interpolate(entity.lastTickPosY, entity.posY, pt) - mc.getRenderManager().viewerPosY;
+        final double z = interpolate(entity.lastTickPosZ, entity.posZ, pt) - mc.getRenderManager().viewerPosZ;
+        final double bob = baseY + Math.sin(ticks) + 1;
 
+        switch (style) {
+            case OUTLINE:
+                ringLine(x, bob, z, rad, colored, .9f * alpha, 2.5f, 0, PI2, 64);
+                break;
+            case PULSE:
+                drawClassic(x, bob, z, rad * (1 + 0.15 * Math.sin(ticks * 3)), colored, alpha);
+                break;
+            case HALO:
+                ringLine(x, baseY + entity.height + 0.1, z, rad * 0.75, colored, .7f * alpha, 1.5f, 0, PI2, 64);
+                break;
+            case SPIN:
+                drawSpin(x, baseY + 0.02, z, rad, colored, alpha);
+                break;
+            case CLASSIC:
+            default:
+                drawClassic(x, bob, z, rad, colored, alpha);
+                break;
+        }
+
+        glPopMatrix();
+        glPopAttrib();
+    }
+
+    private static void drawClassic(double x, double y, double z, double rad, int colored, float alpha) {
         glBegin(GL_TRIANGLE_STRIP);
 
         for (int seg = 0; seg <= 64; seg++) {
@@ -514,9 +557,31 @@ public class RenderUtils extends UtilityClass {
             glVertex3d(x - Math.sin(i * PI2 / 90) * rad, y, z + Math.cos(i * PI2 / 90) * rad);
         }
         glEnd();
+    }
 
-        glPopMatrix();
-        glPopAttrib();
+    // A circle line from angle `from` to `to` (radians) in `steps` segments, at a fixed height
+    private static void ringLine(double x, double y, double z, double rad, int colored, float alpha, float width,
+                                 double from, double to, int steps) {
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glLineWidth(width);
+        glBegin(GL_LINE_STRIP);
+        color2(colored, alpha);
+        for (int i = 0; i <= steps; i++) {
+            double a = from + (to - from) * i / steps;
+            glVertex3d(x + rad * Math.cos(a), y, z + rad * Math.sin(a));
+        }
+        glEnd();
+    }
+
+    // Twelve dashes that turn slowly around the ground
+    private static void drawSpin(double x, double y, double z, double rad, int colored, float alpha) {
+        int dashes = 12;
+        double spin = ticks * 1.5;
+        for (int d = 0; d < dashes; d++) {
+            double start = spin + d * Math.PI * 2 / dashes;
+            ringLine(x, y, z, rad, colored, .8f * alpha, 2.5f, start, start + Math.PI * 2 / dashes * 0.5, 4);
+        }
     }
 
 
