@@ -80,14 +80,20 @@ public class AddonCardComponent extends Component implements IContainer<Property
                 Arsenic.getArsenic().getConfigManager().saveConfig();
                 return;
             }
-            // not loaded yet: the switch turns the addon's file on or off, and Reload loads it
+            // not loaded yet: the switch turns the addon's file on or off. The file decides whether it is loaded,
+            // so switching it on loads it now, and it starts enabled
             AddonManager manager = Arsenic.getArsenic().getAddonManager();
             try {
                 manager.setEnabled(info, enabled);
             } catch (IOException e) {
                 Arsenic.getArsenic().getLogger().error("Could not change " + info.name, e);
+                return;
             }
-            refreshPage();
+            reload(manager);
+            Module loaded = manager.findLoadedModule(info.name);
+            if (loaded != null && enabled)
+                loaded.setEnabled(true);
+            Arsenic.getArsenic().getConfigManager().saveConfig();
         }
 
         @Override
@@ -492,13 +498,18 @@ public class AddonCardComponent extends Component implements IContainer<Property
             manager.setPackEnabled(pack, !pack.allEnabled());
         } catch (IOException e) {
             Arsenic.getArsenic().getLogger().error("Could not change " + pack.meta.name, e);
+            return;
         }
-        refreshPage();
+        reload(manager);
     }
 
-    /** A switch only renames the addon's file; the loaded addons change on Reload. This just re-reads the page. */
-    private static void refreshPage() {
-        Arsenic.getArsenic().getClickGuiScreen().refreshAddonPage();
+    /** Loads the addons that are on now. Each file change calls this, so nothing waits for the Reload button. */
+    private static void reload(AddonManager manager) {
+        try {
+            manager.reload();
+        } catch (Throwable t) {
+            Arsenic.getArsenic().getLogger().error("Addon reload failed", t);
+        }
     }
 
     @Override
