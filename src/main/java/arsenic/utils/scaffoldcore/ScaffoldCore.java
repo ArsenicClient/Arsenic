@@ -636,7 +636,7 @@ public final class ScaffoldCore {
                     presses.airborne();
                     return false;
                 }
-                syncPresses();
+                syncPresses(in.safety);
                 return presses.next(ticks -> willFallWithMargin(in, w, ticks), in.eagle, in.safety, diagonal(in), placed);
             }
             if (tun.noAirSneak && !in.onGround) return false;
@@ -657,7 +657,7 @@ public final class ScaffoldCore {
             in.moveStrafe /= in.moveScale;
         }
         try {
-            syncPresses();
+            syncPresses(in.safety);
             return presses.peek(ticks -> willFallWithMargin(in, w, ticks), in.eagle, in.safety, diagonal(in));
         } finally {
             in.moveForward = f;
@@ -665,10 +665,12 @@ public final class ScaffoldCore {
         }
     }
 
-    private void syncPresses() {
-        presses.hardLead = tun.hardLead;
+    // Safety is the lead in ticks (fractions included): shift when the fall is within that many ticks of motion.
+    // No minimum lead is forced above 1.0. tun.needLead still applies to the worst-case movement check.
+    private void syncPresses(double safety) {
+        presses.hardLead = safety;
         presses.leadCap = tun.eagleLeadCap;
-        presses.needLead = tun.needLead;
+        presses.needLead = 0;
         presses.holdScale = tun.eagleHoldScale;
         presses.minHold = tun.minHold;
         presses.releaseTicks = tun.releaseTicks;
