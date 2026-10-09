@@ -18,9 +18,6 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -236,10 +233,6 @@ public class BackTrack extends Module {
                 case FILLED:
                     RenderUtils.drawShadedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), 63);
                     break;
-                case WIREFRAME:
-                    GL11.glLineWidth(1.0F);
-                    drawWireframe(bb, color);
-                    break;
             }
         }
 
@@ -250,40 +243,6 @@ public class BackTrack extends Module {
         GL11.glLineWidth(1.0F);
         GlStateManager.popMatrix();
     };
-
-    // A lattice over the body: four rings and vertical lines at thirds of each side, so it reads differently from BOX
-    private static void drawWireframe(AxisAlignedBB bb, Color color) {
-        float r = color.getRed() / 255f, g = color.getGreen() / 255f, b = color.getBlue() / 255f, a = color.getAlpha() / 255f;
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer wr = tessellator.getWorldRenderer();
-        wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-
-        double w = bb.maxX - bb.minX;
-        double d = bb.maxZ - bb.minZ;
-        double h = bb.maxY - bb.minY;
-        for (int k = 0; k <= 3; k++) {
-            double y = bb.minY + h * k / 3.0;
-            line(wr, bb.minX, y, bb.minZ, bb.maxX, y, bb.minZ, r, g, b, a);
-            line(wr, bb.maxX, y, bb.minZ, bb.maxX, y, bb.maxZ, r, g, b, a);
-            line(wr, bb.maxX, y, bb.maxZ, bb.minX, y, bb.maxZ, r, g, b, a);
-            line(wr, bb.minX, y, bb.maxZ, bb.minX, y, bb.minZ, r, g, b, a);
-        }
-        for (int k = 1; k <= 2; k++) {
-            double x = bb.minX + w * k / 3.0;
-            line(wr, x, bb.minY, bb.minZ, x, bb.maxY, bb.minZ, r, g, b, a);
-            line(wr, x, bb.minY, bb.maxZ, x, bb.maxY, bb.maxZ, r, g, b, a);
-            double z = bb.minZ + d * k / 3.0;
-            line(wr, bb.minX, bb.minY, z, bb.minX, bb.maxY, z, r, g, b, a);
-            line(wr, bb.maxX, bb.minY, z, bb.maxX, bb.maxY, z, r, g, b, a);
-        }
-        tessellator.draw();
-    }
-
-    private static void line(WorldRenderer wr, double x1, double y1, double z1, double x2, double y2, double z2,
-                             float r, float g, float b, float a) {
-        wr.pos(x1, y1, z1).color(r, g, b, a).endVertex();
-        wr.pos(x2, y2, z2).color(r, g, b, a).endVertex();
-    }
 
     private static Predicate<Packet<?>> filterFor(int entityId) {
         return p -> {
@@ -297,6 +256,6 @@ public class BackTrack extends Module {
 
 
     public enum EspMode {
-        NONE, BOX, FILLED, WIREFRAME, MODEL
+        NONE, BOX, FILLED, MODEL
     }
 }
