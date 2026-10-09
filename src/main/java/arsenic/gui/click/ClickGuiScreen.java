@@ -261,6 +261,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         drawHudEditorButton(mouseX, mouseY);
         drawAddonManagerButton(mouseX, mouseY);
+        if (addonMode)
+            drawReloadButton(mouseX, mouseY);
         if (!addonMode)
             drawTierToggles(mouseX, mouseY);
 
@@ -294,7 +296,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         hudBtnX1 = margin;
         // sits above the tier pill(s) that take the corner below it
-        hudBtnY1 = height - margin - h - TIER_TOGGLES.length * h * 1.3f;
+        hudBtnY1 = height - margin - h;
         hudBtnX2 = margin + w;
         hudBtnY2 = hudBtnY1 + h;
 
@@ -345,6 +347,35 @@ public class ClickGuiScreen extends CustomGuiScreen {
         RenderUtils.resetColorText();
     }
 
+    private float reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2;
+
+    /** Top right, in the addon manager: loads the addons' current state (switches and binds apply here). */
+    private void drawReloadButton(int mouseX, int mouseY) {
+        String label = "Reload addons";
+        float pad = height / 100f * 1.6f;
+        float h = height / 100f * 4.2f;
+        float w = getFontRenderer().getWidth(label) + pad * 3f;
+        float margin = height / 100f * 2.5f;
+
+        reloadBtnX2 = width - margin;
+        reloadBtnX1 = reloadBtnX2 - w;
+        reloadBtnY1 = margin;
+        reloadBtnY2 = margin + h;
+
+        boolean hovered = MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
+        float radius = h / 2f;
+        DrawUtils.drawShadow(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius,
+                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha(hovered ? 170 : 110), 5);
+        DrawUtils.drawRoundedRect(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius,
+                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
+        DrawUtils.drawRoundedOutline(reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, radius, 1f,
+                ColorUtils.setColor(ThemeManager.getMainColor(), 0, hovered ? 220 : 120));
+        getFontRenderer().drawString(label, (reloadBtnX1 + reloadBtnX2) / 2f, (reloadBtnY1 + reloadBtnY2) / 2f,
+                hovered ? ThemeManager.getWhite() : ThemeManager.getTextSecondary(),
+                getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+        RenderUtils.resetColorText();
+    }
+
     private static final arsenic.module.ModuleTier[] TIER_TOGGLES = {
             arsenic.module.ModuleTier.BLATANT};
     private final float[][] tierRects = new float[TIER_TOGGLES.length][4];
@@ -379,7 +410,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
             arsenic.module.ModuleTier tier = TIER_TOGGLES[i];
             boolean locked = tier == arsenic.module.ModuleTier.LEGIT;
             float x1 = hudBtnX1, x2 = x1 + w;
-            float y1 = height - margin - h - (TIER_TOGGLES.length - 1 - i) * step, y2 = y1 + h;
+            // the tier pills stack above the HUD Editor button, which always sits in the bottom left corner
+            float y1 = height - margin - h - (i + 1) * step, y2 = y1 + h;
             tierRects[i][0] = x1;
             tierRects[i][1] = y1;
             tierRects[i][2] = x2;
@@ -453,6 +485,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
+        if (addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2)) {
+            arsenic.utils.java.SoundUtils.chordOpen();
+            Arsenic.getArsenic().getAddonManager().reload();
+            return;
+        }
         if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
             setAddonMode(!addonMode);
@@ -486,6 +523,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
         if(mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
             cmcc.clickChildren(mouseX, mouseY, mouseButton);
+    }
+
+    /** Re-reads the addons' on/off state after a switch renamed a file. Loaded addons only change on Reload. */
+    public void refreshAddonPage() {
+        addonPage.refresh();
     }
 
     public boolean isAddonMode() {

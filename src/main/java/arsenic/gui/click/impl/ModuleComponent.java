@@ -143,14 +143,17 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             UITheme.chip(ri.getFr(), self.getTier().getDisplayName(), x2 - pad, pi.getY() + tagH / 2f, tagH,
                     UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
             pi.moveY(tagH + pad * 0.3f);
-            // the description, as addon rows show it; same wrapping and colour
-            float lineH = ri.getFr().getHeight("Ag") + 1.5f;
-            for (String line : AddonCardComponent.wrap(ri.getFr(), self.getDescription(), x2 - x1 - pad * 2.2f)) {
-                ri.getFr().drawString(line, x1 + pad * 1.1f, pi.getY() + lineH / 2f,
-                        UITheme.alpha(UITheme.textSecondary(), (int) (255 * openPct)), ri.getFr().CENTREY);
-                pi.moveY(lineH);
+            // the description, as addon rows show it; same wrapping and colour. An empty one leaves no gap.
+            String description = self.getDescription();
+            if (description != null && !description.trim().isEmpty()) {
+                float lineH = ri.getFr().getHeight("Ag") + 1.5f;
+                for (String line : AddonCardComponent.wrap(ri.getFr(), description, x2 - x1 - pad * 2.2f)) {
+                    ri.getFr().drawString(line, x1 + pad * 1.1f, pi.getY() + lineH / 2f,
+                            UITheme.alpha(UITheme.textSecondary(), (int) (255 * openPct)), ri.getFr().CENTREY);
+                    pi.moveY(lineH);
+                }
+                pi.moveY(pad * 0.3f);
             }
-            pi.moveY(pad * 0.3f);
             for (PropertyComponent<?> child : contents)
                 pi.moveY(child.updateComponent(pi, ri) * 1.06f);
             pi.moveY(pad * 0.6f);

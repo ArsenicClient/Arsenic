@@ -81,7 +81,7 @@ public class AddonCardComponent extends Component implements IContainer<Property
             } catch (IOException e) {
                 Arsenic.getArsenic().getLogger().error("Could not change " + info.name, e);
             }
-            reload(manager);
+            refreshPage();
         }
 
         @Override
@@ -326,23 +326,24 @@ public class AddonCardComponent extends Component implements IContainer<Property
             drop.add("Pack: " + info.pack.name);
         if (!info.requires.isEmpty())
             drop.add("Needs: " + String.join(", ", info.requires));
-        float textH = rowPad * 1.2f + drop.size() * lineH;
+        // no lines, no gap: an addon without a description shows nothing where the text would be
+        float textH = drop.isEmpty() ? 0f : rowPad * 1.2f + drop.size() * lineH;
         contentHeight = textH + settingsHeight;
         if (openPct > 0.001f) {
             UITheme.divider(x1 + rowPad, y2, x2 - rowPad, openPct);
             ScissorUtils.subScissor((int) x1, (int) y2, (int) x2, (int) (y2 + expandY), 2);
-            float y = y2 + rowPad * 0.5f;
+            float y = y2 + (drop.isEmpty() ? 0f : rowPad * 0.5f);
             for (int i = 0; i < drop.size(); i++) {
                 int color = i < descLines ? UITheme.textSecondary() : UITheme.alpha(UITheme.accent(), 220);
                 fr.drawString(drop.get(i), x1 + rowPad * 1.1f, y + lineH / 2f, UITheme.alpha(color, (int) (255 * openPct)), fr.CENTREY);
                 y += lineH;
             }
             if (!contents.isEmpty()) {
-                arsenic.utils.render.PosInfo pi = new arsenic.utils.render.PosInfo(x1 + rowPad * 1.1f, y + rowPad * 0.3f);
+                arsenic.utils.render.PosInfo pi = new arsenic.utils.render.PosInfo(x1 + rowPad * 1.1f, y + (drop.isEmpty() ? 0f : rowPad * 0.3f));
                 float start = pi.getY();
                 for (PropertyComponent<?> child : contents)
                     pi.moveY(child.updateComponent(pi, ri) * 1.06f);
-                settingsHeight = rowPad * 0.3f + (pi.getY() - start);
+                settingsHeight = (drop.isEmpty() ? 0f : rowPad * 0.3f) + (pi.getY() - start);
                 contentHeight = textH + settingsHeight;
             }
             ScissorUtils.endSubScissor();
@@ -481,15 +482,12 @@ public class AddonCardComponent extends Component implements IContainer<Property
         } catch (IOException e) {
             Arsenic.getArsenic().getLogger().error("Could not change " + pack.meta.name, e);
         }
-        reload(manager);
+        refreshPage();
     }
 
-    private static void reload(AddonManager manager) {
-        try {
-            manager.reload();
-        } catch (Throwable t) {
-            Arsenic.getArsenic().getLogger().error("Addon reload failed", t);
-        }
+    /** A switch only renames the addon's file; the loaded addons change on Reload. This just re-reads the page. */
+    private static void refreshPage() {
+        Arsenic.getArsenic().getClickGuiScreen().refreshAddonPage();
     }
 
     @Override

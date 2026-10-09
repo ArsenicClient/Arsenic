@@ -664,7 +664,7 @@ public final class AddonManager {
         } catch (Exception ignored) {
             // unreadable file: fall through
         }
-        return "No description.";
+        return "";
     }
 
     /** Unloads whatever was loaded before, then compiles and registers everything in the addons folder. */
