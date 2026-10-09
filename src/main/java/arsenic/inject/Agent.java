@@ -138,8 +138,20 @@ public final class Agent {
         });
     }
 
+    /**
+     * One line for the injector: the real cause, not a reflection wrapper. A failed reflective call reports only
+     * "java.lang.reflect.InvocationTargetException", which says nothing about what failed.
+     */
     private static String describe(Throwable t) {
-        return t.getMessage() != null && t instanceof IllegalStateException ? t.getMessage() : t.toString();
+        if (t instanceof IllegalStateException && t.getMessage() != null)
+            return t.getMessage();
+        Throwable root = t;
+        while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
+                && root.getCause() != null)
+            root = root.getCause();
+        StackTraceElement[] frames = root.getStackTrace();
+        String where = frames.length > 0 ? " at " + frames[0] : "";
+        return root == t ? root + where : root + where + " (from " + t.getClass().getName() + ")";
     }
 
     // ---- waiting for the game (premain) ----

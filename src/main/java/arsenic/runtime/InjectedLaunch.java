@@ -71,7 +71,12 @@ public final class InjectedLaunch {
                     arsenic.getLogger().error("Injection failed", t);
                 else
                     t.printStackTrace();
-                status.accept("ERROR " + t);
+                Throwable root = t;
+                while ((root instanceof java.lang.reflect.InvocationTargetException || root instanceof ExceptionInInitializerError)
+                        && root.getCause() != null)
+                    root = root.getCause();
+                StackTraceElement[] frames = root.getStackTrace();
+                status.accept("ERROR " + root + (frames.length > 0 ? " at " + frames[0] : ""));
             }
         });
     }
