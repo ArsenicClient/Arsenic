@@ -25,7 +25,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
     private boolean open, binding;
-    private final ModuleSource self;
+    private ModuleSource self;
     private PosInfo posInfo;
 
     private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
