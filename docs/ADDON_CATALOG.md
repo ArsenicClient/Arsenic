@@ -162,7 +162,7 @@ No new module is needed for any ToDo item.
 | `blatant` | 1 | KillAura |
 | `ghost` | 13 | AimAssist, BackTrack (name "Backtrack"), BlockHit, Clicker, DoubleHit, LagRange (FakeLag class), SprintReset, NoHitDelay, JumpReset, HitSelect, Hitflick, KnockbackDelay, Reach |
 | `movement` | 3 | InvMove (DEV), NoJumpDelay, Sprint |
-| `world` | 5 | Breadcrumbs, BridgeAssist, Clutch, Scaffold, TellyScaffold |
+| `world` | 4 | BridgeAssist, Clutch, Scaffold, TellyScaffold |
 | `player` | 14 | AntiAFK, AutoBlockIn, AutoPot, AutoTool, AutoWeapon, Blink, ChatBypass, ChestStealer, FastBreak, Fastplace, InvManager, NameHider (RENDER), RageQuit, Refill |
 | `visual` | 13 | Pointers (Arrows class), BedPlates, ChestESP, Esp, FullBright, HUD, Nametags, NoHurtCam, PostProcessing (GUI tab), Radar, RotationView, TargetHUD, Trajectories |
 | `client` | 5 | Targets (TargetManager), Cape, AntiBot, Recorder, DiscordRPC |
