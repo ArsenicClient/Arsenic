@@ -145,7 +145,7 @@ public class HUD extends Module {
         if (showCoords.getValue() && mc.thePlayer != null)
             renderCoords(fr, accent);
         if (showKeybinds.getValue())
-            renderKeybinds(fr, accent);
+            renderKeybinds(fr);
         if (showPing.getValue())
             renderPing(fr, accent);
         if (showPotions.getValue() && mc.thePlayer != null)
@@ -339,7 +339,8 @@ public class HUD extends Module {
         fr.drawStringWithShadow(text, coords.x + pad + fr.getWidth("XYZ  "), coordsMid, color, fr.CENTREY);
     }
 
-    private void renderKeybinds(FontRendererExtension<?> fr, int color) {
+    /** Keybinds keep one colour for the enabled names, the theme's main colour, instead of the cycling rainbow. */
+    private void renderKeybinds(FontRendererExtension<?> fr) {
         List<Module> binds = Arsenic.getArsenic().getModuleManager().getModules().stream()
                 .filter(m -> m.getKeybind() != 0)
                 .sorted(Comparator.comparing(Module::getName))
@@ -363,7 +364,7 @@ public class HUD extends Module {
         float y = keybinds.y + pad * 0.75f + rowH / 2f;
         for (Module m : binds) {
             String key = GameSettings.getKeyDisplayString(m.getKeybind());
-            fr.drawStringWithShadow(m.getName(), keybinds.x + pad, y, m.isEnabled() ? color : ThemeManager.getTextMuted(), fr.CENTREY);
+            fr.drawStringWithShadow(m.getName(), keybinds.x + pad, y, m.isEnabled() ? ThemeManager.getMainColor() : ThemeManager.getTextMuted(), fr.CENTREY);
             fr.drawStringWithShadow(key, keybinds.x + w - pad - fr.getWidth(key), y, ThemeManager.getTextMuted(), fr.CENTREY);
             y += rowH;
         }

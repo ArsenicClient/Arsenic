@@ -25,7 +25,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
     private boolean open, binding;
-    private Module self;
+    private ModuleSource self;
     private PosInfo posInfo;
 
     private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
@@ -55,9 +55,19 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private final String name;
 
     public ModuleComponent(@NotNull Module self) {
-        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+        this(ModuleSource.of(self));
+    }
+
+    public ModuleComponent(@NotNull ModuleSource self) {
         this.self = self;
         this.name = self.getName();
+        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+    }
+
+    /** Builds the settings again from the source, for an addon whose module was loaded or reloaded. */
+    void refreshContents() {
+        contents.clear();
+        self.getProperties().forEach(property -> contents.add(property.createComponent()));
     }
 
     @Override
@@ -116,11 +126,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         boolean isHidden = self.isHidden();
         float hiddenChipRight = bindZoneX1 - pad * 0.6f;
         if (isHidden || hover > 0.02f) {
-            int hiddenChipFill = chipBacking(Math.max(hover, isHidden ? 1f : 0f), 0f);
-            int hiddenChipText = isHidden
-                    ? UITheme.textPrimary()
-                    : UITheme.alpha(UITheme.textMuted(), (int) (255 * Math.max(hover, 0.35f)));
-            float hiddenChipW = UITheme.chip(ri.getFr(), "Hidden",
+            // hidden: a grey "Hidden" chip; not hidden: a red "Hide" chip, shown while the row is hovered
+            float chipAlpha = isHidden ? 1f : hover;
+            int hiddenChipFill = UITheme.alpha(isHidden ? 0xFF6E6E6E : 0xFFD94040, (int) (200 * chipAlpha));
+            int hiddenChipText = UITheme.alpha(0xFFFFFFFF, (int) (255 * chipAlpha));
+            float hiddenChipW = UITheme.chip(ri.getFr(), isHidden ? "Hidden" : "Hide",
                     hiddenChipRight, midPointY, chipHeight, hiddenChipText, hiddenChipFill);
             hiddenZoneX2 = hiddenChipRight;
             hiddenZoneX1 = hiddenChipRight - hiddenChipW;
@@ -143,6 +153,17 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             UITheme.chip(ri.getFr(), self.getTier().getDisplayName(), x2 - pad, pi.getY() + tagH / 2f, tagH,
                     UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
             pi.moveY(tagH + pad * 0.3f);
+            // the description, as addon rows show it; same wrapping and colour. An empty one leaves no gap.
+            String description = self.getDescription();
+            if (description != null && !description.trim().isEmpty()) {
+                float lineH = ri.getFr().getHeight("Ag") + 1.5f;
+                for (String line : AddonCardComponent.wrap(ri.getFr(), description, x2 - x1 - pad * 2.2f)) {
+                    ri.getFr().drawString(line, x1 + pad * 1.1f, pi.getY() + lineH / 2f,
+                            UITheme.alpha(UITheme.textSecondary(), (int) (255 * openPct)), ri.getFr().CENTREY);
+                    pi.moveY(lineH);
+                }
+                pi.moveY(pad * 0.3f);
+            }
             for (PropertyComponent<?> child : contents)
                 pi.moveY(child.updateComponent(pi, ri) * 1.06f);
             pi.moveY(pad * 0.6f);
@@ -210,7 +231,16 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     public final String getName() { return name; }
 
-    public final Module getModule() { return self; }
+    /** Whether a module matches a search. {@code query} is already trimmed and lower case; empty matches everything. */
+    public static boolean matches(Module module, String query) {
+        if (query.isEmpty())
+            return true;
+        String description = module.getDescription();
+        return module.getName().toLowerCase(java.util.Locale.ROOT).contains(query)
+                || (description != null && description.toLowerCase(java.util.Locale.ROOT).contains(query));
+    }
+
+    public final arsenic.module.ModuleTier getTier() { return self.getTier(); }
 
     @Override
     public int getWidth(int i) {

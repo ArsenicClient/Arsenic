@@ -1,6 +1,6 @@
 # Arsenic addons
 
-Addons are modules written as plain `.java` files. Drop them in `.minecraft/Arsenic/addons/` and they are compiled
+Addons are modules written as plain `.java` files. Drop them in `~/Arsenic/addons/` (`C:\Users\<name>\Arsenic\addons` on Windows) and they are compiled
 and loaded when the client starts. No JDK, no jar, no obfuscation step.
 
 Contents: [Quick start](#quick-start) · [Platform facts](#platform-facts) · [Module basics](#module-basics) ·
@@ -72,7 +72,7 @@ Start from the [skeleton](#skeleton) or copy the [worked example](#worked-exampl
 - **What you can import:** whatever is on the game's classpath. That is Minecraft and Forge classes, LWJGL
   (`org.lwjgl.*`), Guava, Gson, Log4j, the JDK, and every `arsenic.*` class. Addons run with the game's full
   permissions and there is no sandbox.
-- **No mixins and no ASM in addons.** Mixins are applied once at game start, long before an addon is compiled. Addons are
+- **No mixins and no ASM in addons.** The client's hooks are applied once at injection, long before an addon is compiled. Addons are
   limited to the public Java surface of Minecraft plus the Arsenic API. For private Minecraft state use the accessor
   interfaces in `arsenic.injection.accessor` by casting (`((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw)`,
   `((IMixinEntityPlayerSP) mc.thePlayer).getLastReportedYaw()`); see the list in the [API reference](#api-reference-generated). A missing
@@ -206,7 +206,7 @@ notifications and have no effect when cancelled.
 
 ### Order inside one client tick
 
-Derived from the mixins in `arsenic.injection.mixin`:
+Derived from the hooks in `arsenic.runtime.hooks` (applied by `arsenic.inject.HookTransformer`):
 
 ```
 Minecraft.runTick (every 50 ms)
@@ -1263,13 +1263,14 @@ pit/
 slot (`minecraft:clock`, `minecraft:wool@14`). `autoInstall` packs are installed and enabled the first time the client
 runs.
 
-Enabled addons are compiled together, so an addon can use another addon's classes only while that addon is enabled.
+Every addon in the folder is compiled together, so an addon can use another addon's classes.
 `requires` (optional) lists, per addon, the addons it uses: a bare name is an addon of the same pack, `pack/Addon` one
 of another pack. Enabling an addon enables what it needs, installing a bundled pack if the needed addon is in one, and
 disabling an addon disables the addons that need it. The Addon Manager shows the needs on each addon's card. Only
 pack addons can declare needs, and only pack addons can be needed. Installed packs live in `Arsenic/addons/packs/<id>/`; drop a pack `.zip`
 into `Arsenic/addons/packs/` and it is unpacked into a folder of the same name on the next reload (the zip is
-renamed to `.zip.imported`). An addon file ending in `.java.disabled` is not loaded.
+renamed to `.zip.imported`). Files ending in `.java.disabled` are loaded too; whether an addon's module is on comes from
+the config, like any module.
 
 ## Default addons and the Addon Manager
 
@@ -1288,12 +1289,14 @@ so a default you **edited is never overwritten**; to take the new version, delet
 (installed before this tracking existed) is replaced after a backup is written next to it (`Name.java.bak`). Addons a
 new version adds to an already installed pack appear in it automatically (disabled unless the pack is `autoInstall`).
 
-Click **Addon Manager** in the ClickGUI's bottom right corner: the main card drops the logo and category column and
-shows cards in two columns (scrolled like a module category). The **Packs** and **Addons** buttons in the header
-switch between all packs and all addons. Left or right click a pack to open its page, which lists the pack's addons
-(its Install / Uninstall button handles the whole pack, each addon has its own Install / Uninstall, and a Back button returns to the list). The ClickGUI's
-search box filters whichever list is showing, and the bottom right button, now **ClickGUI**, goes back to modules.
-Every change reloads the addons straight away.
+Click **Addon Manager** in the ClickGUI's bottom right corner: the category column lists **All addons**, every pack
+and any loose addons, and the main area shows the selected list's addons in two columns. Each addon is drawn and
+behaves exactly like a module row: the switch turns its module on and off, opening it (arrow or right click) shows its
+description and settings, and it has a keybind and a Hidden chip. `.toggle`, `.enable` and `.<Addon> <setting> <value>`
+work on it too. Addons are only loaded when the game starts or Arsenic is injected, by **Reload addons** and by
+`.addon reload`, and every addon in the folder is loaded, on or off. An addon added since then, or one that does not
+compile (see Errors), has no module until the next reload. Addons are not listed in the module categories; find them
+in the Addon Manager or with the search box.
 
 `registerCommand(new MyCommand())` (see the cookbook), `allowsTarget(player)` and `isSwappingHotbar()` are the hooks
 beyond a plain module; see [Module basics](#module-basics).
@@ -1356,6 +1359,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public void setHidden(boolean hidden);
     public String getDisplayName();
     public void setDisplayName(String displayName);
+    public boolean isAddon();
     public int getKeybind();
     public void setKeybind(int keybind);
     public Collection<Property<?>> getContents();
@@ -1387,7 +1391,7 @@ public @interface ModuleInfo {
 public enum ModuleCategory implements IContainer<Module>, IContainable {
     COMBAT, MOVEMENT, PLAYER, RENDER, CLIENT, CONFIGS, GUI, SEARCH;
     public String getName();
-    public Collection<Module> getContents();
+    /** Addons are left out here; they are reached from the Addon Manager and from search. */ public Collection<Module> getContents();
 }
 ```
 
@@ -2010,8 +2014,7 @@ public @interface CommandInfo {
 
 ```java
 public class Arsenic {
-    public void init(FMLInitializationEvent event);
-    /** Starts the client; Forge calls it through #init, the injector directly. */ public void initialize();
+    /** Starts the client. Called by the injector (arsenic.runtime.InjectedLaunch) once the game is running. */ public void initialize();
     public String getName();
     public static Arsenic getInstance();
     public static Arsenic getArsenic();
@@ -2099,7 +2102,7 @@ public interface IMixinEntityPlayerSP {
 ### arsenic.injection.accessor.IMixinItemSword
 
 ```java
-public interface IMixinItemSword extends IWeapon {
+public interface IMixinItemSword {
     float getAttackDamage();
 }
 ```

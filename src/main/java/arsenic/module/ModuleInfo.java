@@ -8,7 +8,7 @@ public @interface ModuleInfo {
 
     String name();
 
-    String description() default "placeholder";
+    String description() default "";
 
     ModuleCategory category();
 

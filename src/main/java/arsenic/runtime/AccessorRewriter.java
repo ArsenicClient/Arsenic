@@ -13,10 +13,10 @@ import java.nio.charset.StandardCharsets;
 import static arsenic.lib.asm.Opcodes.*;
 
 /**
- * Keeps the accessor interfaces in arsenic.injection.accessor working in an injected client. As a mod, mixins make
- * Minecraft classes implement them, so code casts (`((IMixinEntity) mc.thePlayer)`). An injected client cannot add
- * interfaces to classes that are already loaded, so every call on an accessor interface becomes a call to
- * {@link AccessorBridge}, and the interface types become Object so the casts always pass.
+ * Keeps the accessor interfaces in arsenic.injection.accessor working. Code casts Minecraft objects to them
+ * (`((IMixinEntity) mc.thePlayer)`), but nothing implements them: the client is injected into a game that is already
+ * loaded, and classes that are already loaded cannot gain interfaces. So every call on an accessor interface becomes a
+ * call to {@link AccessorBridge}, and the interface types become Object so the casts always pass.
  *
  * Applied to the client's own classes as the game loads them ({@link AccessorTransformer} on Forge,
  * {@link ClientTransformer} elsewhere), and to compiled addons.
@@ -29,7 +29,7 @@ public final class AccessorRewriter {
 
     private static final byte[] MARKER = ACCESSOR_PACKAGE.getBytes(StandardCharsets.ISO_8859_1);
 
-    /** Accessor calls are rewritten in the client's classes, except the mixins and the code that runs them. */
+    /** Accessor calls are rewritten in the client's classes, except the injection and runtime code that runs them. */
     static boolean rewrites(String internalName) {
         return internalName.startsWith("arsenic/") && !internalName.startsWith("arsenic/injection/") && !internalName.startsWith("arsenic/runtime/")
                 && !internalName.startsWith("arsenic/lib/");

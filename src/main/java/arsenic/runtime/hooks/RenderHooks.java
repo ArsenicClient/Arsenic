@@ -348,7 +348,7 @@ public final class RenderHooks {
         if (SilentView.isRenderingHud())
             return;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.currentScreen == null) {
+        if (mc.currentScreen == null && arsenic.gui.click.GuiStyle.customMenus()) {
             ScaledResolution sr = new ScaledResolution(mc);
             ScreenTransition.drawOverlay(sr.getScaledWidth(), sr.getScaledHeight());
         }
