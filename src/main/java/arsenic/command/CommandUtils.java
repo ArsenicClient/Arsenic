@@ -19,22 +19,19 @@ import java.util.stream.Collectors;
 
 public final class CommandUtils {
 
-    /**
-     * A module by name for the chat commands. An addon that is turned on but not loaded yet (its file was switched on
-     * and Reload has not been pressed) is loaded first, so the command works straight away.
-     */
+    /** A loaded module by name. An addon that is only switched on is not loaded until Reload addons is pressed. */
     public static arsenic.module.Module findModule(String name) {
-        arsenic.module.Module module = arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
-        if (module != null)
-            return module;
-        arsenic.addon.AddonManager addons = arsenic.main.Arsenic.getArsenic().getAddonManager();
-        if (!turnedOnAddon(addons, name))
-            return null;
-        addons.reload();
         return arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
     }
 
-    private static boolean turnedOnAddon(arsenic.addon.AddonManager addons, String name) {
+    /** What to tell the player when {@link #findModule} finds nothing. */
+    public static String missingModule(String name) {
+        return turnedOnAddon(name) ? name + " is turned on but not loaded yet, run .addon reload" : name + " is not a valid module";
+    }
+
+    /** True when an addon with this name is switched on in the Addon Manager (loaded or not). */
+    public static boolean turnedOnAddon(String name) {
+        arsenic.addon.AddonManager addons = arsenic.main.Arsenic.getArsenic().getAddonManager();
         java.util.List<arsenic.addon.AddonManager.Info> all = new java.util.ArrayList<>(addons.listLoose());
         for (arsenic.addon.AddonManager.PackInfo pack : addons.listPacks())
             all.addAll(pack.addons);

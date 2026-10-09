@@ -19,7 +19,7 @@ public class ToggleCommand extends Command {
     public void execute(String[] args) {
         Module module = CommandUtils.findModule(args[0]);
         if (module == null) {
-            PlayerUtils.addWaterMarkedMessageToChat(args[0] + " is not a valid module");
+            PlayerUtils.addWaterMarkedMessageToChat(CommandUtils.missingModule(args[0]));
             return;
         }
         module.toggle();

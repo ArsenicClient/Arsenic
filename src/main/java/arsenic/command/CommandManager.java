@@ -72,8 +72,13 @@ public class CommandManager {
 
     private boolean handleModuleCommand(String name, String[] args) {
         Module module = CommandUtils.findModule(name);
-        if (module == null)
+        if (module == null) {
+            if (CommandUtils.turnedOnAddon(name)) {
+                PlayerUtils.addWaterMarkedMessageToChat(CommandUtils.missingModule(name));
+                return true;
+            }
             return false;
+        }
 
         if (args.length == 0) {
             module.toggle();

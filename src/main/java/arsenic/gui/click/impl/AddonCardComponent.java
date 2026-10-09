@@ -80,20 +80,13 @@ public class AddonCardComponent extends Component implements IContainer<Property
                 Arsenic.getArsenic().getConfigManager().saveConfig();
                 return;
             }
-            // not loaded yet: the switch turns the addon's file on or off. The file decides whether it is loaded,
-            // so switching it on loads it now, and it starts enabled
-            AddonManager manager = Arsenic.getArsenic().getAddonManager();
+            // not loaded: the switch only turns the addon's file on or off. Loading is up to Reload addons.
             try {
-                manager.setEnabled(info, enabled);
+                Arsenic.getArsenic().getAddonManager().setEnabled(info, enabled);
             } catch (IOException e) {
                 Arsenic.getArsenic().getLogger().error("Could not change " + info.name, e);
-                return;
             }
-            reload(manager);
-            Module loaded = manager.findLoadedModule(info.name);
-            if (loaded != null && enabled)
-                loaded.setEnabled(true);
-            Arsenic.getArsenic().getConfigManager().saveConfig();
+            refreshPage();
         }
 
         @Override
@@ -336,6 +329,8 @@ public class AddonCardComponent extends Component implements IContainer<Property
         List<String> desc = new ArrayList<>(wrap(fr, info.description, innerW));
         if (module == null && info.state != AddonManager.State.ENABLED)
             desc.addAll(wrap(fr, "Turn it on to change its settings.", innerW));
+        else if (module == null)
+            desc.addAll(wrap(fr, "Turned on. Press Reload addons to load it.", innerW));
         int descLines = desc.size();
         List<String> drop = new ArrayList<>(desc);
         boolean packLine = showPack && info.pack != null;
@@ -498,18 +493,13 @@ public class AddonCardComponent extends Component implements IContainer<Property
             manager.setPackEnabled(pack, !pack.allEnabled());
         } catch (IOException e) {
             Arsenic.getArsenic().getLogger().error("Could not change " + pack.meta.name, e);
-            return;
         }
-        reload(manager);
+        refreshPage();
     }
 
-    /** Loads the addons that are on now. Each file change calls this, so nothing waits for the Reload button. */
-    private static void reload(AddonManager manager) {
-        try {
-            manager.reload();
-        } catch (Throwable t) {
-            Arsenic.getArsenic().getLogger().error("Addon reload failed", t);
-        }
+    /** Re-reads which addon files are on, so the counts are right. Nothing is loaded or compiled; Reload does that. */
+    private static void refreshPage() {
+        Arsenic.getArsenic().getClickGuiScreen().refreshAddonPage();
     }
 
     @Override
