@@ -2,6 +2,7 @@ package arsenic.gui.click.impl;
 
 import arsenic.addon.AddonManager;
 import arsenic.gui.click.Component;
+import arsenic.module.Module;
 import arsenic.gui.click.GuiStyle;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.themes.ThemeManager;
@@ -58,8 +59,10 @@ public class AddonPageComponent {
 
     /** Addon rows by "pack/name", kept across reloads so their switches and dropdowns keep their state. */
     private final Map<String, AddonCardComponent> rows = new HashMap<>();
+    /** Module rows for search results, kept like the addon rows so their state survives typing. */
+    private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
     private List<AddonCardComponent> blocks = new ArrayList<>();
-    private List<AddonCardComponent> left = new ArrayList<>(), right = new ArrayList<>();
+    private List<Component> left = new ArrayList<>(), right = new ArrayList<>();
     private String laidOutFor;
     private String lastQuery;
     private boolean resetScroll = true;
@@ -147,18 +150,34 @@ public class AddonPageComponent {
         return row;
     }
 
+    private ModuleComponent moduleRow(Module module) {
+        return moduleRows.computeIfAbsent(module, ModuleComponent::new);
+    }
+
     private void layout(String q) {
         List<AddonCardComponent> top = new ArrayList<>();
-        List<AddonCardComponent> list = new ArrayList<>();
+        List<Component> list = new ArrayList<>();
         if (!q.isEmpty()) {
+            // modules first (addons that are modules are found through their addon row below)
+            int modules = 0;
+            for (Module module : Arsenic.getArsenic().getModuleManager().getModules()) {
+                if (!module.isAddon() && ModuleComponent.matches(module, q)) {
+                    list.add(moduleRow(module));
+                    modules++;
+                }
+            }
+            int addonHits = 0;
             for (AddonManager.Info info : addons) {
                 AddonCardComponent r = row(info, true);
-                if (r.matches(q))
+                if (r.matches(q)) {
                     list.add(r);
+                    addonHits++;
+                }
             }
-            top.add(AddonCardComponent.section("Search: " + q, list.isEmpty()
-                    ? "No addon matches. Search looks at names, descriptions and pack names."
-                    : list.size() + (list.size() == 1 ? " addon" : " addons") + " in all packs."));
+            String found = list.isEmpty() ? "No addon or module matches. Search looks at names, descriptions and pack names."
+                    : addonHits + (addonHits == 1 ? " addon" : " addons") + " and " + modules
+                    + (modules == 1 ? " module" : " modules") + " found.";
+            top.add(AddonCardComponent.section("Search: " + q, found));
         } else if (selected.equals(ALL)) {
             top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Turned on addons show up in "
                     + "their module category in the ClickGUI. Open an addon (arrow or right click) to read what it does."));
@@ -185,7 +204,7 @@ public class AddonPageComponent {
         blocks = top;
         left = new ArrayList<>();
         right = new ArrayList<>();
-        for (AddonCardComponent r : list)
+        for (Component r : list)
             (left.size() <= right.size() ? left : right).add(r);
         laidOutFor = q;
         // only a different list sends you back to the top; reloading after a switch keeps your place
@@ -259,10 +278,10 @@ public class AddonPageComponent {
         }
         float columnsTop = pi.getY();
         PosInfo l = new PosInfo(leftX, columnsTop);
-        for (AddonCardComponent r : left)
+        for (Component r : left)
             l.moveY(r.updateComponent(l, ri) + gap);
         PosInfo rr = new PosInfo(rightX, columnsTop);
-        for (AddonCardComponent r : right)
+        for (Component r : right)
             rr.moveY(r.updateComponent(rr, ri) + gap);
         maxHeight = Math.max(l.getY(), rr.getY()) - (top + scroll);
     }
@@ -278,9 +297,9 @@ public class AddonPageComponent {
     public void clickContent(int mouseX, int mouseY, int mouseButton) {
         for (AddonCardComponent card : new ArrayList<>(blocks))
             card.handleClick(mouseX, mouseY, mouseButton);
-        for (AddonCardComponent card : new ArrayList<>(left))
+        for (Component card : new ArrayList<>(left))
             card.handleClick(mouseX, mouseY, mouseButton);
-        for (AddonCardComponent card : new ArrayList<>(right))
+        for (Component card : new ArrayList<>(right))
             card.handleClick(mouseX, mouseY, mouseButton);
     }
 

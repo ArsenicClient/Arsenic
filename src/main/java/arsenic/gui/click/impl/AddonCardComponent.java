@@ -13,10 +13,12 @@ import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.input.Keyboard;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -37,7 +39,7 @@ import java.util.Locale;
  * it is on, its settings. The page also uses this class for the full-width blocks above the rows: the selected pack's
  * header (icon, description, Enable all / Disable all), a plain section header, or a load error.
  */
-public class AddonCardComponent extends Component implements IContainer<PropertyComponent<?>> {
+public class AddonCardComponent extends Component implements IContainer<PropertyComponent<?>>, IAlwaysKeyboardInput {
 
     private enum Kind { PACK, SECTION, ADDON, ERROR }
 
@@ -56,8 +58,8 @@ public class AddonCardComponent extends Component implements IContainer<Property
     private float btnX1, btnY1, btnX2, btnY2;
 
     // addon rows
-    private boolean on, open;
-    private float chevronZoneX2, toggleZoneX1, contentHeight, settingsHeight;
+    private boolean on, open, binding;
+    private float chevronZoneX2, toggleZoneX1, bindZoneX1, bindZoneX2, contentHeight, settingsHeight;
     /** The loaded module behind this row, and its settings as the dropdown draws them. Empty while the addon is off. */
     private Module module;
     private final List<PropertyComponent<?>> contents = new ArrayList<>();
@@ -286,6 +288,21 @@ public class AddonCardComponent extends Component implements IContainer<Property
 
         float textX = chevronZoneX2 + rowPad * 0.35f;
         float chipRight = toggleZoneX1 - rowPad * 0.6f;
+        // the keybind chip, as ModuleComponent draws it: shown when bound, binding or hovered
+        int bind = Arsenic.getArsenic().getAddonManager().getKeybind(info.name);
+        boolean hasBind = bind != 0 || binding;
+        if (hasBind || hover > 0.02f) {
+            String bindName = binding ? "..." : Keyboard.getKeyName(bind);
+            int chipText = binding ? UITheme.accent()
+                    : UITheme.alpha(UITheme.textMuted(), (int) (255 * Math.max(hover, hasBind ? 0.8f : 0f)));
+            float chipW = UITheme.chip(fr, bindName == null ? "-" : bindName, chipRight, midPointY, height * 0.46f,
+                    chipText, UITheme.alpha(ThemeManager.getBlack(), 70));
+            bindZoneX2 = chipRight;
+            bindZoneX1 = chipRight - chipW;
+            chipRight = bindZoneX1 - rowPad * 0.6f;
+        } else {
+            bindZoneX1 = bindZoneX2 = chipRight;
+        }
         if (showPack && info.pack != null) {
             float chipH = height * 0.46f;
             String chip = fit(fr, info.pack.name, Math.max(10f, (chipRight - textX) * 0.45f));
@@ -447,6 +464,11 @@ public class AddonCardComponent extends Component implements IContainer<Property
                 }
                 return;
             }
+            if (mouseX >= bindZoneX1 && mouseX <= bindZoneX2 && bindZoneX2 > bindZoneX1) {
+                binding = !binding;
+                Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(binding ? this : null);
+                return;
+            }
             switchComponent.handleClick(mouseX, mouseY, mouseButton);
             return;
         }
@@ -473,6 +495,22 @@ public class AddonCardComponent extends Component implements IContainer<Property
     @Override
     protected void playClickSound() {
         // the switch and the button play their own sounds
+    }
+
+    @Override
+    public void setNotAlwaysRecieveInput() {
+        binding = false;
+    }
+
+    /** Same as a module's bind: the next key is the key, Escape clears it. */
+    @Override
+    public boolean recieveInput(int key) {
+        Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(null);
+        SoundUtils.chordKeybind();
+        binding = false;
+        Arsenic.getArsenic().getAddonManager().setKeybind(info.name, key == Keyboard.KEY_ESCAPE ? 0 : key);
+        Arsenic.getArsenic().getConfigManager().saveConfig();
+        return true;
     }
 
     static List<String> wrap(FontRendererExtension<?> fr, String text, float maxWidth) {

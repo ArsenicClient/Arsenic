@@ -135,7 +135,7 @@ refreshListing();
         drawSection(contentsR, pi, ri);
     }
 
-    private void drawSection(List<ModuleComponent> l, PosInfo pi, RenderInfo ri) {
+    protected void drawSection(List<? extends Component> l, PosInfo pi, RenderInfo ri) {
         pi.moveY(scroll);
         float temp = pi.getY();
         float expand = width/10f;

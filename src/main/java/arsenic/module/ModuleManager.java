@@ -108,6 +108,7 @@ public class ModuleManager {
         } catch (Exception e) {
             return "could not register properties: " + e;
         }
+        module.markAddon();
         modules.put(module.getClass(), module);
         module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::add);
         return null;

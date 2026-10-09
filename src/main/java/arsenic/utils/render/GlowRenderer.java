@@ -97,7 +97,9 @@ public final class GlowRenderer {
                 GL11.glViewport(0, 0, width, height);
 
                 GL20.glUseProgram(0);
-                GlStateManager.disableTexture2D();
+                // Textures stay on: the mask reads alpha, and a flat item sprite (a held tool, a dropped item) only
+                // has a shape because its transparent pixels come from the texture. Without it, the whole quad fills.
+                GlStateManager.enableTexture2D();
                 GlStateManager.disableLighting();
                 GlStateManager.disableBlend();
                 GlStateManager.color(1f, 1f, 1f, 1f);

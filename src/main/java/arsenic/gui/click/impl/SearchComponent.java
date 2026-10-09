@@ -1,15 +1,26 @@
 package arsenic.gui.click.impl;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import arsenic.addon.AddonManager;
+import arsenic.gui.click.Component;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.ClickGuiScreen;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
+import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.gui.click.GuiStyle;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
@@ -17,8 +28,11 @@ import arsenic.utils.timer.TickMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChatAllowedCharacters;
 import org.lwjgl.input.Keyboard;
-import java.util.stream.Collectors;
 
+/**
+ * The search box. With nothing typed it lists the modules; once something is typed it also lists the addons, in the
+ * same two columns, so an addon found here can be switched, opened and bound without going to the Addon Manager.
+ */
 public class SearchComponent extends ModuleCategoryComponent implements IAlwaysKeyboardInput {
     @Override
     protected boolean followsMoreToggle() {
@@ -30,6 +44,12 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     private final AnimationTimer activateTimer = new AnimationTimer(200, () -> gui.isSearchActive(), TickMode.SINE);
 
     private boolean selected;
+
+    /** Results for the query in {@link #builtFor}; rebuilt whenever the query changes. */
+    private final List<Component> resultsL = new ArrayList<>(), resultsR = new ArrayList<>();
+    private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
+    private final Map<String, AddonCardComponent> addonRows = new HashMap<>();
+    private String builtFor;
 
     int x,y;
     public SearchComponent(ModuleCategory category) {
@@ -121,15 +141,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
             }
             inp.append(keyName);
         }
-        contentsL.clear();
-        contentsR.clear();
-        contents.stream().filter(m -> m.getName().toLowerCase().contains(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(module -> {
-            if ((contentsL.size() + contentsR.size()) % 2 == 0) {
-                contentsL.add(module);
-            } else {
-                contentsR.add(module);
-            }
-        });
+        builtFor = null;
         return false;
     }
 
@@ -138,9 +150,77 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         super.setCurrentCategory(currentCategory);
         inp.setLength(0);
     }
+
+    /** The modules and addons for the query, dealt into the two columns. Rebuilt on the next draw after a change. */
+    private void refreshResults() {
+        String q = inp.toString().trim().toLowerCase(Locale.ROOT);
+        if (q.equals(builtFor))
+            return;
+        builtFor = q;
+        resultsL.clear();
+        resultsR.clear();
+
+        List<Component> found = new ArrayList<>();
+        List<Module> modules = new ArrayList<>(Arsenic.getArsenic().getModuleManager().getModules());
+        modules.sort(Comparator.comparing(Module::getName));
+        for (Module module : modules)
+            if (!module.isAddon() && ModuleComponent.matches(module, q))
+                found.add(moduleRow(module));
+        if (!q.isEmpty()) {
+            for (AddonManager.Info info : addonInfos()) {
+                AddonCardComponent row = addonRow(info);
+                if (row.matches(q))
+                    found.add(row);
+            }
+        }
+        for (Component component : found)
+            (resultsL.size() <= resultsR.size() ? resultsL : resultsR).add(component);
+    }
+
+    private ModuleComponent moduleRow(Module module) {
+        return moduleRows.computeIfAbsent(module, ModuleComponent::new);
+    }
+
+    private AddonCardComponent addonRow(AddonManager.Info info) {
+        String key = (info.pack == null ? "" : info.pack.id) + "/" + info.name;
+        AddonCardComponent row = addonRows.get(key);
+        if (row == null)
+            addonRows.put(key, row = AddonCardComponent.addon(info));
+        else
+            row.update(info);
+        row.setShowPack(true);
+        return row;
+    }
+
+    private static List<AddonManager.Info> addonInfos() {
+        AddonManager manager = Arsenic.getArsenic().getAddonManager();
+        List<AddonManager.Info> all = new ArrayList<>(manager.listLoose());
+        for (AddonManager.PackInfo pack : manager.listPacks())
+            all.addAll(pack.addons);
+        return all;
+    }
+
+    @Override
+    public void drawLeft(PosInfo pi, RenderInfo ri) {
+        refreshResults();
+        maxHeight = 0;
+        scroll += (targetScroll - scroll) * GuiStyle.scrollEase();
+        if (Math.abs(targetScroll - scroll) < 0.5f)
+            scroll = targetScroll;
+        drawSection(resultsL, pi, ri);
+    }
+
+    @Override
+    public void drawRight(PosInfo pi, RenderInfo ri) {
+        drawSection(resultsR, pi, ri);
+    }
+
     @Override
     public void clickChildren(int mouseX, int mouseY, int mouseButton) {
-        this.contents.stream().filter(m -> m.getName().toLowerCase().contains(inp.toString().toLowerCase())).collect(Collectors.toList()).forEach(component -> component.handleClick(mouseX, mouseY, mouseButton));
+        for (Component component : new ArrayList<>(resultsL))
+            component.handleClick(mouseX, mouseY, mouseButton);
+        for (Component component : new ArrayList<>(resultsR))
+            component.handleClick(mouseX, mouseY, mouseButton);
     }
     /** What is typed in the box right now (the addon manager filters by it). */
     public String getQuery() {
@@ -151,6 +231,7 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         inp.setLength(0);
         inp.append(query);
         selected = false;
+        builtFor = null;
     }
 
     private void toggleSearch(){

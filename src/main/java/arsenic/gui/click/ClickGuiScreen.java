@@ -259,8 +259,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         GlStateManager.popMatrix();
 
-        if (!addonMode)
-            drawHudEditorButton(mouseX, mouseY);
+        drawHudEditorButton(mouseX, mouseY);
         drawAddonManagerButton(mouseX, mouseY);
         if (!addonMode)
             drawTierToggles(mouseX, mouseY);
@@ -459,7 +458,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
             setAddonMode(!addonMode);
             return;
         }
-        if (!addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
             mc.displayGuiScreen(new arsenic.gui.hud.HudEditorScreen());
             return;

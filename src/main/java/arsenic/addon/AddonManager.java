@@ -48,6 +48,55 @@ public final class AddonManager {
         } catch (Throwable t) {
             org.apache.logging.log4j.LogManager.getLogger("Arsenic").warn("Could not exclude the addon compiler from class transformation", t);
         }
+        loadKeybinds();
+    }
+
+    /** Keybinds by addon name. Kept for addons that are off, so a bind set in the Addon Manager is there when it turns on. */
+    private final Map<String, Integer> keybinds = new HashMap<>();
+
+    private File keybindsFile() {
+        return new File(directory, "keybinds.json");
+    }
+
+    private void loadKeybinds() {
+        File file = keybindsFile();
+        if (!file.isFile())
+            return;
+        try (FileReader reader = new FileReader(file)) {
+            for (java.util.Map.Entry<String, JsonElement> e : new JsonParser().parse(reader).getAsJsonObject().entrySet())
+                keybinds.put(e.getKey(), e.getValue().getAsInt());
+        } catch (Exception e) {
+            Arsenic.getArsenic().getLogger().error("Could not read addon keybinds", e);
+        }
+    }
+
+    private void saveKeybinds() {
+        JsonObject obj = new JsonObject();
+        for (Map.Entry<String, Integer> e : keybinds.entrySet())
+            obj.addProperty(e.getKey(), e.getValue());
+        try {
+            directory.mkdirs();
+            write(keybindsFile(), obj.toString());
+        } catch (java.io.IOException e) {
+            Arsenic.getArsenic().getLogger().error("Could not save addon keybinds", e);
+        }
+    }
+
+    /** The key for an addon: its loaded module's bind while it is on, otherwise the bind kept for it. 0 is no key. */
+    public synchronized int getKeybind(String addonName) {
+        Module module = findLoadedModule(addonName);
+        if (module != null)
+            return module.getKeybind();
+        Integer key = keybinds.get(addonName);
+        return key == null ? 0 : key;
+    }
+
+    public synchronized void setKeybind(String addonName, int key) {
+        keybinds.put(addonName, key);
+        Module module = findLoadedModule(addonName);
+        if (module != null)
+            module.setKeybind(key);
+        saveKeybinds();
     }
 
     public File getDirectory() {
@@ -648,11 +697,13 @@ public final class AddonManager {
         Map<String, JsonObject> state = new HashMap<>();
         for (Module module : loaded) {
             state.put(module.getName(), module.saveInfoToJson(new JsonObject()));
+            keybinds.put(module.getClass().getSimpleName(), module.getKeybind());
             if (module.isEnabled())
                 module.setEnabled(false);
             modules.unregisterExternal(module);
         }
         loaded.clear();
+        saveKeybinds();
         return state;
     }
 
@@ -676,6 +727,9 @@ public final class AddonManager {
                 module.loadFromJson(saved);
             else if (Arsenic.getArsenic().getConfigManager().getCurrentConfig() != null)
                 applyConfig(module);
+            Integer key = keybinds.get(module.getClass().getSimpleName());
+            if (key != null)
+                module.setKeybind(key);
         } catch (Throwable t) {
             errors.add(className + ": " + t);
             Arsenic.getArsenic().getLogger().error("Failed to load addon class " + className, t);
