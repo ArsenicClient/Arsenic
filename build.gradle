@@ -70,10 +70,10 @@ dependencies {
     compileOnly "org.jetbrains:annotations:23.0.0"
     embed 'com.jagrosh:DiscordIPC:0.4'  // its junixsocket logs through log4j 1.2, which stays: Discord RPC needs it on Mac and Linux
     embed("org.reflections:reflections:0.10.2") {
-        exclude module: "guava"      // provided by Minecraft
-        exclude module: "javassist"  // only Reflections' javassist metadata adapter needs it; the default one does not
-        exclude module: "jsr305"     // annotations only
+        exclude module: "guava"  // provided by Minecraft
     }
+    // Reflections loads javassist when it scans (the game hit this on a plain start); keep it
+    embed("org.javassist:javassist:3.28.0-GA")
     // Compiles addon .java files at runtime without needing a JDK (3.26 is the last release that runs on Java 8)
     embed("org.eclipse.jdt:ecj:3.26.0")
     // The injector's agent rewrites game classes with ASM: a current one (Lunar runs Java 17 classes), moved to
@@ -282,11 +282,15 @@ file("src/addons/packs").listFiles({ File f -> f.isDirectory() } as FileFilter)?
     File impl = new File(pack, "impl")
     if (impl.isDirectory()) addonSourceDirs << impl
 }
-sourceSets {
-    addons {
-        java.srcDirs = addonSourceDirs
-        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-    }
+// Compiled as a check against the client, and nothing else. Not a source set: IntelliJ would give it a module of its
+// own with no dependency on the client, so every import of the client would show as unresolved there.
+task compileAddonsJava(type: JavaCompile) {
+    source addonSourceDirs
+    destinationDir = file("$buildDir/classes/addons")
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = "UTF-8"
 }
 build.dependsOn "compileAddonsJava"
 
@@ -379,6 +383,42 @@ def restoreEmbeddedLibs = { File jarFile ->
 afterEvaluate {
     tasks.reobfJar.doLast { restoreEmbeddedLibs(tasks.getByName("jar").archivePath) }
     tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
+}
+
+// The default IntelliJ run configuration starts the injector, not Forge. genIntellijRuns writes ForgeGradle's own
+// configuration into the workspace; this rewrites that file: the injector is added (it loads the dev jar, built
+// before the run), and ForgeGradle's configuration stays as "Minecraft Client (Forge)" for testing the game alone.
+tasks.genIntellijRuns.doLast {
+    File workspace = file("${project.name}.iws")
+    if (!workspace.isFile())
+        return
+    def root = new XmlParser().parse(workspace)
+    def manager = root.component.find { it.'@name' == 'RunManager' }
+    if (manager == null)
+        return
+    def forge = manager.configuration.findAll { it.'@name' == 'Minecraft Client' }
+    forge.findAll { it != forge[0] }.each { manager.remove(it) }
+    manager.configuration.findAll { it.'@name' == 'Arsenic Injector' }.each { manager.remove(it) }
+    if (forge)
+        forge[0].'@name' = 'Minecraft Client (Forge)'
+
+    def injector = new Node(manager, 'configuration', [default: 'false', name: 'Arsenic Injector', type: 'Application', factoryName: 'Application'])
+    new Node(injector, 'option', [name: 'MAIN_CLASS_NAME', value: 'arsenic.inject.Injector'])
+    new Node(injector, 'option', [name: 'VM_PARAMETERS', value: '-Darsenic.jar=$PROJECT_DIR$/build/libs/Arsenic-v2.0-dev.jar'])
+    new Node(injector, 'option', [name: 'PROGRAM_PARAMETERS', value: ''])
+    new Node(injector, 'option', [name: 'WORKING_DIRECTORY', value: 'file://$PROJECT_DIR$/run'])
+    new Node(injector, 'option', [name: 'PASS_PARENT_ENVS', value: 'true'])
+    new Node(injector, 'module', [name: project.name])
+    def before = new Node(injector, 'method', [v: '2'])
+    new Node(before, 'option', [name: 'Gradle.BeforeRunTask', enabled: 'true', tasks: 'devJar', externalProjectPath: '$PROJECT_DIR$'])
+    new Node(injector, 'RunnerSettings', [RunnerId: 'Run'])
+    new Node(injector, 'ConfigurationWrapper', [RunnerId: 'Run'])
+
+    manager.'@selected' = 'Application.Arsenic Injector'
+    workspace.withWriter('UTF-8') { w ->
+        w.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        new XmlNodePrinter(new PrintWriter(w)).print(root)
+    }
 }
 
 idea {

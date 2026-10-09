@@ -37,10 +37,24 @@ Then:
 
 ## Building and editing the client
 
-1. Clone the repository.
-2. Run `setup.bat` (`setup.command` on macOS/Linux).
-3. Open the project in your IDE and load the Gradle project.
-4. Start developing.
+### Setting up (IntelliJ, Windows or macOS/Linux)
+
+The build uses Gradle 4.9 and ForgeGradle 2, which only run on **JDK 8**. Newer JDKs fail the Gradle sync, and
+that is what shows up as errors in `build.gradle` and as unresolved imports like `arsenic.module.Module`.
+
+1. Install **JDK 8** (Eclipse Temurin 8 from adoptium.net). Point `JAVA_HOME` at it.
+2. Clone the repository and check out the branch you work on.
+3. Run `setup.bat` (`setup.command` on macOS/Linux) from the project folder. The first run downloads Minecraft and
+   Forge and takes a few minutes. It runs `setupDevWorkspace`, `idea` and `genIntellijRuns`.
+4. In IntelliJ, open the generated **`Arsenic.ipr`** (File > Open). This loads the module that `gradlew idea`
+   wrote, with `src/main/java`, every addon folder and the Minecraft libraries as roots.
+   - If you import the Gradle project instead, set **Settings > Build > Gradle > Gradle JVM** to a JDK 8, and untick
+     **Create separate module per source set**. Otherwise the addons sit in their own module and cannot see the client.
+5. Start developing.
+
+If something still shows as unresolved, run `gradlew idea` again from the project folder and reopen `Arsenic.ipr`.
+Check that **Project Structure > Modules > Arsenic** lists `src/main/java` as a Sources folder. Build from the
+command line with `gradlew build` to confirm the project compiles.
 
 Helpful docs:
 

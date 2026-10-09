@@ -63,17 +63,17 @@ public final class Injector {
 
         /** Unknown versions are allowed; the agent checks the game itself. */
         boolean supported() {
-            if (client == Client.OTHER)
-                return false;
             // Lunar's command line does not carry a reliable Minecraft version; the agent checks it is 1.8.9 inside
             if (client == Client.LUNAR)
                 return true;
+            if (client != Client.VANILLA && client != Client.FORGE)
+                return false;
             return version == null || version.contains("1.8.9");
         }
 
         String unsupportedReason() {
-            if (client == Client.OTHER)
-                return "This is not a Minecraft game.";
+            if (client == Client.OTHER || client == Client.UNKNOWN)
+                return "This is not a Minecraft game the injector recognises.";
             return "Only Minecraft 1.8.9 is supported (this is " + version + ").";
         }
 
@@ -163,11 +163,24 @@ public final class Injector {
             String name = (String) displayName.invoke(desc);
             if (pid.equals(self))
                 continue;
+            String command = name;
             Client client = classify(name);
+            if ((client == Client.OTHER || client == Client.UNKNOWN) && mayBeMinecraft(name)) {
+                // launchers rename the game's process (Prism shows "Entrypoint"), so ask the process what it runs
+                String real = systemProperty(pid, "sun.java.command");
+                String classPath = systemProperty(pid, "java.class.path");
+                if (real != null) {
+                    command = real;
+                    client = classify(real);
+                    boolean minecraftJar = classPath != null && classPath.toLowerCase(Locale.ROOT).contains("minecraft");
+                    if (client != Client.VANILLA && client != Client.FORGE && minecraftJar)
+                        client = real.contains("FMLTweaker") ? Client.FORGE : Client.VANILLA;
+                }
+            }
             if (client == Client.OTHER && !all)
                 continue;
-            String main = name.split(" ")[0];
-            byPid.put(pid, new Game(pid, client, argument(name, "--version"), main, true));
+            String main = command.split(" ")[0];
+            byPid.put(pid, new Game(pid, client, argument(command, "--version"), main, true));
         }
 
         // games the attach API does not list (attach turned off, or no perf data): keep the attach entry when both find it
@@ -371,6 +384,10 @@ public final class Injector {
     }
 
     static File ownJar() throws URISyntaxException {
+        // run from an IDE the code runs from a classes folder, so the IDE run configuration names the jar to load
+        String jar = System.getProperty("arsenic.jar");
+        if (jar != null)
+            return new File(jar);
         return new File(Injector.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     }
 
@@ -393,12 +410,17 @@ public final class Injector {
      * reached. Reads the game's own system property, so it is right whichever window injected it.
      */
     static String loadedState(String pid) {
+        return systemProperty(pid, "arsenic.loaded");
+    }
+
+    /** A system property of a running Java process through the attach API, or null when it cannot be read. */
+    static String systemProperty(String pid, String key) {
         try {
             Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
             Object vm = vmClass.getMethod("attach", String.class).invoke(null, pid);
             try {
                 java.util.Map<?, ?> props = (java.util.Map<?, ?>) vmClass.getMethod("getSystemProperties").invoke(vm);
-                Object value = props.get("arsenic.loaded");
+                Object value = props.get(key);
                 return value == null ? null : value.toString();
             } finally {
                 vmClass.getMethod("detach").invoke(vm);
@@ -406,6 +428,15 @@ public final class Injector {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Names a launcher gives its game's process, which the name alone does not show as Minecraft. */
+    private static boolean mayBeMinecraft(String displayName) {
+        String lower = displayName.toLowerCase(Locale.ROOT);
+        for (String hint : new String[]{"minecraft", "entrypoint", "prism", "multimc", "launchwrapper", "client.main"})
+            if (lower.contains(hint))
+                return true;
+        return false;
     }
 
     /** Loads the agent into the game with {@code argPrefix} before the status file, and follows the status file. */
