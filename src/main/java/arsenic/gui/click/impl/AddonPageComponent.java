@@ -170,8 +170,6 @@ public class AddonPageComponent {
                     + (modules == 1 ? " module" : " modules") + " found.";
             top.add(AddonCardComponent.section("Search: " + q, found));
         } else if (selected.equals(ALL)) {
-            top.add(AddonCardComponent.section("All addons", "Every addon in every pack. Each one works like a module: "
-                    + "the switch turns it on, and opening it (arrow or right click) shows what it does and its settings."));
             for (AddonManager.Info info : addons)
                 list.add(row(info));
         } else if (selected.equals(LOOSE)) {
