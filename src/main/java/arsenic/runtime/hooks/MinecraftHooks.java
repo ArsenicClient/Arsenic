@@ -25,7 +25,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 
-/** {@link Minecraft} hooks, called from MixinMinecraft or from the injected bytecode. */
+/** {@link Minecraft} hooks, called from the injected bytecode. */
 public final class MinecraftHooks {
 
     private static final Access.FieldRef RIGHT_CLICK_DELAY = Access.field(Minecraft.class, "rightClickDelayTimer");

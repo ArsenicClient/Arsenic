@@ -72,7 +72,7 @@ Start from the [skeleton](#skeleton) or copy the [worked example](#worked-exampl
 - **What you can import:** whatever is on the game's classpath. That is Minecraft and Forge classes, LWJGL
   (`org.lwjgl.*`), Guava, Gson, Log4j, the JDK, and every `arsenic.*` class. Addons run with the game's full
   permissions and there is no sandbox.
-- **No mixins and no ASM in addons.** Mixins are applied once at game start, long before an addon is compiled. Addons are
+- **No mixins and no ASM in addons.** The client's hooks are applied once at injection, long before an addon is compiled. Addons are
   limited to the public Java surface of Minecraft plus the Arsenic API. For private Minecraft state use the accessor
   interfaces in `arsenic.injection.accessor` by casting (`((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(pitch, yaw)`,
   `((IMixinEntityPlayerSP) mc.thePlayer).getLastReportedYaw()`); see the list in the [API reference](#api-reference-generated). A missing
@@ -206,7 +206,7 @@ notifications and have no effect when cancelled.
 
 ### Order inside one client tick
 
-Derived from the mixins in `arsenic.injection.mixin`:
+Derived from the hooks in `arsenic.runtime.hooks` (applied by `arsenic.inject.HookTransformer`):
 
 ```
 Minecraft.runTick (every 50 ms)
@@ -1400,6 +1400,53 @@ public enum ModuleTier {
 }
 ```
 
+### arsenic.module.property.IReliable
+
+```java
+public interface IReliable {
+    Supplier<Boolean> valueCheck(String value);
+}
+```
+
+### arsenic.module.property.Property
+
+```java
+public abstract class Property<T> implements IContainable {
+    protected T value;
+    protected Module parent;
+    protected Supplier<Boolean> visible;
+    public void setParent(Module parent);
+    protected Property(T value);
+    public T getValue();
+    public void setValueSilently(T value);
+    public void setValue(T value);
+    public void onValueUpdate();
+    public void setVisible(Supplier<Boolean> visible);
+    public boolean isVisible();
+    public String getName();
+}
+```
+
+### arsenic.module.property.PropertyInfo
+
+```java
+public @interface PropertyInfo {
+    String reliesOn();
+    String value();
+}
+```
+
+### arsenic.module.property.SerializableProperty
+
+```java
+public abstract class SerializableProperty<T> extends Property<T> implements ISerializable {
+    protected String name;
+    protected SerializableProperty(String name, T value);
+    public String getJsonKey();
+    public String getName();
+}
+```
+
 ### arsenic.module.property.impl.BooleanProperty
 
 ```java
@@ -1450,6 +1497,62 @@ public enum DisplayMode {
 }
 ```
 
+### arsenic.module.property.impl.EnumProperty
+
+```java
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
+    public EnumProperty(String name, T value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void nextMode();
+    public void prevMode();
+    public boolean setByName(String name);
+    public List<String> getModeNames();
+    public Supplier<Boolean> valueCheck(String value);
+}
+```
+
+### arsenic.module.property.impl.FolderProperty
+
+```java
+public class FolderProperty extends SerializableProperty<List<Property<?>>> {
+    public FolderProperty(String name, Property<?>... values);
+    public void loadFromJson(JsonObject obj);
+    public JsonObject saveInfoToJson(JsonObject obj);
+}
+```
+
+### arsenic.module.property.impl.SliderScale
+
+```java
+public enum SliderScale {
+    LINEAR, LOG;
+    public float toPercent(double v, double lo, double hi);
+    public double fromPercent(double pct, double lo, double hi);
+}
+```
+
+### arsenic.module.property.impl.StringProperty
+
+```java
+public class StringProperty extends Property<String> {
+    public StringProperty(String value);
+}
+```
+
+### arsenic.module.property.impl.TextProperty
+
+```java
+public class TextProperty extends SerializableProperty<String> {
+    public TextProperty(String name, String value);
+    public TextProperty(String name, String value, int maxLength);
+    public void setValue(String value);
+    public void setValueSilently(String value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+}
+```
+
 ### arsenic.module.property.impl.doubleproperty.DoubleProperty
 
 ```java
@@ -1474,31 +1577,6 @@ public class DoubleValue {
     public double getMaxBound();
     public double getMinBound();
     public void onUpdate();
-}
-```
-
-### arsenic.module.property.impl.EnumProperty
-
-```java
-public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
-    public EnumProperty(String name, T value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void nextMode();
-    public void prevMode();
-    public boolean setByName(String name);
-    public List<String> getModeNames();
-    public Supplier<Boolean> valueCheck(String value);
-}
-```
-
-### arsenic.module.property.impl.FolderProperty
-
-```java
-public class FolderProperty extends SerializableProperty<List<Property<?>>> {
-    public FolderProperty(String name, Property<?>... values);
-    public void loadFromJson(JsonObject obj);
-    public JsonObject saveInfoToJson(JsonObject obj);
 }
 ```
 
@@ -1535,84 +1613,6 @@ public class RangeValue {
     public double getMinBound();
     public double getRandomInRange();
     public void onUpdate();
-}
-```
-
-### arsenic.module.property.impl.SliderScale
-
-```java
-public enum SliderScale {
-    LINEAR, LOG;
-    public float toPercent(double v, double lo, double hi);
-    public double fromPercent(double pct, double lo, double hi);
-}
-```
-
-### arsenic.module.property.impl.StringProperty
-
-```java
-public class StringProperty extends Property<String> {
-    public StringProperty(String value);
-}
-```
-
-### arsenic.module.property.impl.TextProperty
-
-```java
-public class TextProperty extends SerializableProperty<String> {
-    public TextProperty(String name, String value);
-    public TextProperty(String name, String value, int maxLength);
-    public void setValue(String value);
-    public void setValueSilently(String value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-}
-```
-
-### arsenic.module.property.IReliable
-
-```java
-public interface IReliable {
-    Supplier<Boolean> valueCheck(String value);
-}
-```
-
-### arsenic.module.property.Property
-
-```java
-public abstract class Property<T> implements IContainable {
-    protected T value;
-    protected Module parent;
-    protected Supplier<Boolean> visible;
-    public void setParent(Module parent);
-    protected Property(T value);
-    public T getValue();
-    public void setValueSilently(T value);
-    public void setValue(T value);
-    public void onValueUpdate();
-    public void setVisible(Supplier<Boolean> visible);
-    public boolean isVisible();
-    public String getName();
-}
-```
-
-### arsenic.module.property.PropertyInfo
-
-```java
-public @interface PropertyInfo {
-    String reliesOn();
-    String value();
-}
-```
-
-### arsenic.module.property.SerializableProperty
-
-```java
-public abstract class SerializableProperty<T> extends Property<T> implements ISerializable {
-    protected String name;
-    protected SerializableProperty(String name, T value);
-    public String getJsonKey();
-    public String getName();
 }
 ```
 
@@ -2010,8 +2010,7 @@ public @interface CommandInfo {
 
 ```java
 public class Arsenic {
-    public void init(FMLInitializationEvent event);
-    /** Starts the client; Forge calls it through #init, the injector directly. */ public void initialize();
+    /** Starts the client. Called by the injector (arsenic.runtime.InjectedLaunch) once the game is running. */ public void initialize();
     public String getName();
     public static Arsenic getInstance();
     public static Arsenic getArsenic();
@@ -2099,7 +2098,7 @@ public interface IMixinEntityPlayerSP {
 ### arsenic.injection.accessor.IMixinItemSword
 
 ```java
-public interface IMixinItemSword extends IWeapon {
+public interface IMixinItemSword {
     float getAttackDamage();
 }
 ```
@@ -2329,6 +2328,14 @@ public enum TickMode {
 }
 ```
 
+### arsenic.utils.timer.TimeUtils
+
+```java
+public final class TimeUtils {
+    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
+}
+```
+
 ### arsenic.utils.timer.Timer
 
 ```java
@@ -2344,14 +2351,6 @@ public class Timer {
     public long getElapsedTimeAsPercent();
     public long getTimeLeft();
     public boolean hasExceededTimeBy(long additionalThreshold);
-}
-```
-
-### arsenic.utils.timer.TimeUtils
-
-```java
-public final class TimeUtils {
-    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
 }
 ```
 

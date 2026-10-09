@@ -16,14 +16,11 @@ import arsenic.utils.font.Fonts;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "2.0", useMetadata = true)
 public class Arsenic {
 
     private final String clientName = "Arsenic";
@@ -44,13 +41,7 @@ public class Arsenic {
     private final FriendManager friendManager = new FriendManager();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
-    @Mod.EventHandler
-    public final void init(FMLInitializationEvent event) {
-        initialize();
-        arsenic.utils.render.capture.SilentView.register();
-    }
-
-    /** Starts the client; Forge calls it through {@link #init}, the injector directly. */
+    /** Starts the client. Called by the injector (arsenic.runtime.InjectedLaunch) once the game is running. */
     public final void initialize() {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
@@ -87,7 +78,7 @@ public class Arsenic {
 
     public String getName() { return clientName; }
 
-    @Mod.Instance
+    // set by arsenic.runtime.InjectedLaunch
     private static Arsenic instance;
 
     public static Arsenic getInstance() { return instance; }

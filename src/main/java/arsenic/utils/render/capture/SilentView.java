@@ -42,11 +42,27 @@ public final class SilentView {
      * Starts following ticks (and, on Forge, the camera). Forge posts its own events; elsewhere the tick comes from the
      * client's event bus and the camera follows the player's rotation fields, which the pass sets.
      */
+    private static Object listener;
+
     public static void register() {
+        if (Platform.isForge()) {
+            listener = new ForgeListener();
+            MinecraftForge.EVENT_BUS.register(listener);
+        } else {
+            listener = new TickListener();
+            Arsenic.getArsenic().getEventManager().subscribe(listener);
+        }
+    }
+
+    /** Stops following ticks again, for uninject. */
+    public static void unregister() {
+        if (listener == null)
+            return;
         if (Platform.isForge())
-            MinecraftForge.EVENT_BUS.register(new ForgeListener());
+            MinecraftForge.EVENT_BUS.unregister(listener);
         else
-            Arsenic.getArsenic().getEventManager().subscribe(new TickListener());
+            Arsenic.getArsenic().getEventManager().unsubscribe(listener);
+        listener = null;
     }
 
     /** Forge's events. Only loaded on Forge. */
