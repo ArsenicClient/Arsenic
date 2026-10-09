@@ -158,6 +158,25 @@ public final class Agent {
         }
     }
 
+    /**
+     * Initialises the class nearly every client class extends (it calls Minecraft.getMinecraft() as it starts), so a jar
+     * with the wrong Minecraft names fails here with a clear message. Otherwise it fails while the client starts, and every
+     * later use of the class only gives a NoClassDefFoundError without a cause.
+     */
+    private static void checkClientNames(Game game) {
+        try {
+            Class.forName("arsenic.utils.java.UtilityClass", true, game.loader);
+        } catch (NoSuchMethodError | NoSuchFieldError e) {
+            if (String.valueOf(e.getMessage()).startsWith("net.minecraft."))
+                throw new IllegalStateException("This Arsenic jar does not use the names of the game ("
+                        + game.namespace.name().toLowerCase() + "): " + e.getMessage() + ". It was built without"
+                        + " reobfuscation; build it with `gradlew build` and inject the jar from build/libs", e);
+            throw new IllegalStateException("Could not start the client: " + chain(e), e);
+        } catch (Throwable t) {
+            throw new IllegalStateException("Could not start the client: " + chain(t), t);
+        }
+    }
+
     /** Every exception in the cause chain with its top frame, for the injector's log. */
     private static String chain(Throwable t) {
         StringBuilder out = new StringBuilder();
@@ -260,19 +279,7 @@ public final class Agent {
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
         clearLoaderCaches(game.loader);
-        // Loads and initialises the client's base classes, so a failure shows its own cause in the injector's log. A class
-        // that failed to link or initialise once only gives a NoClassDefFoundError without a cause after that.
-        for (String name : new String[]{"arsenic.utils.java.UtilityClass", "arsenic.utils.java.FileUtils"}) {
-            try {
-                game.loader.loadClass(name);
-                status.accept("LOG loaded " + name);
-                Class.forName(name, true, game.loader);
-                status.accept("LOG initialised " + name);
-            } catch (Throwable t) {
-                status.accept("LOG could not prepare " + name + ": " + chain(t));
-            }
-        }
-        clearLoaderCaches(game.loader);
+        checkClientNames(game);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)

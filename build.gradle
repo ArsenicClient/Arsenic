@@ -383,6 +383,10 @@ def restoreEmbeddedLibs = { File jarFile ->
 afterEvaluate {
     tasks.reobfJar.doLast { restoreEmbeddedLibs(tasks.getByName("jar").archivePath) }
     tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
+    // A jar left with development names cannot run in Forge (NoSuchMethodError on the first Minecraft call), so building
+    // either jar on its own (the IntelliJ injector run builds only devJar) always obfuscates it too
+    tasks.jar.finalizedBy tasks.reobfJar
+    tasks.devJar.finalizedBy tasks.reobfDevJar
 }
 
 // The default IntelliJ run configuration starts the injector, not Forge. genIntellijRuns writes ForgeGradle's own
