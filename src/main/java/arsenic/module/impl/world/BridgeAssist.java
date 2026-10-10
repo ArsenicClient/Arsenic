@@ -56,6 +56,7 @@ public class BridgeAssist extends Module {
     private float[] nudge;
     private boolean bridging;
     private boolean placedSinceTick;
+    private boolean holdingSneak;
 
     private float arrowForward, arrowStrafe;
     private final MSTimer arrow = MSTimer.expired();
@@ -187,6 +188,10 @@ public class BridgeAssist extends Module {
     }
 
     private void setSneak(boolean wanted) {
+        // only let go of a press we made, so other modules (BedDefender) can hold sneak while we idle
+        if (!wanted && !holdingSneak)
+            return;
+        holdingSneak = wanted;
         int key = mc.gameSettings.keyBindSneak.getKeyCode();
         // with a screen open the physical shift key must not turn into sneaking (shift-clicking in inventories)
         KeyBinding.setKeyBindState(key, wanted || (mc.currentScreen == null && Keyboard.isKeyDown(key)));

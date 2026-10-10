@@ -207,10 +207,11 @@ public class BedDefender extends Module {
             if (!sneakHeld) {
                 sneakHeld = true;
                 sneakTicks = 0;
-                setSneakKey(true);
             } else {
-                sneakTicks++;
+                // only ticks the player really spent crouched count, in case something let go of the key
+                sneakTicks = mc.thePlayer.isSneaking() ? sneakTicks + 1 : 0;
             }
+            setSneakKey(true);
         } else if (sneakHeld) {
             releaseSneak();
         }
@@ -253,6 +254,9 @@ public class BedDefender extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> onRotationPost = event -> {
+        // press it again after every other rotation listener has run, so nothing releases it before the movement input reads it
+        if (sneakHeld)
+            setSneakKey(true);
         if (plan == null)
             return;
 
