@@ -1376,7 +1376,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
 ```java
 public @interface ModuleInfo {
     String name();
-    String description() default "placeholder";
+    String description() default "";
     ModuleCategory category();
     int keybind() default 0;
     boolean enabled() default false;
@@ -2203,6 +2203,9 @@ public interface S03PacketTimeUpdateAccessor {
 ```java
 public class AimController {
     public float defaultPrediction();
+    /** Rough share of the time Heuristics aim spends slipped off the hitbox, 0 to 1. */ public void setMissChance(float chance);
+    /** Pitch-band mode: hold aim pitch inside [lo, hi] degrees (positive looks down) and damp its movement there. */ public void setPitchBand(boolean on, float lo, float hi);
+    /** Whether the entity's hitbox can be hit with aim pitch inside the pitch band. */ public boolean inPitchBand(Entity e);
     public void reset();
     public void cancelFlick();
     public void updateDrift();
@@ -2212,7 +2215,7 @@ public class AimController {
     public AxisAlignedBB predictBox(Entity e, float ticks);
 
     public enum RotationMode {
-        Instant, Lazy;
+        Instant, Lazy, Heuristics;
     }
 }
 ```
@@ -2379,7 +2382,7 @@ public class ColorUtils extends UtilityClass {
 ```java
 public class FileUtils extends UtilityClass {
     public static String getArsenicFolderDirAsString();
-    public static File getArsenicFolderDirAsFile();
+    /** The Arsenic folder: configs, addons, themes and everything else Arsenic saves. It sits in the user's home folder */ public static synchronized File getArsenicFolderDirAsFile();
     public static String readInputStream(InputStream inputStream);
 }
 ```
@@ -2459,14 +2462,10 @@ public abstract class UtilityClass {
 
 ```java
 public final class AutoBlocker {
-    /** True while the Hypixel cycle is running, so attacks must wait for its window. */ public boolean isCycling();
-    /** Advances the Hypixel cycle by one tick. Three ticks: block, switch the server slot away (which drops the */ public boolean tickHypixel(boolean active);
     /** Legit: really raises the sword for a moment after we are hit (hurt time 10 to 6) while the target is */ public void tickLegit(EntityPlayer target, boolean active);
-    /** Puts the server back to normal if the cycle is switched off or interrupted part-way. */ public void abort();
-    public void reset();
 
     public enum Mode {
-        None, Legit, Hypixel;
+        None, Legit;
     }
 }
 ```
@@ -2697,6 +2696,7 @@ public class RenderUtils extends UtilityClass {
     public static double ticks;
     public static long lastFrame;
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha);
+    public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, TargetFx.Style style);
     public static float PI2;
     public static float roundToFloat(double d);
     public static Double interpolate(double oldValue, double newValue, double interpolationValue);

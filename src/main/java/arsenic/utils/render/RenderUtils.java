@@ -466,330 +466,102 @@ public class RenderUtils extends UtilityClass {
     public static double ticks = 0;
     public static long lastFrame = 0;
 
-    public enum RingStyle {
-        /** A bobbing ring with a shaded curtain down to the ground and a glowing band. */
-        CLASSIC,
-        /** A ring of crystal spikes floating above the head that stand taller on each hit. */
-        CROWN,
-        /** Ice lances fired from your chest into the target, with a burst of shards from each hit. */
-        ICE_LANCE,
-        /** A ring whose arc shows health left, coloured from red to green, with a column marking the arc's end. */
-        HEALTH_ARC
-    }
-
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
-        drawRing(entity, partialTicks, rad, colored, alpha, RingStyle.CLASSIC);
+        drawRing(entity, partialTicks, rad, colored, alpha, TargetFx.Style.CLASSIC);
     }
 
-    public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, RingStyle style) {
-        // callers pass 0-255, but glColor clamps to 1, so every fade below would be lost without this
+    // The targetfx program the styles are drawn with. If it fails to build, TargetFx draws a plain ring instead.
+    private static ShaderUtil targetShader;
+    private static int targetShaderState; // 0 untried, 1 ready, 2 failed
+    private static final TargetFx.Target fxTarget = new TargetFx.Target();
+    private static final long fxStart = System.nanoTime();
+
+    public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, TargetFx.Style style) {
+        // callers pass either 0-255 or 0-1
         alpha = alpha > 1f ? alpha / 255f : alpha;
         ticks += .004 * (System.currentTimeMillis() - lastFrame);
-
         lastFrame = System.currentTimeMillis();
 
-        glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_LINE_BIT
-                | GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_HINT_BIT);
-        glPushMatrix();
-        glDisable(GL_TEXTURE_2D);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_ALPHA_TEST);
-        glDisable(GL_CULL_FACE);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(false);
-        glShadeModel(GL_SMOOTH);
-        final double pt = ((IMixinMinecraft) mc).getTimer().renderPartialTicks;
-        final double x = interpolate(entity.lastTickPosX, entity.posX, pt) - mc.getRenderManager().viewerPosX;
-        final double baseY = interpolate(entity.lastTickPosY, entity.posY, pt) - mc.getRenderManager().viewerPosY;
-        final double z = interpolate(entity.lastTickPosZ, entity.posZ, pt) - mc.getRenderManager().viewerPosZ;
-        final double bob = baseY + Math.sin(ticks) + 1;
-
-        beginGlow();
-        switch (style) {
-            case CROWN:
-                drawCrown(entity, x, baseY, z, rad, entity.height, colored, alpha);
-                break;
-            case ICE_LANCE:
-                drawIceLance(entity, colored, alpha);
-                break;
-            case HEALTH_ARC:
-                drawHealthArc(entity, x, baseY, z, rad, entity.height, colored, alpha);
-                break;
-            case CLASSIC:
-            default:
-                drawClassic(x, bob, z, rad, colored, alpha);
-                break;
-        }
-        endGlow();
-
-        glPopMatrix();
-        glPopAttrib();
-    }
-
-    // The ring styles' geometry carries a profile in its texcoords, which ringglow.fsh turns into soft edges, glow and
-    // travelling light. If the shader fails to build, the same geometry is drawn flat.
-    private static ShaderUtil ringShader;
-    private static int ringShaderState; // 0 untried, 1 ready, 2 failed
-
-    private static void beginGlow() {
-        if (ringShaderState == 0) {
+        if (targetShaderState == 0) {
             try {
-                ringShader = new ShaderUtil("ringglow", "shaders/ringglow.vsh");
-                ringShaderState = 1;
+                targetShader = new ShaderUtil("targetfx", "shaders/targetfx.vsh");
+                targetShaderState = 1;
             } catch (Throwable t) {
-                ringShaderState = 2;
+                targetShaderState = 2;
             }
         }
-        if (ringShaderState == 1) {
-            ringShader.init();
-            ringShader.setUniformf("uTime", (float) ticks);
-        }
-    }
 
-    private static void endGlow() {
-        if (ringShaderState == 1)
-            ringShader.unload();
-    }
-
-    // Picks the profile for the geometry that follows. Call it outside glBegin/glEnd, as uniforms can't change inside.
-    private static void glowMode(float mode) {
-        if (ringShaderState == 1)
-            ringShader.setUniformf("uMode", mode);
-    }
-
-    private static void drawClassic(double x, double y, double z, double rad, int colored, float alpha) {
-        // curtain from the ring down to the ground, bright at the ring and fading out below it
-        glowMode(1);
-        glBegin(GL_TRIANGLE_STRIP);
-
-        for (int seg = 0; seg <= 64; seg++) {
-            final double i = seg * (Math.PI * 2) / 64.0;
-            final double vecX = x + rad * Math.cos(i);
-            final double vecZ = z + rad * Math.sin(i);
-
-            glTexCoord2f(seg / 64f, 0f);
-            color2(colored, 0);
-
-            glVertex3d(vecX, y - Math.sin(ticks + 1) / 2.7f, vecZ);
-
-            glTexCoord2f(seg / 64f, 1f);
-            color2(colored, .52f * alpha);
-
-            glVertex3d(vecX, y, vecZ);
-        }
-
-        glEnd();
-
-        band(x, y, z, rad, 0.05, colored, alpha, 0, PI2, 64);
-        band(x, y, z, rad, 0.16, colored, alpha * 0.35f, 0, PI2, 64);
-    }
-
-    // A flat band between radius rad-half and rad+half, from angle `from` to `to` (radians). Both edges carry the full
-    // colour and the shader gives the band its soft edges and glow, so `half` is the band's visible thickness.
-    private static void band(double x, double y, double z, double rad, double half, int colored, float alpha,
-                             double from, double to, int steps) {
-        glowMode(0);
-        glBegin(GL_TRIANGLE_STRIP);
-        for (int i = 0; i <= steps; i++) {
-            double a = from + (to - from) * i / steps;
-            double c = Math.cos(a), s = Math.sin(a);
-            float u = (float) (i / (double) steps);
-            glTexCoord2f(u, 0f);
-            color2(colored, alpha);
-            glVertex3d(x + (rad - half) * c, y, z + (rad - half) * s);
-            glTexCoord2f(u, 1f);
-            color2(colored, alpha);
-            glVertex3d(x + (rad + half) * c, y, z + (rad + half) * s);
-        }
-        glEnd();
-    }
-
-    // A vertical cylinder wall from y0 up to y1, bright at the top and fading toward the bottom
-    private static void wall(double x, double y0, double z, double rad, double y1, int colored, float alpha, int steps) {
-        glowMode(1);
-        glBegin(GL_TRIANGLE_STRIP);
-        for (int i = 0; i <= steps; i++) {
-            double a = i * Math.PI * 2 / steps;
-            double c = Math.cos(a), s = Math.sin(a);
-            float u = (float) (i / (double) steps);
-            glTexCoord2f(u, 0f);
-            color2(colored, alpha);
-            glVertex3d(x + rad * c, y0, z + rad * s);
-            glTexCoord2f(u, 1f);
-            color2(colored, alpha);
-            glVertex3d(x + rad * c, y1, z + rad * s);
-        }
-        glEnd();
-    }
-
-    // One fin standing on the rim at angle a, with its width running along the direction fin
-    private static void spike(double x, double floor, double z, double dist, double a, double fin, double half, double h,
-                              int colored, float alpha) {
-        double bx = x + dist * Math.cos(a), bz = z + dist * Math.sin(a);
-        double tx = -Math.sin(fin) * half, tz = Math.cos(fin) * half;
-        glowMode(2);
-        glBegin(GL_TRIANGLES);
-        glTexCoord2f(0f, 0f);
-        color2(colored, alpha * 0.8f);
-        glVertex3d(bx + tx, floor, bz + tz);
-        glTexCoord2f(1f, 0f);
-        color2(colored, alpha * 0.8f);
-        glVertex3d(bx - tx, floor, bz - tz);
-        glTexCoord2f(0.5f, 1f);
-        color2(colored, alpha);
-        glVertex3d(bx, floor + h, bz);
-        glEnd();
-    }
-
-    // Eight crystals in a ring above the head, each a wide dim fin behind a bright core fin, in both crossed directions.
-    // A hit lengthens them.
-    private static void drawCrown(Entity entity, double x, double y, double z, double rad, double height, int colored, float alpha) {
         long now = System.currentTimeMillis();
         if (consumeHit(entity))
             lastHitMs = now;
-        float flash = hitFlash(now);
-        double floor = y + height + 0.25;
-        double r = rad * 0.9;
-        double h = 0.32 + 0.14 * flash;
-        for (int i = 0; i < 8; i++) {
-            double a = ticks * 0.4 + i * Math.PI * 2 / 8;
-            spike(x, floor, z, r, a, a, 0.2, h, colored, alpha * 0.35f);
-            spike(x, floor, z, r, a, a + Math.PI / 2, 0.2, h, colored, alpha * 0.35f);
-            spike(x, floor, z, r, a, a, 0.1, h, colored, alpha);
-            spike(x, floor, z, r, a, a + Math.PI / 2, 0.1, h, colored, alpha);
+
+        TargetFx.Target t = fxTarget;
+        t.x = interpolate(entity.lastTickPosX, entity.posX, partialTicks) - mc.getRenderManager().viewerPosX;
+        t.y = interpolate(entity.lastTickPosY, entity.posY, partialTicks) - mc.getRenderManager().viewerPosY;
+        t.z = interpolate(entity.lastTickPosZ, entity.posZ, partialTicks) - mc.getRenderManager().viewerPosZ;
+        t.height = entity.height;
+        t.radius = rad;
+        float health = 1f;
+        t.absorption = 0f;
+        t.maxHealth = 20f;
+        if (entity instanceof EntityLivingBase) {
+            EntityLivingBase living = (EntityLivingBase) entity;
+            t.maxHealth = Math.max(1f, living.getMaxHealth());
+            health = MathHelper.clamp_float(living.getHealth() / t.maxHealth, 0f, 1f);
+            t.absorption = MathHelper.clamp_float(living.getAbsorptionAmount() / t.maxHealth, 0f, 1f);
         }
-        band(x, floor, z, r, 0.12, colored, alpha * 0.6f, 0, PI2, 64);
+        trackHealth(health, now);
+        t.health = shownHealth;
+        t.healthLag = lagHealth;
+        t.hit = now - lastHitMs < 500 ? 1f - (now - lastHitMs) / 500f : 0f;
+        t.color = colored;
+        t.alpha = alpha;
+
+        // positions are relative to the viewer, so the way back to the viewer is just the target's position reversed
+        t.dirX = -t.x;
+        t.dirZ = -t.z;
+
+        TargetFx.render(style, t, targetShaderState == 1 ? targetShader.getProgramID() : 0, (System.nanoTime() - fxStart) / 1e9);
     }
 
-    // A point on an entity's body at the given fraction of its height, relative to the viewer
-    private static double[] bodyPoint(Entity e, double yFrac) {
-        double pt = ((IMixinMinecraft) mc).getTimer().renderPartialTicks;
-        double x = interpolate(e.lastTickPosX, e.posX, pt) - mc.getRenderManager().viewerPosX;
-        double y = interpolate(e.lastTickPosY, e.posY, pt) - mc.getRenderManager().viewerPosY + e.height * yFrac;
-        double z = interpolate(e.lastTickPosZ, e.posZ, pt) - mc.getRenderManager().viewerPosZ;
-        return new double[]{x, y, z};
-    }
-
-    private static double[] lerp3(double[] a, double[] b, double t) {
-        return new double[]{a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t};
-    }
-
-    // True once for each new hit on this entity. hurtTime jumps back up to its maximum on a hit, so a rise since the
-    // last frame means a new one.
+    // True once for each new hit on this entity. hurtResistantTime jumps back up to its maximum on a hit, so a rise
+    // since the last frame means a new one.
     private static int hurtTrackedId = -1;
     private static int lastHurtTime;
     private static long lastHitMs;
+
+    // The health bar slides to the real health rather than jumping, and what was just lost lingers for a moment before
+    // draining away after it. Reset with the hit tracking when the target changes.
+    private static float shownHealth = 1f, lagHealth = 1f;
+    private static long lastHealthMs, lagHoldUntil;
+
+    private static void trackHealth(float health, long now) {
+        if (hurtTrackedId != lastHealthId) {
+            lastHealthId = hurtTrackedId;
+            shownHealth = lagHealth = health;
+            lastHealthMs = now;
+        }
+        float dt = Math.min(0.1f, (now - lastHealthMs) / 1000f);
+        lastHealthMs = now;
+        if (health < shownHealth - 0.001f)
+            lagHoldUntil = now + 450;
+        shownHealth += (health - shownHealth) * Math.min(1f, dt * 14f);
+        if (lagHealth < shownHealth)
+            lagHealth = shownHealth;
+        else if (now > lagHoldUntil)
+            lagHealth = Math.max(shownHealth, lagHealth - dt * 0.7f);
+    }
+
+    private static int lastHealthId = -1;
 
     private static boolean consumeHit(Entity entity) {
         if (entity.getEntityId() != hurtTrackedId) {
             hurtTrackedId = entity.getEntityId();
             lastHurtTime = 0;
         }
-        boolean hit = entity.hurtTime > lastHurtTime;
-        lastHurtTime = entity.hurtTime;
+        boolean hit = entity.hurtResistantTime > lastHurtTime;
+        lastHurtTime = entity.hurtResistantTime;
         return hit;
-    }
-
-    // 1 right after a hit, falling to 0 over 400ms
-    private static float hitFlash(long now) {
-        long since = now - lastHitMs;
-        return since < 400 ? 1f - since / 400f : 0f;
-    }
-
-    // Ice lances fired from the player's chest into the target. Each lance is a tail that fades into a white-hot tip.
-    // A hit bursts shards out of the impact point.
-    private static void drawIceLance(Entity entity, int colored, float alpha) {
-        long now = System.currentTimeMillis();
-        if (consumeHit(entity))
-            lastHitMs = now;
-        double[] from = bodyPoint(mc.thePlayer, 0.6);
-        double[] to = bodyPoint(entity, 0.5);
-        glowMode(2);
-        glBegin(GL_LINES);
-        color2(colored, alpha * 0.15f);
-        glVertex3d(from[0], from[1], from[2]);
-        color2(colored, alpha * 0.15f);
-        glVertex3d(to[0], to[1], to[2]);
-        glEnd();
-        int lances = 4;
-        for (int k = 0; k < lances; k++) {
-            double t = (ticks * 0.5 + k / (double) lances) % 1;
-            lanceGlowed(lerp3(from, to, Math.max(0, t - 0.15)), lerp3(from, to, t), colored, alpha);
-        }
-        float flash = hitFlash(now);
-        if (flash > 0) {
-            double len = 0.1 + 0.6 * (1 - flash);
-            for (int i = 0; i < 8; i++) {
-                double a = i * Math.PI * 2 / 8;
-                double[] tip = {to[0] + Math.cos(a) * len, to[1] + Math.sin(a * 1.7) * len * 0.5, to[2] + Math.sin(a) * len};
-                lanceGlowed(to, tip, colored, alpha * flash);
-            }
-        }
-    }
-
-    // A lance with a wide dim fin behind its core
-    private static void lanceGlowed(double[] a, double[] b, int colored, float alpha) {
-        lance(a, b, colored, alpha * 0.35f, 0.28);
-        lance(a, b, colored, alpha, 0.12);
-    }
-
-    // One lance from a (tail) to b (tip), drawn as two fins crossed around its axis
-    private static void lance(double[] a, double[] b, int colored, float alpha, double width) {
-        double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
-        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (len < 1e-6)
-            return;
-        dx /= len;
-        dy /= len;
-        dz /= len;
-        // a horizontal side vector, falling back to x when the lance points straight up or down
-        double px = -dz, pz = dx, pl = Math.sqrt(px * px + pz * pz);
-        if (pl < 1e-6) {
-            px = 1;
-            pz = 0;
-            pl = 1;
-        }
-        double[] p = {px / pl * width, 0, pz / pl * width};
-        double[] q = {dy * p[2], dz * p[0] - dx * p[2], -dy * p[0]};
-        glowMode(2);
-        glBegin(GL_TRIANGLES);
-        lanceFin(a, p, b, colored, alpha);
-        lanceFin(a, q, b, colored, alpha);
-        glEnd();
-    }
-
-    private static void lanceFin(double[] a, double[] s, double[] b, int colored, float alpha) {
-        glTexCoord2f(0f, 0f);
-        color2(colored, 0);
-        glVertex3d(a[0] + s[0], a[1] + s[1], a[2] + s[2]);
-        glTexCoord2f(1f, 0f);
-        color2(colored, 0);
-        glVertex3d(a[0] - s[0], a[1] - s[1], a[2] - s[2]);
-        glTexCoord2f(0.5f, 1f);
-        color2(colored, alpha);
-        glVertex3d(b[0], b[1], b[2]);
-    }
-
-    // The part of the ring still showing is the health fraction, coloured from red when low to green when full.
-    // A column at the end of the arc rises to the same fraction of the body's height.
-    private static void drawHealthArc(Entity entity, double x, double y, double z, double rad, double height, int colored, float alpha) {
-        double floor = y + 0.02;
-        float frac = 1f;
-        if (entity instanceof EntityLivingBase) {
-            EntityLivingBase living = (EntityLivingBase) entity;
-            frac = MathHelper.clamp_float(living.getHealth() / living.getMaxHealth(), 0f, 1f);
-        }
-        band(x, floor, z, rad, 0.12, colored, alpha * 0.18f, 0, PI2, 64);
-        if (frac <= 0f)
-            return;
-        int hp = (int) (255 * (1 - frac)) << 16 | (int) (255 * frac) << 8;
-        double end = frac * PI2;
-        band(x, floor, z, rad, 0.12, hp, alpha, 0, end, 64);
-        band(x, floor, z, rad, 0.3, hp, alpha * 0.35f, 0, end, 64);
-        double ex = x + rad * Math.cos(end), ez = z + rad * Math.sin(end);
-        wall(ex, floor, ez, 0.12, floor + height * frac, hp, alpha * 0.9f, 12);
     }
 
     public static final float PI2 = roundToFloat((Math.PI * 2D));

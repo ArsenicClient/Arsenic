@@ -231,6 +231,10 @@ public class ShaderUtil {
     }
 
 
+    public int getProgramID() {
+        return programID;
+    }
+
     public void init() {
         glUseProgram(programID);
     }
