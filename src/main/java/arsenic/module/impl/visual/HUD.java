@@ -2,6 +2,7 @@ package arsenic.module.impl.visual;
 
 import arsenic.utils.timer.FrameClock;
 import arsenic.utils.java.MathUtils;
+import arsenic.utils.keystrokes.SyntheticKeys;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ public class HUD extends Module {
     public final DoubleProperty backgroundOpacity = new DoubleProperty("Opacity", new DoubleValue(0, 100, 62, 1));
     public final BooleanProperty editPosition = new BooleanProperty("Edit Position", false);
 
-    public static final int KEYSTROKES_W = 64, KEYSTROKES_H = 78;
+    public static final int KEYSTROKES_W = 64, KEYSTROKES_H = 92;
 
     private final HudElement arrayList = hudElement("Module List", 0, 0, 92, 70, true);
     private final HudElement watermark = hudElement("Watermark", 4, 4, 78, 16);
@@ -459,17 +460,24 @@ public class HUD extends Module {
 
         float row3 = row2 + k + gap;
         float half = (k * 3f + gap * 2f - gap) / 2f;
-        keyBox(fr, "LMB " + cps(clicks), Mouse.isButtonDown(0), x0, row3, half, k, color);
+        boolean lmb = Mouse.isButtonDown(0) || SyntheticKeys.flashing(SyntheticKeys.Key.LMB);
+        int lmbCps = cps(clicks) + SyntheticKeys.countLastSecond(SyntheticKeys.Key.LMB);
+        keyBox(fr, "LMB " + lmbCps, lmb, x0, row3, half, k, color);
         keyBox(fr, "RMB " + cps(rightClicks), Mouse.isButtonDown(1), x0 + half + gap, row3, half, k, color);
 
         float row4 = row3 + k + gap;
         float spaceH = 12f;
-        boolean jump = mc.gameSettings.keyBindJump.isKeyDown();
-        chipBackground(x0, row4, x0 + k * 3f + gap * 2f, row4 + spaceH, jump, color);
+        boolean jump = mc.gameSettings.keyBindJump.isKeyDown() || SyntheticKeys.flashing(SyntheticKeys.Key.JUMP);
+        float rowW = k * 3f + gap * 2f;
+        chipBackground(x0, row4, x0 + rowW, row4 + spaceH, jump, color);
         float barW = 22f;
-        float cx = x0 + (k * 3f + gap * 2f) / 2f;
+        float cx = x0 + rowW / 2f;
         DrawUtils.drawRect(cx - barW / 2f, row4 + spaceH / 2f - 0.5f, cx + barW / 2f, row4 + spaceH / 2f + 0.5f,
                 jump ? 0xFFFFFFFF : ThemeManager.getTextMuted());
+
+        float row5 = row4 + spaceH + gap;
+        boolean sprint = mc.gameSettings.keyBindSprint.isKeyDown() || SyntheticKeys.flashing(SyntheticKeys.Key.SPRINT);
+        keyBox(fr, "SPRINT", sprint, x0, row5, rowW, spaceH, color);
     }
 
     /** The objective shown in the sidebar slot, or null when no scoreboard sidebar is up. */

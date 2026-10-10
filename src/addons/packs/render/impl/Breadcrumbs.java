@@ -1,5 +1,3 @@
-package arsenic.module.impl.world;
-
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -17,7 +15,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Breadcrumbs", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Breadcrumbs", description = "A fading line through your last few seconds of movement", category = ModuleCategory.RENDER)
 public class Breadcrumbs extends Module {
 
 
@@ -76,28 +74,18 @@ public class Breadcrumbs extends Module {
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
 
-        if (true) {
-            int total = points.size();
-            for (int i = 0; i < total - 1; i++) {
-                double[] p1 = points.get(i);
-                double[] p2 = points.get(i + 1);
-                float alpha = (float) i / total;
-                wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-                wr.pos(p1[0] - mc.getRenderManager().viewerPosX,
-                        p1[1] - mc.getRenderManager().viewerPosY,
-                        p1[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
-                wr.pos(p2[0] - mc.getRenderManager().viewerPosX,
-                        p2[1] - mc.getRenderManager().viewerPosY,
-                        p2[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
-                tessellator.draw();
-            }
-        } else {
-            wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
-            for (double[] p : points) {
-                wr.pos(p[0] - mc.getRenderManager().viewerPosX,
-                        p[1] - mc.getRenderManager().viewerPosY,
-                        p[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, 0.8f).endVertex();
-            }
+        int total = points.size();
+        for (int i = 0; i < total - 1; i++) {
+            double[] p1 = points.get(i);
+            double[] p2 = points.get(i + 1);
+            float alpha = (float) i / total;
+            wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
+            wr.pos(p1[0] - mc.getRenderManager().viewerPosX,
+                    p1[1] - mc.getRenderManager().viewerPosY,
+                    p1[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
+            wr.pos(p2[0] - mc.getRenderManager().viewerPosX,
+                    p2[1] - mc.getRenderManager().viewerPosY,
+                    p2[2] - mc.getRenderManager().viewerPosZ).color(r, g, b, alpha * 0.8f).endVertex();
             tessellator.draw();
         }
 

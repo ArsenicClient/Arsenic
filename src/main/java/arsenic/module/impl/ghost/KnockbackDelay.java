@@ -21,14 +21,13 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S00PacketKeepAlive;
-import net.minecraft.network.play.server.S01PacketJoinGame;
-import net.minecraft.network.play.server.S07PacketRespawn;
-import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.network.play.server.S40PacketDisconnect;
 
+/**
+ * Applies the knockback at once, but holds all of our outgoing packets for the delay, in order. The server keeps
+ * not hearing from us while the knockback is in flight, so our position lands late from the attacker's side. Holding
+ * only movement let swings and attacks overtake it, which Grim flags as packets out of order (Post).
+ */
 @ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
 public class KnockbackDelay extends Module {
 
@@ -44,45 +43,39 @@ public class KnockbackDelay extends Module {
 
     @Override
     protected void onDisable() {
-        LagManager.releaseDelayedFor(KnockbackDelay.class);
-        LagManager.undelay(KnockbackDelay.class);
-        lagging = false;
-        cdTimer.reset();
+        stopHolding();
     }
 
     @EventLink
     public Listener<EventUpdate.Pre> preListener = event -> {
-        if(lagging && releaseTimer.finished(lag))  {
-            LagManager.releaseDelayedFor(KnockbackDelay.class);
-            LagManager.undelay(KnockbackDelay.class);
-            lagging = false;
-            cdTimer.reset();
-        }
+        if (lagging && releaseTimer.finished(lag))
+            stopHolding();
     };
 
-    private static boolean isHoldable(Packet<?> p) {
-        return !(p instanceof S08PacketPlayerPosLook || p instanceof S00PacketKeepAlive
-                || p instanceof S01PacketJoinGame || p instanceof S07PacketRespawn
-                || p instanceof S40PacketDisconnect);
+    private void stopHolding() {
+        LagManager.releaseDelayedOutgoingFor(KnockbackDelay.class);
+        LagManager.undelayOutgoing(KnockbackDelay.class);
+        lagging = false;
+        cdTimer.reset();
     }
 
     @RequiresPlayer
     @EventLink(Priorities.HIGH)
     public Listener<EventPacket.Incoming.Pre> listener = event -> {
-       if(event.getPacket() instanceof S12PacketEntityVelocity) {
-           S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
-           if (p.getEntityID() != mc.thePlayer.getEntityId())
-               return;
-           if((p.getMotionX() != 0 || p.getMotionZ() != 0) && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
-               EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
-               if(mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000)  && RotationUtils.getDistanceToEntityBox(target) <= 3)
-                   return;
-               lagging = true;
-               lag = (long) delay.getValue().getRandomInRange();
-               releaseTimer.reset();
-               LagManager.delay(KnockbackDelay.class, KnockbackDelay::isHoldable, pk -> lag);
-           }
-       }
+        if (!(event.getPacket() instanceof S12PacketEntityVelocity))
+            return;
+        S12PacketEntityVelocity p = (S12PacketEntityVelocity) event.getPacket();
+        if (p.getEntityID() != mc.thePlayer.getEntityId())
+            return;
+        if ((p.getMotionX() != 0 || p.getMotionZ() != 0) && !lagging && cdTimer.finished((long) cooldown.getValue().getInput())) {
+            EntityPlayer target = PlayerUtils.getClosestPlayerWithin(5.0);
+            if (mode.getValue() == DelayMode.AntiCombo && target != null && (TargetManager.getTimeSinceLastClientSidedHit(target) <= 200 || TargetManager.getTimeSinceLastClientSidedHit(target) >= 1000) && RotationUtils.getDistanceToEntityBox(target) <= 3)
+                return;
+            lagging = true;
+            lag = (long) delay.getValue().getRandomInRange();
+            releaseTimer.reset();
+            LagManager.delayOutgoing(KnockbackDelay.class, LagManager.ALL_PACKETS, pk -> lag);
+        }
     };
 
 }

@@ -44,7 +44,7 @@ public class Scaffold extends Module {
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     public BooleanProperty eagle = new BooleanProperty("Eagle", true);
     @PropertyInfo(reliesOn = "Eagle", value = "true")
-    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0.1, 3, 2, 0.1));
+    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 3, 2, 0.1));
 
     private final ScaffoldCore core = new ScaffoldCore(ScaffoldCore.Tuning.best(), new Random());
     private BlockData blockData;

@@ -1,5 +1,6 @@
 package arsenic.addon;
 
+import arsenic.asm.AnnotationTransformer;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleInfo;
@@ -684,6 +685,8 @@ public final class AddonManager {
             AddonCompiler.Result result = newCompiler().compile(sources);
             errors.addAll(result.errors);
 
+            // Addon classes are defined from memory, so the game's transformers never see them: apply ours here
+            result.classes.replaceAll((name, bytes) -> transformAddonClass(name, bytes));
             ClassLoader loader = new AddonClassLoader(Arsenic.class.getClassLoader(), result.classes);
             for (String className : result.classes.keySet())
                 register(modules, loader, className, previousState);
@@ -693,6 +696,15 @@ public final class AddonManager {
         }
         errors.forEach(e -> Arsenic.getArsenic().getLogger().error("[addon] {}", e));
         return loaded.size();
+    }
+
+    private static byte[] transformAddonClass(String name, byte[] bytes) {
+        try {
+            return AnnotationTransformer.transform(bytes);
+        } catch (Throwable t) {
+            Arsenic.getArsenic().getLogger().error("Could not transform addon class " + name + "; its annotations are ignored", t);
+            return bytes;
+        }
     }
 
     private Map<String, JsonObject> unload(ModuleManager modules) {

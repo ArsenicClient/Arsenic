@@ -56,7 +56,8 @@ public class Hitflick extends Module {
     private static final double EXTRA_KNOCKBACK_Y = 0.1;
     private static final double AIR_STRAFE = 0.026;
     private static final int MAX_SIM_TICKS = 40;
-    private static final double VOID_DROP = 14.0;
+    // A fall this long with nothing below counts as void, even when the map has no void floor
+    private static final double VOID_DROP = 10.0;
     private static final int STRAFE_NONE = 0;
     private static final int STRAFE_BACK = 1;
     private static final int STRAFE_LEFT = 2;
@@ -453,4 +454,5 @@ public class Hitflick extends Module {
             this.spawnTime = spawnTime;
         }
     }
+
 }

@@ -10,7 +10,9 @@ import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.network.play.client.C00PacketKeepAlive;
 import net.minecraft.network.play.client.C0EPacketClickWindow;
+import net.minecraft.network.play.server.S00PacketKeepAlive;
 import net.minecraft.network.play.server.S01PacketJoinGame;
 import net.minecraft.network.play.server.S22PacketMultiBlockChange;
 import net.minecraft.network.play.server.S23PacketBlockChange;
@@ -26,9 +28,9 @@ import java.util.Map;
 
 /**
  * Round-trip time estimate built from packets we send and the server's confirmation of them:
- * block placement / break -> block change, window click -> confirm transaction. These measure
- * what the server actually does with our packets, unlike the tab list value which many servers
- * leave stale or at zero. The tab list response time is only used until the first measurement; measured
+ * block placement / break -> block change, window click -> confirm transaction, and keep-alive
+ * (the server's keep-alive arriving -> our reply leaving). The keep-alive needs no player action, so
+ * the estimate exists even when the tab list is spoofed to zero. The tab list response time is only used until the first measurement; measured
  * samples never expire by age (the last 12 stay), since an old measurement beats a stale tab value.
  *
  * Outgoing packets are timed at the point they really leave (after LagManager had its chance to hold
@@ -54,6 +56,8 @@ public final class PingTracker {
     private static final ArrayDeque<long[]> samples = new ArrayDeque<>();
 
     private static volatile int tabPing;
+    // When the server's keep-alive arrived and we have not answered it yet, or -1
+    private static long keepAliveArrivedAt = -1;
 
     private static void recordSent(Map<BlockPos, Long> map, BlockPos pos) {
         synchronized (lock) {
@@ -94,7 +98,16 @@ public final class PingTracker {
             return;
         Packet<?> p = e.getPacket();
 
-        if (p instanceof C08PacketPlayerBlockPlacement) {
+        if (p instanceof C00PacketKeepAlive) {
+            // The client answers each keep-alive right away, so the next reply is the one to this keep-alive. A reply
+            // held by one of our own lag modules would only measure that hold, so it is skipped.
+            synchronized (lock) {
+                long now = System.currentTimeMillis();
+                if (keepAliveArrivedAt >= 0 && !LagManager.isLagging())
+                    addSample(keepAliveArrivedAt, now);
+                keepAliveArrivedAt = -1;
+            }
+        } else if (p instanceof C08PacketPlayerBlockPlacement) {
             C08PacketPlayerBlockPlacement c08 = (C08PacketPlayerBlockPlacement) p;
             int dir = c08.getPlacedBlockDirection();
             if (dir < 0 || dir > 5 || c08.getPosition() == null)
@@ -138,6 +151,11 @@ public final class PingTracker {
                 if (sent != null)
                     addSample(sent, now);
             }
+        } else if (p instanceof S00PacketKeepAlive) {
+            synchronized (lock) {
+                if (keepAliveArrivedAt < 0)
+                    keepAliveArrivedAt = now;
+            }
         } else if (p instanceof S01PacketJoinGame) {
             reset();
         }
@@ -152,6 +170,7 @@ public final class PingTracker {
             pendingBlocks.clear();
             pendingClicks.clear();
             samples.clear();
+            keepAliveArrivedAt = -1;
         }
         tabPing = 0;
     }

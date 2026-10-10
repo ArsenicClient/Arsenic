@@ -3,34 +3,77 @@ package arsenic.module.impl.player;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventSilentRotation;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.impl.blatant.KillAura;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
+import net.minecraft.util.MovingObjectPosition;
 
 @ModuleInfo(name = "AutoWeapon", category = ModuleCategory.COMBAT)
 public class AutoWeapon extends Module {
 
+    // Slot to return to once we stop looking at a player
+    private int originalSlot = -1;
+    // Slot we switched to; -1 when we are not holding a swapped weapon
+    private int weaponSlot = -1;
+
+    @Override
+    protected void onDisable() {
+        restoreSlot();
+    }
+
     @RequiresPlayer
     @EventLink
-    public final Listener<EventTick> onTick = event -> {
-        KillAura aura = Arsenic.getArsenic().getModuleManager().getModuleByClass(KillAura.class);
-        if (aura == null || !aura.isEnabled()) return;
-        if (aura.target == null && mc.thePlayer.inventory.getCurrentItem() != null) return;
+    public final Listener<EventSilentRotation.Post> onRotation = event -> {
+        if (isLookingAtPlayer(event)) {
+            if (weaponSlot == -1)
+                equipBestWeapon();
+        } else {
+            restoreSlot();
+        }
+    };
 
+    // Uses the same ray the attack would use: the silent rotation, not the camera
+    private boolean isLookingAtPlayer(EventSilentRotation.Post event) {
+        MovingObjectPosition hit = event.getRayTraceEntity();
+        if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY || !(hit.entityHit instanceof EntityPlayer))
+            return false;
+        EntityPlayer player = (EntityPlayer) hit.entityHit;
+        return player != mc.thePlayer && player.isEntityAlive()
+                && !Arsenic.getArsenic().getFriendManager().isFriend(player);
+    }
+
+    private void equipBestWeapon() {
+        if (mc.thePlayer.isUsingItem()) return;
         for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
             if (m.isEnabled() && m.isSwappingHotbar()) return;
-        if (mc.thePlayer.isUsingItem()) return;
 
+        int best = bestWeaponSlot();
+        if (best == -1) return;
+        originalSlot = mc.thePlayer.inventory.currentItem;
+        weaponSlot = best;
+        mc.thePlayer.inventory.currentItem = best;
+    }
+
+    private void restoreSlot() {
+        if (weaponSlot == -1) return;
+        // If the player picked a different slot themselves, leave it alone
+        if (mc.thePlayer != null && mc.thePlayer.inventory.currentItem == weaponSlot)
+            mc.thePlayer.inventory.currentItem = originalSlot;
+        weaponSlot = -1;
+        originalSlot = -1;
+    }
+
+    private int bestWeaponSlot() {
         int best = -1;
         double bestDamage = 0;
         for (int slot = 0; slot < 9; slot++) {
@@ -47,8 +90,6 @@ public class AutoWeapon extends Module {
                 best = slot;
             }
         }
-        if (best != -1 && mc.thePlayer.inventory.currentItem != best) {
-            mc.thePlayer.inventory.currentItem = best;
-        }
-    };
+        return best;
+    }
 }
