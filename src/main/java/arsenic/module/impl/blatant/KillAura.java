@@ -18,6 +18,8 @@ import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.utils.click.ClickManager;
 import arsenic.utils.minecraft.AutoBlocker;
 import arsenic.utils.minecraft.BadPacketsManager;
@@ -50,6 +52,8 @@ public class KillAura extends Module {
     public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
+    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 15, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
@@ -67,6 +71,7 @@ public class KillAura extends Module {
     private static final float PREDICTION_TICKS = 1f;
     private static final double CLICK_GRACE_MS = 300;
     private static final double PRE_AIM_RANGE = 4;
+    private static final double PRE_SWING_RANGE = 4.5;
 
     private final AimController aim = new AimController();
     private final TargetPicker picker = new TargetPicker();
@@ -116,6 +121,7 @@ public class KillAura extends Module {
             return;
         }
         if (target != null) {
+            aim.setMissChance((float) (missChance.getValue().getInput() / 100));
             float[] rots = aim.aimAt(target, PREDICTION_TICKS);
             aim.rotate(event, target, rots, rotationMode.getValue(),
                     (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), flickBudget());
@@ -171,9 +177,7 @@ public class KillAura extends Module {
                         resetAttackCycle();
                     }
                 }
-            } else if (hit == null && target != null
-                    && RotationUtils.getDistanceToEntityBox(target) <= ATTACK_RANGE
-                    && shouldMissClick(event)) {
+            } else if (hit == null && target != null && shouldSwingAtAir(event)) {
                 mc.thePlayer.swingItem();
                 resetAttackCycle();
             }
@@ -232,6 +236,17 @@ public class KillAura extends Module {
 
     private void resetAttackCycle() {
         ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
+    }
+
+    /**
+     * A miss swing at a target that is not under the crosshair. Heuristics mode also swings at a target that is
+     * still closing in, just out of reach, the way players start clicking before the first hit lands.
+     */
+    private boolean shouldSwingAtAir(EventSilentRotation.Post event) {
+        double dist = RotationUtils.getDistanceToEntityBox(target);
+        if (dist <= ATTACK_RANGE && shouldMissClick(event))
+            return true;
+        return rotationMode.getValue() == AimController.RotationMode.Heuristics && dist <= PRE_SWING_RANGE;
     }
 
     private boolean shouldMissClick(EventSilentRotation.Post event) {

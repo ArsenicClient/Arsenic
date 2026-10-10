@@ -84,6 +84,8 @@ public final class AimCore {
     }
 
     public final Tuning tun;
+    /** Rough share of ticks heuristic aim spends slipped off the hitbox. */
+    public float missChance = 0.1f;
     private final Random rnd;
 
     private float driftX = 0.5f, driftY = 0.65f, driftZ = 0.5f;
@@ -375,9 +377,11 @@ public final class AimCore {
             hOffYaw += (hExcursionGoal - hOffYaw) * 0.35f;
         } else {
             hOffYaw += -hOffYaw * 0.08f + (float) rnd.nextGaussian() * 0.11f;
-            if (rnd.nextFloat() < 0.01f) {
+            // An excursion has the aim off the box for about five ticks once eased out, so this rate lands near missChance
+            float f = Math.min(0.6f, Math.max(0f, missChance));
+            if (rnd.nextFloat() < f / (5f * (1f - f))) {
                 hExcursionLeft = 4 + rnd.nextInt(7);
-                hExcursionGoal = (rnd.nextBoolean() ? 1 : -1) * random(1.3f, 2.0f);
+                hExcursionGoal = (rnd.nextBoolean() ? 1 : -1) * random(1.6f, 2.6f);
             }
             hOffYaw = clamp(hOffYaw, -0.8f, 0.8f);
         }

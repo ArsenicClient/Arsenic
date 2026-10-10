@@ -28,6 +28,11 @@ public class AimController {
         return core.tun.predictionTicks;
     }
 
+    /** Rough share of the time Heuristics aim spends slipped off the hitbox, 0 to 1. */
+    public void setMissChance(float chance) {
+        core.missChance = chance;
+    }
+
     public void reset() {
         core.reset();
     }
