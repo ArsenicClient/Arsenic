@@ -53,7 +53,7 @@ import java.util.Set;
  *  - roof blocks that have to be placed against the bed are placed while really holding the sneak key
  */
 @ModuleInfo(name = "BedDefender", description = "Walls your nearest bed in with the strongest blocks in your hotbar", category = ModuleCategory.PLAYER)
-public class AutoBedDefense extends Module {
+public class BedDefender extends Module {
 
     public final DoubleProperty layers = new DoubleProperty("Layers", new DoubleValue(1, 3, 1, 1));
 
