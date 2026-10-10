@@ -4,6 +4,10 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 import arsenic.injection.accessor.IMixinMinecraft;
 import arsenic.injection.accessor.IMixinRenderManager;
@@ -474,7 +478,17 @@ public class RenderUtils extends UtilityClass {
         /** A fixed band at head height over a faint disc. */
         HALO,
         /** Glowing dashes around the ground that turn slowly. */
-        SPIN
+        SPIN,
+        /** A rune circle on the ground with a wall rising from its rim. Lightning is called down on every hit. */
+        MAGIC_CIRCLE,
+        /** A translucent column from the feet to the head with a ring climbing its length. */
+        PILLAR,
+        /** Two strands of motes spiralling up the body from the feet to the head. */
+        HELIX,
+        /** Rings that rise from the feet to the head and fade out, one after another. */
+        RISING,
+        /** A tilted ring circling the body at chest height with a mote riding it. */
+        ORBIT
     }
 
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
@@ -482,6 +496,8 @@ public class RenderUtils extends UtilityClass {
     }
 
     public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, RingStyle style) {
+        // callers pass 0-255, but glColor clamps to 1, so every fade below would be lost without this
+        alpha = alpha > 1f ? alpha / 255f : alpha;
         ticks += .004 * (System.currentTimeMillis() - lastFrame);
 
         lastFrame = System.currentTimeMillis();
@@ -517,6 +533,21 @@ public class RenderUtils extends UtilityClass {
                 break;
             case SPIN:
                 drawSpin(x, baseY + 0.02, z, rad, colored, alpha);
+                break;
+            case MAGIC_CIRCLE:
+                drawMagicCircle(entity, x, baseY, z, rad, colored, alpha);
+                break;
+            case PILLAR:
+                drawPillar(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case HELIX:
+                drawHelix(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case RISING:
+                drawRising(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case ORBIT:
+                drawOrbit(x, baseY, z, rad, entity.height, colored, alpha);
                 break;
             case CLASSIC:
             default:
@@ -593,6 +624,230 @@ public class RenderUtils extends UtilityClass {
             band(x, y, z, rad, 0.06, colored, alpha, start, end, 6);
             band(x, y, z, rad, 0.18, colored, alpha * 0.35f, start, end, 6);
         }
+    }
+
+    private static final int BOLT_SEGMENTS = 12;
+    private static final long BOLT_MS = 380;
+    private static final int MAX_BOLTS = 8;
+    private static final List<LightningBolt> bolts = new ArrayList<>();
+    private static final Random boltRandom = new Random();
+    private static int hurtTrackedId = -1;
+    private static int lastHurtTime;
+
+    private static final class LightningBolt {
+        final long born = System.currentTimeMillis();
+        // sideways wobble per joint, zero at the ends so the bolt starts above and lands on the target's centre
+        final float[] jitterX = new float[BOLT_SEGMENTS + 1];
+        final float[] jitterZ = new float[BOLT_SEGMENTS + 1];
+
+        LightningBolt() {
+            for (int i = 1; i < BOLT_SEGMENTS; i++) {
+                jitterX[i] = (boltRandom.nextFloat() - 0.5f) * 0.4f;
+                jitterZ[i] = (boltRandom.nextFloat() - 0.5f) * 0.4f;
+            }
+        }
+    }
+
+    // A rune circle on the ground, its rim walled, and a lightning bolt from the sky each time the target takes a hit
+    private static void drawMagicCircle(Entity entity, double x, double baseY, double z, double rad, int colored, float alpha) {
+        // hurtTime jumps back up to its maximum on a hit, so a rise since the last frame means a new hit
+        if (entity.getEntityId() != hurtTrackedId) {
+            hurtTrackedId = entity.getEntityId();
+            lastHurtTime = 0;
+        }
+        if (entity.hurtTime > lastHurtTime) {
+            bolts.add(new LightningBolt());
+            if (bolts.size() > MAX_BOLTS)
+                bolts.remove(0);
+        }
+        lastHurtTime = entity.hurtTime;
+
+        double floor = baseY + 0.02;
+        float pulse = 0.65f + 0.35f * (float) Math.sin(ticks * 4);
+        disc(x, floor, z, rad, colored, alpha * 0.2f * pulse);
+        band(x, floor, z, rad, 0.05, colored, alpha * pulse, 0, PI2, 64);
+        band(x, floor, z, rad * 0.72, 0.03, colored, alpha * pulse, 0, PI2, 64);
+        wall(x, floor, z, rad, floor + entity.height * 0.6, colored, alpha * 0.25f, 48);
+
+        // a pentagram turning one way, and rune ticks turning the other
+        double star = -ticks * 0.6 - Math.PI / 2;
+        double runes = ticks * 0.25;
+        glLineWidth(2f);
+        color2(colored, alpha * pulse);
+        glBegin(GL_LINES);
+        for (int i = 0; i < 5; i++) {
+            double a = star + i * Math.PI * 2 / 5;
+            double b = star + ((i + 2) % 5) * Math.PI * 2 / 5;
+            glVertex3d(x + rad * 0.72 * Math.cos(a), floor, z + rad * 0.72 * Math.sin(a));
+            glVertex3d(x + rad * 0.72 * Math.cos(b), floor, z + rad * 0.72 * Math.sin(b));
+        }
+        for (int i = 0; i < 16; i++) {
+            double a = runes + i * Math.PI * 2 / 16;
+            glVertex3d(x + rad * 0.88 * Math.cos(a), floor, z + rad * 0.88 * Math.sin(a));
+            glVertex3d(x + rad * 0.98 * Math.cos(a), floor, z + rad * 0.98 * Math.sin(a));
+        }
+        glEnd();
+        glLineWidth(1f);
+
+        double top = baseY + entity.height + 2.5;
+        double bodyY = baseY + entity.height * 0.5;
+        long now = System.currentTimeMillis();
+        for (Iterator<LightningBolt> it = bolts.iterator(); it.hasNext(); ) {
+            LightningBolt bolt = it.next();
+            float age = (now - bolt.born) / (float) BOLT_MS;
+            if (age >= 1f) {
+                it.remove();
+                continue;
+            }
+            float fade = 1f - age;
+            drawBolt(bolt, x, top, z, bodyY, colored, alpha * fade);
+            // the shock spreading out from the circle as the bolt lands
+            band(x, floor, z, rad * (0.4 + age), 0.06, colored, alpha * fade, 0, PI2, 64);
+        }
+    }
+
+    // A jagged path from the sky to the target, a wide faint glow under a thin white core
+    private static void drawBolt(LightningBolt bolt, double x, double top, double z, double bottom, int colored, float alpha) {
+        for (int pass = 0; pass < 2; pass++) {
+            glLineWidth(pass == 0 ? 6f : 2f);
+            glBegin(GL_LINE_STRIP);
+            for (int i = 0; i <= BOLT_SEGMENTS; i++) {
+                double t = i / (double) BOLT_SEGMENTS;
+                double y = top + (bottom - top) * t;
+                if (pass == 0)
+                    color2(colored, alpha * 0.4f);
+                else
+                    glColor4f(1f, 1f, 1f, alpha);
+                glVertex3d(x + bolt.jitterX[i], y, z + bolt.jitterZ[i]);
+            }
+            glEnd();
+        }
+        glLineWidth(1f);
+    }
+
+    // A translucent column with a ring that climbs it, a band at each end
+    private static void drawPillar(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double top = y + height;
+        wall(x, y, z, rad * 0.8, top, colored, alpha * 0.45f, 48);
+        band(x, y + 0.02, z, rad, 0.05, colored, alpha, 0, PI2, 64);
+        band(x, top, z, rad * 0.8, 0.05, colored, alpha * 0.8f, 0, PI2, 64);
+        double climb = y + ((ticks * 0.25) % 1) * height;
+        band(x, climb, z, rad * 0.8, 0.05, colored, alpha, 0, PI2, 64);
+        band(x, climb, z, rad * 0.8, 0.16, colored, alpha * 0.35f, 0, PI2, 64);
+    }
+
+    // Two strands winding up the body, with motes climbing both
+    private static void drawHelix(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double r = rad * 0.55;
+        int samples = 40;
+        glLineWidth(2f);
+        for (int strand = 0; strand < 2; strand++) {
+            double phase = strand * Math.PI;
+            glBegin(GL_LINE_STRIP);
+            for (int i = 0; i <= samples; i++) {
+                double t = i / (double) samples;
+                double a = phase + t * Math.PI * 4;
+                color2(colored, alpha * 0.8f);
+                glVertex3d(x + r * Math.cos(a), y + t * height, z + r * Math.sin(a));
+            }
+            glEnd();
+        }
+        glLineWidth(1f);
+        for (int strand = 0; strand < 2; strand++) {
+            for (int k = 0; k < 4; k++) {
+                double t = (ticks * 0.12 + k / 4.0) % 1;
+                double a = strand * Math.PI + t * Math.PI * 4;
+                mote(x + r * Math.cos(a), y + t * height, z + r * Math.sin(a), 0.08, colored, alpha);
+            }
+        }
+    }
+
+    // Three rings that start at the feet, widen and rise to the head, fading as they go
+    private static void drawRising(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        for (int k = 0; k < 3; k++) {
+            double u = (ticks * 0.2 + k / 3.0) % 1;
+            double r = rad * (0.6 + 0.5 * u);
+            band(x, y + u * height, z, r, 0.05, colored, alpha * (float) (1 - u), 0, PI2, 64);
+        }
+        band(x, y + 0.02, z, rad * 0.6, 0.04, colored, alpha * 0.6f, 0, PI2, 64);
+    }
+
+    // A ring tilted across the body at chest height, turning around it with a mote riding its edge
+    private static void drawOrbit(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double cy = y + height * 0.55;
+        double r = rad * 0.85;
+        double tilt = 0.45;
+        double spin = ticks * 0.8;
+        for (int pass = 0; pass < 2; pass++) {
+            glLineWidth(pass == 0 ? 4f : 1.5f);
+            color2(colored, alpha * (pass == 0 ? 0.35f : 1f));
+            glBegin(GL_LINE_LOOP);
+            for (int i = 0; i < 64; i++) {
+                double[] p = orbitPoint(x, cy, z, r, i * Math.PI * 2 / 64, tilt, spin);
+                glVertex3d(p[0], p[1], p[2]);
+            }
+            glEnd();
+        }
+        glLineWidth(1f);
+        double[] lead = orbitPoint(x, cy, z, r, ticks * 1.5, tilt, spin);
+        mote(lead[0], lead[1], lead[2], 0.1, colored, alpha);
+    }
+
+    // A point on a circle of radius r around (x, cy, z), tilted about the x axis and then turned about the y axis
+    private static double[] orbitPoint(double x, double cy, double z, double r, double a, double tilt, double spin) {
+        double px = r * Math.cos(a);
+        double pz = r * Math.sin(a);
+        double py = pz * Math.sin(tilt);
+        pz *= Math.cos(tilt);
+        return new double[]{
+                x + px * Math.cos(spin) - pz * Math.sin(spin),
+                cy + py,
+                z + px * Math.sin(spin) + pz * Math.cos(spin)
+        };
+    }
+
+    // A flat filled disc fading out from its centre
+    private static void disc(double x, double y, double z, double rad, int colored, float alpha) {
+        glBegin(GL_TRIANGLE_FAN);
+        color2(colored, alpha);
+        glVertex3d(x, y, z);
+        color2(colored, 0);
+        for (int seg = 0; seg <= 48; seg++) {
+            double a = seg * Math.PI * 2 / 48;
+            glVertex3d(x + rad * Math.cos(a), y, z + rad * Math.sin(a));
+        }
+        glEnd();
+    }
+
+    // A vertical cylinder wall from y0 up to y1, solid at the bottom and fading out at the top
+    private static void wall(double x, double y0, double z, double rad, double y1, int colored, float alpha, int steps) {
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int i = 0; i <= steps; i++) {
+            double a = i * Math.PI * 2 / steps;
+            double c = Math.cos(a), s = Math.sin(a);
+            color2(colored, alpha);
+            glVertex3d(x + rad * c, y0, z + rad * s);
+            color2(colored, 0);
+            glVertex3d(x + rad * c, y1, z + rad * s);
+        }
+        glEnd();
+    }
+
+    // A small glowing diamond standing up, turned to face the viewer. Coordinates are relative to the viewer.
+    private static void mote(double x, double y, double z, double size, int colored, float alpha) {
+        double len = Math.hypot(x, z);
+        double rx = len > 1e-6 ? -z / len * size : size;
+        double rz = len > 1e-6 ? x / len * size : 0;
+        glBegin(GL_TRIANGLE_FAN);
+        color2(colored, alpha);
+        glVertex3d(x, y, z);
+        color2(colored, 0);
+        glVertex3d(x + rx, y, z + rz);
+        glVertex3d(x, y + size, z);
+        glVertex3d(x - rx, y, z - rz);
+        glVertex3d(x, y - size, z);
+        glVertex3d(x + rx, y, z + rz);
+        glEnd();
     }
 
 
