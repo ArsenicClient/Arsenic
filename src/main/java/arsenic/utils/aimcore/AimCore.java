@@ -104,6 +104,13 @@ public final class AimCore {
     private double eyeAvg = Double.NaN;
     private float lastStepYaw, lastStepPitch;
 
+    private static final int H_LEN = 8;
+    private final double[] hX = new double[H_LEN], hY = new double[H_LEN], hZ = new double[H_LEN];
+    private int hHead, hCount, hReaction = 2, hReactionLeft;
+    private int hTarget = Integer.MIN_VALUE;
+    private float hOffYaw, hOffPitch, hVelYaw, hVelPitch;
+    private float hGain = 0.4f, hGoalGain = 0.4f;
+
     public AimCore(Tuning tun, Random rnd) {
         this.tun = tun;
         this.rnd = rnd;
@@ -115,6 +122,7 @@ public final class AimCore {
         driftBlend = 0f;
         aimTarget = Integer.MIN_VALUE;
         velTarget = Integer.MIN_VALUE;
+        hTarget = Integer.MIN_VALUE;
     }
 
     public boolean isFlicking() {
@@ -317,6 +325,78 @@ public final class AimCore {
             stepPitch = lastStepPitch + (stepPitch - lastStepPitch) * (1 - tun.pitchInertia);
             if (tun.maxPitchStep > 0) stepPitch = clamp(stepPitch, -tun.maxPitchStep, tun.maxPitchStep);
         }
+        stepYaw = clamp(stepYaw, -in.maxSpeed, in.maxSpeed);
+        stepPitch = clamp(stepPitch, -in.maxSpeed, in.maxSpeed);
+        if (tun.pitchSpeedCap > 0) stepPitch = clamp(stepPitch, -tun.pitchSpeedCap, tun.pitchSpeedCap);
+        lastStepYaw = stepYaw;
+        lastStepPitch = stepPitch;
+        return new float[]{in.curYaw + stepYaw, clamp(in.curPitch + stepPitch, -90f, 90f)};
+    }
+
+    /**
+     * Human-like tracking meant to stay out of rotation-accuracy heuristics. Small corrections chase where the target
+     * was a couple of ticks ago (reaction time) through a lagging spring, with an aim offset that wanders around and
+     * sometimes past the hitbox edge, so yaw error is neither consistently tiny nor locked to the target's movement.
+     * Large turns still use the min-jerk flick from {@link #lazyStep}.
+     */
+    public float[] heuristicStep(Input in) {
+        double cx = (in.minX + in.maxX) * 0.5, cz = (in.minZ + in.maxZ) * 0.5;
+        double cy = in.minY + (in.maxY - in.minY) * driftY;
+        if (in.targetId != hTarget) {
+            hTarget = in.targetId;
+            hCount = 0;
+            hVelYaw = hVelPitch = 0;
+            hOffYaw = random(-0.6f, 0.6f);
+            hOffPitch = random(-0.4f, 0.4f);
+        }
+        hX[hHead] = cx;
+        hY[hHead] = cy;
+        hZ[hHead] = cz;
+        hHead = (hHead + 1) % H_LEN;
+        hCount = Math.min(H_LEN, hCount + 1);
+        if (--hReactionLeft <= 0) {
+            hReaction = 1 + rnd.nextInt(3);
+            hReactionLeft = 20 + rnd.nextInt(40);
+        }
+        int back = Math.min(hReaction, hCount - 1);
+        int idx = ((hHead - 1 - back) % H_LEN + H_LEN) % H_LEN;
+        double dx = hX[idx] - in.eyeX, dz = hZ[idx] - in.eyeZ;
+        double dist = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+        float halfYaw = (float) Math.toDegrees(Math.atan2((in.maxX - in.minX) * 0.5, dist));
+        float halfPitch = (float) Math.toDegrees(Math.atan2((in.maxY - in.minY) * 0.5, dist));
+
+        // Ornstein-Uhlenbeck wander in hitbox half-widths, with the odd re-pick of where on the body we look
+        hOffYaw += -hOffYaw * 0.07f + (float) rnd.nextGaussian() * 0.17f;
+        hOffPitch += -hOffPitch * 0.05f + (float) rnd.nextGaussian() * 0.08f;
+        if (rnd.nextFloat() < 0.025f) hOffYaw = random(-1.2f, 1.2f);
+        hOffYaw = clamp(hOffYaw, -1.5f, 1.5f);
+        hOffPitch = clamp(hOffPitch, -0.7f, 0.7f);
+
+        float goalYaw = yawTo(dx, dz) + hOffYaw * halfYaw;
+        float goalPitch = (float) -Math.toDegrees(Math.atan2(hY[idx] - in.eyeY, dist)) + hOffPitch * halfPitch;
+        goalPitch = clamp(goalPitch, -tun.pitchLimit, tun.pitchLimit);
+        float yawErr = wrap(goalYaw - in.curYaw);
+        float pitchErr = goalPitch - in.curPitch;
+
+        if (flicking || Math.abs(yawErr) > tun.flickThreshold) {
+            float[] out = lazyStep(in, new float[]{goalYaw, goalPitch});
+            hVelYaw = lastStepYaw;
+            hVelPitch = lastStepPitch;
+            return out;
+        }
+        flickTarget = in.targetId;
+
+        if (rnd.nextFloat() < 0.06f) hGoalGain = random(0.25f, 0.55f);
+        hGain += (hGoalGain - hGain) * 0.2f;
+        float resp = random(0.35f, 0.65f);
+        float wantYaw = yawErr * hGain;
+        // Inside the box a hand barely corrects pitch and now and then rests entirely
+        float wantPitch = Math.abs(pitchErr) < halfPitch * 0.8f ? pitchErr * 0.05f : pitchErr * hGain * 0.6f;
+        if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = 0;
+        hVelYaw += (wantYaw - hVelYaw) * resp;
+        hVelPitch += (wantPitch - hVelPitch) * resp;
+        float stepYaw = hVelYaw * random(0.85f, 1.15f) + (float) rnd.nextGaussian() * 0.04f * halfYaw;
+        float stepPitch = hVelPitch * random(0.85f, 1.15f) + (float) rnd.nextGaussian() * 0.03f * halfPitch;
         stepYaw = clamp(stepYaw, -in.maxSpeed, in.maxSpeed);
         stepPitch = clamp(stepPitch, -in.maxSpeed, in.maxSpeed);
         if (tun.pitchSpeedCap > 0) stepPitch = clamp(stepPitch, -tun.pitchSpeedCap, tun.pitchSpeedCap);

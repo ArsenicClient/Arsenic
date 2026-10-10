@@ -17,7 +17,9 @@ public class AimController {
 
     public enum RotationMode {
         Instant,
-        Lazy
+        Lazy,
+        /** Laggy, imperfect tracking that keeps rotation-accuracy heuristics quiet at the cost of some misses. */
+        Heuristics
     }
 
     private final AimCore core = new AimCore(AimCore.Tuning.best(), new Random());
@@ -46,11 +48,11 @@ public class AimController {
 
     public void rotate(EventSilentRotation event, Entity target, float[] rots, RotationMode mode,
                        float minSpeed, float maxSpeed, float budgetTicks) {
-        if (mode == RotationMode.Lazy) {
+        if (mode == RotationMode.Lazy || mode == RotationMode.Heuristics) {
             AimCore.Input in = input(target);
             in.maxSpeed = maxSpeed;
             in.budgetTicks = budgetTicks;
-            float[] out = core.lazyStep(in, rots);
+            float[] out = mode == RotationMode.Heuristics ? core.heuristicStep(in) : core.lazyStep(in, rots);
             event.setYaw(out[0]);
             event.setPitch(out[1]);
             event.setSpeed(maxSpeed);

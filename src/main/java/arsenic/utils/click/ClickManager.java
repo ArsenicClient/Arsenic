@@ -44,12 +44,17 @@ public final class ClickManager {
      * late tick does not stretch the average rate.
      */
     public void onClick(Client client, RangeValue cps) {
+        onClick(client, cps, 0);
+    }
+
+    /** As {@link #onClick(Client, RangeValue)}, with a chance for the next click to double up right after this one. */
+    public void onClick(Client client, RangeValue cps, double doubleChance) {
         int i = client.ordinal();
         MSTimer timer = timers[i];
         long now = System.currentTimeMillis();
         long overrun = now - (timer.lastMS + delays[i]);
         timer.setTime(now - (overrun >= 0 && overrun < 50 ? overrun : 0));
-        delays[i] = patterns[i].nextDelayMs(cps.getMin(), cps.getMax());
+        delays[i] = patterns[i].nextDelayMs(cps.getMin(), cps.getMax(), doubleChance);
     }
 
     /** The current median cps for a client, for display. */

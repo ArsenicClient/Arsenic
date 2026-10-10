@@ -49,6 +49,7 @@ public class KillAura extends Module {
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
     public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
+    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
@@ -63,7 +64,6 @@ public class KillAura extends Module {
 
     private static final double ATTACK_RANGE = 3.0;
 
-    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
     private static final float PREDICTION_TICKS = 1f;
     private static final double CLICK_GRACE_MS = 300;
     private static final double PRE_AIM_RANGE = 4;
@@ -117,7 +117,7 @@ public class KillAura extends Module {
         }
         if (target != null) {
             float[] rots = aim.aimAt(target, PREDICTION_TICKS);
-            aim.rotate(event, target, rots, ROTATION_MODE,
+            aim.rotate(event, target, rots, rotationMode.getValue(),
                     (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), flickBudget());
             hadTarget = true;
         } else if (hadTarget) {

@@ -34,8 +34,8 @@ public class AimAssist extends Module {
 
     public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1), SliderScale.LOG);
     public final EnumProperty<AimMode> mode = new EnumProperty<>("Mode", AimMode.Override);
+    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
 
-    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
     private static final float PREDICTION_TICKS = 3f;
     // Entity.setAngles scales mouse input by this before applying it to rotationYaw / rotationPitch
     private static final float MOUSE_TO_ROTATION = 0.15f;
@@ -80,7 +80,7 @@ public class AimAssist extends Module {
         }
 
         float[] rots = aim.aimAt(target, PREDICTION_TICKS);
-        aim.rotate(event, target, rots, ROTATION_MODE,
+        aim.rotate(event, target, rots, rotationMode.getValue(),
                 (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), 0f);
         aiming = true;
 
