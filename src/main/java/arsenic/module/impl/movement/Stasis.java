@@ -1,3 +1,5 @@
+package arsenic.module.impl.movement;
+
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;

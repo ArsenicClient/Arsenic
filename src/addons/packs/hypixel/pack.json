@@ -1,21 +1,15 @@
 {
   "id": "hypixel",
   "name": "Hypixel utils",
-  "description": "Hypixel helpers: game detection from the sidebar, staff alerts, auto GG and auto play, game profiles, coordinates, private message alerts and chat logging.",
+  "description": "Hypixel helpers: game detection from the sidebar, auto GG and auto play, private message alerts, chat logging and chat timestamps.",
   "icon": "textures/items/book_normal.png",
   "autoInstall": false,
   "addons": {
     "GameDetector": "Detects the current Hypixel game from the sidebar and shares it with the other addons. Shows the game in a HUD panel.",
-    "StaffAlert": "Alerts when a staff rank tag shows in the tab list: chat, sound and a HUD flash. Can send /lobby.",
     "AutoGG": "Sends a message (default gg) once after each game ends, after a short random delay.",
     "AutoPlay": "After a game ends, waits and sends /play with the mode you chose.",
-    "ShareCoords": "Sends your coordinates to chat when you press its button. Prefix decides the channel.",
     "PrivateMessageAlert": "Sound and HUD flash when someone sends you a private message.",
     "ChatLogger": "Writes chat to a daily log in the Arsenic folder. Off until you enable it.",
-    "GameProfiles": "Turns modules on or off when the Hypixel game changes, from per-game lists.",
     "BetterChat": "Chat timestamps, and a marker on lines that mention your name. Keeps the server's colours."
-  },
-  "requires": {
-    "GameProfiles": ["GameDetector"]
   }
 }

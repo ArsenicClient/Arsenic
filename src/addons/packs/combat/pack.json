@@ -1,15 +1,12 @@
 {
   "id": "combat",
   "name": "Ghost Combat",
-  "description": "Legit-looking combat helpers: bow, pearl and rod use on the silent rotation, trapping an enemy or yourself with blocks.",
+  "description": "Legit-looking combat helpers: bow and pearl use on the silent rotation, and a bow aimbot.",
   "icon": "textures/items/bow_standby.png",
   "autoInstall": false,
   "addons": {
-    "SelfBlockIn": "Surrounds your own feet with blocks while you stand still, so enemies cannot reach you from the sides.",
-    "AutoTrap": "Surrounds the nearest enemy with blocks: four around their feet and four around their head.",
     "AutoBow": "Draws a bow at the nearest enemy and releases once fully charged, only when the real ray hits them.",
     "AutoPearl": "Throws an ender pearl at an enemy at a distance, aimed at their feet. The arc is not modelled.",
-    "AutoRod": "Casts a fishing rod at a nearby enemy and reels in on a bite.",
     "BowAimbot": "Turns your camera onto the nearest enemy while a bow is drawn, leading the shot (camera aim, not silent)."
   }
 }

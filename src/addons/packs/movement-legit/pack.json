@@ -7,7 +7,6 @@
   "addons": {
     "Parkour": "Presses jump at block edges while you sprint forward. Only presses the jump key.",
     "AutoWalk": "Holds forward until you turn it off, or press back.",
-    "SnapTap": "Last-pressed key wins for W/S and A/D, like SOCD keyboards.",
-    "Stasis": "Hangs in the air for up to 45 ticks. Flag-prone; opt-in, off by default."
+    "SnapTap": "Last-pressed key wins for W/S and A/D, like SOCD keyboards."
   }
 }
