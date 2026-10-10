@@ -40,7 +40,7 @@ public class AimAssist extends Module {
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
 
     @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
-    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 15, 1));
+    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
 
     private static final float PREDICTION_TICKS = 3f;
     // Entity.setAngles scales mouse input by this before applying it to rotationYaw / rotationPitch

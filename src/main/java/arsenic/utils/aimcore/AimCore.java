@@ -108,7 +108,7 @@ public final class AimCore {
 
     private static final int H_LEN = 8;
     private final double[] hX = new double[H_LEN], hY = new double[H_LEN], hZ = new double[H_LEN];
-    private int hHead, hCount, hReaction = 1, hReactionLeft, hExcursionLeft;
+    private int hHead, hCount, hReaction = 2, hReactionLeft, hExcursionLeft, hLapseLeft;
     private float hExcursionGoal;
     private int hTarget = Integer.MIN_VALUE;
     private float hOffYaw, hOffPitch, hVelYaw, hVelPitch;
@@ -353,6 +353,7 @@ public final class AimCore {
             hOffYaw = random(-0.5f, 0.5f);
             hOffPitch = random(-0.3f, 0.3f);
             hExcursionLeft = 0;
+            hLapseLeft = 0;
         }
         hX[hHead] = cx;
         hY[hHead] = cy;
@@ -360,7 +361,7 @@ public final class AimCore {
         hHead = (hHead + 1) % H_LEN;
         hCount = Math.min(H_LEN, hCount + 1);
         if (--hReactionLeft <= 0) {
-            hReaction = rnd.nextInt(3);
+            hReaction = 1 + rnd.nextInt(3);
             hReactionLeft = 20 + rnd.nextInt(40);
         }
         int back = Math.min(hReaction, hCount - 1);
@@ -402,21 +403,32 @@ public final class AimCore {
         }
         flickTarget = in.targetId;
 
-        if (rnd.nextFloat() < 0.06f) hGoalGain = random(0.4f, 0.7f);
+        if (rnd.nextFloat() < 0.06f) hGoalGain = random(0.3f, 0.6f);
         hGain += (hGoalGain - hGain) * 0.2f;
-        float resp = random(0.6f, 0.9f);
-        // Smooth pursuit: match the target's angular speed as seen through the same delay, with an imperfect gain
-        if (rnd.nextFloat() < 0.05f) hGoalPursuit = random(0.7f, 1.05f);
+        float resp = random(0.45f, 0.85f);
+        // Smooth pursuit: match the target's angular speed as seen through the same delay. A person only roughly
+        // judges that speed, so the gain wanders and the estimate is noisy.
+        if (rnd.nextFloat() < 0.05f) hGoalPursuit = random(0.55f, 1.0f);
         hPursuit += (hGoalPursuit - hPursuit) * 0.2f;
         float angVel = 0;
         if (hCount > back + 1) {
             int prev = (idx - 1 + H_LEN) % H_LEN;
             angVel = wrap(yawTo(dx, dz) - yawTo(hX[prev] - in.eyeX, hZ[prev] - in.eyeZ));
+            angVel *= 1 + (float) rnd.nextGaussian() * 0.15f;
         }
-        float wantYaw = yawErr * hGain + angVel * hPursuit;
+        // Attention lapses: for a short stretch the hand mostly stops correcting and lets the target drift
+        float gain = hGain, pursuit = hPursuit;
+        if (hLapseLeft > 0) {
+            hLapseLeft--;
+            gain *= 0.3f;
+            pursuit *= 0.4f;
+        } else if (rnd.nextFloat() < 0.006f) {
+            hLapseLeft = 6 + rnd.nextInt(11);
+        }
+        float wantYaw = yawErr * gain + angVel * pursuit;
         // Inside the box a hand barely corrects pitch and now and then rests entirely
-        float wantPitch = Math.abs(pitchErr) < halfPitch * 0.8f ? pitchErr * 0.05f : pitchErr * hGain * 0.6f;
-        if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = angVel * hPursuit * 0.5f;
+        float wantPitch = Math.abs(pitchErr) < halfPitch * 0.8f ? pitchErr * 0.05f : pitchErr * gain * 0.6f;
+        if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = angVel * pursuit * 0.5f;
         hVelYaw += (wantYaw - hVelYaw) * resp;
         hVelPitch += (wantPitch - hVelPitch) * resp;
         float stepYaw = hVelYaw * random(0.85f, 1.15f) + (float) rnd.nextGaussian() * 0.04f * halfYaw;

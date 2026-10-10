@@ -53,7 +53,7 @@ public class KillAura extends Module {
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
     @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
-    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 15, 1));
+    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
