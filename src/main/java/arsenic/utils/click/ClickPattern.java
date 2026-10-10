@@ -14,6 +14,10 @@ public final class ClickPattern {
     /** Fraction of the gap to the target the median closes per second. */
     private static final double EASE_PER_SECOND = 0.8;
     private static final int MAX_RESAMPLES = 4;
+    /** Log-normal spread of each gap. */
+    private static final double JITTER = 0.14;
+    /** Chance a gap is a missed beat, half again to more than double its length. */
+    private static final double HESITATE_CHANCE = 0.03;
 
     private final Random random = new Random();
     private double median;
@@ -21,10 +25,21 @@ public final class ClickPattern {
     private long lastUpdate;
     private long retargetAt;
     private boolean started;
+    private double debtMs;
+    private int debtClicks;
+    private boolean lastWasBurst;
 
     /** Drops the drift state so the next click starts from the middle of the range again. */
     public void reset() {
         started = false;
+        debtMs = 0;
+        debtClicks = 0;
+        lastWasBurst = false;
+    }
+
+    /** True when the gap just picked is the short second half of a double click. */
+    public boolean lastWasBurst() {
+        return lastWasBurst;
     }
 
     /** The cps the current median sits at, for display. */
@@ -34,6 +49,15 @@ public final class ClickPattern {
 
     /** Milliseconds to wait before the next click for a cps range of [minCps, maxCps]. */
     public long nextDelayMs(double minCps, double maxCps) {
+        return nextDelayMs(minCps, maxCps, 0);
+    }
+
+    /**
+     * Like {@link #nextDelayMs(double, double)}, but with the given chance the next click lands a few milliseconds
+     * after this one, the way a jitter or butterfly click doubles up inside one tick. The time the pair saved is
+     * paid back over the next few gaps rather than as one obvious pause, so the average rate stays put.
+     */
+    public long nextDelayMs(double minCps, double maxCps, double doubleChance) {
         if (maxCps < minCps)
             maxCps = minCps;
         long now = System.currentTimeMillis();
@@ -47,7 +71,28 @@ public final class ClickPattern {
                 break;
         }
         cps = Math.max(Math.max(1.0, minCps), Math.min(maxCps, cps));
-        return Math.max(1L, Math.round(1000.0 / cps));
+        // Human gaps are right-skewed: a log-normal jitter keeps the mean but gives a long tail of slow clicks
+        double gap = 1000.0 / cps * Math.exp(random.nextGaussian() * JITTER - JITTER * JITTER / 2);
+        if (random.nextDouble() < HESITATE_CHANCE)
+            gap *= 1.5 + random.nextDouble() * 0.9;
+        gap = Math.max(1000.0 / (maxCps * 1.3), Math.min(2500.0 / Math.max(1.0, minCps), gap));
+
+        if (debtClicks > 0) {
+            double share = debtMs / debtClicks;
+            gap += share;
+            debtMs -= share;
+            debtClicks--;
+        }
+
+        lastWasBurst = false;
+        if (doubleChance > 0 && debtClicks == 0 && random.nextDouble() < doubleChance) {
+            long burst = 8 + random.nextInt(28);
+            debtMs = Math.max(0, gap - burst);
+            debtClicks = 3 + random.nextInt(4);
+            lastWasBurst = true;
+            return burst;
+        }
+        return Math.max(1L, Math.round(gap));
     }
 
     private void advanceMedian(long now, double minCps, double maxCps) {

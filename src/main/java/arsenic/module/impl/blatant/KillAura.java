@@ -18,6 +18,8 @@ import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.utils.click.ClickManager;
 import arsenic.utils.minecraft.AutoBlocker;
 import arsenic.utils.minecraft.BadPacketsManager;
@@ -49,6 +51,13 @@ public class KillAura extends Module {
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
     public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
+    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
+    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
+    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    public final BooleanProperty pitchBand = new BooleanProperty("Pitch Band", false);
+    @PropertyInfo(reliesOn = "Pitch Band", value = "true")
+    public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
@@ -63,10 +72,10 @@ public class KillAura extends Module {
 
     private static final double ATTACK_RANGE = 3.0;
 
-    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
     private static final float PREDICTION_TICKS = 1f;
     private static final double CLICK_GRACE_MS = 300;
     private static final double PRE_AIM_RANGE = 4;
+    private static final double PRE_SWING_RANGE = 4.5;
 
     private final AimController aim = new AimController();
     private final TargetPicker picker = new TargetPicker();
@@ -108,6 +117,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
+        aim.setPitchBand(pitchBandActive(), (float) pitchRange.getValue().getMin(), (float) pitchRange.getValue().getMax());
         target = pickTarget();
         autoBlockTick();
         aim.updateDrift();
@@ -116,8 +126,9 @@ public class KillAura extends Module {
             return;
         }
         if (target != null) {
+            aim.setMissChance((float) (missChance.getValue().getInput() / 100));
             float[] rots = aim.aimAt(target, PREDICTION_TICKS);
-            aim.rotate(event, target, rots, ROTATION_MODE,
+            aim.rotate(event, target, rots, rotationMode.getValue(),
                     (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), flickBudget());
             hadTarget = true;
         } else if (hadTarget) {
@@ -164,10 +175,14 @@ public class KillAura extends Module {
                     mc.thePlayer.swingItem();
                     mc.playerController.attackEntity(mc.thePlayer, hit);
                     resetAttackCycle();
+                    // KillAura attacks once per tick, so the second click of a double goes out right away
+                    if (ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
+                        mc.thePlayer.swingItem();
+                        mc.playerController.attackEntity(mc.thePlayer, hit);
+                        resetAttackCycle();
+                    }
                 }
-            } else if (hit == null && target != null
-                    && RotationUtils.getDistanceToEntityBox(target) <= ATTACK_RANGE
-                    && shouldMissClick(event)) {
+            } else if (hit == null && target != null && shouldSwingAtAir(event)) {
                 mc.thePlayer.swingItem();
                 resetAttackCycle();
             }
@@ -200,6 +215,14 @@ public class KillAura extends Module {
         if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
             return null;
         List<EntityPlayer> candidates = TargetManager.getTargets();
+        if (pitchBandActive()) {
+            List<EntityPlayer> reachable = new ArrayList<>(candidates.size());
+            for (EntityPlayer p : candidates) {
+                if (aim.inPitchBand(p))
+                    reachable.add(p);
+            }
+            candidates = reachable;
+        }
         double aimRange = ATTACK_RANGE + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
         picker.valueScale = TargetManager.sortMode.getValue() == TargetManager.SortMode.Fov ? 0.04f : 1f;
         SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
@@ -219,6 +242,10 @@ public class KillAura extends Module {
         return i < 0 ? null : candidates.get(i);
     }
 
+    private boolean pitchBandActive() {
+        return rotationMode.getValue() == AimController.RotationMode.Heuristics && pitchBand.getValue();
+    }
+
     private float flickBudget() {
         long remainingMs = ClickManager.get().remainingMs(ClickManager.Client.KILLAURA);
         return remainingMs / 50f + LagManager.getPingAsTicks() / 2f;
@@ -226,6 +253,17 @@ public class KillAura extends Module {
 
     private void resetAttackCycle() {
         ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
+    }
+
+    /**
+     * A miss swing at a target that is not under the crosshair. Heuristics mode also swings at a target that is
+     * still closing in, just out of reach, the way players start clicking before the first hit lands.
+     */
+    private boolean shouldSwingAtAir(EventSilentRotation.Post event) {
+        double dist = RotationUtils.getDistanceToEntityBox(target);
+        if (dist <= ATTACK_RANGE && shouldMissClick(event))
+            return true;
+        return rotationMode.getValue() == AimController.RotationMode.Heuristics && dist <= PRE_SWING_RANGE;
     }
 
     private boolean shouldMissClick(EventSilentRotation.Post event) {

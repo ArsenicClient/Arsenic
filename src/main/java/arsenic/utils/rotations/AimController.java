@@ -17,13 +17,37 @@ public class AimController {
 
     public enum RotationMode {
         Instant,
-        Lazy
+        Lazy,
+        /** Laggy, imperfect tracking that keeps rotation-accuracy heuristics quiet at the cost of some misses. */
+        Heuristics
     }
 
     private final AimCore core = new AimCore(AimCore.Tuning.best(), new Random());
 
     public float defaultPrediction() {
         return core.tun.predictionTicks;
+    }
+
+    /** Rough share of the time Heuristics aim spends slipped off the hitbox, 0 to 1. */
+    public void setMissChance(float chance) {
+        core.missChance = chance;
+    }
+
+    /** Pitch-band mode: hold aim pitch inside [lo, hi] degrees (positive looks down) and damp its movement there. */
+    public void setPitchBand(boolean on, float lo, float hi) {
+        core.tun.pitchBand = on;
+        core.tun.pitchBandLo = lo;
+        core.tun.pitchBandHi = hi;
+    }
+
+    /** Whether the entity's hitbox can be hit with aim pitch inside the pitch band. */
+    public boolean inPitchBand(Entity e) {
+        AimCore.Input in = input(e);
+        double dx = (in.minX + in.maxX) * 0.5 - in.eyeX, dz = (in.minZ + in.maxZ) * 0.5 - in.eyeZ;
+        double dist = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+        float top = (float) -Math.toDegrees(Math.atan2(in.maxY - in.eyeY, dist));
+        float bottom = (float) -Math.toDegrees(Math.atan2(in.minY - in.eyeY, dist));
+        return Math.max(top, core.tun.pitchBandLo) <= Math.min(bottom, core.tun.pitchBandHi);
     }
 
     public void reset() {
@@ -46,11 +70,11 @@ public class AimController {
 
     public void rotate(EventSilentRotation event, Entity target, float[] rots, RotationMode mode,
                        float minSpeed, float maxSpeed, float budgetTicks) {
-        if (mode == RotationMode.Lazy) {
+        if (mode == RotationMode.Lazy || mode == RotationMode.Heuristics) {
             AimCore.Input in = input(target);
             in.maxSpeed = maxSpeed;
             in.budgetTicks = budgetTicks;
-            float[] out = core.lazyStep(in, rots);
+            float[] out = mode == RotationMode.Heuristics ? core.heuristicStep(in) : core.lazyStep(in, rots);
             event.setYaw(out[0]);
             event.setPitch(out[1]);
             event.setSpeed(maxSpeed);
