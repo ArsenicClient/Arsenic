@@ -164,6 +164,12 @@ public class KillAura extends Module {
                     mc.thePlayer.swingItem();
                     mc.playerController.attackEntity(mc.thePlayer, hit);
                     resetAttackCycle();
+                    // KillAura attacks once per tick, so the second click of a double goes out right away
+                    if (ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
+                        mc.thePlayer.swingItem();
+                        mc.playerController.attackEntity(mc.thePlayer, hit);
+                        resetAttackCycle();
+                    }
                 }
             } else if (hit == null && target != null
                     && RotationUtils.getDistanceToEntityBox(target) <= ATTACK_RANGE

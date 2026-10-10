@@ -106,10 +106,12 @@ public final class AimCore {
 
     private static final int H_LEN = 8;
     private final double[] hX = new double[H_LEN], hY = new double[H_LEN], hZ = new double[H_LEN];
-    private int hHead, hCount, hReaction = 2, hReactionLeft;
+    private int hHead, hCount, hReaction = 1, hReactionLeft, hExcursionLeft;
+    private float hExcursionGoal;
     private int hTarget = Integer.MIN_VALUE;
     private float hOffYaw, hOffPitch, hVelYaw, hVelPitch;
-    private float hGain = 0.4f, hGoalGain = 0.4f;
+    private float hGain = 0.55f, hGoalGain = 0.55f;
+    private float hPursuit = 0.9f, hGoalPursuit = 0.9f;
 
     public AimCore(Tuning tun, Random rnd) {
         this.tun = tun;
@@ -346,8 +348,9 @@ public final class AimCore {
             hTarget = in.targetId;
             hCount = 0;
             hVelYaw = hVelPitch = 0;
-            hOffYaw = random(-0.6f, 0.6f);
-            hOffPitch = random(-0.4f, 0.4f);
+            hOffYaw = random(-0.5f, 0.5f);
+            hOffPitch = random(-0.3f, 0.3f);
+            hExcursionLeft = 0;
         }
         hX[hHead] = cx;
         hY[hHead] = cy;
@@ -355,7 +358,7 @@ public final class AimCore {
         hHead = (hHead + 1) % H_LEN;
         hCount = Math.min(H_LEN, hCount + 1);
         if (--hReactionLeft <= 0) {
-            hReaction = 1 + rnd.nextInt(3);
+            hReaction = rnd.nextInt(3);
             hReactionLeft = 20 + rnd.nextInt(40);
         }
         int back = Math.min(hReaction, hCount - 1);
@@ -365,12 +368,21 @@ public final class AimCore {
         float halfYaw = (float) Math.toDegrees(Math.atan2((in.maxX - in.minX) * 0.5, dist));
         float halfPitch = (float) Math.toDegrees(Math.atan2((in.maxY - in.minY) * 0.5, dist));
 
-        // Ornstein-Uhlenbeck wander in hitbox half-widths, with the odd re-pick of where on the body we look
-        hOffYaw += -hOffYaw * 0.07f + (float) rnd.nextGaussian() * 0.17f;
-        hOffPitch += -hOffPitch * 0.05f + (float) rnd.nextGaussian() * 0.08f;
-        if (rnd.nextFloat() < 0.025f) hOffYaw = random(-1.2f, 1.2f);
-        hOffYaw = clamp(hOffYaw, -1.5f, 1.5f);
-        hOffPitch = clamp(hOffPitch, -0.7f, 0.7f);
+        // Ornstein-Uhlenbeck wander in hitbox half-widths around the body centre rather than its corners. Now and
+        // then the aim slips clean off one side for a few ticks, so attacks miss about as often as a player's do.
+        if (hExcursionLeft > 0) {
+            hExcursionLeft--;
+            hOffYaw += (hExcursionGoal - hOffYaw) * 0.35f;
+        } else {
+            hOffYaw += -hOffYaw * 0.08f + (float) rnd.nextGaussian() * 0.11f;
+            if (rnd.nextFloat() < 0.01f) {
+                hExcursionLeft = 4 + rnd.nextInt(7);
+                hExcursionGoal = (rnd.nextBoolean() ? 1 : -1) * random(1.3f, 2.0f);
+            }
+            hOffYaw = clamp(hOffYaw, -0.8f, 0.8f);
+        }
+        hOffPitch += -hOffPitch * 0.05f + (float) rnd.nextGaussian() * 0.06f;
+        hOffPitch = clamp(hOffPitch, -0.5f, 0.5f);
 
         float goalYaw = yawTo(dx, dz) + hOffYaw * halfYaw;
         float goalPitch = (float) -Math.toDegrees(Math.atan2(hY[idx] - in.eyeY, dist)) + hOffPitch * halfPitch;
@@ -386,13 +398,21 @@ public final class AimCore {
         }
         flickTarget = in.targetId;
 
-        if (rnd.nextFloat() < 0.06f) hGoalGain = random(0.25f, 0.55f);
+        if (rnd.nextFloat() < 0.06f) hGoalGain = random(0.4f, 0.7f);
         hGain += (hGoalGain - hGain) * 0.2f;
-        float resp = random(0.35f, 0.65f);
-        float wantYaw = yawErr * hGain;
+        float resp = random(0.6f, 0.9f);
+        // Smooth pursuit: match the target's angular speed as seen through the same delay, with an imperfect gain
+        if (rnd.nextFloat() < 0.05f) hGoalPursuit = random(0.7f, 1.05f);
+        hPursuit += (hGoalPursuit - hPursuit) * 0.2f;
+        float angVel = 0;
+        if (hCount > back + 1) {
+            int prev = (idx - 1 + H_LEN) % H_LEN;
+            angVel = wrap(yawTo(dx, dz) - yawTo(hX[prev] - in.eyeX, hZ[prev] - in.eyeZ));
+        }
+        float wantYaw = yawErr * hGain + angVel * hPursuit;
         // Inside the box a hand barely corrects pitch and now and then rests entirely
         float wantPitch = Math.abs(pitchErr) < halfPitch * 0.8f ? pitchErr * 0.05f : pitchErr * hGain * 0.6f;
-        if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = 0;
+        if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = angVel * hPursuit * 0.5f;
         hVelYaw += (wantYaw - hVelYaw) * resp;
         hVelPitch += (wantPitch - hVelPitch) * resp;
         float stepYaw = hVelYaw * random(0.85f, 1.15f) + (float) rnd.nextGaussian() * 0.04f * halfYaw;

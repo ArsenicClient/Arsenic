@@ -25,8 +25,6 @@ import net.minecraft.util.MovingObjectPosition;
 public class Clicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 1));
-    // Chance a click is followed by a second one inside the same tick, as jitter and butterfly clicking do
-    private static final double DOUBLE_CLICK_CHANCE = 0.15;
     private final MSTimer soundTimer = new MSTimer();
     private boolean lmbDown;
     
@@ -67,7 +65,7 @@ public class Clicker extends Module {
                 soundTimer.reset();
             }
             clickOnce();
-            clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue(), DOUBLE_CLICK_CHANCE);
+            clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue());
         }
     };
 
