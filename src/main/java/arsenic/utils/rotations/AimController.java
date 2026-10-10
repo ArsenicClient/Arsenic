@@ -33,6 +33,23 @@ public class AimController {
         core.missChance = chance;
     }
 
+    /** Pitch-band mode: hold aim pitch inside [lo, hi] degrees (positive looks down) and damp its movement there. */
+    public void setPitchBand(boolean on, float lo, float hi) {
+        core.tun.pitchBand = on;
+        core.tun.pitchBandLo = lo;
+        core.tun.pitchBandHi = hi;
+    }
+
+    /** Whether the entity's hitbox can be hit with aim pitch inside the pitch band. */
+    public boolean inPitchBand(Entity e) {
+        AimCore.Input in = input(e);
+        double dx = (in.minX + in.maxX) * 0.5 - in.eyeX, dz = (in.minZ + in.maxZ) * 0.5 - in.eyeZ;
+        double dist = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+        float top = (float) -Math.toDegrees(Math.atan2(in.maxY - in.eyeY, dist));
+        float bottom = (float) -Math.toDegrees(Math.atan2(in.minY - in.eyeY, dist));
+        return Math.max(top, core.tun.pitchBandLo) <= Math.min(bottom, core.tun.pitchBandHi);
+    }
+
     public void reset() {
         core.reset();
     }

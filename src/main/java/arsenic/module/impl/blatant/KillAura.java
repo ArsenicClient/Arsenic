@@ -54,6 +54,10 @@ public class KillAura extends Module {
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
     @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
     public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
+    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    public final BooleanProperty pitchBand = new BooleanProperty("Pitch Band", false);
+    @PropertyInfo(reliesOn = "Pitch Band", value = "true")
+    public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
     public final EnumProperty<RenderUtils.RingStyle> circleStyle = new EnumProperty<>("Circle", RenderUtils.RingStyle.CLASSIC);
@@ -113,6 +117,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
+        aim.setPitchBand(pitchBandActive(), (float) pitchRange.getValue().getMin(), (float) pitchRange.getValue().getMax());
         target = pickTarget();
         autoBlockTick();
         aim.updateDrift();
@@ -210,6 +215,14 @@ public class KillAura extends Module {
         if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
             return null;
         List<EntityPlayer> candidates = TargetManager.getTargets();
+        if (pitchBandActive()) {
+            List<EntityPlayer> reachable = new ArrayList<>(candidates.size());
+            for (EntityPlayer p : candidates) {
+                if (aim.inPitchBand(p))
+                    reachable.add(p);
+            }
+            candidates = reachable;
+        }
         double aimRange = ATTACK_RANGE + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
         picker.valueScale = TargetManager.sortMode.getValue() == TargetManager.SortMode.Fov ? 0.04f : 1f;
         SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
@@ -227,6 +240,10 @@ public class KillAura extends Module {
         }
         int i = picker.pick(list, target == null ? Integer.MIN_VALUE : target.getEntityId(), aimRange);
         return i < 0 ? null : candidates.get(i);
+    }
+
+    private boolean pitchBandActive() {
+        return rotationMode.getValue() == AimController.RotationMode.Heuristics && pitchBand.getValue();
     }
 
     private float flickBudget() {

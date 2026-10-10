@@ -30,6 +30,10 @@ public final class AimCore {
         public float keepCentreBias = 0f;
         public float keepFarBias = 0f;
         public float maxLead = 0f;
+        /** Hold pitch inside [pitchBandLo, pitchBandHi] degrees and damp its movement there. */
+        public boolean pitchBand = false;
+        public float pitchBandLo = 15f, pitchBandHi = 25f;
+        public float pitchBandDamp = 0.25f;
 
         public static Tuning legacy() {
             return new Tuning();
@@ -392,6 +396,8 @@ public final class AimCore {
         float goalYaw = yawTo(dx, dz) + hOffYaw * halfYaw;
         float goalPitch = (float) -Math.toDegrees(Math.atan2(hY[idx] - in.eyeY, dist)) + hOffPitch * halfPitch;
         goalPitch = clamp(goalPitch, -tun.pitchLimit, tun.pitchLimit);
+        float[] span = pitchBandSpan(in, dist);
+        if (span != null) goalPitch = clamp(goalPitch, span[0], span[1]);
         float yawErr = wrap(goalYaw - in.curYaw);
         float pitchErr = goalPitch - in.curPitch;
 
@@ -399,6 +405,7 @@ public final class AimCore {
             float[] out = lazyStep(in, new float[]{goalYaw, goalPitch});
             hVelYaw = lastStepYaw;
             hVelPitch = lastStepPitch;
+            if (span != null) out[1] = clamp(out[1], span[0], span[1]);
             return out;
         }
         flickTarget = in.targetId;
@@ -428,6 +435,7 @@ public final class AimCore {
         float wantYaw = yawErr * gain + angVel * pursuit;
         // Inside the box a hand barely corrects pitch and now and then rests entirely
         float wantPitch = Math.abs(pitchErr) < halfPitch * 0.8f ? pitchErr * 0.05f : pitchErr * gain * 0.6f;
+        if (span != null) wantPitch *= tun.pitchBandDamp;
         if (Math.abs(yawErr) < halfYaw && rnd.nextFloat() < 0.07f) wantYaw = angVel * pursuit * 0.5f;
         hVelYaw += (wantYaw - hVelYaw) * resp;
         hVelPitch += (wantPitch - hVelPitch) * resp;
@@ -438,7 +446,25 @@ public final class AimCore {
         if (tun.pitchSpeedCap > 0) stepPitch = clamp(stepPitch, -tun.pitchSpeedCap, tun.pitchSpeedCap);
         lastStepYaw = stepYaw;
         lastStepPitch = stepPitch;
-        return new float[]{in.curYaw + stepYaw, clamp(in.curPitch + stepPitch, -90f, 90f)};
+        float pitch = clamp(in.curPitch + stepPitch, -90f, 90f);
+        if (span != null) pitch = clamp(pitch, span[0], span[1]);
+        return new float[]{in.curYaw + stepYaw, pitch};
+    }
+
+    /**
+     * Pitch limits for pitch-band mode: the band narrowed to the pitches that reach this hitbox, or null when the
+     * band is off. A hitbox the band can't reach collapses to the band's centre.
+     */
+    private float[] pitchBandSpan(Input in, double dist) {
+        if (!tun.pitchBand) return null;
+        float top = (float) -Math.toDegrees(Math.atan2(in.maxY - in.eyeY, dist));
+        float bottom = (float) -Math.toDegrees(Math.atan2(in.minY - in.eyeY, dist));
+        float lo = Math.max(tun.pitchBandLo, top), hi = Math.min(tun.pitchBandHi, bottom);
+        if (lo > hi) {
+            float mid = (tun.pitchBandLo + tun.pitchBandHi) * 0.5f;
+            return new float[]{mid, mid};
+        }
+        return new float[]{lo, hi};
     }
 
     private static float dead(float err, float zone) {
