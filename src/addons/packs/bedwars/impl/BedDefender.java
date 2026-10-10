@@ -7,6 +7,8 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.block.Block;
@@ -53,9 +55,10 @@ import java.util.Set;
 @ModuleInfo(name = "BedDefender", description = "Walls your nearest bed in with the strongest blocks in your hotbar", category = ModuleCategory.PLAYER)
 public class AutoBedDefense extends Module {
 
-    // Fixed settings: the module has no options
+    public final DoubleProperty layers = new DoubleProperty("Layers", new DoubleValue(1, 3, 1, 1));
+
+    // Fixed settings
     private static final double BED_RANGE = 5;
-    private static final int LAYERS = 1;
     private static final double REACH = 4.5;
     private static final double FOV = 360;
     private static final int DELAY = 2;
@@ -531,7 +534,7 @@ public class AutoBedDefense extends Module {
 
     /** Positions around the bed, closest ring first, then nearest to the player. */
     private List<BlockPos> candidates(Vec3 eyes) {
-        int maxLayer = (int) LAYERS;
+        int maxLayer = (int) layers.getValue().getInput();
         // if the bed can't be used as a support, the roof needs the blocks beside it first (ring 2)
         if (!noBedSupport.isEmpty())
             maxLayer = Math.max(maxLayer, 2);
