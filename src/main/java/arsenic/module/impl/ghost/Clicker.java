@@ -2,8 +2,6 @@ package arsenic.module.impl.ghost;
 
 import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.module.property.impl.BooleanProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
@@ -27,12 +25,12 @@ import net.minecraft.util.MovingObjectPosition;
 public class Clicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 1));
+    // Chance a click is followed by a second one inside the same tick, as jitter and butterfly clicking do
+    private static final double DOUBLE_CLICK_CHANCE = 0.15;
     private final MSTimer soundTimer = new MSTimer();
     private boolean lmbDown;
     
     public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", true);
-    // Percent of clicks followed by a second one inside the same tick, as jitter and butterfly clicking do
-    public final DoubleProperty doubleClicks = new DoubleProperty("Double Clicks", new DoubleValue(0, 30, 10, 1));
 
     @Override
     public String getHudInfo() {
@@ -69,7 +67,7 @@ public class Clicker extends Module {
                 soundTimer.reset();
             }
             clickOnce();
-            clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue(), doubleClicks.getValue().getInput() / 100.0);
+            clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue(), DOUBLE_CLICK_CHANCE);
         }
     };
 
