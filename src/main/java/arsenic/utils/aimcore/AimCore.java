@@ -106,7 +106,8 @@ public final class AimCore {
 
     private static final int H_LEN = 8;
     private final double[] hX = new double[H_LEN], hY = new double[H_LEN], hZ = new double[H_LEN];
-    private int hHead, hCount, hReaction = 2, hReactionLeft;
+    private int hHead, hCount, hReaction = 2, hReactionLeft, hExcursionLeft;
+    private float hExcursionGoal;
     private int hTarget = Integer.MIN_VALUE;
     private float hOffYaw, hOffPitch, hVelYaw, hVelPitch;
     private float hGain = 0.4f, hGoalGain = 0.4f;
@@ -346,8 +347,9 @@ public final class AimCore {
             hTarget = in.targetId;
             hCount = 0;
             hVelYaw = hVelPitch = 0;
-            hOffYaw = random(-0.6f, 0.6f);
-            hOffPitch = random(-0.4f, 0.4f);
+            hOffYaw = random(-0.5f, 0.5f);
+            hOffPitch = random(-0.3f, 0.3f);
+            hExcursionLeft = 0;
         }
         hX[hHead] = cx;
         hY[hHead] = cy;
@@ -365,12 +367,21 @@ public final class AimCore {
         float halfYaw = (float) Math.toDegrees(Math.atan2((in.maxX - in.minX) * 0.5, dist));
         float halfPitch = (float) Math.toDegrees(Math.atan2((in.maxY - in.minY) * 0.5, dist));
 
-        // Ornstein-Uhlenbeck wander in hitbox half-widths, with the odd re-pick of where on the body we look
-        hOffYaw += -hOffYaw * 0.07f + (float) rnd.nextGaussian() * 0.17f;
-        hOffPitch += -hOffPitch * 0.05f + (float) rnd.nextGaussian() * 0.08f;
-        if (rnd.nextFloat() < 0.025f) hOffYaw = random(-1.2f, 1.2f);
-        hOffYaw = clamp(hOffYaw, -1.5f, 1.5f);
-        hOffPitch = clamp(hOffPitch, -0.7f, 0.7f);
+        // Ornstein-Uhlenbeck wander in hitbox half-widths around the body centre rather than its corners. Now and
+        // then the aim slips clean off one side for a few ticks, so attacks miss about as often as a player's do.
+        if (hExcursionLeft > 0) {
+            hExcursionLeft--;
+            hOffYaw += (hExcursionGoal - hOffYaw) * 0.35f;
+        } else {
+            hOffYaw += -hOffYaw * 0.08f + (float) rnd.nextGaussian() * 0.11f;
+            if (rnd.nextFloat() < 0.02f) {
+                hExcursionLeft = 4 + rnd.nextInt(7);
+                hExcursionGoal = (rnd.nextBoolean() ? 1 : -1) * random(1.3f, 2.0f);
+            }
+            hOffYaw = clamp(hOffYaw, -0.8f, 0.8f);
+        }
+        hOffPitch += -hOffPitch * 0.05f + (float) rnd.nextGaussian() * 0.06f;
+        hOffPitch = clamp(hOffPitch, -0.5f, 0.5f);
 
         float goalYaw = yawTo(dx, dz) + hOffYaw * halfYaw;
         float goalPitch = (float) -Math.toDegrees(Math.atan2(hY[idx] - in.eyeY, dist)) + hOffPitch * halfPitch;

@@ -25,12 +25,21 @@ public final class ClickPattern {
     private long lastUpdate;
     private long retargetAt;
     private boolean started;
-    private long owedMs;
+    private double debtMs;
+    private int debtClicks;
+    private boolean lastWasBurst;
 
     /** Drops the drift state so the next click starts from the middle of the range again. */
     public void reset() {
         started = false;
-        owedMs = 0;
+        debtMs = 0;
+        debtClicks = 0;
+        lastWasBurst = false;
+    }
+
+    /** True when the gap just picked is the short second half of a double click. */
+    public boolean lastWasBurst() {
+        return lastWasBurst;
     }
 
     /** The cps the current median sits at, for display. */
@@ -45,19 +54,14 @@ public final class ClickPattern {
 
     /**
      * Like {@link #nextDelayMs(double, double)}, but with the given chance the next click lands a few milliseconds
-     * after this one, the way a jitter or butterfly click doubles up inside one tick. The gap after the pair is
-     * stretched by the same amount, so the average rate stays put.
+     * after this one, the way a jitter or butterfly click doubles up inside one tick. The time the pair saved is
+     * paid back over the next few gaps rather than as one obvious pause, so the average rate stays put.
      */
     public long nextDelayMs(double minCps, double maxCps, double doubleChance) {
         if (maxCps < minCps)
             maxCps = minCps;
         long now = System.currentTimeMillis();
         advanceMedian(now, minCps, maxCps);
-        if (owedMs > 0) {
-            long owed = owedMs;
-            owedMs = 0;
-            return owed;
-        }
 
         double sigma = Math.max(0.35, (maxCps - minCps) / 4.0);
         double cps = median;
@@ -73,9 +77,19 @@ public final class ClickPattern {
             gap *= 1.5 + random.nextDouble() * 0.9;
         gap = Math.max(1000.0 / (maxCps * 1.3), Math.min(2500.0 / Math.max(1.0, minCps), gap));
 
-        if (doubleChance > 0 && random.nextDouble() < doubleChance) {
+        if (debtClicks > 0) {
+            double share = debtMs / debtClicks;
+            gap += share;
+            debtMs -= share;
+            debtClicks--;
+        }
+
+        lastWasBurst = false;
+        if (doubleChance > 0 && debtClicks == 0 && random.nextDouble() < doubleChance) {
             long burst = 8 + random.nextInt(28);
-            owedMs = Math.max(burst, Math.round(gap * 2) - burst);
+            debtMs = Math.max(0, gap - burst);
+            debtClicks = 3 + random.nextInt(4);
+            lastWasBurst = true;
             return burst;
         }
         return Math.max(1L, Math.round(gap));
