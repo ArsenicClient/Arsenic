@@ -43,7 +43,7 @@ public class BedAlarm extends Module {
     public final BooleanProperty chat = new BooleanProperty("Chat Alert", true);
     public final BooleanProperty sound = new BooleanProperty("Sound", true);
     public final BooleanProperty hud = new BooleanProperty("HUD", true);
-    public final DoubleProperty enemyRange = new DoubleProperty("Enemy Range", new DoubleValue(3, 30, 12, 1));
+    public final DoubleProperty enemyRange = new DoubleProperty("Enemy Range", new DoubleValue(3, 100, 12, 1));
 
     private final HudElement panel = hudElement("BedAlarm", 4, 100, 150, 16);
     private final MSTimer alarmTimer = MSTimer.expired();
