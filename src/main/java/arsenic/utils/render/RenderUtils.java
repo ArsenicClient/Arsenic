@@ -465,15 +465,15 @@ public class RenderUtils extends UtilityClass {
     public static long lastFrame = 0;
 
     public enum RingStyle {
-        /** A bobbing ring that fills down to the ground, with a faint edge line. */
+        /** A bobbing ring with a filled column down to the ground and a glowing band. */
         CLASSIC,
-        /** The same bobbing ring with no fill: a bright line only. */
+        /** The same bobbing band with no fill, brighter and wider. */
         OUTLINE,
         /** The classic ring, breathing in and out. */
         PULSE,
-        /** A fixed ring at head height, no bobbing. */
+        /** A fixed band at head height over a faint disc. */
         HALO,
-        /** Dashes around the ground that turn slowly. */
+        /** Glowing dashes around the ground that turn slowly. */
         SPIN
     }
 
@@ -506,13 +506,14 @@ public class RenderUtils extends UtilityClass {
 
         switch (style) {
             case OUTLINE:
-                ringLine(x, bob, z, rad, colored, .9f * alpha, 2.5f, 0, PI2, 64);
+                band(x, bob, z, rad, 0.06, colored, alpha, 0, PI2, 64);
+                band(x, bob, z, rad, 0.2, colored, alpha * 0.35f, 0, PI2, 64);
                 break;
             case PULSE:
-                drawClassic(x, bob, z, rad * (1 + 0.15 * Math.sin(ticks * 3)), colored, alpha);
+                drawClassic(x, bob, z, rad * (1 + 0.2 * Math.sin(ticks * 3)), colored, alpha);
                 break;
             case HALO:
-                ringLine(x, baseY + entity.height + 0.1, z, rad * 0.75, colored, .7f * alpha, 1.5f, 0, PI2, 64);
+                drawHalo(x, baseY + entity.height + 0.1, z, rad * 0.75, colored, alpha);
                 break;
             case SPIN:
                 drawSpin(x, baseY + 0.02, z, rad, colored, alpha);
@@ -541,46 +542,56 @@ public class RenderUtils extends UtilityClass {
 
             color2(colored, .52f * alpha);
 
-
             glVertex3d(vecX, y, vecZ);
         }
 
         glEnd();
 
-
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glLineWidth(1.5f);
-        glBegin(GL_LINE_STRIP);
-        color2(colored, .5f * alpha);
-        for (int i = 0; i <= 180; i++) {
-            glVertex3d(x - Math.sin(i * PI2 / 90) * rad, y, z + Math.cos(i * PI2 / 90) * rad);
-        }
-        glEnd();
+        band(x, y, z, rad, 0.05, colored, alpha, 0, PI2, 64);
+        band(x, y, z, rad, 0.16, colored, alpha * 0.35f, 0, PI2, 64);
     }
 
-    // A circle line from angle `from` to `to` (radians) in `steps` segments, at a fixed height
-    private static void ringLine(double x, double y, double z, double rad, int colored, float alpha, float width,
-                                 double from, double to, int steps) {
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glLineWidth(width);
-        glBegin(GL_LINE_STRIP);
-        color2(colored, alpha);
-        for (int i = 0; i <= steps; i++) {
-            double a = from + (to - from) * i / steps;
+    private static void drawHalo(double x, double y, double z, double rad, int colored, float alpha) {
+        // faint disc, fading out from the centre
+        glBegin(GL_TRIANGLE_FAN);
+        color2(colored, .25f * alpha);
+        glVertex3d(x, y, z);
+        color2(colored, 0);
+        for (int seg = 0; seg <= 48; seg++) {
+            double a = seg * Math.PI * 2 / 48;
             glVertex3d(x + rad * Math.cos(a), y, z + rad * Math.sin(a));
         }
         glEnd();
+
+        band(x, y, z, rad, 0.06, colored, alpha, 0, PI2, 64);
+        band(x, y, z, rad, 0.18, colored, alpha * 0.4f, 0, PI2, 64);
     }
 
-    // Twelve dashes that turn slowly around the ground
+    // A flat band between radius rad-half and rad+half, from angle `from` to `to` (radians). The core is opaque and
+    // the outer edge fades, so the same call gives a glow when drawn wide and faint.
+    private static void band(double x, double y, double z, double rad, double half, int colored, float alpha,
+                             double from, double to, int steps) {
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int i = 0; i <= steps; i++) {
+            double a = from + (to - from) * i / steps;
+            double c = Math.cos(a), s = Math.sin(a);
+            color2(colored, alpha);
+            glVertex3d(x + (rad - half) * c, y, z + (rad - half) * s);
+            color2(colored, 0);
+            glVertex3d(x + (rad + half) * c, y, z + (rad + half) * s);
+        }
+        glEnd();
+    }
+
+    // Twelve glowing dashes that turn slowly around the ground
     private static void drawSpin(double x, double y, double z, double rad, int colored, float alpha) {
         int dashes = 12;
         double spin = ticks * 1.5;
         for (int d = 0; d < dashes; d++) {
             double start = spin + d * Math.PI * 2 / dashes;
-            ringLine(x, y, z, rad, colored, .8f * alpha, 2.5f, start, start + Math.PI * 2 / dashes * 0.5, 4);
+            double end = start + Math.PI * 2 / dashes * 0.55;
+            band(x, y, z, rad, 0.06, colored, alpha, start, end, 6);
+            band(x, y, z, rad, 0.18, colored, alpha * 0.35f, start, end, 6);
         }
     }
 
