@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.*;
 import org.lwjgl.opengl.GL11;
 
@@ -488,7 +489,17 @@ public class RenderUtils extends UtilityClass {
         /** Rings that rise from the feet to the head and fade out, one after another. */
         RISING,
         /** A tilted ring circling the body at chest height with a mote riding it. */
-        ORBIT
+        ORBIT,
+        /** Ice spikes standing on the rim, rising and sinking as they turn. */
+        ICE_WARD,
+        /** Motes spiralling inward from the rim and up into a column over the centre. */
+        GRAVITY_WELL,
+        /** A ring that beats twice per cycle, and beats faster for a moment after a hit. */
+        HEARTBEAT,
+        /** A ring whose arc shows health left, coloured from red to green, with a column marking the arc's end. */
+        HEALTH_ARC,
+        /** Dark tendrils curling up from the ground around the body. */
+        SHADOW_TENDRILS
     }
 
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
@@ -548,6 +559,21 @@ public class RenderUtils extends UtilityClass {
                 break;
             case ORBIT:
                 drawOrbit(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case ICE_WARD:
+                drawIceWard(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case GRAVITY_WELL:
+                drawGravityWell(x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case HEARTBEAT:
+                drawHeartbeat(entity, x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case HEALTH_ARC:
+                drawHealthArc(entity, x, baseY, z, rad, entity.height, colored, alpha);
+                break;
+            case SHADOW_TENDRILS:
+                drawShadowTendrils(x, baseY, z, rad, entity.height, colored, alpha);
                 break;
             case CLASSIC:
             default:
@@ -633,6 +659,7 @@ public class RenderUtils extends UtilityClass {
     private static final Random boltRandom = new Random();
     private static int hurtTrackedId = -1;
     private static int lastHurtTime;
+    private static long lastHitMs;
 
     private static final class LightningBolt {
         final long born = System.currentTimeMillis();
@@ -648,19 +675,25 @@ public class RenderUtils extends UtilityClass {
         }
     }
 
-    // A rune circle on the ground, its rim walled, and a lightning bolt from the sky each time the target takes a hit
-    private static void drawMagicCircle(Entity entity, double x, double baseY, double z, double rad, int colored, float alpha) {
-        // hurtTime jumps back up to its maximum on a hit, so a rise since the last frame means a new hit
+    // True once for each new hit on this entity. hurtTime jumps back up to its maximum on a hit, so a rise since the
+    // last frame means a new one.
+    private static boolean consumeHit(Entity entity) {
         if (entity.getEntityId() != hurtTrackedId) {
             hurtTrackedId = entity.getEntityId();
             lastHurtTime = 0;
         }
-        if (entity.hurtTime > lastHurtTime) {
+        boolean hit = entity.hurtTime > lastHurtTime;
+        lastHurtTime = entity.hurtTime;
+        return hit;
+    }
+
+    // A rune circle on the ground, its rim walled, and a lightning bolt from the sky each time the target takes a hit
+    private static void drawMagicCircle(Entity entity, double x, double baseY, double z, double rad, int colored, float alpha) {
+        if (consumeHit(entity)) {
             bolts.add(new LightningBolt());
             if (bolts.size() > MAX_BOLTS)
                 bolts.remove(0);
         }
-        lastHurtTime = entity.hurtTime;
 
         double floor = baseY + 0.02;
         float pulse = 0.65f + 0.35f * (float) Math.sin(ticks * 4);
@@ -850,6 +883,115 @@ public class RenderUtils extends UtilityClass {
         glEnd();
     }
 
+
+    // Six ice spikes on the rim, each a pair of crossed fins that swell and sink out of step
+    private static void drawIceWard(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double floor = y + 0.02;
+        band(x, floor, z, rad, 0.05, colored, alpha * 0.8f, 0, PI2, 64);
+        for (int i = 0; i < 6; i++) {
+            double a = ticks * 0.3 + i * Math.PI / 3;
+            double h = height * (0.6 + 0.4 * Math.sin(ticks * 1.5 + i * 1.3));
+            spike(x, floor, z, rad * 0.9, a, a, 0.08, h, colored, alpha);
+            spike(x, floor, z, rad * 0.9, a, a + Math.PI / 2, 0.08, h, colored, alpha);
+        }
+    }
+
+    // One fin standing on the rim at angle a, with its width running along the direction fin
+    private static void spike(double x, double floor, double z, double dist, double a, double fin, double half, double h,
+                              int colored, float alpha) {
+        double bx = x + dist * Math.cos(a), bz = z + dist * Math.sin(a);
+        double tx = -Math.sin(fin) * half, tz = Math.cos(fin) * half;
+        glBegin(GL_TRIANGLES);
+        color2(colored, alpha * 0.6f);
+        glVertex3d(bx + tx, floor, bz + tz);
+        color2(colored, alpha * 0.6f);
+        glVertex3d(bx - tx, floor, bz - tz);
+        color2(colored, 0);
+        glVertex3d(bx, floor + h, bz);
+        glEnd();
+    }
+
+    // Motes travel in three arms from the rim toward the centre, rising as they go, with a thin column over the middle
+    private static void drawGravityWell(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double floor = y + 0.02;
+        disc(x, floor, z, rad, colored, alpha * 0.15f);
+        band(x, floor, z, rad, 0.04, colored, alpha * 0.5f, 0, PI2, 64);
+        wall(x, floor, z, rad * 0.08, floor + height * 0.7, colored, alpha * 0.3f, 12);
+        int arms = 3, steps = 14;
+        for (int arm = 0; arm < arms; arm++) {
+            for (int k = 0; k < steps; k++) {
+                double t = (ticks * 0.15 + k / (double) steps) % 1;
+                double r = rad * (1 - t);
+                double a = arm * Math.PI * 2 / arms + t * Math.PI * 3;
+                mote(x + r * Math.cos(a), floor + t * height * 0.7, z + r * Math.sin(a), 0.07 * (1 - t * 0.5),
+                        colored, alpha * (float) Math.sin(t * Math.PI));
+            }
+        }
+    }
+
+    // A ring that swells on a double beat. The beats come faster for a moment after each hit.
+    private static void drawHeartbeat(Entity entity, double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double floor = y + 0.02;
+        long now = System.currentTimeMillis();
+        if (consumeHit(entity))
+            lastHitMs = now;
+        long period = now - lastHitMs < 1500 ? 380 : 900;
+        double p = (now % period) / (double) period;
+        double e = bump(p, 0.05, 0.05) + 0.6 * bump(p, 0.22, 0.06);
+        band(x, floor, z, rad * (0.85 + 0.25 * e), 0.04 + 0.04 * e, colored, alpha * (0.45f + 0.55f * (float) e), 0, PI2, 64);
+        band(x, floor, z, rad * 0.85, 0.03, colored, alpha * 0.4f, 0, PI2, 64);
+        wall(x, floor, z, rad * 0.95, floor + height * (0.25 + 0.5 * e), colored, alpha * (0.1f + 0.3f * (float) e), 48);
+    }
+
+    // A triangle wave that peaks at centre and is zero beyond width from it
+    private static double bump(double p, double centre, double width) {
+        return Math.max(0, 1 - Math.abs(p - centre) / width);
+    }
+
+    // The part of the ring still showing is the health fraction, coloured from red when low to green when full
+    private static void drawHealthArc(Entity entity, double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double floor = y + 0.02;
+        float frac = 1f;
+        if (entity instanceof EntityLivingBase) {
+            EntityLivingBase living = (EntityLivingBase) entity;
+            frac = MathHelper.clamp_float(living.getHealth() / living.getMaxHealth(), 0f, 1f);
+        }
+        band(x, floor, z, rad, 0.05, colored, alpha * 0.2f, 0, PI2, 64);
+        if (frac <= 0f)
+            return;
+        int hp = (int) (255 * (1 - frac)) << 16 | (int) (255 * frac) << 8;
+        double end = frac * PI2;
+        band(x, floor, z, rad, 0.06, hp, alpha, 0, end, 64);
+        band(x, floor, z, rad, 0.18, hp, alpha * 0.35f, 0, end, 64);
+        double ex = x + rad * Math.cos(end), ez = z + rad * Math.sin(end);
+        wall(ex, floor, ez, 0.05, floor + height * frac, hp, alpha * 0.8f, 8);
+    }
+
+    // Tendrils that rise from the ground and sway around the body, drawn in a darkened tint of the theme colour
+    private static void drawShadowTendrils(double x, double y, double z, double rad, double height, int colored, float alpha) {
+        double floor = y + 0.02;
+        int dark = darken(colored, 0.25f);
+        disc(x, floor, z, rad, dark, alpha * 0.5f);
+        int tendrils = 6, samples = 16;
+        glLineWidth(3f);
+        for (int i = 0; i < tendrils; i++) {
+            double base = i * Math.PI * 2 / tendrils + Math.sin(ticks * 0.5 + i) * 0.2;
+            glBegin(GL_LINE_STRIP);
+            for (int j = 0; j <= samples; j++) {
+                double t = j / (double) samples;
+                double a = base + Math.sin(t * 6 + ticks * 2 + i) * 0.4;
+                double r = rad * (1 - 0.3 * t);
+                color2(dark, alpha * 0.9f * (float) (1 - t));
+                glVertex3d(x + r * Math.cos(a), floor + t * height * 1.1, z + r * Math.sin(a));
+            }
+            glEnd();
+        }
+        glLineWidth(1f);
+    }
+
+    private static int darken(int colored, float f) {
+        return ((int) ((colored >> 16 & 255) * f) << 16) | ((int) ((colored >> 8 & 255) * f) << 8) | (int) ((colored & 255) * f);
+    }
 
     public static final float PI2 = roundToFloat((Math.PI * 2D));
 
