@@ -1,6 +1,6 @@
 {
-  "id": "movement-legit",
-  "name": "Movement (legit)",
+  "id": "movement",
+  "name": "Movement",
   "description": "Key-press helpers only: edge jumps, auto walk, keyboard-style tap resolution and an opt-in stasis freeze (flag-prone).",
   "icon": "textures/items/leather_boots.png",
   "autoInstall": false,

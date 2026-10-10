@@ -1,6 +1,6 @@
 {
   "id": "hud",
-  "name": "HUD and info",
+  "name": "HUD",
   "description": "Information panels and warnings: hit feedback, hit counts, armour durability, health and enemy warnings, TPS, lagbacks, inventory counts, ping, detector hints, item drops, reach and the block you aim at. Client-side only.",
   "icon": "minecraft:clock",
   "autoInstall": false,

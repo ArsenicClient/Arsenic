@@ -1,6 +1,6 @@
 {
-  "id": "player",
-  "name": "Player and QoL",
+  "id": "qol",
+  "name": "QoL",
   "description": "Everyday helpers: middle click item use, one key to switch every module off, chat macros, respawn and reconnect, fishing, lower frame limit when unfocused, screenshots on kills and deaths, a crash guard, and developer recorders.",
   "icon": "textures/items/iron_chestplate.png",
   "autoInstall": false,
