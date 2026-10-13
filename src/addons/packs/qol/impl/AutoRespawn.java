@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -14,7 +15,7 @@ import net.minecraft.client.gui.GuiGameOver;
  * Presses Respawn after a delay when the death screen appears. The delay is random between the two settings so it does
  * not look scripted. Respawn is the same request the Respawn button sends.
  */
-@ModuleInfo(name = "AutoRespawn", description = "Presses Respawn after a delay when you die", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoRespawn", description = "Presses Respawn after a delay when you die", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AutoRespawn extends Module {
 
     public final DoubleProperty minDelay = new DoubleProperty("Min Delay (s)", new DoubleValue(0, 10, 1, 0.1));

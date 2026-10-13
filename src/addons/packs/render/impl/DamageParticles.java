@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -23,7 +24,7 @@ import java.util.List;
  * the target's health from just before your attack to the first tick it is hurt, so it can be off by armour or
  * absorption.
  */
-@ModuleInfo(name = "DamageParticles", description = "Floats the damage of your hits over the target", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "DamageParticles", description = "Floats the damage of your hits over the target", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class DamageParticles extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

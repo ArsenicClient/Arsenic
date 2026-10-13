@@ -20,7 +20,7 @@ import java.awt.*;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Tracers", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Tracers extends Module {
 
     private final FloatBuffer modelView = BufferUtils.createFloatBuffer(16);

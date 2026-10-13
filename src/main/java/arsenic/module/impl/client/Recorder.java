@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
@@ -29,7 +30,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-@ModuleInfo(name = "Recorder", category = ModuleCategory.CLIENT, description = "Records the game with ffmpeg, or shows it in a window for OBS")
+@ModuleInfo(name = "Recorder", category = ModuleCategory.CLIENT, description = "Records the game with ffmpeg, or shows it in a window for OBS", tier = ModuleTier.QOL)
 public class Recorder extends Module {
 
     public final EnumProperty<Output> output = new EnumProperty<>("Output", Output.File);

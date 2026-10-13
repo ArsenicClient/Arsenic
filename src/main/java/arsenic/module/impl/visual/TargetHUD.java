@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -33,7 +34,7 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
-@ModuleInfo(name = "TargetHUD", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "TargetHUD", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class TargetHUD extends Module {
 
     private final HudElement hud = hudElement("TargetHUD", 100, 100, 152, 52);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Writes every chat line to a daily file, chatlogs/chat-YYYY-MM-DD.txt, in the Arsenic folder. It is off until you enable
  * it. Chat holds other players' messages, so keep the logs private.
  */
-@ModuleInfo(name = "ChatLogger", description = "Writes chat to a daily log file in the Arsenic folder", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "ChatLogger", description = "Writes chat to a daily log file in the Arsenic folder", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class ChatLogger extends Module {
 
     private final ConcurrentLinkedQueue<String> lines = new ConcurrentLinkedQueue<>();

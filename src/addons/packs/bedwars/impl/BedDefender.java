@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -52,7 +53,7 @@ import java.util.Set;
  *  - blocks that keep missing or take too long are skipped for a while
  *  - roof blocks that have to be placed against the bed are placed while really holding the sneak key
  */
-@ModuleInfo(name = "BedDefender", description = "Walls your nearest bed in with the strongest blocks in your hotbar", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "BedDefender", description = "Walls your nearest bed in with the strongest blocks in your hotbar", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class BedDefender extends Module {
 
     public final DoubleProperty layers = new DoubleProperty("Layers", new DoubleValue(1, 3, 1, 1));

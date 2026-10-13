@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -16,7 +17,7 @@ import net.minecraft.util.MovingObjectPosition;
  * Outlines the block your crosshair is on, in the theme colour. Reads mc.objectMouseOver, so it follows the silent
  * rotation: the outline shows what your clicks would actually hit.
  */
-@ModuleInfo(name = "BlockOverlay", description = "Outlines the block your crosshair is on", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "BlockOverlay", description = "Outlines the block your crosshair is on", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class BlockOverlay extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

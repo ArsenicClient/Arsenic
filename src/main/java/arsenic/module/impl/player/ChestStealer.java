@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.timer.MSTimer;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -33,7 +34,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.ThreadLocalRandom;
 
-@ModuleInfo(name = "ChestStealer", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "ChestStealer", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class ChestStealer extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
 

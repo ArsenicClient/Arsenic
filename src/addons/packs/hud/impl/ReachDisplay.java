@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -18,7 +19,7 @@ import java.util.Locale;
  * Shows the distance to the last entity you attacked, measured to its hitbox when you attacked it. Shows the last
  * distance until you attack something else.
  */
-@ModuleInfo(name = "ReachDisplay", description = "Shows the distance to the last entity you attacked", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ReachDisplay", description = "Shows the distance to the last entity you attacked", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class ReachDisplay extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -22,7 +23,7 @@ import java.util.List;
  * (where hostile mobs can spawn in the dark) are red, the rest are white. Only open-air spots with a solid block under
  * them are shown. The numbers are refreshed every quarter second.
  */
-@ModuleInfo(name = "LightLevel", description = "Shows the light level on the ground around you", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "LightLevel", description = "Shows the light level on the ground around you", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class LightLevel extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.timer.FrameClock;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.keystrokes.SyntheticKeys;
@@ -53,7 +54,7 @@ import net.minecraft.scoreboard.Scoreboard;
 
 import java.util.function.BinaryOperator;
 
-@ModuleInfo(name = "HUD", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "HUD", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.QOL)
 public class HUD extends Module {
 
     public final EnumProperty<hMode> colorMode = new EnumProperty<>("Color Mode: ", hMode.RAINBOW);

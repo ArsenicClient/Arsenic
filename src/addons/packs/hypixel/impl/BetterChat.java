@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -19,7 +20,7 @@ import java.util.Locale;
  *
  * Searchable history and restyled chat lines need a chat render hook, which the client does not have yet.
  */
-@ModuleInfo(name = "BetterChat", description = "Chat timestamps, and a marker on lines that mention your name", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "BetterChat", description = "Chat timestamps, and a marker on lines that mention your name", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class BetterChat extends Module {
 
     public final BooleanProperty timestamps = new BooleanProperty("Timestamps", true);

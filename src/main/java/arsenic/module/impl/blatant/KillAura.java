@@ -1,5 +1,6 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -46,7 +47,7 @@ import net.minecraft.util.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "KillAura", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
+@ModuleInfo(name = "KillAura", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class KillAura extends Module {
 
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);

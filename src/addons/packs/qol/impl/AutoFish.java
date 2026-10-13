@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -17,7 +18,7 @@ import net.minecraft.item.ItemStack;
  * Switches to a rod in the hotbar when needed and puts your slot back when disabled. Every action waits a random delay.
  * A bite is read from the bobber's downward motion, which is the usual sign and not checked on a server.
  */
-@ModuleInfo(name = "AutoFish", description = "Casts a fishing rod and reels in when you get a bite", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoFish", description = "Casts a fishing rod and reels in when you get a bite", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class AutoFish extends Module {
 
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(100, 1000, 300, 10));

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -18,7 +19,7 @@ import net.minecraft.util.BlockPos;
  * Highlights thrown and fired projectiles through walls: arrows, fireballs, ender pearls and other thrown items each
  * get their own colour. Outlines the block the projectile is in.
  */
-@ModuleInfo(name = "ProjectileESP", description = "Highlights arrows, fireballs and thrown items through walls", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ProjectileESP", description = "Highlights arrows, fireballs and thrown items through walls", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class ProjectileESP extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

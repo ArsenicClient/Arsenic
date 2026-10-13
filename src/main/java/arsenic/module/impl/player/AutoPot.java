@@ -19,7 +19,7 @@ import net.minecraft.potion.PotionEffect;
 
 import java.util.List;
 
-@ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoPot", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class AutoPot extends Module {
 
     public final DoubleProperty healthThreshold = new DoubleProperty("Health %", new DoubleValue(1, 100, 40, 1));

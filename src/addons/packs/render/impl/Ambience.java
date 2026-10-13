@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -14,7 +15,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
  * value is set again every tick: a short flicker can show when the server's time arrives. Weather that the server sends
  * with a change packet can also be overwritten the same way.
  */
-@ModuleInfo(name = "Ambience", description = "Sets a client-side time of day and clear weather", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "Ambience", description = "Sets a client-side time of day and clear weather", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class Ambience extends Module {
 
     public final DoubleProperty time = new DoubleProperty("Time (ticks)", new DoubleValue(0, 24000, 6000, 100));

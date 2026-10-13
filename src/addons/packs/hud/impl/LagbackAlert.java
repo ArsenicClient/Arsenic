@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +22,7 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
  * is measured when the position packet arrives, before the game applies it. The first seconds after joining are ignored,
  * since the server always sends a position then. Chat, a HUD line and a short red flash.
  */
-@ModuleInfo(name = "LagbackAlert", description = "Alerts when the server pulls you back to another position", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "LagbackAlert", description = "Alerts when the server pulls you back to another position", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class LagbackAlert extends Module {
 
     public final DoubleProperty threshold = new DoubleProperty("Threshold (blocks)", new DoubleValue(0.5, 10, 1.5, 0.5));

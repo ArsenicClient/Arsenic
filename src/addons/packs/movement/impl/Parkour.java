@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -14,7 +15,7 @@ import net.minecraft.util.BlockPos;
  * presses the jump key: it never changes your speed or direction. Nothing happens while sneaking, in the air, or with a
  * GUI open.
  */
-@ModuleInfo(name = "Parkour", description = "Jumps at block edges while you sprint forward", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Parkour", description = "Jumps at block edges while you sprint forward", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class Parkour extends Module {
 
     private boolean jumpNow;

@@ -729,8 +729,8 @@ public final class AddonManager {
                 return;
 
             Module module = (Module) clazz.newInstance();
-            // every addon is loaded now, so a dev-tier one in a normal build is skipped quietly, not reported
-            if (module.getTier() == arsenic.module.ModuleTier.DEV && !ModuleManager.isDevBuild())
+            // every addon is loaded now, so one of a tier this build leaves out is skipped quietly, not reported
+            if (!arsenic.module.BuildTiers.allows(module.getTier()))
                 return;
             String problem = modules.registerExternal(module);
             if (problem != null) {

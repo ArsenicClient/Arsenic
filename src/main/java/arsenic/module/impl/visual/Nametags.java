@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
@@ -34,7 +35,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Nametags extends Module {
 
     public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));

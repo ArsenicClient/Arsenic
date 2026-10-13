@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -19,7 +20,7 @@ import java.util.Locale;
  * The end is spotted from the same chat lines as AutoGG. Sends once per game, and re-arms after 60 seconds.
  * The queue timer shown in some other clients is not included.
  */
-@ModuleInfo(name = "AutoPlay", description = "After a game ends, queues the mode you chose with /play", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoPlay", description = "After a game ends, queues the mode you chose with /play", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AutoPlay extends Module {
 
     public final TextProperty mode = new TextProperty("Mode", "bedwars_eight_one", 60);

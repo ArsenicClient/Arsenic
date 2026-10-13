@@ -23,7 +23,8 @@ public class FileUtils extends UtilityClass {
 
     /**
      * The Arsenic folder: configs, addons, themes and everything else Arsenic saves. It sits in the user's home folder
-     * (C:\Users\<name>\Arsenic on Windows) rather than the game folder, so every launcher and instance shares it.
+     * (C:\Users\<name>\Arsenic on Windows) rather than the game folder, so every launcher and instance shares it. Each
+     * release jar has its own folder (see BuildTiers.folderName), so builds do not overwrite each other's configs.
      * The first time, an Arsenic folder from the game folder (where it used to live) is copied over.
      */
     public static synchronized File getArsenicFolderDirAsFile() {
@@ -33,7 +34,7 @@ public class FileUtils extends UtilityClass {
             if (home == null || home.isEmpty()) {
                 folder = legacy;
             } else {
-                folder = new File(home, "Arsenic");
+                folder = new File(home, arsenic.module.BuildTiers.folderName());
                 if (!folder.exists() && legacy != null && legacy.isDirectory())
                     copyFolder(legacy, folder);
             }

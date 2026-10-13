@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -23,7 +24,7 @@ import java.util.List;
  * Plays a short burst where a kill you made happens: a ring that grows out from the target's chest, with spokes, fading
  * over about half a second. A kill is a landed hit after which the target is dead or has no health left.
  */
-@ModuleInfo(name = "KillEffect", description = "Draws a burst where a kill you made happens", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "KillEffect", description = "Draws a burst where a kill you made happens", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class KillEffect extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

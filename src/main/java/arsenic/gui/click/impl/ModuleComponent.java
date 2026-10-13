@@ -203,6 +203,8 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     private static int tierColour(arsenic.module.ModuleTier tier) {
         switch (tier) {
+            case QOL: return 0xFF9E9E9E;
+            case VISUAL: return 0xFF55CCFF;
             case BLATANT: return 0xFFFF5555;
             case DEV: return 0xFFFFAA00;
             default: return 0xFF55FF55;

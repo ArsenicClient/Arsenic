@@ -1,4 +1,5 @@
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -27,7 +28,7 @@ import java.util.regex.Pattern;
  * Reads the server's "STREAK! of N kills by [level] name" broadcasts and works out how fast each player is killing
  * from how quickly their streak milestones arrive.
  */
-@ModuleInfo(name = "KillTracker", category = ModuleCategory.RENDER, description = "Tracks kills per minute from the server's streak messages")
+@ModuleInfo(name = "KillTracker", category = ModuleCategory.RENDER, description = "Tracks kills per minute from the server's streak messages", tier = ModuleTier.QOL)
 public class KillTracker extends Module {
 
     public static final int WIDTH = 132;

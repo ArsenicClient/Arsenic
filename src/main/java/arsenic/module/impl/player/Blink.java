@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPlayerJoinWorld;
@@ -16,7 +17,7 @@ import net.minecraft.util.Vec3;
 
 import java.awt.*;
 
-@ModuleInfo(name = "Blink", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Blink", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class Blink extends Module {
 
     public final DoubleProperty doubleProperty = new DoubleProperty("Max Blink ticks", new DoubleValue(1, 20, 20, 1));

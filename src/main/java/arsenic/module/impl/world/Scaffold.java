@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.SliderScale;
@@ -38,7 +39,7 @@ import net.minecraft.util.Vec3;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
-@ModuleInfo(name = "Scaffold", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Scaffold", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class Scaffold extends Module {
 
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);

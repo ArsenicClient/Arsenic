@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -19,7 +20,7 @@ import net.minecraft.util.EnumFacing;
  * centre (world X and Z, default 0 0), the highest solid block with air above it, within 5 blocks above or below your
  * feet, is outlined on its top face.
  */
-@ModuleInfo(name = "RingHighlight", description = "Highlights the exposed block tops in a ring around a point", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "RingHighlight", description = "Highlights the exposed block tops in a ring around a point", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class RingHighlight extends Module {
 
     public final DoubleProperty radius = new DoubleProperty("Radius", new DoubleValue(1, 64, 5, 1));

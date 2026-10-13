@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -25,7 +26,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
-@ModuleInfo(name = "AimAssist", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "AimAssist", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class AimAssist extends Module {
 
     public enum AimMode {

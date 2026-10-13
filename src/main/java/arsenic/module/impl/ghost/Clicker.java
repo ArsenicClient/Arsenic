@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
@@ -21,7 +22,7 @@ import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.MovingObjectPosition;
 
-@ModuleInfo(name = "Clicker", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Clicker", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class Clicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 1));

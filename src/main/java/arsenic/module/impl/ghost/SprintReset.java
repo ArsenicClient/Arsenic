@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -17,7 +18,7 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import static arsenic.utils.lag.LagManager.getPing;
 
-@ModuleInfo(name = "SprintReset",category = ModuleCategory.COMBAT, hidden = true)
+@ModuleInfo(name = "SprintReset",category = ModuleCategory.COMBAT, hidden = true, tier = ModuleTier.LEGIT)
 public class SprintReset extends Module {
     public int hurtTime = 1;
     public EntityPlayer target;

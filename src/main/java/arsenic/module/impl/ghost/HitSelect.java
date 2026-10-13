@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -12,7 +13,7 @@ import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 
-@ModuleInfo(name = "HitSelect", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "HitSelect", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class HitSelect extends Module {
 
     public enum Mode {

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -13,7 +14,7 @@ import net.minecraft.potion.Potion;
  * server still applies the effects; this only removes what you see. Removing them again each tick keeps them off when
  * the server resends them.
  */
-@ModuleInfo(name = "AntiBlind", description = "Removes the blindness and nausea effects on your client", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "AntiBlind", description = "Removes the blindness and nausea effects on your client", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class AntiBlind extends Module {
 
     public final BooleanProperty blindness = new BooleanProperty("Blindness", true);

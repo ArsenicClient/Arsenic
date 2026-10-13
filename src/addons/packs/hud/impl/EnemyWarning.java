@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -26,7 +27,7 @@ import java.util.Set;
  * enters the range, and lists the closest players (name and distance) in a HUD panel while anyone is in range.
  * Players the built-in AntiBot filters (NPCs, lobby bots) are ignored.
  */
-@ModuleInfo(name = "EnemyWarning", description = "Warns when a non-friend player comes within a chosen distance", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "EnemyWarning", description = "Warns when a non-friend player comes within a chosen distance", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class EnemyWarning extends Module {
 
     public final DoubleProperty distance = new DoubleProperty("Distance", new DoubleValue(4, 64, 20, 1));

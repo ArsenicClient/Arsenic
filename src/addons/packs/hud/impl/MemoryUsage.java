@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -12,7 +13,7 @@ import arsenic.utils.render.DrawUtils;
  * Memory the Java process is using out of the most it may use, in megabytes. A rising number over a long session can
  * show a leak in the client or an addon.
  */
-@ModuleInfo(name = "MemoryUsage", description = "Shows the memory the game is using, in megabytes", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "MemoryUsage", description = "Shows the memory the game is using, in megabytes", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class MemoryUsage extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

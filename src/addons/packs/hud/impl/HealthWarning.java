@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -18,7 +19,7 @@ import net.minecraft.client.gui.ScaledResolution;
  * Warns once each time your health drops to the limit: a short red flash across the screen, a sound and a HUD panel
  * that stays red while you are low. Rearms once health climbs back 2 points above the limit.
  */
-@ModuleInfo(name = "HealthWarning", description = "Flashes the screen and plays a sound when your health drops below a limit", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "HealthWarning", description = "Flashes the screen and plays a sound when your health drops below a limit", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class HealthWarning extends Module {
 
     public final DoubleProperty limit = new DoubleProperty("Limit", new DoubleValue(1, 20, 6, 1));

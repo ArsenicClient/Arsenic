@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -18,7 +19,7 @@ import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.util.MovingObjectPosition;
 
-@ModuleInfo(name = "AutoWeapon", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "AutoWeapon", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class AutoWeapon extends Module {
 
     // Slot to return to once we stop looking at a player

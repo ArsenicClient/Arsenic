@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -16,7 +17,7 @@ import java.util.Locale;
  * Horizontal speed in blocks per second, measured from your position each tick (so it ignores vertical motion and
  * knockback that the server applies between two of your ticks, which shows up as a jump in the number).
  */
-@ModuleInfo(name = "Speedometer", description = "Shows your horizontal speed in blocks per second", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "Speedometer", description = "Shows your horizontal speed in blocks per second", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class Speedometer extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

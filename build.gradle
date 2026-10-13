@@ -24,7 +24,7 @@ buildscript {
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "idea"
 
-version          = "v2.0"
+version          = "v3.0"
 group            = "arsenic"
 archivesBaseName = "Arsenic"
 
@@ -319,33 +319,96 @@ def configureArsenicJar = { Jar task ->
     )
 }
 
-jar {
-    configureArsenicJar(delegate)
+// The release jars and the module tiers each one holds. The main jar, "(main)" in its name, is the Blatant release. Every jar has the same
+// classes, because the engine calls into module classes directly; buildtiers.properties (written below) tells
+// arsenic.module.BuildTiers which of them load.
+def tierJars = [
+        qol    : ["QOL"],
+        visual : ["QOL", "VISUAL"],
+        legit  : ["QOL", "VISUAL", "LEGIT"],
+        blatant: ["QOL", "VISUAL", "LEGIT", "BLATANT"],
+        dev    : ["QOL", "VISUAL", "LEGIT", "DEV"]
+]
+
+// The tier of each bundled addon, keyed by its path under src/addons ("java/AutoBow.java", "packs/pit/impl/AutoHunt.java").
+// An addon without a tier is LEGIT, the same default as ModuleInfo.
+def addonTiers = [:]
+file("src/addons").eachFileRecurse(groovy.io.FileType.FILES) { File f ->
+    String rel = file("src/addons").toPath().relativize(f.toPath()).toString().replace('\\', '/')
+    if (!(rel ==~ /(java\/[^\/]+|packs\/[^\/]+\/impl\/[^\/]+)\.java/))
+        return
+    String tier = "LEGIT"
+    def info = (f.getText("UTF-8") =~ /(?s)@ModuleInfo\((.*?)\)\s*\r?\n\s*public/)
+    if (info.find()) {
+        def named = (info.group(1) =~ /tier\s*=\s*(?:arsenic\.module\.)?(?:ModuleTier\.)?(\w+)/)
+        if (named.find())
+            tier = named.group(1)
+    }
+    addonTiers[rel] = tier
 }
 
-// Second jar built alongside the normal one on every `gradle build`.
-// Same contents, plus a devmode.properties (devmode=true) and a "DevMode" manifest attribute.
+// The Arsenic folder each jar uses in the user's home folder. The main jar keeps the original "Arsenic" folder, so
+// its configs stay where they were; every other jar gets its own, so the builds do not overwrite each other's.
+def folderOf = [qol: "Arsenic-QOL", visual: "Arsenic-Visual", legit: "Arsenic-Legit", blatant: "Arsenic", dev: "Arsenic-Dev"]
+
+// What a release jar adds to configureArsenicJar: the tier list and folder name, and no addon source of a tier it
+// leaves out. Addons are not referenced by the client, so leaving their sources out is safe; a missing source is
+// skipped at run time.
+def configureTierJar = { Jar task, String key, List<String> tiers ->
+    task.from(file("$buildDir/tiers/$key")) {
+        include "buildtiers.properties"
+    }
+    task.doFirst {
+        def dir = file("$buildDir/tiers/$key")
+        dir.mkdirs()
+        new File(dir, "buildtiers.properties").text = "tiers=" + tiers.join(",") + "\nfolder=" + folderOf[key] + "\n"
+    }
+    task.exclude { el ->
+        String prefix = "assets/arsenic/addons/"
+        String addon = el.path.startsWith(prefix) ? el.path.substring(prefix.length()) : null
+        addon != null && addonTiers.containsKey(addon) && !tiers.contains(addonTiers[addon])
+    }
+    configureArsenicJar(task)
+}
+
+jar {
+    classifier = "(main)"
+    configureTierJar(delegate, "blatant", tierJars.blatant)
+}
+
+task qolJar(type: Jar) {
+    classifier = "qol"
+    from sourceSets.main.output
+    configureTierJar(delegate, "qol", tierJars.qol)
+}
+
+task visualJar(type: Jar) {
+    classifier = "visual"
+    from sourceSets.main.output
+    configureTierJar(delegate, "visual", tierJars.visual)
+}
+
+task legitJar(type: Jar) {
+    classifier = "legit"
+    from sourceSets.main.output
+    configureTierJar(delegate, "legit", tierJars.legit)
+}
+
 task devJar(type: Jar) {
     classifier = "dev"
     from sourceSets.main.output
-    from(file("$buildDir/devmode")) {
-        include "devmode.properties"
-    }
-    configureArsenicJar(delegate)
-    manifest.attributes("DevMode": true)
-
-    doFirst {
-        def dir = file("$buildDir/devmode")
-        dir.mkdirs()
-        new File(dir, "devmode.properties").text = "devmode=true\n"
-    }
+    configureTierJar(delegate, "dev", tierJars.dev)
 }
 
-// Obfuscate the dev jar the same way as the main one, then hook it into `build`.
+// Obfuscate every release jar the same way as the main one (the plain jar is obfuscated by its own reobfJar), then
+// hook them into `build`.
 reobf {
+    qolJar { mappingType = "SEARGE" }
+    visualJar { mappingType = "SEARGE" }
+    legitJar { mappingType = "SEARGE" }
     devJar { mappingType = "SEARGE" }
 }
-build.dependsOn devJar
+build.dependsOn qolJar, visualJar, legitJar, devJar
 
 // reobf rewrites every class in the jar with an old ASM, which mangles the stack map frames of the embedded
 // libraries (ECJ then fails verification). Only Arsenic's own classes need remapping, so put the libraries'
@@ -381,12 +444,13 @@ def restoreEmbeddedLibs = { File jarFile ->
     tmp.renameTo(jarFile)
 }
 afterEvaluate {
-    tasks.reobfJar.doLast { restoreEmbeddedLibs(tasks.getByName("jar").archivePath) }
-    tasks.reobfDevJar.doLast { restoreEmbeddedLibs(tasks.getByName("devJar").archivePath) }
     // A jar left with development names cannot run in Forge (NoSuchMethodError on the first Minecraft call), so building
-    // either jar on its own (the IntelliJ injector run builds only devJar) always obfuscates it too
-    tasks.jar.finalizedBy tasks.reobfJar
-    tasks.devJar.finalizedBy tasks.reobfDevJar
+    // any one jar on its own (the IntelliJ injector run builds only devJar) always obfuscates it too
+    ["jar", "qolJar", "visualJar", "legitJar", "devJar"].each { String jarTask ->
+        String reobfTask = "reobf" + jarTask.capitalize()
+        tasks.getByName(reobfTask).doLast { restoreEmbeddedLibs(tasks.getByName(jarTask).archivePath) }
+        tasks.getByName(jarTask).finalizedBy tasks.getByName(reobfTask)
+    }
 }
 
 // The default IntelliJ run configuration starts the injector, not Forge. genIntellijRuns writes ForgeGradle's own
@@ -408,7 +472,7 @@ tasks.genIntellijRuns.doLast {
 
     def injector = new Node(manager, 'configuration', [default: 'false', name: 'Arsenic Injector', type: 'Application', factoryName: 'Application'])
     new Node(injector, 'option', [name: 'MAIN_CLASS_NAME', value: 'arsenic.inject.Injector'])
-    new Node(injector, 'option', [name: 'VM_PARAMETERS', value: '-Darsenic.jar=$PROJECT_DIR$/build/libs/Arsenic-v2.0-dev.jar'])
+    new Node(injector, 'option', [name: 'VM_PARAMETERS', value: '-Darsenic.jar=$PROJECT_DIR$/build/libs/' + tasks.devJar.archiveName])
     new Node(injector, 'option', [name: 'PROGRAM_PARAMETERS', value: ''])
     new Node(injector, 'option', [name: 'WORKING_DIRECTORY', value: 'file://$PROJECT_DIR$/run'])
     new Node(injector, 'option', [name: 'PASS_PARENT_ENVS', value: 'true'])

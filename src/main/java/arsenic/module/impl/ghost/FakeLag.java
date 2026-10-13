@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.timer.MSTimer;
 import arsenic.utils.java.MathUtils;
 import arsenic.module.property.impl.SliderScale;
@@ -23,7 +24,7 @@ import net.minecraft.util.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "LagRange", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "LagRange", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class FakeLag extends Module {
 
     public final RangeProperty delay = new RangeProperty("Delay", new RangeValue(0, 2000, 100, 200, 10), SliderScale.LOG);

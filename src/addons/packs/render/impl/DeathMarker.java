@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -16,7 +17,7 @@ import org.lwjgl.opengl.GL11;
  * Marks where you last died with a beam and the distance to it. The marker is set the tick your health first reaches
  * zero, and stays until you press Clear or disable the addon.
  */
-@ModuleInfo(name = "DeathMarker", description = "Marks where you last died", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "DeathMarker", description = "Marks where you last died", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class DeathMarker extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

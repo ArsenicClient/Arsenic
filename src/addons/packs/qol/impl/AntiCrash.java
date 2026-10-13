@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -13,7 +14,7 @@ import net.minecraft.network.play.server.S3FPacketCustomPayload;
  * Drops incoming packets known to crash or freeze a client: custom payloads far bigger than any real plugin message, and
  * particle bursts with absurd counts. Only the incoming side is touched. The limits are generous, and nothing else is changed.
  */
-@ModuleInfo(name = "AntiCrash", description = "Drops incoming packets known to crash clients (oversized payloads, particle floods)", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AntiCrash", description = "Drops incoming packets known to crash clients (oversized payloads, particle floods)", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AntiCrash extends Module {
 
     public final DoubleProperty maxPayload = new DoubleProperty("Max Payload (KB)", new DoubleValue(8, 1024, 64, 8));

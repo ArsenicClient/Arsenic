@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -12,7 +13,7 @@ import net.minecraft.client.settings.KeyBinding;
  * when A and D are both held, the same. The addon only changes the input when both keys of an axis are held. Nothing is
  * injected: the server sees the same keys you pressed, in the order a keyboard would send them.
  */
-@ModuleInfo(name = "SnapTap", description = "Last-pressed key wins for W/S and A/D, like SOCD keyboards", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "SnapTap", description = "Last-pressed key wins for W/S and A/D, like SOCD keyboards", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class SnapTap extends Module {
 
     private long counter;

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -20,7 +21,7 @@ import java.util.List;
  * Counts what you carry in the main inventory and hotbar: placeable blocks, arrows, ender pearls and golden apples.
  * Only the categories you have are shown.
  */
-@ModuleInfo(name = "ItemCounter", description = "Counts blocks, arrows, pearls and golden apples in your inventory", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ItemCounter", description = "Counts blocks, arrows, pearls and golden apples in your inventory", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class ItemCounter extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

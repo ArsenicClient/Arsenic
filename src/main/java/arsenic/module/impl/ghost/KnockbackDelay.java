@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -28,7 +29,7 @@ import net.minecraft.network.play.server.S12PacketEntityVelocity;
  * not hearing from us while the knockback is in flight, so our position lands late from the attacker's side. Holding
  * only movement let swings and attacks overtake it, which Grim flags as packets out of order (Post).
  */
-@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
+@ModuleInfo(name = "KnockbackDelay", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class KnockbackDelay extends Module {
 
     public enum DelayMode {Normal, AntiCombo}

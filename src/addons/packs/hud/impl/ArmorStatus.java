@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -17,7 +18,7 @@ import java.util.List;
  * Panel with the durability of your armour and held item, and optionally the same for the nearest player within 10
  * blocks. Durability is shown as a percentage of the item's maximum; "--" means no item in that slot.
  */
-@ModuleInfo(name = "ArmorStatus", description = "Shows the durability of your armour and held item, and the nearest player's", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ArmorStatus", description = "Shows the durability of your armour and held item, and the nearest player's", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class ArmorStatus extends Module {
 
     public final BooleanProperty showNearest = new BooleanProperty("Show Nearest", true);

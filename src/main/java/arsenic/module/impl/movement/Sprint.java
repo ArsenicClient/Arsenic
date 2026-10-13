@@ -1,5 +1,6 @@
 package arsenic.module.impl.movement;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -9,7 +10,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import net.minecraft.client.settings.KeyBinding;
 
-@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT, hidden = true)
+@ModuleInfo(name = "Sprint", category = ModuleCategory.MOVEMENT, hidden = true, tier = ModuleTier.QOL)
 public class Sprint extends Module {
 
     @RequiresPlayer

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -19,7 +20,7 @@ import net.minecraft.client.multiplayer.ServerData;
  * number of attempts in a row; the count resets once you have stayed in the world for 30 seconds. This is the one time
  * the addon acts with a GUI on screen: the disconnect screen.
  */
-@ModuleInfo(name = "AutoReconnect", description = "Reconnects to the last server after a disconnect", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoReconnect", description = "Reconnects to the last server after a disconnect", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AutoReconnect extends Module {
 
     public final DoubleProperty delay = new DoubleProperty("Delay (s)", new DoubleValue(1, 60, 5, 1));

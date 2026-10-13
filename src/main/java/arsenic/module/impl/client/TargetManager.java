@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.config.FriendManager;
 import arsenic.event.impl.EventMouse;
 import arsenic.event.impl.EventPacket;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true)
+@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true, tier = ModuleTier.QOL)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),

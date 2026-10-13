@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -17,7 +18,7 @@ import java.util.Map;
  * "F6=/play bedwars_eight_one;F7=gg". KEY is an LWJGL key name (F6, Z, NUMPAD1, ...). Only fires on a deliberate key
  * press with no GUI open, and at most one macro per second.
  */
-@ModuleInfo(name = "ChatMacros", description = "Sends a chosen chat line when a key is pressed", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "ChatMacros", description = "Sends a chosen chat line when a key is pressed", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class ChatMacros extends Module {
 
     public final TextProperty macros = new TextProperty("Macros", "F6=/play bedwars_eight_one;F7=gg", 400);

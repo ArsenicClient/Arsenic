@@ -98,7 +98,7 @@ Start from the [skeleton](#skeleton) or copy the [worked example](#worked-exampl
 | `keybind` | `0` | An LWJGL key code (`org.lwjgl.input.Keyboard.KEY_*`), `0` for none. Users can rebind in the GUI or with `.bind`. |
 | `enabled` | `false` | Initial state when there is no saved config. |
 | `hidden` | `false` | Not listed in the HUD module list and gives no enable/disable notification. |
-| `tier` | `LEGIT` | ClickGUI toggle the module belongs to: `LEGIT` (always shown), `BLATANT` (shown when the Blatant toggle is on), `DEV` (only exists in the dev jar). |
+| `tier` | `LEGIT` | Which release jars the module ships in, and its ClickGUI section: `QOL` (anything that is not a cheat), `VISUAL` (rendering that could still be an advantage), `LEGIT` (subtle gameplay help), `BLATANT` (obvious cheating, shown when the Blatant toggle is on), `DEV` (development only). A module only loads in a jar built with its tier; see the build's `qolJar`, `visualJar`, `legitJar`, `jar` (Blatant) and `devJar` tasks. |
 
 **Lifecycle hooks** (override in your class; both are `protected void`, no arguments, and do nothing by default):
 
@@ -1399,7 +1399,7 @@ public enum ModuleCategory implements IContainer<Module>, IContainable {
 
 ```java
 public enum ModuleTier {
-    LEGIT, BLATANT, DEV;
+    QOL, VISUAL, LEGIT, BLATANT, DEV;
     public String getDisplayName();
 }
 ```

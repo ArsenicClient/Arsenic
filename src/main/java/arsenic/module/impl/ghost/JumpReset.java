@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -29,7 +30,7 @@ import net.minecraft.network.play.server.S19PacketEntityStatus;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class JumpReset extends Module {
     public final DoubleProperty chance = new DoubleProperty("Chance", new DoubleValue(0.0, 1, 1, 0.01));
     public final BooleanProperty sound = new BooleanProperty("Sound", true);

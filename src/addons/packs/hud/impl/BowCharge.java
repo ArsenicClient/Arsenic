@@ -1,4 +1,5 @@
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -15,7 +16,7 @@ import net.minecraft.item.ItemBow;
  * Shows the charge of a bow while you hold right click with it: a percentage that reaches 100 after the full draw
  * (20 ticks). Hidden otherwise.
  */
-@ModuleInfo(name = "BowCharge", description = "Shows the bow charge percentage while drawing", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "BowCharge", description = "Shows the bow charge percentage while drawing", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class BowCharge extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -21,7 +22,7 @@ import java.util.regex.Pattern;
  * destroyed or eliminated (BedwarsTracker) are shown that way whatever the sidebar says. Your own team is marked.
  * Only active while GameDetector reports BedWars; needs the hypixel pack's GameDetector (pack.json requires).
  */
-@ModuleInfo(name = "BedwarsStatus", description = "Team panel from the BedWars sidebar: beds and players left", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "BedwarsStatus", description = "Team panel from the BedWars sidebar: beds and players left", category = ModuleCategory.PLAYER, tier = ModuleTier.VISUAL)
 public class BedwarsStatus extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

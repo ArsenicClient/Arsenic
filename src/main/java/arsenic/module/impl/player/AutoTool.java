@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import org.lwjgl.input.Keyboard;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.event.bus.Listener;
@@ -13,7 +14,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Mouse;
 
-@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true)
+@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true, tier = ModuleTier.LEGIT)
 public class AutoTool extends Module {
     public final BooleanProperty shiftOnly = new BooleanProperty("Shift Only", false);
 

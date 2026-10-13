@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -31,7 +32,7 @@ import arsenic.module.property.impl.BooleanProperty;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT, tier = arsenic.module.ModuleTier.BLATANT)
+@ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class Hitflick extends Module {
 
     public final EnumProperty<FlickDirection> direction = new EnumProperty<>("Direction", FlickDirection.Right);

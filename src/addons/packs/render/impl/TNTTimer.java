@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -24,7 +25,7 @@ import java.util.List;
  * Shows the fuse left on primed TNT within a chosen range: a red outline through walls on the block, and a HUD list of
  * the closest ones with seconds left (sorted by time, soonest first).
  */
-@ModuleInfo(name = "TNTTimer", description = "Shows the fuse left on primed TNT and highlights it", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "TNTTimer", description = "Shows the fuse left on primed TNT and highlights it", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class TNTTimer extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventFov;
@@ -12,7 +13,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
  * Sets the camera's field of view. Uses one value normally and another while you are sprinting, so the sprint zoom
  * can be softened or removed. Affects the camera only, not the held items. Off until the module is enabled.
  */
-@ModuleInfo(name = "CustomFov", description = "Sets the camera field of view, with a separate value while sprinting", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "CustomFov", description = "Sets the camera field of view, with a separate value while sprinting", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class CustomFov extends Module {
 
     public final DoubleProperty fov = new DoubleProperty("FOV", new DoubleValue(30, 110, 70, 1));

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -19,7 +20,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Plays a sound and flashes the HUD when someone sends you a private message. Hypixel writes received messages as
  * "From Name: text", which is what is matched.
  */
-@ModuleInfo(name = "PrivateMessageAlert", description = "Sound and HUD flash when someone sends you a private message", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "PrivateMessageAlert", description = "Sound and HUD flash when someone sends you a private message", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class PrivateMessageAlert extends Module {
 
     public final BooleanProperty sound = new BooleanProperty("Sound", true);

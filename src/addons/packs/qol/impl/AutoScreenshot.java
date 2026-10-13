@@ -7,18 +7,19 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.util.ScreenShotHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.util.ScreenShotHelper;
 
 /**
  * Takes a screenshot (saved in the game's screenshots folder) when you get a kill, when you die, or both. The screenshot
  * is taken on the next frame, so it shows what you see at that moment, and the file name is reported in chat.
  */
-@ModuleInfo(name = "AutoScreenshot", description = "Takes a screenshot on a kill or on your death", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "AutoScreenshot", description = "Takes a screenshot on a kill or on your death", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class AutoScreenshot extends Module {
 
     public final BooleanProperty onKill = new BooleanProperty("On Kill", true);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -25,7 +26,7 @@ import java.util.Random;
  * charged (20 ticks) and the ray of the rotation being sent hits that player. If the target goes out of range while the
  * bow is drawn, it is released at whatever the camera aims at, since a drawn bow cannot be put away.
  */
-@ModuleInfo(name = "AutoBow", description = "Draws a bow at the nearest enemy and releases once fully charged on the real ray", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "AutoBow", description = "Draws a bow at the nearest enemy and releases once fully charged on the real ray", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class AutoBow extends Module {
 
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(10, 60, 35, 1));

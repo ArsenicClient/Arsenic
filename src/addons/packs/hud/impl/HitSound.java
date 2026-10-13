@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +22,7 @@ import net.minecraft.entity.player.EntityPlayer;
  * turned off), and the volume and pitch are adjustable. The hit confirm sound is the client's own and ignores volume
  * and pitch. A landed hit is an attack whose target is hurt on one of the next ticks.
  */
-@ModuleInfo(name = "HitSound", description = "Plays a sound when one of your hits lands, and another on a kill", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "HitSound", description = "Plays a sound when one of your hits lands, and another on a kill", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class HitSound extends Module {
 
     public enum Choice {

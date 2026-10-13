@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -23,7 +24,7 @@ import java.util.Map;
  * Lists players who have stood still for longer than the chosen time, in BedWars lobbies and similar places. Position is
  * compared each tick, so a player who only turns their head still counts as still. Bots are skipped.
  */
-@ModuleInfo(name = "AfkDetector", description = "Lists players who have stood still for a long time", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "AfkDetector", description = "Lists players who have stood still for a long time", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class AfkDetector extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

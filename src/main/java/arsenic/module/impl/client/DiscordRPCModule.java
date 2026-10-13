@@ -1,12 +1,13 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.discord.DiscordRPCManager;
 
-@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.CLIENT, hidden = true)
+@ModuleInfo(name = "DiscordRPC", category = ModuleCategory.CLIENT, hidden = true, tier = ModuleTier.QOL)
 public class DiscordRPCModule extends Module {
 
     private static final long APP_ID = 1508792693688369252L;

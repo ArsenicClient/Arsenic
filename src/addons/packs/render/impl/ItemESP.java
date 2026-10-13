@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -24,7 +25,7 @@ import java.util.List;
  * Highlights dropped items within a chosen range through walls, in the theme colour. Glow outlines each item itself, the
  * same as the player Glow mode; Box marks the block each item lies in.
  */
-@ModuleInfo(name = "ItemESP", description = "Highlights dropped items through walls", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ItemESP", description = "Highlights dropped items through walls", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class ItemESP extends Module {
 
     public enum Mode {

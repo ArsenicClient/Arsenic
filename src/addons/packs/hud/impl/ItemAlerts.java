@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -29,7 +30,7 @@ import java.util.Set;
  * of Minecraft names (diamond, emerald, golden_apple, iron_sword). The most recent alert also shows on the HUD for a few
  * seconds.
  */
-@ModuleInfo(name = "ItemAlerts", description = "Alerts when chosen items are dropped near you", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "ItemAlerts", description = "Alerts when chosen items are dropped near you", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class ItemAlerts extends Module {
 
     public final TextProperty items = new TextProperty("Items", "diamond,emerald,golden_apple", 300);

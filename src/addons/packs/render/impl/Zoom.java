@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventFov;
@@ -13,7 +14,7 @@ import org.lwjgl.input.Keyboard;
  * While the zoom key is held, the camera narrows to the zoom FOV. Enable the module to arm it; release the key to see
  * normal view again. The key is a name such as C, Z or LSHIFT; with no valid key, or while a screen is open, zoom does nothing.
  */
-@ModuleInfo(name = "Zoom", description = "Hold a key to narrow the camera field of view", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "Zoom", description = "Hold a key to narrow the camera field of view", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class Zoom extends Module {
 
     public final TextProperty key = new TextProperty("Zoom Key", "C", 16);

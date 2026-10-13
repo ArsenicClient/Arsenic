@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -22,7 +23,7 @@ import net.minecraft.item.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "InvManager", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class InvManager extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
     public final BooleanProperty dropItems = new BooleanProperty("Drop Items", true);

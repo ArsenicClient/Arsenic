@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -34,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 
-@ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class ESP extends Module {
 
     public enum Mode {

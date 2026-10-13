@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -20,7 +21,7 @@ import java.util.Locale;
  * the victim had on the tick after the hit (blocks per tick). Your own movement adds to the taken value, so jumping or
  * sprinting during a hit makes it bigger than the knockback alone.
  */
-@ModuleInfo(name = "KnockbackMeter", description = "Shows how hard the last hit you took and the last one you gave pushed", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "KnockbackMeter", description = "Shows how hard the last hit you took and the last one you gave pushed", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class KnockbackMeter extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

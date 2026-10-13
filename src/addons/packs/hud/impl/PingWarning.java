@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -14,7 +15,7 @@ import arsenic.utils.render.DrawUtils;
 /**
  * HUD line with your ping, red while it is above the limit. Uses the client's own ping measurement (LagManager).
  */
-@ModuleInfo(name = "PingWarning", description = "Shows your ping and warns when it goes over a limit", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "PingWarning", description = "Shows your ping and warns when it goes over a limit", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class PingWarning extends Module {
 
     public final DoubleProperty limit = new DoubleProperty("Limit (ms)", new DoubleValue(50, 500, 150, 10));

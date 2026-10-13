@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -22,7 +23,7 @@ import net.minecraft.entity.EntityLivingBase;
  * Flashes a small cross on the crosshair when one of your attacks lands. An attack counts as landed when the target
  * is hurt on one of the next ticks (its hurt time goes above zero).
  */
-@ModuleInfo(name = "HitMarker", description = "Flashes a cross on the crosshair when one of your hits lands", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "HitMarker", description = "Flashes a cross on the crosshair when one of your hits lands", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class HitMarker extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

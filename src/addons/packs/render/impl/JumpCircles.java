@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +22,7 @@ import java.util.List;
  * the jump key counts: knockback, jump reset and falling off an edge do not draw one. The ring is drawn where you left
  * the ground.
  */
-@ModuleInfo(name = "JumpCircles", description = "Draws a ring under you when you jump", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "JumpCircles", description = "Draws a ring under you when you jump", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class JumpCircles extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

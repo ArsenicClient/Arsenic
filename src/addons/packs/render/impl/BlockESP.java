@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -24,7 +25,7 @@ import java.util.List;
  * within a range. The world is scanned every half second, so the highlights lag a little behind block changes.
  * Names that do not match a block are ignored.
  */
-@ModuleInfo(name = "BlockESP", description = "Highlights chosen block types through walls", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "BlockESP", description = "Highlights chosen block types through walls", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class BlockESP extends Module {
 
     public final TextProperty blocks = new TextProperty("Blocks", "bed,diamond_ore,emerald_ore,tnt,ender_chest", 300);

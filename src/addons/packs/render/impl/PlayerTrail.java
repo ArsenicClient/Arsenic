@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -25,7 +26,7 @@ import java.util.Map;
  * A fading line behind each other player, through the last few positions they were at (chest height). The line is
  * brightest at the player and fades toward the oldest point. Filtered players (AntiBot) get no trail.
  */
-@ModuleInfo(name = "PlayerTrail", description = "A fading trail behind other players", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "PlayerTrail", description = "A fading trail behind other players", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class PlayerTrail extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

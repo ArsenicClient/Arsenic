@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -20,7 +21,7 @@ import net.minecraft.entity.player.EntityPlayer;
  * counted, and players on your friend list count as teammates. Team is whatever PlayerUtils considers the same team
  * (on BedWars, the same bed colour).
  */
-@ModuleInfo(name = "NearbyCount", description = "Counts players nearby, split into teammates and enemies", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "NearbyCount", description = "Counts players nearby, split into teammates and enemies", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class NearbyCount extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

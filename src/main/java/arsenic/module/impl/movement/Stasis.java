@@ -1,5 +1,6 @@
 package arsenic.module.impl.movement;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -23,7 +24,7 @@ import net.minecraft.network.play.client.C03PacketPlayer;
  *
  * It is off by default and is flagged by movement checks: expect a flag or a lagback on most servers.
  */
-@ModuleInfo(name = "Stasis", description = "Hangs in the air for up to 45 ticks. Flag-prone; opt-in", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Stasis", description = "Hangs in the air for up to 45 ticks. Flag-prone; opt-in", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class Stasis extends Module {
 
     private static final int STASIS_TICKS = 45;

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -20,7 +21,7 @@ import java.util.Locale;
  * mode. The message is sent after a short random delay so it does not look scripted, and only once per game: it re-arms
  * after 60 seconds or when the game changes.
  */
-@ModuleInfo(name = "AutoGG", description = "Sends a message once after each game ends", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoGG", description = "Sends a message once after each game ends", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AutoGG extends Module {
 
     public final TextProperty message = new TextProperty("Message", "gg", 40);

@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * by Y. FINAL KILL!", or "X fell into the void. FINAL KILL!" with no killer. Only lines ending in "FINAL KILL!" count,
  * not reward lines such as "+2 tokens! (Final Kill)". Counts reset when a new game starts (BedwarsTracker).
  */
-@ModuleInfo(name = "FinalKillCounter", description = "Counts final kills in BedWars from chat", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "FinalKillCounter", description = "Counts final kills in BedWars from chat", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class FinalKillCounter extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

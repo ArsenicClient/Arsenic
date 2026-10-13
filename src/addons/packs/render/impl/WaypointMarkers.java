@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +22,7 @@ import java.util.List;
  * ".waypoint add <name>", remove with ".waypoint remove <name>", list with ".waypoint list" and clear all with
  * ".waypoint clear". The points are saved in this module's settings, so they survive a restart.
  */
-@ModuleInfo(name = "WaypointMarkers", description = "Named world points shown as beams, added with .waypoint", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "WaypointMarkers", description = "Named world points shown as beams, added with .waypoint", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class WaypointMarkers extends Module {
 
     public final BooleanProperty render = new BooleanProperty("Render", true);

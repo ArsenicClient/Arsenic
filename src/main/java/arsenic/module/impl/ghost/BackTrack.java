@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
@@ -34,7 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
-@ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class BackTrack extends Module {
 
     private static final Predicate<Packet<?>> ALL_TRACKED =

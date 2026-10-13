@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -14,7 +15,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.tileentity.TileEntityEnderChest;
 
-@ModuleInfo(name = "ChestESP", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "ChestESP", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class ChestESP extends Module {
 
     public final BooleanProperty chests = new BooleanProperty("Chests", true);

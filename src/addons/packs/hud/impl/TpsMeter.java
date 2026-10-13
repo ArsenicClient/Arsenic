@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -16,7 +17,7 @@ import net.minecraft.network.play.server.S03PacketTimeUpdate;
  * real time between two updates, capped at 20. Shows red below 18. The estimate is only as steady as the server's
  * time updates.
  */
-@ModuleInfo(name = "TpsMeter", description = "Shows the server TPS estimated from time update packets", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "TpsMeter", description = "Shows the server TPS estimated from time update packets", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class TpsMeter extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

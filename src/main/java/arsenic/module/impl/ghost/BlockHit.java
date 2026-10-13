@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -16,7 +17,7 @@ import net.minecraft.entity.EntityLivingBase;
 
 
 
-@ModuleInfo(name = "BlockHit", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "BlockHit", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class BlockHit extends Module {
     public final DoubleProperty hurtime = new DoubleProperty("Hurtime", new DoubleValue(0.0, 10.0, 2.0, 1.0));
 

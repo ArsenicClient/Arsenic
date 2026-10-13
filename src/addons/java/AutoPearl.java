@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -23,7 +24,7 @@ import net.minecraft.util.Vec3;
  * rotation being sent points at that spot (within a few degrees), and then at most once per cooldown. The pearl's arc is
  * not modelled, so it lands roughly where the aim point is; expect it to miss at long range.
  */
-@ModuleInfo(name = "AutoPearl", description = "Throws an ender pearl at an enemy from a distance, aimed at their feet", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "AutoPearl", description = "Throws an ender pearl at an enemy from a distance, aimed at their feet", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class AutoPearl extends Module {
 
     public final DoubleProperty minRange = new DoubleProperty("Min Range", new DoubleValue(6, 30, 8, 1));

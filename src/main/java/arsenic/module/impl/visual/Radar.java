@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -19,7 +20,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@ModuleInfo(name = "Radar", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Radar", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Radar extends Module {
 
 

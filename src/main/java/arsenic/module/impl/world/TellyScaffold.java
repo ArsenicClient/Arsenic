@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
@@ -35,7 +36,7 @@ import java.util.Random;
  * once the jump is well under way, then turn back before landing. Placement and aiming are the same
  * {@link ScaffoldCore} that {@link Scaffold} uses, with sneaking left out.
  */
-@ModuleInfo(name = "TellyScaffold", category = ModuleCategory.MOVEMENT, tier = arsenic.module.ModuleTier.BLATANT)
+@ModuleInfo(name = "TellyScaffold", category = ModuleCategory.MOVEMENT, tier = ModuleTier.BLATANT)
 public class TellyScaffold extends Module {
 
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);

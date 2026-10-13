@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -28,7 +29,7 @@ import java.util.Locale;
  * The title strings are matched loosely and have not been checked against every Hypixel mode. If a game is detected as
  * UNKNOWN, read the title from the sidebar and add its text to detect().
  */
-@ModuleInfo(name = "GameDetector", description = "Detects the current Hypixel game from the sidebar and shares it with other addons", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "GameDetector", description = "Detects the current Hypixel game from the sidebar and shares it with other addons", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class GameDetector extends Module {
 
     public enum Game { NONE, UNKNOWN, BEDWARS, SKYWARS, PIT, DUELS, MURDER, ZOMBIES }

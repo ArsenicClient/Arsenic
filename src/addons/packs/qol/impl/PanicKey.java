@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -12,7 +13,7 @@ import java.util.List;
  * is switched off and remembered; disable it again and those modules come back on. Modules you turn on while panic is
  * active stay on. The HUD is not hidden.
  */
-@ModuleInfo(name = "PanicKey", description = "One key turns every other module off, and back on", category = ModuleCategory.PLAYER, keybind = Keyboard.KEY_END)
+@ModuleInfo(name = "PanicKey", description = "One key turns every other module off, and back on", category = ModuleCategory.PLAYER, keybind = Keyboard.KEY_END, tier = ModuleTier.QOL)
 public class PanicKey extends Module {
 
     private final List<Module> switchedOff = new ArrayList<>();

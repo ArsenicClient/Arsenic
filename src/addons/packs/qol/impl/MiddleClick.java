@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -20,7 +21,7 @@ import net.minecraft.util.MovingObjectPosition;
  * It stays out of the way of the built-in middle-click friend toggle: when you are aiming at a player, the click goes to
  * the friend toggle and nothing is used. It does nothing while a GUI is open.
  */
-@ModuleInfo(name = "MiddleClick", description = "Middle click uses a chosen hotbar item (pearl, rod or golden apple)", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "MiddleClick", description = "Middle click uses a chosen hotbar item (pearl, rod or golden apple)", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class MiddleClick extends Module {
 
     public enum UseItem {

@@ -5,6 +5,7 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import org.lwjgl.opengl.Display;
@@ -13,7 +14,7 @@ import org.lwjgl.opengl.Display;
  * Lowers the frame limit while the game window is not focused, and puts your limit back when it is focused again. Saves
  * CPU and GPU time while you are alt-tabbed.
  */
-@ModuleInfo(name = "BackgroundFps", description = "Lowers the frame limit while the game window is unfocused", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "BackgroundFps", description = "Lowers the frame limit while the game window is unfocused", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class BackgroundFps extends Module {
 
     public final DoubleProperty limit = new DoubleProperty("Background Limit", new DoubleValue(5, 60, 10, 1));

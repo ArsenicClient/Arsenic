@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -21,7 +22,7 @@ import net.minecraft.entity.EntityLivingBase;
  * hits either way. A landed hit is an attack whose target is hurt on one of the next ticks; a hit taken is a rise in
  * your own hurt time.
  */
-@ModuleInfo(name = "HitCounter", description = "Counts the hits you land and take in the current fight", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "HitCounter", description = "Counts the hits you land and take in the current fight", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class HitCounter extends Module {
 
     public final BooleanProperty hud = new BooleanProperty("HUD", true);

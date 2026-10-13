@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -29,7 +30,7 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
-@ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class BedPlates extends Module {
 
 

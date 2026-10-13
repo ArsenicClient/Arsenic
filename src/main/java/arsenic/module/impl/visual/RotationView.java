@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
@@ -27,7 +28,7 @@ import java.awt.*;
  * Debug picture-in-picture of the world from the silent (server-side) rotation, for tuning Scaffold / KillAura
  * rotations. The extra world pass itself lives in {@link SilentView}.
  */
-@ModuleInfo(name = "RotationView", category = ModuleCategory.RENDER, description = "Shows the world from your silent rotation")
+@ModuleInfo(name = "RotationView", category = ModuleCategory.RENDER, description = "Shows the world from your silent rotation", tier = ModuleTier.QOL)
 public class RotationView extends Module {
 
     public final DoubleProperty size = new DoubleProperty("Size", new DoubleValue(15, 50, 25, 1));

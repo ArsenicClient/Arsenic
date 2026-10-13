@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
 import arsenic.asm.RequiresPlayer;
@@ -29,7 +30,7 @@ import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
-@ModuleInfo(name = "BridgeAssist", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "BridgeAssist", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class BridgeAssist extends Module {
 
     private static final double BRIDGE_PITCH = 65.0;

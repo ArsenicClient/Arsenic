@@ -408,6 +408,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         for (int i = 0; i < TIER_TOGGLES.length; i++) {
             arsenic.module.ModuleTier tier = TIER_TOGGLES[i];
+            // a build without this tier has nothing to switch, so its pill is not drawn
+            if (!arsenic.module.BuildTiers.allows(tier))
+                continue;
             boolean locked = tier == arsenic.module.ModuleTier.LEGIT;
             float x1 = hudBtnX1, x2 = x1 + w;
             // the tier pills stack above the HUD Editor button, which always sits in the bottom left corner

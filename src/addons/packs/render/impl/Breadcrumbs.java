@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -15,7 +16,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.List;
 
-@ModuleInfo(name = "Breadcrumbs", description = "A fading line through your last few seconds of movement", category = ModuleCategory.RENDER)
+@ModuleInfo(name = "Breadcrumbs", description = "A fading line through your last few seconds of movement", category = ModuleCategory.RENDER, tier = ModuleTier.QOL)
 public class Breadcrumbs extends Module {
 
 

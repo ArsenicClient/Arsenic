@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -37,7 +38,7 @@ import java.util.Set;
  *
  * Singleplayer and LAN have no tab list, so the tab-based checks never run there.
  */
-@ModuleInfo(name = "AntiBot", category = ModuleCategory.CLIENT, hidden = true)
+@ModuleInfo(name = "AntiBot", category = ModuleCategory.CLIENT, hidden = true, tier = ModuleTier.QOL)
 public class AntiBot extends Module {
 
     public static BooleanProperty nameChecks = new BooleanProperty("Name Checks", true),

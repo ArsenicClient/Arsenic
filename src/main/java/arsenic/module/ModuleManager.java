@@ -18,6 +18,11 @@ import org.lwjgl.input.Keyboard;
 public class ModuleManager {
 
     private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
+    /**
+     * Built-in modules of a tier this build leaves out. They are never listed, enabled or saved, but the engine reads
+     * them by class (getModuleByClass), so they still exist and stay disabled.
+     */
+    private final Map<Class<? extends Module>, Module> unavailable = new HashMap<>();
 
     public final int initialize() {
         if(modules.size() != 0)
@@ -28,13 +33,6 @@ public class ModuleManager {
 
         if(System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
-
-        if (!isDevBuild()) {
-            modules.entrySet().removeIf(entry -> {
-                ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
-                return info != null && info.tier() == ModuleTier.DEV;
-            });
-        }
 
         Arsenic.getInstance().getAddonManager().installDefaults();
         Arsenic.getInstance().getAddonManager().load(this);
@@ -61,7 +59,8 @@ public class ModuleManager {
     }
 
     public <T extends Module> T getModuleByClass(Class<T> moduleClass) {
-        return (T) modules.get(moduleClass);
+        Module module = modules.get(moduleClass);
+        return (T) (module != null ? module : unavailable.get(moduleClass));
     }
 
     public final Module getModuleByName(String str) {
@@ -92,15 +91,10 @@ public class ModuleManager {
     };
 
     /** Registers a module that did not come from the client jar (an addon). @return why it was rejected, or null. */
-    /** devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar). */
-    public static boolean isDevBuild() {
-        return ModuleManager.class.getResource("/devmode.properties") != null;
-    }
-
     public String registerExternal(Module module) {
-        // dev-tier modules must stay out of normal builds, addons included
-        if (module.getTier() == ModuleTier.DEV && !isDevBuild())
-            return "dev-tier modules only load in the dev jar";
+        // modules of a tier this jar was not built with stay out, addons included
+        if (!BuildTiers.allows(module.getTier()))
+            return module.getTier().getDisplayName() + " modules are not in this build";
         if (getModuleByName(module.getName()) != null)
             return "a module named " + module.getName() + " already exists";
         try {
@@ -123,7 +117,11 @@ public class ModuleManager {
         try {
             Module module = moduleClass.newInstance();
             module.registerProperties();
-            modules.put(moduleClass, module);
+            ModuleInfo info = moduleClass.getAnnotation(ModuleInfo.class);
+            if (info != null && !BuildTiers.allows(info.tier()))
+                unavailable.put(moduleClass, module);
+            else
+                modules.put(moduleClass, module);
         } catch (Exception e) {e.printStackTrace();}
     }
 }

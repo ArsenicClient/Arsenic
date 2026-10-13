@@ -1,3 +1,4 @@
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -36,7 +37,7 @@ import java.util.Set;
  * whichever comes first. It also warns once when an enemy (not a teammate or friend) comes within the enemy range
  * of your bed, and again only after they have left and come back. Nothing is shown outside a BedWars game.
  */
-@ModuleInfo(name = "BedAlarm", description = "Highlights your bed in BedWars and alerts when it is broken", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "BedAlarm", description = "Highlights your bed in BedWars and alerts when it is broken", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class BedAlarm extends Module {
 
     public final BooleanProperty highlight = new BooleanProperty("Highlight", true);

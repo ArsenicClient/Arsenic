@@ -21,7 +21,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AntiFireball", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class AntiFireball extends Module {
 
     private static final double RANGE = 4.5;
