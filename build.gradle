@@ -319,7 +319,7 @@ def configureArsenicJar = { Jar task ->
     )
 }
 
-// The release jars and the module tiers each one holds. The main jar, "(main)" in its name, is the Blatant release. Every jar has the same
+// The release jars and the module tiers each one holds. The main jar, "main" in its name, is the Blatant release. Every jar has the same
 // classes, because the engine calls into module classes directly; buildtiers.properties (written below) tells
 // arsenic.module.BuildTiers which of them load.
 def tierJars = [
@@ -372,7 +372,7 @@ def configureTierJar = { Jar task, String key, List<String> tiers ->
 }
 
 jar {
-    classifier = "(main)"
+    classifier = "main"
     configureTierJar(delegate, "blatant", tierJars.blatant)
 }
 
