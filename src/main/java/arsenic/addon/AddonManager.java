@@ -5,6 +5,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleManager;
+import arsenic.runtime.InjectedLaunch;
 import arsenic.runtime.Platform;
 import arsenic.runtime.RuntimeNames;
 import arsenic.utils.java.FileUtils;
@@ -747,6 +748,9 @@ public final class AddonManager {
             Integer key = keybinds.get(module.getClass().getSimpleName());
             if (key != null)
                 module.setKeybind(key);
+        } catch (NoClassDefFoundError e) {
+            // a class from another addon file that failed to compile (its errors are listed separately)
+            errors.add(className + ": needs " + String.valueOf(e.getMessage()).replace('/', '.') + ", which did not compile");
         } catch (Throwable t) {
             errors.add(className + ": " + t);
             Arsenic.getArsenic().getLogger().error("Failed to load addon class " + className, t);
@@ -800,6 +804,10 @@ public final class AddonManager {
             // vanilla (injected): compiled against SRG names like Forge, then renamed to the game's names
             if (namespace == RuntimeNames.Namespace.NOTCH)
                 return new AddonCompiler(new VanillaClassSource(Arsenic.class.getClassLoader(), RuntimeNames.current()), MappingTable.load(in));
+            // Lunar Client's Forge: Minecraft as Lunar defined it (SRG names, access transformers applied), recorded by
+            // the agent; Lunar has no launchwrapper class files nor the ASM Forge's deobfuscation transformer needs
+            if (InjectedLaunch.hasRecordedClasses())
+                return new AddonCompiler(new LoaderClassSource(Arsenic.class.getClassLoader()), MappingTable.load(in));
             return new AddonCompiler(new FmlClassSource(), MappingTable.load(in));
         }
     }

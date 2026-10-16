@@ -1,19 +1,22 @@
 package arsenic.utils.scaffoldcore;
 
+import arsenic.utils.aimcore.AimCore;
 import arsenic.utils.botcore.Box;
 
 import java.util.Random;
 
 /**
  * Telly bridging decisions: when to turn to the bridge, how fast, and when to turn back. Placement and aim at the
- * block are {@link ScaffoldCore}'s, held to the bridge's layer so the bridge stays flat.
+ * block are {@link ScaffoldCore}'s, held to one layer: the one the jump took off from, so the bridge stays flat, or
+ * one higher while the jump key is held, so each jump climbs a block.
  *
  * A jump goes through four phases. FORWARD looks where the camera looks. OUT starts a few ticks into the jump and
- * turns, over several ticks on an ease-in-out curve, to the bridging yaw: not straight back but 135 degrees off the
- * camera, where the movement keys come out as S plus A or D. BRIDGE aims and places. BACK starts once the spot we
- * will land on is held up, so the turn back to the camera gets the rest of the jump instead of a snap, and we land
- * facing forward to sprint-jump again. No turn goes faster than {@link Tuning#maxStep} on its fastest tick; if the
- * landing block went down late, the jump off loses its sprint rather than the rotation snapping.
+ * turns to the bridging yaw: not straight back but 135 degrees off the camera, where the movement keys come out as S
+ * plus A or D. BRIDGE aims and places. BACK starts once the spot we will land on is held up, so the turn back to the
+ * camera gets the rest of the jump instead of a snap, and we land facing forward to sprint-jump again. The turns out
+ * and back are KillAura's Heuristics flicks ({@link AimCore}): min-jerk, a little longer or shorter each time, now and
+ * then overshooting, and no tick much faster than {@link Tuning#maxStep}. If the landing block went down late, the
+ * jump off loses its sprint rather than the rotation snapping.
  */
 public final class TellyCore {
 
@@ -38,6 +41,12 @@ public final class TellyCore {
         public double landLead = 0.5;
         /** How far the block has to reach in under the feet, so a near miss of the prediction still lands. */
         public double landInset = 0;
+        /** Climb a block per jump while the jump key is held. */
+        public boolean climb = true;
+        /** The bridging yaw's angle off straight back while climbing. */
+        public float climbSideAngle = 45;
+        /** Ticks the turn out is given while climbing: a climbing jump comes down sooner. */
+        public float climbOutTicks = 3;
 
         public static Tuning legacy() {
             Tuning t = new Tuning();
@@ -60,17 +69,21 @@ public final class TellyCore {
 
     private enum Phase { FORWARD, OUT, BRIDGE, BACK }
 
-    /** Fastest tick of the ease-in-out curve over its average. */
-    private static final float EASE_PEAK = 1.5f;
+    /** Fastest tick of a min-jerk turn over its average. */
+    private static final float TURN_PEAK = 1.875f;
+    /** Target ids for the heuristic aim, so each turn starts its own flick. */
+    private static final int TURN_OUT = 1, TURN_BACK = 2;
 
     public final Tuning tun;
     private final ScaffoldCore core;
+    /** KillAura's Heuristics aim, for the turns out and back. */
+    private final AimCore aim;
     private final Output out = new Output();
 
     private Phase phase = Phase.FORWARD;
     private int groundY = Integer.MIN_VALUE;
-    private float turnFromYaw, turnFromPitch;
-    private float turnTicks, turnTick;
+    private boolean climbing;
+    private float turnTicks;
     /** Which way the bridging yaw sits off straight back this jump. */
     private int side = 1;
     /** The way the turn back goes, the short way as it was when it started. */
@@ -83,12 +96,18 @@ public final class TellyCore {
         // the side is ours to choose: the core's own auto side only applies on grid headings
         if (!tun.legacy) ct.autoSide = false;
         this.core = new ScaffoldCore(ct, rnd);
+        AimCore.Tuning at = AimCore.Tuning.best().copy();
+        // its pitch cap is for tracking a player; a turn to the bridge goes from looking ahead to looking down
+        at.pitchSpeedCap = 0;
+        this.aim = new AimCore(at, rnd);
     }
 
     public void reset() {
         core.reset();
+        aim.reset();
         phase = Phase.FORWARD;
         groundY = Integer.MIN_VALUE;
+        climbing = false;
         legacyBridging = false;
     }
 
@@ -109,9 +128,26 @@ public final class TellyCore {
         return bridging() ? core.nudge() : null;
     }
 
+    /**
+     * The layer blocks go in: the bridge's own while flat. A climb is left free, since its first block of each step
+     * sits on top of the step below and the next ones beside it, the way the original telly climbed.
+     */
+    private int layer() {
+        return climbing ? Integer.MIN_VALUE : landY() - 1;
+    }
+
+    /** The height the feet come down to at the end of this jump. */
+    private int landY() {
+        return groundY + (climbing ? 1 : 0);
+    }
+
     public Output rotate(ScaffoldCore.Input in, ScaffoldWorld w, int airTicks, float cameraPitch) {
         if (tun.legacy) return legacyRotate(in, w, airTicks);
-        if (in.onGround) groundY = ScaffoldCore.floor(in.posY);
+        if (in.onGround) {
+            groundY = ScaffoldCore.floor(in.posY);
+            // holding jump climbs: this jump comes down a block up, on blocks placed at the height of our feet
+            climbing = tun.climb && in.keyJump;
+        }
         out.modify = false;
         out.smoothing = false;
         out.preventDuplicateLook = false;
@@ -135,44 +171,55 @@ public final class TellyCore {
             float ticks = in.onGround ? tun.minBackTicks : clamp(ticksToLanding(in) + 1, tun.minBackTicks, tun.maxBackTicks);
             float back = wrap180(in.cameraYaw - in.silentYaw);
             backDir = back < 0 ? -1 : 1;
-            startTurn(Phase.BACK, in, ticks, Math.abs(back));
+            startTurn(Phase.BACK, ticks, Math.abs(back));
         }
 
         if (phase == Phase.BACK) {
-            float f = advanceTurn();
-            out.modify = true;
-            out.yaw = turnFromYaw + turnDelta(in.cameraYaw - turnFromYaw, backDir) * f;
-            out.pitch = turnFromPitch + (cameraPitch - turnFromPitch) * f;
-            if (f >= 1f) {
+            float yaw = in.silentYaw + turnDelta(in.cameraYaw - in.silentYaw, backDir);
+            if (Math.abs(yaw - in.silentYaw) < 2f && Math.abs(cameraPitch - in.silentPitch) < 2f && !aim.isFlicking()) {
                 phase = Phase.FORWARD;
-                out.yaw = in.cameraYaw;
-                out.pitch = cameraPitch;
+                return out;
             }
+            turn(in, yaw, cameraPitch, TURN_BACK);
             return out;
         }
 
-        in.yawBias = side * tun.sideAngle;
-        in.layerY = groundY - 1;
-        ScaffoldCore.Rotation aim = core.rotate(in, w);
-        out.modify = true;
-        out.preventDuplicateLook = aim.preventDuplicateLook;
+        in.yawBias = side * (climbing ? tun.climbSideAngle : tun.sideAngle);
+        in.layerY = layer();
+        ScaffoldCore.Rotation aimAt = core.rotate(in, w);
+        out.preventDuplicateLook = aimAt.preventDuplicateLook;
         if (phase == Phase.OUT) {
-            float f = advanceTurn();
             // one way round even when the aim sits near straight back, where the short way flips sides
-            out.yaw = turnFromYaw + turnDelta(aim.yaw - turnFromYaw, -side) * f;
-            out.pitch = turnFromPitch + (aim.pitch - turnFromPitch) * f;
-            if (f >= 1f) phase = Phase.BRIDGE;
+            float yaw = in.silentYaw + turnDelta(aimAt.yaw - in.silentYaw, -side);
+            turn(in, yaw, aimAt.pitch, TURN_OUT);
+            if (!aim.isFlicking()) phase = Phase.BRIDGE;
         } else {
-            out.yaw = aim.yaw;
-            out.pitch = aim.pitch;
+            // placing wants the exact angles that meet the face, which move every tick as we fly over it
+            out.modify = true;
+            out.yaw = aimAt.yaw;
+            out.pitch = aimAt.pitch;
             out.speed = ticksToLanding(in) <= tun.urgentTicks ? 360 : tun.bridgeSpeed;
         }
         return out;
     }
 
+    /** One tick of a heuristic flick towards the given angles, given the ticks the current turn was allowed. */
+    private void turn(ScaffoldCore.Input in, float yaw, float pitch, int target) {
+        AimCore.Input a = new AimCore.Input();
+        a.curYaw = in.silentYaw;
+        a.curPitch = in.silentPitch;
+        a.targetId = target;
+        a.maxSpeed = tun.maxStep;
+        a.budgetTicks = turnTicks;
+        float[] r = aim.lazyStep(a, new float[]{yaw, pitch});
+        out.modify = true;
+        out.yaw = r[0];
+        out.pitch = r[1];
+    }
+
     /** Placement for this tick's final rotation; only while turned to the bridge. */
     public ScaffoldCore.Action post(ScaffoldCore.Input in, ScaffoldWorld w, float yaw, float pitch) {
-        if (!tun.legacy) in.layerY = groundY - 1;
+        if (!tun.legacy) in.layerY = layer();
         ScaffoldCore.Action action = core.post(in, w, yaw, pitch);
         if (!bridging()) action.place = false;
         return action;
@@ -193,22 +240,12 @@ public final class TellyCore {
         float bridgeOff = wrap180(180f + side * tun.sideAngle);
         float angle = Math.abs(wrap180(bridgeOff - wrap180(in.silentYaw - in.cameraYaw)));
         // a turn that starts part of the way round takes its share of the full turn's ticks
-        startTurn(Phase.OUT, in, tun.outTicks * angle / (180f - tun.sideAngle), angle);
+        startTurn(Phase.OUT, (climbing ? tun.climbOutTicks : tun.outTicks) * angle / (180f - tun.sideAngle), angle);
     }
 
-    private void startTurn(Phase next, ScaffoldCore.Input in, float ticks, float angle) {
+    private void startTurn(Phase next, float ticks, float angle) {
         phase = next;
-        turnFromYaw = in.silentYaw;
-        turnFromPitch = in.silentPitch;
-        turnTicks = Math.max(Math.max(1f, ticks), (float) Math.ceil(angle * EASE_PEAK / tun.maxStep));
-        turnTick = 0;
-    }
-
-    /** Ease-in-out progress of the current turn after this tick, 0 to 1. */
-    private float advanceTurn() {
-        turnTick++;
-        float t = Math.min(1f, turnTick / turnTicks);
-        return t * t * (3f - 2f * t);
+        turnTicks = Math.max(Math.max(1f, ticks), (float) Math.ceil(angle * TURN_PEAK / tun.maxStep));
     }
 
     /** The turn from the wrapped difference, taken in the given direction (sign) when it is more than 90 degrees. */
@@ -218,7 +255,7 @@ public final class TellyCore {
         return d;
     }
 
-    /** Whether the block below holds the feet where they come down to the jump's ground height. */
+    /** Whether the block below holds the feet where they come down to the jump's landing height. */
     private boolean landingSupported(ScaffoldCore.Input in, ScaffoldWorld w) {
         double[] land = predictLanding(in);
         // the feet need a block under where they come down, and still under part of that tick's move
@@ -237,15 +274,17 @@ public final class TellyCore {
 
     private Box feet(double x, double z) {
         double r = 0.3 - tun.landInset;
-        return new Box(x - r, groundY - 0.5, z - r, x + r, groundY, z + r);
+        int y = landY();
+        return new Box(x - r, y - 0.5, z - r, x + r, y, z + r);
     }
 
     /**
-     * Air movement until the feet come down to the jump's ground height: {x, z, ticks, dx, dz} where x and z are
-     * where the landing tick starts (Minecraft moves along Y first) and dx, dz that tick's horizontal move.
+     * Air movement until the feet come down to the landing height: {x, z, ticks, dx, dz} where x and z are where the
+     * landing tick starts (Minecraft moves along Y first) and dx, dz that tick's horizontal move.
      */
     private double[] predictLanding(ScaffoldCore.Input in) {
         if (groundY == Integer.MIN_VALUE) return null;
+        int land = landY();
         double x = in.posX, y = in.posY, z = in.posZ;
         double mx = in.motionX, my = in.motionY, mz = in.motionZ;
         float yawRad = in.cameraYaw * (float) Math.PI / 180f;
@@ -253,7 +292,8 @@ public final class TellyCore {
         for (int t = 1; t <= 40; t++) {
             mx += ax;
             mz += az;
-            if (y + my <= groundY) return new double[]{x, z, t, mx, mz};
+            // only coming down counts: a climb's landing height is above where the jump started
+            if (my < 0 && y + my <= land) return new double[]{x, z, t, mx, mz};
             x += mx;
             y += my;
             z += mz;

@@ -49,12 +49,14 @@ public final class Agent {
         final ClassLoader loader;
         final RuntimeNames.Namespace namespace;
         final boolean forge;
+        final boolean lunar;
 
-        Game(String kind, ClassLoader loader, RuntimeNames.Namespace namespace, boolean forge) {
+        Game(String kind, ClassLoader loader, RuntimeNames.Namespace namespace, boolean forge, boolean lunar) {
             this.kind = kind;
             this.loader = loader;
             this.namespace = namespace;
             this.forge = forge;
+            this.lunar = lunar;
         }
     }
 
@@ -103,6 +105,9 @@ public final class Agent {
      */
     public static void premain(String args, Instrumentation inst) {
         Consumer<String> status = statusWriter(args);
+        // before the game defines anything, so addons can be compiled against Minecraft as it was defined
+        recorder = new DefinedClasses();
+        inst.addTransformer(recorder);
         Thread waiter = new Thread(() -> {
             try {
                 awaitGameStarted(inst, status);
@@ -261,6 +266,7 @@ public final class Agent {
         }
 
         Game game = findGame(inst);
+        stopRecording(inst, game, status);
         status.accept("LOG Found " + game.kind + " (" + game.namespace.name().toLowerCase() + " names, loader "
                 + (game.loader == ClassLoader.getSystemClassLoader() ? "system" : game.loader.getClass().getName()) + ")");
 
@@ -311,8 +317,10 @@ public final class Agent {
             active = new Active(inst, hooks, game.loader, stop);
         };
 
-        launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class, Function.class)
-                .invoke(null, jar, installHooks, status, game.namespace.name(), classBytes(inst, game.loader));
+        DefinedClasses defined = recorder;
+        Function<String, byte[]> recorded = defined == null ? null : name -> defined.get(game.loader, name);
+        launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class, Function.class, Function.class)
+                .invoke(null, jar, installHooks, status, game.namespace.name(), classBytes(inst, game.loader), recorded);
     }
 
     /**
@@ -351,6 +359,49 @@ public final class Agent {
         };
     }
 
+    /** Set in {@link #premain}: the Minecraft classes the game defines, recorded as it defines them. */
+    private static volatile DefinedClasses recorder;
+
+    /**
+     * Keeps the class file of every Minecraft class as it is defined. Lunar Client builds Minecraft in memory (no class
+     * file to read from its loader) and retransforming its classes hands back nothing, so the bytes are taken on the way in.
+     */
+    private static final class DefinedClasses implements ClassFileTransformer {
+        private final Map<String, byte[]> classes = new java.util.concurrent.ConcurrentHashMap<>();
+        private final Map<String, ClassLoader> loaders = new java.util.concurrent.ConcurrentHashMap<>();
+
+        @Override
+        public byte[] transform(ClassLoader loader, String name, Class<?> redefined, java.security.ProtectionDomain domain, byte[] bytes) {
+            if (redefined == null && loader != null && name != null && name.startsWith("net/minecraft/")
+                    && !name.startsWith("net/minecraft/launchwrapper/")) {
+                classes.put(name, bytes.clone());
+                loaders.put(name, loader);
+            }
+            return null;
+        }
+
+        byte[] get(ClassLoader loader, String internalName) {
+            return loaders.get(internalName) == loader ? classes.get(internalName) : null;
+        }
+
+        long size(ClassLoader loader) {
+            return loaders.values().stream().filter(l -> l == loader).count();
+        }
+    }
+
+    /** Stops recording outside Lunar Client, where the class files are read from the game's jar instead. */
+    private static void stopRecording(Instrumentation inst, Game game, Consumer<String> status) {
+        DefinedClasses r = recorder;
+        if (r == null)
+            return;
+        if (game.lunar) {
+            status.accept("LOG Recorded " + r.size(game.loader) + " Minecraft classes for addons");
+            return;
+        }
+        inst.removeTransformer(r);
+        recorder = null;
+    }
+
     // ---- finding the game ----
 
     /**
@@ -375,14 +426,15 @@ public final class Agent {
             boolean srg = declaresMethod(minecraft, GET_MINECRAFT);
             boolean forge = srg && classExists("net.minecraftforge.fml.common.Loader", loader);
             if (forge)
-                return new Game("Forge", loader, isDeobfuscatedForge() ? RuntimeNames.Namespace.MCP : RuntimeNames.Namespace.SRG, true);
+                return new Game(lunar ? "Lunar Client (Forge)" : "Forge", loader,
+                        isDeobfuscatedForge() ? RuntimeNames.Namespace.MCP : RuntimeNames.Namespace.SRG, true, lunar);
             if (srg)
                 throw new IllegalStateException("Minecraft has SRG names but Forge is missing; this launcher is not supported");
             if (!declaresMethod(minecraft, "getMinecraft"))
                 throw new IllegalStateException("Minecraft is loaded under names this injector does not know");
             if (classExists("net.minecraftforge.fml.common.Loader", loader))
-                return new Game("Forge (development)", loader, RuntimeNames.Namespace.MCP, true);
-            return new Game(lunar ? "Lunar Client" : "Minecraft (MCP names)", loader, RuntimeNames.Namespace.MCP, false);
+                return new Game("Forge (development)", loader, RuntimeNames.Namespace.MCP, true, lunar);
+            return new Game(lunar ? "Lunar Client" : "Minecraft (MCP names)", loader, RuntimeNames.Namespace.MCP, false, lunar);
         }
 
         if (vanillaMain != null || classExists("net.minecraft.launchwrapper.Launch", ClassLoader.getSystemClassLoader())) {
@@ -401,7 +453,7 @@ public final class Agent {
                 if (m.getReturnType() != c || !java.lang.reflect.Modifier.isStatic(m.getModifiers()))
                     continue;
                 boolean launchwrapper = c.getClassLoader().getClass().getName().equals("net.minecraft.launchwrapper.LaunchClassLoader");
-                return new Game(launchwrapper ? "Vanilla (launchwrapper)" : "Vanilla", c.getClassLoader(), RuntimeNames.Namespace.NOTCH, false);
+                return new Game(launchwrapper ? "Vanilla (launchwrapper)" : "Vanilla", c.getClassLoader(), RuntimeNames.Namespace.NOTCH, false, false);
             }
             throw new IllegalStateException("This is not Minecraft 1.8.9, or it has not finished starting");
         }

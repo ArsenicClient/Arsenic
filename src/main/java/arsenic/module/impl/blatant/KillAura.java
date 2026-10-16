@@ -70,6 +70,7 @@ public class KillAura extends Module {
     private boolean wasUsingItem;
     private final AutoBlocker blocker = new AutoBlocker();
     private AutoBlocker.Mode lastBlockMode = AutoBlocker.Mode.None;
+    private boolean blockActive;
     private final MSTimer onTargetTimer = new MSTimer();
     private boolean everOnTarget = false;
 
@@ -102,7 +103,8 @@ public class KillAura extends Module {
     protected void onDisable() {
         if (lastBlockMode == AutoBlocker.Mode.Legit && mc.thePlayer != null)
             blocker.tickLegit(null, false);
-        blocker.stopHypixel();
+        blocker.stopPacket();
+        AutoBlocker.setRenderBlocking(false);
         lastBlockMode = AutoBlocker.Mode.None;
     }
 
@@ -111,15 +113,17 @@ public class KillAura extends Module {
         AutoBlocker.Mode mode = autoBlock.getValue();
         if (mode != AutoBlocker.Mode.Legit && lastBlockMode == AutoBlocker.Mode.Legit)
             blocker.tickLegit(null, false);
-        if (mode != AutoBlocker.Mode.Hypixel && lastBlockMode == AutoBlocker.Mode.Hypixel)
-            blocker.stopHypixel();
+        if (mode != lastBlockMode && AutoBlocker.isPacketMode(lastBlockMode))
+            blocker.stopPacket();
         lastBlockMode = mode;
 
-        boolean active = target != null && PlayerUtils.isPlayerHoldingSword() && !autoProjectile().isBusy();
+        blockActive = target != null && PlayerUtils.isPlayerHoldingSword() && !autoProjectile().isBusy();
+        AutoBlocker.setRenderBlocking(AutoBlocker.isPacketMode(mode) && blockActive
+                && mc.thePlayer.getDistanceToEntity(target) <= ATTACK_RANGE + 1);
         if (mode == AutoBlocker.Mode.Legit)
-            blocker.tickLegit(target, active);
-        else if (mode == AutoBlocker.Mode.Hypixel)
-            blocker.tickHypixel(target, active);
+            blocker.tickLegit(target, blockActive);
+        else if (AutoBlocker.isPacketMode(mode))
+            blocker.tickPacket(mode, target, blockActive);
     }
 
     @RequiresPlayer
@@ -157,8 +161,9 @@ public class KillAura extends Module {
             mc.thePlayer.rotationYaw = event.getYaw();
             mc.thePlayer.rotationPitch = event.getPitch();
         }
-        // the Hypixel block is ours and lasts one tick, so it does not hold the next attack back
-        boolean usingItem = mc.thePlayer.isUsingItem() && !blocker.isHypixelBlocking();
+        // a packet block is ours and lasts one tick, so it does not hold the next attack back
+        boolean usingItem = mc.thePlayer.isUsingItem() && !blocker.isBlocking();
+        boolean packetBlock = AutoBlocker.isPacketMode(autoBlock.getValue());
         MovingObjectPosition raytrace = event.getRayTraceEntity();
         Entity hit = raytrace != null ? raytrace.entityHit : null;
         if (hit != null && mc.thePlayer.getPositionEyes(1f).distanceTo(raytrace.hitVec) > ATTACK_RANGE)
@@ -167,8 +172,12 @@ public class KillAura extends Module {
             onTargetTimer.reset();
             everOnTarget = true;
         }
-        if (hitflick.attackedThisTick())
+        if (hitflick.attackedThisTick()) {
             resetAttackCycle();
+            // Hypixel blocks the tick after any attack; Hypixel 2's interact needs our own look ray, so it skips this one
+            if (packetBlock)
+                blocker.onAttack(autoBlock.getValue(), null, null, blockActive);
+        }
         EntityPlayer hitPlayer = hit instanceof EntityPlayer && TargetManager.isValidTarget((EntityPlayer) hit)
                 ? (EntityPlayer) hit : null;
         if ((target != null || hitPlayer != null)
@@ -176,9 +185,11 @@ public class KillAura extends Module {
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
                 && !usingItem && !wasUsingItem
+                // the server's view of item use, whatever the client's says (Grim MultiActions)
+                && !BadPacketsManager.serverUsingItem()
                 && !autoProjectile().isBusy()
                 && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
-                && !(autoBlock.getValue() == AutoBlocker.Mode.Hypixel && !blocker.hypixelCanAttack())) {
+                && !(packetBlock && !blocker.canAttack())) {
             if (hitPlayer != null) {
                 if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
@@ -187,17 +198,20 @@ public class KillAura extends Module {
                     mc.playerController.attackEntity(mc.thePlayer, hit);
                     resetAttackCycle();
                     // KillAura attacks once per tick, so the second click of a double goes out right away
-                    // (not with the Hypixel block, which allows one attack every third tick)
-                    if (autoBlock.getValue() != AutoBlocker.Mode.Hypixel
-                            && ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
+                    // (not with a packet block, whose cycle leaves no room for it)
+                    if (!packetBlock && ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
                         mc.thePlayer.swingItem();
                         mc.playerController.attackEntity(mc.thePlayer, hit);
                         resetAttackCycle();
                     }
+                    if (packetBlock)
+                        blocker.onAttack(autoBlock.getValue(), hit, raytrace.hitVec, blockActive);
                 }
             } else if (hit == null && target != null && shouldSwingAtAir(event)) {
                 mc.thePlayer.swingItem();
                 resetAttackCycle();
+                if (packetBlock)
+                    blocker.onAttack(autoBlock.getValue(), null, null, blockActive);
             }
         }
         wasUsingItem = usingItem;
@@ -207,8 +221,16 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Post> onPostMotion = event -> {
-        if (autoBlock.getValue() == AutoBlocker.Mode.Hypixel)
-            blocker.keepHypixelUse();
+        if (AutoBlocker.isPacketMode(autoBlock.getValue()))
+            blocker.afterMovement();
+    };
+
+    /** Drops an attack that would share a tick with a sword release (Grim PacketOrderI). */
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventPacket.OutGoing> onOutgoing = event -> {
+        if (blocker.onOutgoing(event.getPacket()) && AutoBlocker.isPacketMode(autoBlock.getValue()))
+            event.cancel();
     };
 
     @RequiresPlayer
@@ -277,8 +299,6 @@ public class KillAura extends Module {
 
     private void resetAttackCycle() {
         ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
-        if (autoBlock.getValue() == AutoBlocker.Mode.Hypixel)
-            blocker.onAttack();
     }
 
     /**

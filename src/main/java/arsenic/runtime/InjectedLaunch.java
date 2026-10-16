@@ -35,6 +35,7 @@ public final class InjectedLaunch {
 
     private static boolean injected;
     private static Function<String, byte[]> classBytes;
+    private static Function<String, byte[]> recorded;
 
     private InjectedLaunch() {}
 
@@ -43,7 +44,24 @@ public final class InjectedLaunch {
      * Client). Null when not injected or the class does not exist.
      */
     public static byte[] classBytes(String internalName) {
-        return classBytes != null && internalName.startsWith("net/minecraft/") ? classBytes.apply(internalName) : null;
+        if (!internalName.startsWith("net/minecraft/"))
+            return null;
+        byte[] bytes = recordedBytes(internalName);
+        return bytes != null || classBytes == null ? bytes : classBytes.apply(internalName);
+    }
+
+    /**
+     * The class file of a Minecraft class exactly as Lunar Client defined it, recorded by the agent as the game started.
+     * Null outside Lunar Client. Lunar's loader may answer for a Minecraft class file with something else, so these come
+     * first there.
+     */
+    public static byte[] recordedBytes(String internalName) {
+        return recorded != null && internalName.startsWith("net/minecraft/") ? recorded.apply(internalName) : null;
+    }
+
+    /** True when the agent recorded Minecraft's classes as they were defined (Lunar Client, launched with the agent). */
+    public static boolean hasRecordedClasses() {
+        return recordedBytes("net/minecraft/client/Minecraft") != null;
     }
 
     /** True when the client was injected rather than loaded by Forge. */
@@ -59,9 +77,12 @@ public final class InjectedLaunch {
      * @param status       progress lines for the injector; "OK" or "ERROR ..." ends the injection
      * @param namespace    the names Minecraft has in this game, a {@link RuntimeNames.Namespace}
      * @param classBytes   class files of loaded classes by internal name (null when not loaded), from the agent
+     * @param recorded     class files Minecraft was defined with, recorded since launch; null when not recorded
      */
-    public static void start(File jar, Runnable installHooks, Consumer<String> status, String namespace, Function<String, byte[]> classBytes) {
+    public static void start(File jar, Runnable installHooks, Consumer<String> status, String namespace,
+                             Function<String, byte[]> classBytes, Function<String, byte[]> recorded) {
         InjectedLaunch.classBytes = classBytes;
+        InjectedLaunch.recorded = recorded;
         // before anything looks a Minecraft member up by name
         RuntimeNames.setCurrent(RuntimeNames.create(RuntimeNames.Namespace.valueOf(namespace), InjectedLaunch.class.getClassLoader()));
         schedule(() -> {

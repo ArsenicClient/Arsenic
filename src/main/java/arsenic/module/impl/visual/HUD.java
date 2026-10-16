@@ -375,7 +375,7 @@ public class HUD extends Module {
         PingTracker.Source source = PingTracker.getSource();
         int ping = PingTracker.getPing();
         String value = source == PingTracker.Source.NONE ? "--" : ping + " ms";
-        String tag = source == PingTracker.Source.TAB_LIST ? " ~" : "";
+        String tag = source == PingTracker.Source.TAB_LIST ? " ~" : source == PingTracker.Source.LOCKED ? " *" : "";
         int valueColor = source == PingTracker.Source.NONE ? ThemeManager.getTextMuted()
                 : ping < 80 ? 0xFF55FF55 : ping < 150 ? 0xFFFFFF55 : 0xFFFF5555;
 

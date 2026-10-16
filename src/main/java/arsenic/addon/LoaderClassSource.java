@@ -16,6 +16,9 @@ public class LoaderClassSource implements ClassSource {
 
     @Override
     public byte[] getBytes(String internalName) {
+        byte[] recorded = InjectedLaunch.recordedBytes(internalName);
+        if (recorded != null)
+            return recorded;
         byte[] bytes = readResource(loader, internalName + ".class");
         // Lunar Client renames Minecraft as it loads it, so its classes may have no class file under these names
         return bytes != null ? bytes : InjectedLaunch.classBytes(internalName);

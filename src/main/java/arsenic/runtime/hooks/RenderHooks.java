@@ -1,5 +1,6 @@
 package arsenic.runtime.hooks;
 
+import arsenic.utils.minecraft.AutoBlocker;
 import arsenic.runtime.Platform;
 import arsenic.event.impl.EventFov;
 import arsenic.event.impl.EventLook;
@@ -37,6 +38,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
+import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemMap;
 import net.minecraft.item.ItemStack;
 import net.minecraft.scoreboard.ScoreObjective;
@@ -218,6 +220,11 @@ public final class RenderHooks {
         GlStateManager.rotate(60.0F, 0.0F, 1.0F, 0.0F);
     }
 
+    /** KillAura's packet autoblock is fighting: draw the sword blocking, since the client's own block lasts a tick. */
+    private static boolean fakeBlock(ItemStack stack) {
+        return AutoBlocker.isRenderBlocking() && stack.getItem() instanceof ItemSword;
+    }
+
     /** ItemRenderer.renderItemInFirstPerson HEAD. @return true to cancel */
     public static boolean renderItemInFirstPerson(ItemRenderer self, float partialTicks) {
         Minecraft mc = Minecraft.getMinecraft();
@@ -238,8 +245,8 @@ public final class RenderHooks {
             if (itemToRender != null) {
                 if (itemToRender.getItem() instanceof ItemMap) {
                     RENDER_ITEM_MAP.invoke(self, player, f2, f, swingProgress);
-                } else if (player.getItemInUseCount() > 0) {
-                    EnumAction action = itemToRender.getItemUseAction();
+                } else if (player.getItemInUseCount() > 0 || fakeBlock(itemToRender)) {
+                    EnumAction action = player.getItemInUseCount() > 0 ? itemToRender.getItemUseAction() : EnumAction.BLOCK;
                     switch (action) {
                         case NONE:
                             TRANSFORM_FIRST_PERSON_ITEM.invoke(self, f, 0.0F);

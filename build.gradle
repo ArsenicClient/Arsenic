@@ -327,7 +327,7 @@ def tierJars = [
         visual : ["QOL", "VISUAL"],
         legit  : ["QOL", "VISUAL", "LEGIT"],
         blatant: ["QOL", "VISUAL", "LEGIT", "BLATANT"],
-        dev    : ["QOL", "VISUAL", "LEGIT", "DEV"]
+        dev    : ["QOL", "VISUAL", "LEGIT", "BLATANT", "DEV"]
 ]
 
 // The tier of each bundled addon, keyed by its path under src/addons ("java/AutoBow.java", "packs/pit/impl/AutoHunt.java").

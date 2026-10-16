@@ -25,6 +25,7 @@ import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.scaffoldcore.ScaffoldCore;
 import arsenic.utils.scaffoldcore.TellyCore;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -35,34 +36,38 @@ import net.minecraft.util.Vec3;
 import java.util.Random;
 
 /**
- * Telly bridging: sprint-jump forward with normal rotations and only turn to the block (and place) while airborne,
- * then turn back to sprint-jump again. {@link TellyCore} decides the turns; placement and aim are the same
- * {@link ScaffoldCore} that {@link Scaffold} uses, with sneaking left out.
+ * Telly bridging: jump forward with normal rotations and only turn to the block (and place) while airborne, then turn
+ * back to jump again. The jumping is the module's: holding the jump key climbs a block per jump instead. Sprinting is
+ * off unless asked for, since a sprint jump leaves the least time to place. {@link TellyCore} decides the turns;
+ * placement and aim are the same {@link ScaffoldCore} that {@link Scaffold} uses, with sneaking left out.
  */
 @ModuleInfo(name = "TellyScaffold", category = ModuleCategory.MOVEMENT, tier = ModuleTier.BLATANT)
 public class TellyScaffold extends Module {
 
     public enum Rotations {
-        /** Eased turns to 135 degrees off the camera, and back once the landing block is down. */
-        Smooth,
+        /** KillAura's Heuristics flicks to 135 degrees off the camera, and back once the landing block is down. */
+        Heuristics,
         /** The original telly: turns at Rotation Speed, snapping back on landing. */
         Snap
     }
 
-    public final EnumProperty<Rotations> rotations = new EnumProperty<>("Rotations", Rotations.Smooth);
-    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    public final EnumProperty<Rotations> rotations = new EnumProperty<>("Rotations", Rotations.Heuristics);
+    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
     public final DoubleProperty turnTicks = new DoubleProperty("Turn Ticks", new DoubleValue(3, 8, 5, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
     public final DoubleProperty maxTurnStep = new DoubleProperty("Max Turn Step", new DoubleValue(30, 180, 70, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
     public final DoubleProperty bridgeSpeed = new DoubleProperty("Bridge Speed", new DoubleValue(20, 180, 90, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
     public final DoubleProperty sideAngle = new DoubleProperty("Side Angle", new DoubleValue(0, 60, 45, 1));
+    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    public final BooleanProperty climb = new BooleanProperty("Climb", true);
     @PropertyInfo(reliesOn = "Rotations", value = "Snap")
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     public final DoubleProperty startTick = new DoubleProperty("Start Tick", new DoubleValue(1, 8, 1, 1));
     public final BooleanProperty autoJump = new BooleanProperty("Auto Jump", true);
-    public final BooleanProperty sprint = new BooleanProperty("Sprint", true);
+    /** Off holds sprint back, whatever the sprint key or Sprint module say: jumps are shorter, with time to spare. */
+    public final BooleanProperty sprint = new BooleanProperty("Sprint", false);
 
     private final TellyCore smooth = new TellyCore(TellyCore.Tuning.best(), ScaffoldCore.Tuning.best(), new Random());
     private final TellyCore snap = new TellyCore(TellyCore.Tuning.legacy(), ScaffoldCore.Tuning.best(), new Random());
@@ -81,6 +86,10 @@ public class TellyScaffold extends Module {
     protected void onDisable() {
         smooth.reset();
         snap.reset();
+        // hand the sprint key back as it really is
+        if (!sprint.getValue())
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(),
+                    GameSettings.isKeyDown(mc.gameSettings.keyBindSprint));
         super.onDisable();
     }
 
@@ -95,7 +104,7 @@ public class TellyScaffold extends Module {
 
     /** The core for the selected rotations, with the settings copied in; switching resets the one left. */
     private TellyCore core() {
-        TellyCore selected = rotations.getValue() == Rotations.Smooth ? smooth : snap;
+        TellyCore selected = rotations.getValue() == Rotations.Heuristics ? smooth : snap;
         if (selected != core) {
             core.reset();
             core = selected;
@@ -106,6 +115,7 @@ public class TellyScaffold extends Module {
         tun.maxStep = (float) maxTurnStep.getValue().getInput();
         tun.bridgeSpeed = (float) bridgeSpeed.getValue().getInput();
         tun.sideAngle = (float) sideAngle.getValue().getInput();
+        tun.climb = climb.getValue();
         return core;
     }
 
@@ -138,8 +148,14 @@ public class TellyScaffold extends Module {
     public final Listener<EventMovementInput> onMovementInput = event -> {
         if (scaffoldActive())
             return;
-        if (autoJump.getValue() && mc.thePlayer.onGround && event.getSpeed() > 0 && !mc.thePlayer.isSneaking())
-            event.setJump(true);
+        // the jump is ours: holding the jump key only tells the core to climb (it reads the key itself)
+        if (autoJump.getValue())
+            event.setJump(mc.thePlayer.onGround && event.getSpeed() > 0 && !mc.thePlayer.isSneaking());
+        // sprinting is decided right after this event, from the sprint key
+        if (!sprint.getValue()) {
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+            mc.thePlayer.setSprinting(false);
+        }
         float[] nudge = core.nudge();
         if (nudge == null || (event.getSpeed() == 0 && event.getStrafe() == 0))
             return;

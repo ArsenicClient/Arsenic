@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "break-out-prototype",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/jaxta/AppData/Local/Temp/claude/C--Users-jaxta-Documents-GitHub-ForgeArsenic-Arsenic/12408991-30ef-4eb1-91db-5f466f8805cc/scratchpad/serve.mjs", "5179"],
+      "port": 5179
+    }
+  ]
+}

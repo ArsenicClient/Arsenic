@@ -39,7 +39,7 @@ import java.util.Map;
  */
 public final class PingTracker {
 
-    public enum Source { NONE, TAB_LIST, CONFIRMATION }
+    public enum Source { NONE, TAB_LIST, CONFIRMATION, LOCKED }
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
@@ -56,6 +56,8 @@ public final class PingTracker {
     private static final ArrayDeque<long[]> samples = new ArrayDeque<>();
 
     private static volatile int tabPing;
+    /** Ping set with .ping lock, returned instead of any measurement; -1 when not locked. Survives world changes. */
+    private static volatile int lockedPing = -1;
     // When the server's keep-alive arrived and we have not answered it yet, or -1
     private static long keepAliveArrivedAt = -1;
 
@@ -201,7 +203,22 @@ public final class PingTracker {
         }
     }
 
+    public static void lock(int ping) {
+        lockedPing = Math.max(0, ping);
+    }
+
+    public static void unlock() {
+        lockedPing = -1;
+    }
+
+    public static boolean isLocked() {
+        return lockedPing >= 0;
+    }
+
     public static int getPing() {
+        int locked = lockedPing;
+        if (locked >= 0)
+            return locked;
         int m = measured();
         if (m >= 0)
             return m;
@@ -210,6 +227,8 @@ public final class PingTracker {
     }
 
     public static Source getSource() {
+        if (lockedPing >= 0)
+            return Source.LOCKED;
         if (measured() >= 0)
             return Source.CONFIRMATION;
         refreshTabPing();

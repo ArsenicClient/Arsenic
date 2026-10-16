@@ -114,7 +114,8 @@ public class Velocity extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> onRotationPost = event -> {
-        if (reduceTarget == null || mc.thePlayer.isUsingItem() || lastAttackTick == mc.thePlayer.ticksExisted
+        if (reduceTarget == null || mc.thePlayer.isUsingItem() || BadPacketsManager.serverUsingItem()
+                || lastAttackTick == mc.thePlayer.ticksExisted
                 || BadPacketsManager.bad(false, true, true, true, false))
             return;
         MovingObjectPosition ray = event.getRayTraceEntity();

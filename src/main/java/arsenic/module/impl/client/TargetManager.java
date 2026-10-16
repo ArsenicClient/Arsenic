@@ -21,6 +21,12 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.client.C02PacketUseEntity;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 
@@ -198,13 +204,54 @@ public class TargetManager extends Module {
     public enum SortMode {
         SmartSwitch(TargetManager::getServerHurtTimeOnPacketArrival),
         Fov(player -> (float) Math.abs(RotationUtils.fovFromEntity(player))),
-        Health(TargetManager::getEffectiveHealth);
+        Health(TargetManager::getHealthSortValue);
 
         private final SortValue sv;
 
         SortMode(SortValue sv) {
             this.sv = sv;
         }
+    }
+
+    /** Everyone one hit from death ties at the top (the stable sort keeps their order); the rest go by effective health. */
+    private static float getHealthSortValue(EntityPlayer player) {
+        return isOneHit(player) ? -1f : getEffectiveHealth(player);
+    }
+
+    public static boolean isOneHit(EntityPlayer player) {
+        return player.getHealth() + player.getAbsorptionAmount() <= getHitDamage(player);
+    }
+
+    /** Vanilla 1.8 damage of a non-crit hit with the held item against this player, after armour, resistance and protection. */
+    public static float getHitDamage(EntityPlayer target) {
+        ItemStack held = mc.thePlayer.getHeldItem();
+        double dmg = 1.0;
+        if (held != null)
+            for (Map.Entry<String, AttributeModifier> m : held.getAttributeModifiers().entries())
+                if (m.getKey().equals(SharedMonsterAttributes.attackDamage.getAttributeUnlocalizedName())
+                        && m.getValue().getOperation() == 0)
+                    dmg += m.getValue().getAmount();
+
+        PotionEffect weakness = mc.thePlayer.getActivePotionEffect(Potion.weakness);
+        if (weakness != null)
+            dmg -= 0.5 * (weakness.getAmplifier() + 1);
+        PotionEffect strength = mc.thePlayer.getActivePotionEffect(Potion.damageBoost);
+        if (strength != null)
+            dmg *= 1.0 + 1.3 * (strength.getAmplifier() + 1);
+        dmg = Math.max(0.0, dmg);
+        if (held != null)
+            dmg += EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, held) * 1.25;
+
+        dmg *= (25.0 - target.getTotalArmorValue()) / 25.0;
+        PotionEffect resistance = target.getActivePotionEffect(Potion.resistance);
+        if (resistance != null)
+            dmg *= Math.max(0, 25 - (resistance.getAmplifier() + 1) * 5) / 25.0;
+
+        int epf = Math.min(25, EnchantmentHelper.getEnchantmentModifierDamage(target.inventory.armorInventory,
+                DamageSource.causePlayerDamage(mc.thePlayer)));
+        if (epf > 0) // the server rolls (epf+1)/2 + rand(epf/2 + 1); use the expected value
+            dmg *= (25.0 - Math.min(20.0, ((epf + 1) >> 1) + (epf >> 1) / 2.0)) / 25.0;
+        return (float) dmg;
     }
 
     private static float getEffectiveHealth(EntityPlayer player) {

@@ -2462,10 +2462,20 @@ public abstract class UtilityClass {
 
 ```java
 public final class AutoBlocker {
+    public static boolean isPacketMode(Mode mode);
+    public static boolean isRenderBlocking();
+    public static void setRenderBlocking(boolean blocking);
     /** Legit: really raises the sword for a moment after we are hit (hurt time 10 to 6) while the target is */ public void tickLegit(EntityPlayer target, boolean active);
+    /** Before KillAura attacks this tick. A block from the last tick comes down now, and nothing attacks in this tick. */ public void tickPacket(Mode mode, EntityPlayer target, boolean active);
+    /** Called by KillAura once its attack for this tick went out, with the entity hit and where the look ray met it. */ public void onAttack(Mode mode, Entity hit, Vec3 hitVec, boolean active);
+    public boolean canAttack();
+    /** Whether the sword is up because of a packet block, so KillAura does not wait on its own use of the item. */ public boolean isBlocking();
+    /** Every outgoing packet, before it is sent. Returns true to drop it: an attack in a tick that already released. */ public boolean onOutgoing(Packet<?> packet);
+    /** After the tick's movement packet went out. The client's item use from a block is cleared here: it already slowed */ public void afterMovement();
+    public void stopPacket();
 
     public enum Mode {
-        None, Legit;
+        None, Legit, Hypixel, Hypixel2;
     }
 }
 ```
@@ -2474,6 +2484,7 @@ public final class AutoBlocker {
 
 ```java
 public final class BadPacketsManager {
+    /** Whether the server sees an item in use (Grim's slowed-by-using-item): from a use-item packet until a release, a */ public static boolean serverUsingItem();
     public static boolean bad();
     /** Whether any of the selected kinds of packet went out this tick. */ public static boolean bad(boolean slot, boolean attack, boolean swing, boolean block, boolean inventory);
     /** Sends a packet without it counting towards this tick's flags. */ public static void sendSilently(Packet<?> packet);

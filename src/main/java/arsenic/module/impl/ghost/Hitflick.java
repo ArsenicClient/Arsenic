@@ -16,6 +16,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.lag.LagManager;
+import arsenic.utils.minecraft.BadPacketsManager;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -31,6 +32,7 @@ import arsenic.module.property.impl.BooleanProperty;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class Hitflick extends Module {
@@ -48,6 +50,9 @@ public class Hitflick extends Module {
 
     @PropertyInfo(reliesOn = "Direction", value = "Void")
     public final DoubleProperty maxVoidAngle = new DoubleProperty("Max angle", new DoubleValue(15, 180, 180, 15));
+
+    @PropertyInfo(reliesOn = "Direction", value = "Void2")
+    public final DoubleProperty void2Angle = new DoubleProperty("Void2 Angle", new DoubleValue(1, 180, 90, 1));
 
     private long sinceLastFlick = 0;
     private long lastFlickTime = 0;
@@ -93,6 +98,9 @@ public class Hitflick extends Module {
     private boolean pendingVoidHit;
     private int flickAppliedTick = -1;
     private int attackTick = -1;
+    /** Void2's last side, kept when both sides look the same. */
+    private int void2Side = -1;
+    private final Random random = new Random();
 
     public boolean attackedThisTick() {
         return mc.thePlayer != null && attackTick == mc.thePlayer.ticksExisted;
@@ -123,6 +131,22 @@ public class Hitflick extends Module {
             if (voidYaw == null)
                 return false;
             flickYaw = voidYaw;
+            pendingVoidHit = true;
+        } else if (direction.getValue() == FlickDirection.Void2) {
+            int side = void2Side(target, void2Side);
+            if (side == -1)
+                return false;
+            void2Side = side;
+            // OpenB4's Displace: the side's angle, give or take 5 degrees
+            float angle = ((float) void2Angle.getValue().getInput() + (random.nextFloat() * 10f - 5f)) * (side == 0 ? -1 : 1);
+            if (clamp) {
+                int sign = angle < 0 ? -1 : 1;
+                float safe = hitboxHalfAngle(target, originalYaw, sign, Math.abs(angle)) - SAFE_ANGLE_MARGIN;
+                if (safe < MIN_USEFUL_ANGLE)
+                    return false;
+                angle = sign * Math.min(Math.abs(angle), safe);
+            }
+            flickYaw = originalYaw + angle;
             pendingVoidHit = true;
         } else {
             float angle = getFlickAngle();
@@ -158,15 +182,16 @@ public class Hitflick extends Module {
                 break;
 
             case RESTORING:
-                if (pendingTarget != null) {
+                // a block went up since the flick (the server sees an item in use): no swing or attack now
+                if (pendingTarget != null && !BadPacketsManager.serverUsingItem()) {
                     attackTick = mc.thePlayer.ticksExisted;
                     mc.thePlayer.swingItem();
                     mc.playerController.attackEntity(mc.thePlayer, pendingTarget);
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
-                    pendingTarget = null;
-                    pendingVoidHit = false;
                 }
+                pendingTarget = null;
+                pendingVoidHit = false;
                 state = FlickState.IDLE;
                 sinceLastFlick = 0;
                 if (blinkDuringFlick.getValue())
@@ -311,6 +336,47 @@ public class Hitflick extends Module {
         return simulateVoid(target, yaw, level, STRAFE_BACK, ROBUST_WIDEN);
     }
 
+    /**
+     * Void2, from OpenB4's Displace: which side of the target, across our line to it, has more open drop (0 the side a
+     * smaller yaw pushes to, 1 the other), or -1 if neither side does or straight behind it has the most. Columns are
+     * sampled 1 to 8 blocks out, each looking 6 blocks down for ground.
+     */
+    private int void2Side(Entity entity, int previous) {
+        double dx = entity.posX - mc.thePlayer.posX;
+        double dz = entity.posZ - mc.thePlayer.posZ;
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 0.001)
+            return -1;
+        dx /= len;
+        dz /= len;
+        double px = -dz, pz = dx;
+        double y = entity.posY;
+        int minusSide = 0, plusSide = 0, behind = 0;
+        for (int n : new int[]{1, 2, 3, 4, 6, 8}) {
+            int weight = n < 6 ? 2 : 1;
+            for (int i = -1; i <= 1; i++) {
+                if (open(entity.posX + dx * n + px * i, y, entity.posZ + dz * n + pz * i))
+                    behind += weight;
+                if (open(entity.posX - px * n + dx * i, y, entity.posZ - pz * n + dz * i))
+                    minusSide += weight;
+                if (open(entity.posX + px * n + dx * i, y, entity.posZ + pz * n + dz * i))
+                    plusSide += weight;
+            }
+        }
+        if (minusSide == 0 && plusSide == 0)
+            return -1;
+        if (behind >= minusSide && behind >= plusSide)
+            return -1;
+        if (minusSide == plusSide && previous != -1)
+            return previous;
+        return minusSide > plusSide ? 0 : 1;
+    }
+
+    /** No ground within 6 blocks below this point. */
+    private boolean open(double x, double y, double z) {
+        return mc.theWorld.rayTraceBlocks(new Vec3(x, y, z), new Vec3(x, y - 6.0, z), true) == null;
+    }
+
     private float hitboxHalfAngle(Entity target, float baseYaw, int sign, float limit) {
         Vec3 eyes = mc.thePlayer.getPositionEyes(1f);
         float pitch = Arsenic.getArsenic().getSilentRotationManager().pitch;
@@ -435,11 +501,12 @@ public class Hitflick extends Module {
         pendingVoidHit = false;
         flickAppliedTick = -1;
         attackTick = -1;
+        void2Side = -1;
         voidArrows.clear();
     }
 
     public enum FlickDirection {
-        Left, Right, Back, Custom, Void;
+        Left, Right, Back, Custom, Void, Void2;
     }
     private static final class VoidArrow {
         final double x, y, z;
