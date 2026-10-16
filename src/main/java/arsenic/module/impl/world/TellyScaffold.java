@@ -13,7 +13,9 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -22,6 +24,7 @@ import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.scaffoldcore.ScaffoldCore;
+import arsenic.utils.scaffoldcore.TellyCore;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -32,34 +35,52 @@ import net.minecraft.util.Vec3;
 import java.util.Random;
 
 /**
- * Telly bridging: sprint-jump forward with normal rotations and only turn to the block (and place)
- * once the jump is well under way, then turn back before landing. Placement and aiming are the same
+ * Telly bridging: sprint-jump forward with normal rotations and only turn to the block (and place) while airborne,
+ * then turn back to sprint-jump again. {@link TellyCore} decides the turns; placement and aim are the same
  * {@link ScaffoldCore} that {@link Scaffold} uses, with sneaking left out.
  */
 @ModuleInfo(name = "TellyScaffold", category = ModuleCategory.MOVEMENT, tier = ModuleTier.BLATANT)
 public class TellyScaffold extends Module {
 
+    public enum Rotations {
+        /** Eased turns to 135 degrees off the camera, and back once the landing block is down. */
+        Smooth,
+        /** The original telly: turns at Rotation Speed, snapping back on landing. */
+        Snap
+    }
+
+    public final EnumProperty<Rotations> rotations = new EnumProperty<>("Rotations", Rotations.Smooth);
+    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    public final DoubleProperty turnTicks = new DoubleProperty("Turn Ticks", new DoubleValue(3, 8, 5, 1));
+    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    public final DoubleProperty maxTurnStep = new DoubleProperty("Max Turn Step", new DoubleValue(30, 180, 70, 1));
+    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    public final DoubleProperty bridgeSpeed = new DoubleProperty("Bridge Speed", new DoubleValue(20, 180, 90, 1));
+    @PropertyInfo(reliesOn = "Rotations", value = "Smooth")
+    public final DoubleProperty sideAngle = new DoubleProperty("Side Angle", new DoubleValue(0, 60, 45, 1));
+    @PropertyInfo(reliesOn = "Rotations", value = "Snap")
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
-    public final DoubleProperty startTick = new DoubleProperty("Start Tick", new DoubleValue(1, 8, 3, 1));
+    public final DoubleProperty startTick = new DoubleProperty("Start Tick", new DoubleValue(1, 8, 1, 1));
     public final BooleanProperty autoJump = new BooleanProperty("Auto Jump", true);
     public final BooleanProperty sprint = new BooleanProperty("Sprint", true);
 
-    private final ScaffoldCore core = new ScaffoldCore(ScaffoldCore.Tuning.best(), new Random());
+    private final TellyCore smooth = new TellyCore(TellyCore.Tuning.best(), ScaffoldCore.Tuning.best(), new Random());
+    private final TellyCore snap = new TellyCore(TellyCore.Tuning.legacy(), ScaffoldCore.Tuning.best(), new Random());
+    private TellyCore core = smooth;
     private int airTicks;
-    private boolean bridging;
 
     @Override
     protected void onEnable() {
-        core.reset();
+        smooth.reset();
+        snap.reset();
         airTicks = 0;
-        bridging = false;
         super.onEnable();
     }
 
     @Override
     protected void onDisable() {
-        core.reset();
-        bridging = false;
+        smooth.reset();
+        snap.reset();
         super.onDisable();
     }
 
@@ -70,6 +91,22 @@ public class TellyScaffold extends Module {
 
     private boolean movingForward() {
         return mc.gameSettings.keyBindForward.isKeyDown();
+    }
+
+    /** The core for the selected rotations, with the settings copied in; switching resets the one left. */
+    private TellyCore core() {
+        TellyCore selected = rotations.getValue() == Rotations.Smooth ? smooth : snap;
+        if (selected != core) {
+            core.reset();
+            core = selected;
+        }
+        TellyCore.Tuning tun = core.tun;
+        tun.startTick = (int) startTick.getValue().getInput();
+        tun.outTicks = (float) turnTicks.getValue().getInput();
+        tun.maxStep = (float) maxTurnStep.getValue().getInput();
+        tun.bridgeSpeed = (float) bridgeSpeed.getValue().getInput();
+        tun.sideAngle = (float) sideAngle.getValue().getInput();
+        return core;
     }
 
     private ScaffoldCore.Input input(boolean hasBlock) {
@@ -103,7 +140,7 @@ public class TellyScaffold extends Module {
             return;
         if (autoJump.getValue() && mc.thePlayer.onGround && event.getSpeed() > 0 && !mc.thePlayer.isSneaking())
             event.setJump(true);
-        float[] nudge = bridging ? core.nudge() : null;
+        float[] nudge = core.nudge();
         if (nudge == null || (event.getSpeed() == 0 && event.getStrafe() == 0))
             return;
         float scale = Math.max(Math.abs(event.getSpeed()), Math.abs(event.getStrafe()));
@@ -117,24 +154,23 @@ public class TellyScaffold extends Module {
         if (scaffoldActive())
             return;
         event.setBlockUserInput(true);
-        bridging = !mc.thePlayer.onGround && airTicks >= (int) startTick.getValue().getInput();
-        if (!bridging) {
-            core.reset();
-            // free look again: turn back to the camera quickly
-            event.setSpeed((float) rotationSpeed.getValue().getMax());
+        // the blocks come out once airborne, where the bridging happens
+        boolean hasBlock = mc.thePlayer.onGround
+                ? ScaffoldUtil.isUsable(mc.thePlayer.inventory.getStackInSlot(ScaffoldUtil.getBlockSlot())) : keyBlock();
+        TellyCore.Output out = core().rotate(input(hasBlock), ScaffoldUtil.WORLD, airTicks, mc.thePlayer.rotationPitch);
+        event.setSpeed(out.speed);
+        if (!out.modify)
             return;
-        }
-        ScaffoldCore.Rotation rotation = core.rotate(input(keyBlock()), ScaffoldUtil.WORLD);
-        event.setSpeed(rotation.speed);
-        event.setPreventDuplicateLook(rotation.preventDuplicateLook);
-        event.setYaw(rotation.yaw);
-        event.setPitch(rotation.pitch);
+        event.setSmoothing(out.smoothing);
+        event.setPreventDuplicateLook(out.preventDuplicateLook);
+        event.setYaw(out.yaw);
+        event.setPitch(out.pitch);
     };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation.Post> onRotationPost = event -> {
-        if (!bridging || scaffoldActive())
+        if (!core.bridging() || scaffoldActive())
             return;
         Item held = mc.thePlayer.inventory.getCurrentItem() == null ? null
                 : mc.thePlayer.inventory.getCurrentItem().getItem();
@@ -151,7 +187,7 @@ public class TellyScaffold extends Module {
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
-        ScaffoldCore.Target target = bridging ? core.target() : null;
+        ScaffoldCore.Target target = core.target();
         if (target == null)
             return;
         BlockPos pos = new BlockPos(target.x, target.y, target.z);

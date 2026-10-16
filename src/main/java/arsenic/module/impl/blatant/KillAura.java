@@ -9,6 +9,7 @@ import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventTick;
+import arsenic.event.impl.EventUpdate;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -101,6 +102,7 @@ public class KillAura extends Module {
     protected void onDisable() {
         if (lastBlockMode == AutoBlocker.Mode.Legit && mc.thePlayer != null)
             blocker.tickLegit(null, false);
+        blocker.stopHypixel();
         lastBlockMode = AutoBlocker.Mode.None;
     }
 
@@ -109,11 +111,15 @@ public class KillAura extends Module {
         AutoBlocker.Mode mode = autoBlock.getValue();
         if (mode != AutoBlocker.Mode.Legit && lastBlockMode == AutoBlocker.Mode.Legit)
             blocker.tickLegit(null, false);
+        if (mode != AutoBlocker.Mode.Hypixel && lastBlockMode == AutoBlocker.Mode.Hypixel)
+            blocker.stopHypixel();
         lastBlockMode = mode;
 
-        boolean active = target != null && PlayerUtils.isPlayerHoldingSword();
+        boolean active = target != null && PlayerUtils.isPlayerHoldingSword() && !autoProjectile().isBusy();
         if (mode == AutoBlocker.Mode.Legit)
             blocker.tickLegit(target, active);
+        else if (mode == AutoBlocker.Mode.Hypixel)
+            blocker.tickHypixel(target, active);
     }
 
     @RequiresPlayer
@@ -123,7 +129,7 @@ public class KillAura extends Module {
         target = pickTarget();
         autoBlockTick();
         aim.updateDrift();
-        if (target != null && hitflick().ownsRotation()) {
+        if (target != null && (hitflick().ownsRotation() || autoProjectile().ownsRotation())) {
             hadTarget = true;
             return;
         }
@@ -151,7 +157,8 @@ public class KillAura extends Module {
             mc.thePlayer.rotationYaw = event.getYaw();
             mc.thePlayer.rotationPitch = event.getPitch();
         }
-        boolean usingItem = mc.thePlayer.isUsingItem();
+        // the Hypixel block is ours and lasts one tick, so it does not hold the next attack back
+        boolean usingItem = mc.thePlayer.isUsingItem() && !blocker.isHypixelBlocking();
         MovingObjectPosition raytrace = event.getRayTraceEntity();
         Entity hit = raytrace != null ? raytrace.entityHit : null;
         if (hit != null && mc.thePlayer.getPositionEyes(1f).distanceTo(raytrace.hitVec) > ATTACK_RANGE)
@@ -169,7 +176,9 @@ public class KillAura extends Module {
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
                 && !usingItem && !wasUsingItem
-                && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))) {
+                && !autoProjectile().isBusy()
+                && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
+                && !(autoBlock.getValue() == AutoBlocker.Mode.Hypixel && !blocker.hypixelCanAttack())) {
             if (hitPlayer != null) {
                 if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
@@ -178,7 +187,9 @@ public class KillAura extends Module {
                     mc.playerController.attackEntity(mc.thePlayer, hit);
                     resetAttackCycle();
                     // KillAura attacks once per tick, so the second click of a double goes out right away
-                    if (ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
+                    // (not with the Hypixel block, which allows one attack every third tick)
+                    if (autoBlock.getValue() != AutoBlocker.Mode.Hypixel
+                            && ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
                         mc.thePlayer.swingItem();
                         mc.playerController.attackEntity(mc.thePlayer, hit);
                         resetAttackCycle();
@@ -195,6 +206,13 @@ public class KillAura extends Module {
 
     @RequiresPlayer
     @EventLink
+    public final Listener<EventUpdate.Post> onPostMotion = event -> {
+        if (autoBlock.getValue() == AutoBlocker.Mode.Hypixel)
+            blocker.keepHypixelUse();
+    };
+
+    @RequiresPlayer
+    @EventLink
     public final Listener<EventPacket.Incoming.Pre> onServerMove = event -> {
         if (disableOnFlag.getValue() && event.getPacket() instanceof S08PacketPlayerPosLook)
             setEnabled(false);
@@ -208,6 +226,10 @@ public class KillAura extends Module {
         int col = Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
         RenderUtils.drawRing(target, event.partialTicks, 0.7, col, 255, circleStyle.getValue());
     };
+
+    private AutoProjectile autoProjectile() {
+        return Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoProjectile.class);
+    }
 
     private Hitflick hitflick() {
         return Arsenic.getArsenic().getModuleManager().getModuleByClass(Hitflick.class);
@@ -255,6 +277,8 @@ public class KillAura extends Module {
 
     private void resetAttackCycle() {
         ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
+        if (autoBlock.getValue() == AutoBlocker.Mode.Hypixel)
+            blocker.onAttack();
     }
 
     /**

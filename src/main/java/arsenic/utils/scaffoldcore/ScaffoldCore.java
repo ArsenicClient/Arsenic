@@ -118,6 +118,8 @@ public final class ScaffoldCore {
         public double speedMin = 180, speedMax = 360;
         public boolean eagle = true;
         public double safety = 10;
+        /** When set, only blocks in this layer are placed (telly keeps its bridge flat while airborne). */
+        public int layerY = Integer.MIN_VALUE;
     }
 
     public static final class Target {
@@ -587,6 +589,7 @@ public final class ScaffoldCore {
     private void tryPlace(Input in, ScaffoldWorld w, float yaw, float pitch) {
         if (in.hasBlock && target != null && rayFrom(in, w, yaw, pitch, hit)
                 && hit.face != Dir.DOWN && !(tun.noGroundUp && in.onGround && hit.face == Dir.UP)
+                && (in.layerY == Integer.MIN_VALUE || hit.y + Dir.DY[hit.face] == in.layerY)
                 && w.canPlaceOnSide(hit.x, hit.y, hit.z, hit.face)) {
             target = new Target(hit.x, hit.y, hit.z, hit.face);
             action.place = true;
@@ -790,6 +793,7 @@ public final class ScaffoldCore {
 
                         int nx = x + Dir.DX[face], ny = y + Dir.DY[face], nz = z + Dir.DZ[face];
                         if (!w.isAir(nx, ny, nz)) continue;
+                        if (in.layerY != Integer.MIN_VALUE && ny != in.layerY) continue;
 
                         double dx = nx + 0.5 - targetX;
                         double dz = nz + 0.5 - targetZ;
