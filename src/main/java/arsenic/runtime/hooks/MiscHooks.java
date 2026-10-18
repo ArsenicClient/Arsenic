@@ -5,6 +5,8 @@ import arsenic.runtime.Access;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.capture.SoundCapture;
 import io.netty.channel.ChannelHandlerContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.audio.ISound;
 import net.minecraft.client.audio.SoundManager;
 import net.minecraft.client.audio.SoundPoolEntry;
@@ -28,6 +30,11 @@ public final class MiscHooks {
 
     /** sendPacket(Packet) HEAD. @return true to cancel */
     public static boolean sendPacketHead(NetworkManager self, Packet packet) {
+        // only the client's own connection: the integrated server's connections send server-bound packets that
+        // modules would otherwise hold and resend on the client connection, which cannot encode them
+        NetHandlerPlayClient handler = Minecraft.getMinecraft().getNetHandler();
+        if (handler != null && handler.getNetworkManager() != self)
+            return false;
         EventPacket e = new EventPacket.OutGoing(packet);
         Arsenic.getArsenic().getEventManager().post(e);
         return e.isCancelled();

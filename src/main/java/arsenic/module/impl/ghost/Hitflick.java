@@ -17,6 +17,7 @@ import arsenic.module.property.PropertyInfo;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.BadPacketsManager;
+import arsenic.utils.render.RenderUtils;
 import arsenic.utils.rotations.SilentRotationManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -215,12 +216,7 @@ public class Hitflick extends Module {
         if (voidArrows.isEmpty())
             return;
 
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_CULL_FACE);
-        GL11.glDepthMask(false);
+        RenderUtils.beginWorldOverlay();
 
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
@@ -243,19 +239,14 @@ public class Hitflick extends Module {
             tessellator.draw();
         }
 
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glEnable(GL11.GL_CULL_FACE);
-        GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
+        RenderUtils.endWorldOverlay();
     };
 
+    /** An upright arrow: it points along the push direction and its width runs vertically. */
     private static void addArrowTriangles(WorldRenderer wr, double baseX, double baseY, double baseZ,
                                            double dirX, double dirZ, double expand,
                                            float r, float g, float b, float a,
                                            double vx, double vy, double vz) {
-        double perpX = -dirZ, perpZ = dirX;
-
         double tailX = baseX - dirX * expand;
         double tailZ = baseZ - dirZ * expand;
         double tipX = baseX + dirX * (ARROW_LENGTH + expand);
@@ -266,24 +257,17 @@ public class Hitflick extends Module {
         double shaftHalf = SHAFT_HALF_WIDTH + expand;
         double headHalf = HEAD_HALF_WIDTH + expand;
 
-        double tailLeftX = tailX + perpX * shaftHalf, tailLeftZ = tailZ + perpZ * shaftHalf;
-        double tailRightX = tailX - perpX * shaftHalf, tailRightZ = tailZ - perpZ * shaftHalf;
-        double shaftLeftX = shaftEndX + perpX * shaftHalf, shaftLeftZ = shaftEndZ + perpZ * shaftHalf;
-        double shaftRightX = shaftEndX - perpX * shaftHalf, shaftRightZ = shaftEndZ - perpZ * shaftHalf;
-        double headLeftX = shaftEndX + perpX * headHalf, headLeftZ = shaftEndZ + perpZ * headHalf;
-        double headRightX = shaftEndX - perpX * headHalf, headRightZ = shaftEndZ - perpZ * headHalf;
+        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY + shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
 
-        vertex(wr, tailLeftX, baseY, tailLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftLeftX, baseY, shaftLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftRightX, baseY, shaftRightZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, tailX, baseY - shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
 
-        vertex(wr, tailLeftX, baseY, tailLeftZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftRightX, baseY, shaftRightZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, tailRightX, baseY, tailRightZ, vx, vy, vz, r, g, b, a);
-
-        vertex(wr, headLeftX, baseY, headLeftZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY + headHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
         vertex(wr, tipX, baseY, tipZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, headRightX, baseY, headRightZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY - headHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
     }
 
     private static void vertex(WorldRenderer wr, double x, double y, double z,

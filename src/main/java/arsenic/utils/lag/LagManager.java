@@ -6,6 +6,9 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.EnumConnectionState;
+import net.minecraft.network.EnumPacketDirection;
+import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.ThreadQuickExitException;
 import net.minecraft.network.play.INetHandlerPlayClient;
@@ -27,6 +30,9 @@ public final class LagManager {
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
     private static final Minecraft mc = Minecraft.getMinecraft();
+    /** The connection the held and delayed outgoing packets were sent on. */
+    private static volatile NetworkManager heldConnection;
+
     public static int getPing() {
         return PingTracker.getPing();
     }
@@ -42,6 +48,18 @@ public final class LagManager {
 
         if (outgoingDelay.consumeSkip(packet))
             return;
+
+        // Only packets the play state encodes client to server are held: anything else (Forge's or a launcher's
+        // own payload packets) cannot be resent through the send queue later and would kick us when encoded.
+        if (!isSendable(packet))
+            return;
+
+        NetworkManager connection = mc.getNetHandler() == null ? null : mc.getNetHandler().getNetworkManager();
+        if (connection != heldConnection) {
+            // packets held for another connection must never go out on this one
+            discardOutgoing();
+            heldConnection = connection;
+        }
 
         if (outgoingDelay.offer(packet)) {
             event.cancel();
@@ -213,8 +231,22 @@ public final class LagManager {
     }
 
     public static void sendPacket(Packet<?> packet) {
-        if (mc.getNetHandler() != null)
-            mc.getNetHandler().addToSendQueue(packet);
+        if (mc.getNetHandler() == null || !isSendable(packet)
+                || mc.getNetHandler().getNetworkManager() != heldConnection)
+            return;
+        mc.getNetHandler().addToSendQueue(packet);
+    }
+
+    /** Whether the client can encode this packet for the server while playing. */
+    private static boolean isSendable(Packet<?> packet) {
+        return packet != null && EnumConnectionState.PLAY.getPacketId(EnumPacketDirection.SERVERBOUND, packet) != null;
+    }
+
+    private static void discardOutgoing() {
+        outgoingDelay.discard(ALL_PACKETS);
+        synchronized (buffer) {
+            buffer.clear();
+        }
     }
 
     @SuppressWarnings("unchecked")

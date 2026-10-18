@@ -2701,6 +2701,8 @@ public class RenderUtils extends UtilityClass {
     public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b);
     public static void drawBoundingBox(Vec3 pos, Color color);
     public static void drawBoundingBox(AxisAlignedBB abb, float r, float g, float b, float a);
+    public static void beginWorldOverlay();
+    public static void endWorldOverlay();
     public static void drawShadedBoundingBox(AxisAlignedBB abb, int r, int g, int b, int a);
     public static void drawLineToEntity(Entity e, int r, int g, int b, int a, double lw);
     public static void color2(int color, float alpha);

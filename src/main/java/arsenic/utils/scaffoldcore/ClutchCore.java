@@ -21,6 +21,18 @@ public final class ClutchCore {
         public boolean steer = false;
         public boolean steerAgainst = false;
         public boolean trail = false;
+        /** Act only while the fall is lethal, not for the rest of any fall that began as a knock-off. */
+        public boolean lethalOnly = false;
+        /** Turn on before the edge only when even steering against the motion cannot keep the player up. */
+        public boolean certain = false;
+        /** On the knock tick, the share of the motion a sprint hit back would leave (1 = ignore it). */
+        public double hitSlow = 1;
+        /** A knock-off needs the player's own speed over the edge (motion minus the knock left) at most this. */
+        public double selfMax = 10;
+        /** Decay the knock left with the drag of the tick it moved in, and drop it on an axis the player stopped on. */
+        public boolean exactDecay = false;
+        /** Ticks the catch rotation is held after Clutch stops, while the player has not settled. */
+        public int holdTicks = 0;
 
         public static Tuning legacy() {
             return new Tuning();
@@ -33,6 +45,12 @@ public final class ClutchCore {
             t.steer = true;
             t.steerAgainst = true;
             t.trail = true;
+            t.lethalOnly = true;
+            t.certain = true;
+            t.hitSlow = 0.6;
+            t.selfMax = 0.05;
+            t.exactDecay = true;
+            t.holdTicks = 5;
             return t;
         }
 
@@ -121,6 +139,8 @@ public final class ClutchCore {
     }
 
     private double groundY = Double.NaN;
+    private boolean prevGround;
+    private float prevSlip = 0.6f;
 
     private void track(ScaffoldCore.Input in, ScaffoldWorld w) {
         if (in.onGround || Double.isNaN(groundY)) groundY = in.posY;
@@ -145,10 +165,17 @@ public final class ClutchCore {
             }
         }
         if (tick > knockAt) {
-            double drag = in.onGround ? in.slipperiness * 0.91 : 0.91;
+            boolean ground = tun.exactDecay ? prevGround : in.onGround;
+            double drag = ground ? prevSlip * 0.91 : 0.91;
             knockX *= drag;
             knockZ *= drag;
+            if (tun.exactDecay) {
+                if (in.motionX == 0) knockX = 0;
+                if (in.motionZ == 0) knockZ = 0;
+            }
         }
+        prevGround = in.onGround;
+        prevSlip = in.slipperiness;
         if (Math.hypot(knockX, knockZ) < tun.knockPush) knocked = false;
         if (in.onGround && !knocked) knockOff = false;
         boolean held = supported || in.onGround;
@@ -166,7 +193,8 @@ public final class ClutchCore {
         nz = Math.signum(nz);
         double len = Math.hypot(nx, nz);
         if (len < 1e-6) return true;
-        return (knockX * nx + knockZ * nz) / len >= tun.knockPush;
+        double kn = (knockX * nx + knockZ * nz) / len, vn = (in.motionX * nx + in.motionZ * nz) / len;
+        return kn >= tun.knockPush && vn - kn <= tun.selfMax;
     }
 
     public Rotation rotate(ScaffoldCore.Input in, ScaffoldWorld w, double speed) {
@@ -219,6 +247,7 @@ public final class ClutchCore {
     private final double[] pathX = new double[HORIZON], pathY = new double[HORIZON], pathZ = new double[HORIZON];
     private int pathLen, landAt, crossAt, catchLayer;
     private boolean lethal;
+    private int lastGo = -1000;
     private final java.util.HashMap<Long, Integer> pathCells = new java.util.HashMap<>();
     private final java.util.HashSet<Long> trail = new java.util.HashSet<>();
     private float[] keys;
@@ -321,8 +350,59 @@ public final class ClutchCore {
         }
     }
 
+    /** Whether the player falls into the void even steering against their motion as hard as they can. */
+    private boolean fallsAnyway(ScaffoldCore.Input in, ScaffoldWorld w) {
+        double x = in.posX, y = in.posY, z = in.posZ, mx = in.motionX, my = in.motionY, mz = in.motionZ;
+        boolean ground = in.onGround && my <= 0;
+        if (tick == knockAt) {
+            // the player may still hit someone this tick, and a sprint hit keeps only part of the motion
+            mx *= tun.hitSlow;
+            mz *= tun.hitSlow;
+        }
+        for (int t = 0; t < HORIZON; t++) {
+            double accel = ground ? 0.13 * 0.16277136 / Math.pow(in.slipperiness * 0.91, 3) : 0.026;
+            double h = Math.hypot(mx, mz);
+            if (h > 1e-4) {
+                double f = Math.min(accel, h) / h;
+                mx -= mx * f;
+                mz -= mz * f;
+            }
+            double nx = x + mx, ny = y + my, nz = z + mz;
+            if (!w.boxFree(new Box(nx - 0.3, ny, nz - 0.3, nx + 0.3, ny + 1.8, nz + 0.3))) {
+                if (my < 0) return false;
+                if (w.boxFree(new Box(nx - 0.3, y, nz - 0.3, nx + 0.3, y + 1.8, nz + 0.3))) {
+                    ny = y;
+                } else {
+                    nx = x;
+                    nz = z;
+                    mx = mz = 0;
+                    if (!w.boxFree(new Box(nx - 0.3, ny, nz - 0.3, nx + 0.3, ny + 1.8, nz + 0.3))) ny = y;
+                }
+                my = 0;
+            }
+            x = nx;
+            y = ny;
+            z = nz;
+            if (ground) {
+                ground = !w.boxFree(new Box(x - 0.3, y - 0.01, z - 0.3, x + 0.3, y, z + 0.3));
+                if (ground) {
+                    my = -0.0784;
+                    mx *= in.slipperiness * 0.91;
+                    mz *= in.slipperiness * 0.91;
+                    continue;
+                }
+            }
+            my = (my - 0.08) * 0.98;
+            mx *= 0.91;
+            mz *= 0.91;
+        }
+        double base = Double.isNaN(groundY) ? in.posY : groundY;
+        return y < base - 4 && overVoid(x, y, z, w);
+    }
+
     private boolean predictedKnockOff(ScaffoldCore.Input in, ScaffoldWorld w) {
         if (!knocked || !lethal) return false;
+        if (tun.certain && !fallsAnyway(in, w)) return false;
         for (int t = 0; t < pathLen; t++) {
             if (!w.boxFree(new Box(pathX[t] - 0.3, catchLayer + 0.5, pathZ[t] - 0.3, pathX[t] + 0.3, catchLayer + 1, pathZ[t] + 0.3))) continue;
             if (!hasSupport) return true;
@@ -331,8 +411,9 @@ public final class ClutchCore {
             else if (Math.abs(nz) > 1.5 * Math.abs(nx)) nx = 0;
             double len = Math.hypot(Math.signum(nx), Math.signum(nz));
             if (len < 1e-6) return true;
-            double decay = Math.pow(0.91, t);
-            return (knockX * Math.signum(nx) + knockZ * Math.signum(nz)) * decay / len >= tun.knockPush;
+            double decay = Math.pow(0.91, t), sx = Math.signum(nx), sz = Math.signum(nz);
+            double self = ((in.motionX - knockX) * sx + (in.motionZ - knockZ) * sz) / len;
+            return (knockX * sx + knockZ * sz) * decay / len >= tun.knockPush && self <= tun.selfMax;
         }
         return false;
     }
@@ -346,13 +427,23 @@ public final class ClutchCore {
             return rotation;
         }
         predict(in, w);
-        boolean go = knockOff ? lethal || !in.onGround : predictedKnockOff(in, w);
+        boolean go = knockOff ? lethal || (!tun.lethalOnly && !in.onGround) : predictedKnockOff(in, w);
         if (!go) {
             falling = false;
-            hasRots = false;
             trail.clear();
+            // just caught: keep looking at the catch until the player has settled, in case the knock slides them off
+            if (hasRots && tick - lastGo <= tun.holdTicks && (!in.onGround || Math.hypot(in.motionX, in.motionZ) > 0.03)) {
+                rotation.set = true;
+                rotation.speed = (float) speed;
+                rotation.preventDuplicateLook = true;
+                rotation.yaw = lastYaw;
+                rotation.pitch = lastPitch;
+            } else {
+                hasRots = false;
+            }
             return rotation;
         }
+        lastGo = tick;
         falling = true;
         rotation.speed = (float) speed;
         rotation.preventDuplicateLook = true;
