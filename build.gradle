@@ -422,6 +422,14 @@ reobf {
 }
 build.dependsOn qolJar, visualJar, legitJar, devJar
 
+// Old jars never pile up in build/libs: it is emptied before any jar is built
+task cleanLibs {
+    doLast {
+        fileTree(libsDir).each { it.delete() }
+    }
+}
+[jar, qolJar, visualJar, legitJar, devJar]*.dependsOn cleanLibs
+
 // reobf rewrites every class in the jar with an old ASM, which mangles the stack map frames of the embedded
 // libraries (ECJ then fails verification). Only Arsenic's own classes need remapping, so put the libraries'
 // original classes back once reobf is done.

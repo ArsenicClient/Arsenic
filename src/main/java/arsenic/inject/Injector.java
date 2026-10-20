@@ -193,10 +193,47 @@ public final class Injector {
     /** The {@code -javaagent} argument that loads the client at launch, where the attach API cannot reach a game. */
     static String agentArg() {
         try {
-            return "-javaagent:" + ownJar().getAbsolutePath();
+            return "-javaagent:" + spaceFreeJar(ownJar()).getAbsolutePath();
         } catch (Exception e) {
             return "-javaagent:Arsenic.jar";
         }
+    }
+
+    /**
+     * Launchers split JVM arguments on spaces, so a jar at "Downloads\Arsenic (1).jar" turns into a main class named
+     * "(1).jar" and the game won't start. Such a jar is copied to a folder without spaces and that copy is named
+     * instead (copied on every call, so it follows the jar that is run).
+     */
+    private static File spaceFreeJar(File jar) {
+        if (!hasSpace(jar.getAbsolutePath()))
+            return jar;
+        List<File> dirs = new ArrayList<>();
+        String localAppData = System.getenv("LOCALAPPDATA");
+        if (localAppData != null)
+            dirs.add(new File(localAppData, "Arsenic"));
+        dirs.add(new File(System.getProperty("user.home"), ".arsenic"));
+        String systemDrive = System.getenv("SystemDrive");
+        if (systemDrive != null)
+            dirs.add(new File(systemDrive + File.separator, "Arsenic"));
+        for (File dir : dirs) {
+            File copy = new File(dir, "Arsenic.jar");
+            if (hasSpace(copy.getAbsolutePath()))
+                continue;
+            try {
+                Files.createDirectories(dir.toPath());
+                Files.copy(jar.toPath(), copy.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                return copy;
+            } catch (Exception ignored) {
+            }
+        }
+        return jar;
+    }
+
+    private static boolean hasSpace(String path) {
+        for (int i = 0; i < path.length(); i++)
+            if (Character.isWhitespace(path.charAt(i)))
+                return true;
+        return false;
     }
 
     // ---- OS process scan (for games the attach API misses, e.g. Lunar) ----

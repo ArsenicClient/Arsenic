@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -120,7 +119,7 @@ final class LunarInjection {
             log.accept("launcher.json already loads Arsenic from this jar");
             return false;
         }
-        save(settings, text, updated, log);
+        save(settings, updated);
         return true;
     }
 
@@ -137,32 +136,50 @@ final class LunarInjection {
             return false;
         }
         List<String> kept = withoutArsenic(args.group(1));
-        if (kept.size() == unescape(args.group(1)).trim().split("\\s+").length) {
+        if (kept.size() == arguments(args.group(1)).size()) {
             log.accept("Arsenic is not in Lunar's JVM arguments");
             return false;
         }
-        save(settings, text, replaceJvmArgs(text, args, String.join(" ", kept)), log);
+        save(settings, replaceJvmArgs(text, args, String.join(" ", kept)));
         return true;
     }
 
     private static List<String> withoutArsenic(String jsonValue) {
         List<String> kept = new ArrayList<>();
-        for (String token : unescape(jsonValue).trim().split("\\s+")) {
-            if (!token.isEmpty() && !isArsenicAgent(token))
-                kept.add(token);
+        for (String argument : arguments(jsonValue)) {
+            if (!isArsenicAgent(argument))
+                kept.add(argument);
         }
         return kept;
+    }
+
+    /**
+     * The JVM arguments, each with the words after it that do not start with "-". Lunar splits on spaces, so an agent
+     * path with a space in it ("Arsenic (1).jar", or a user folder like "John Smith") was written by older injectors
+     * as several words. Kept together, the whole of such an argument is removed instead of leaving "(1).jar" behind,
+     * which Java would take for the main class.
+     */
+    private static List<String> arguments(String jsonValue) {
+        List<String> arguments = new ArrayList<>();
+        for (String token : unescape(jsonValue).trim().split("\\s+")) {
+            if (token.isEmpty())
+                continue;
+            if (token.startsWith("-") || arguments.isEmpty())
+                arguments.add(token);
+            else
+                arguments.set(arguments.size() - 1, arguments.get(arguments.size() - 1) + " " + token);
+        }
+        return arguments;
     }
 
     private static String replaceJvmArgs(String text, Matcher args, String value) {
         return text.substring(0, args.start(1)) + escape(value) + text.substring(args.end(1));
     }
 
-    private static void save(File settings, String before, String after, Consumer<String> log) throws IOException {
-        File backup = new File(settings.getParentFile(), settings.getName() + ".arsenic-backup");
-        Files.copy(settings.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        log.accept("Backed up the settings to " + backup.getName());
+    private static void save(File settings, String after) throws IOException {
         Files.write(settings.toPath(), after.getBytes(StandardCharsets.UTF_8));
+        // backups written by older injectors
+        Files.deleteIfExists(new File(settings.getParentFile(), settings.getName() + ".arsenic-backup").toPath());
     }
 
     private static String read(File settings) throws IOException {

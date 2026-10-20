@@ -88,7 +88,40 @@ public class Arsenic {
     public final long getClientVersion() { return clientVersion; }
 
     @Contract(pure = true)
-    public final @NotNull String getClientVersionString() { return String.valueOf(clientVersion); }
+    public final @NotNull String getClientVersionString() {
+        if (versionString == null)
+            versionString = readJarVersion();
+        return versionString;
+    }
+
+    private static String versionString;
+
+    /**
+     * The release version ("v3.n") from the jar's manifest. The package lookup only works when the class loader
+     * defined the package from the manifest, which the injector's loaders do not always do, so the manifests on the
+     * class path are also searched for Arsenic's own (the one naming the injector as its main class).
+     */
+    private static String readJarVersion() {
+        Package pkg = Arsenic.class.getPackage();
+        if (pkg != null && pkg.getImplementationVersion() != null)
+            return pkg.getImplementationVersion();
+        try {
+            ClassLoader loader = Arsenic.class.getClassLoader();
+            java.util.Enumeration<java.net.URL> manifests = loader != null
+                    ? loader.getResources("META-INF/MANIFEST.MF")
+                    : ClassLoader.getSystemResources("META-INF/MANIFEST.MF");
+            while (manifests.hasMoreElements()) {
+                try (java.io.InputStream in = manifests.nextElement().openStream()) {
+                    java.util.jar.Attributes main = new java.util.jar.Manifest(in).getMainAttributes();
+                    String version = main.getValue("Implementation-Version");
+                    if (version != null && "arsenic.inject.Injector".equals(main.getValue("Main-Class")))
+                        return version;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "dev";
+    }
 
     public final Logger getLogger() { return logger; }
 

@@ -10,7 +10,7 @@ public final class Platform {
 
     private Platform() {}
 
-    /** True when Forge is in the game (as a mod or injected into a Forge game). */
+    /** True when the game the client was injected into runs Forge. */
     public static boolean isForge() {
         return FORGE;
     }

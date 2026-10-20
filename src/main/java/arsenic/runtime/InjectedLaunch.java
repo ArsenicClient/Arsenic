@@ -21,8 +21,8 @@ import java.util.function.Function;
 
 /**
  * Starts the client inside a game that is already running (Forge, vanilla or Lunar Client), for the injector
- * (arsenic.inject.Agent). This is the work Forge does for the mod at startup: the client's assets become a resource
- * pack, the client is created and initialised, and then the agent hooks the Minecraft classes. All of it runs on the
+ * (arsenic.inject.Agent): the client's assets become a resource pack, the client is created and initialised, and then
+ * the agent hooks the Minecraft classes. All of it runs on the
  * game thread, between frames.
  */
 public final class InjectedLaunch {
@@ -64,7 +64,7 @@ public final class InjectedLaunch {
         return recordedBytes("net/minecraft/client/Minecraft") != null;
     }
 
-    /** True when the client was injected rather than loaded by Forge. */
+    /** True while the client is injected (false once it has been uninjected). */
     public static boolean isInjected() {
         return injected;
     }
