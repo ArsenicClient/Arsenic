@@ -11,7 +11,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleTier;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.ButtonProperty;
 import arsenic.module.property.impl.EnumProperty;
@@ -37,17 +37,17 @@ public class Nuker extends Module {
 
     public final EnumProperty<TargetBlock> targetBlock = new EnumProperty<>("Block", TargetBlock.Wheat);
 
-    @PropertyInfo(reliesOn = "Block", value = "Custom")
+    @ShowWhen(property = "Block", is = "Custom")
     public final DoubleProperty blockId = new DoubleProperty("Block ID", new DoubleValue(1, 255, 59, 1));
 
-    @PropertyInfo(reliesOn = "Block", value = "Custom")
+    @ShowWhen(property = "Block", is = "Custom")
     public final ButtonProperty pickBlock = new ButtonProperty("Pick Block", "Use looked-at", this::pickLookedAtBlock);
 
     public final BooleanProperty onlyGrown = new BooleanProperty("Only Grown", true);
     public final BooleanProperty holdClick = new BooleanProperty("Hold Click", true);
     public final BooleanProperty rotate = new BooleanProperty("Rotate", true);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 6, 4.5, 0.1));
-    @PropertyInfo(reliesOn = "Rotate", value = "true")
+    @ShowWhen(property = "Rotate", is = "true")
     public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 90, 1), SliderScale.LOG);
 
     private static final float ON_TARGET_DEG = 0.01f;

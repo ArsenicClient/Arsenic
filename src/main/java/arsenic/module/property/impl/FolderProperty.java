@@ -35,8 +35,13 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
     @Override
     public void loadFromJson(JsonObject obj) {
         getValue().forEach(p -> {
-            if (p instanceof SerializableProperty)
-                ((SerializableProperty<?>) p).loadFromJson(obj.get(p.getName()).getAsJsonObject());
+            if (!(p instanceof SerializableProperty) || !obj.has(p.getName()) || !obj.get(p.getName()).isJsonObject())
+                return;
+            try {
+                ((SerializableProperty<?>) p).loadFromJson(obj.getAsJsonObject(p.getName()));
+            } catch (RuntimeException ignored) {
+                // a broken value keeps its current one, the rest of the folder still loads
+            }
         });
     }
 

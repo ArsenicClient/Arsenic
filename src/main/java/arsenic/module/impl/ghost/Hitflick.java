@@ -13,7 +13,7 @@ import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.BadPacketsManager;
@@ -46,13 +46,13 @@ public class Hitflick extends Module {
 
     public final DoubleProperty cooldown = new DoubleProperty("Cooldown", new DoubleValue(0, 1000, 250, 50));
 
-    @PropertyInfo(reliesOn = "Direction", value = "Custom")
+    @ShowWhen(property = "Direction", is = "Custom")
     public final DoubleProperty customAngle = new DoubleProperty("Angle", new DoubleValue(1, 180, 90, 1));
 
-    @PropertyInfo(reliesOn = "Direction", value = "Void")
+    @ShowWhen(property = "Direction", is = "Void")
     public final DoubleProperty maxVoidAngle = new DoubleProperty("Max angle", new DoubleValue(15, 180, 180, 15));
 
-    @PropertyInfo(reliesOn = "Direction", value = "Void2")
+    @ShowWhen(property = "Direction", is = "Void2")
     public final DoubleProperty void2Angle = new DoubleProperty("Void2 Angle", new DoubleValue(1, 180, 90, 1));
 
     private long sinceLastFlick = 0;

@@ -11,7 +11,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleTier;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -30,9 +30,9 @@ import org.lwjgl.input.Mouse;
 public class FastCake extends Module {
 
     public final BooleanProperty autoAim = new BooleanProperty("Auto Aim", false);
-    @PropertyInfo(reliesOn = "Auto Aim", value = "true")
+    @ShowWhen(property = "Auto Aim", is = "true")
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(1, 6, 4, 0.5));
-    @PropertyInfo(reliesOn = "Auto Aim", value = "true")
+    @ShowWhen(property = "Auto Aim", is = "true")
     public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 180, 1), SliderScale.LOG);
 
     private BlockPos pendingCake;

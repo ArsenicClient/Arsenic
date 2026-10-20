@@ -650,6 +650,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.keyTyped(typedChar, keyCode);
     }
 
+    /** Settings changed with sliders, switches and the like are saved here, once, instead of on every change. */
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        setAlwaysInputComponent(null);
+        Arsenic.getArsenic().getConfigManager().saveConfig();
+    }
+
     @Override
     public void mouseRelease(int mouseX, int mouseY, int state) {
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));

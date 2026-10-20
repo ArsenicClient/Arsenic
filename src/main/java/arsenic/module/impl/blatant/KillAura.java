@@ -1,5 +1,7 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
@@ -17,7 +19,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.module.impl.ghost.Hitflick;
 import arsenic.injection.accessor.IMixinEntity;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -52,17 +54,22 @@ import java.util.List;
 public class KillAura extends Module {
 
     public RangeProperty speed = new RangeProperty("speed", new RangeValue(1, 360, 20, 50,1), SliderScale.LOG);
+    @PropertyGroup(Group.ADVANCED)
     public RangeProperty returnSpeed = new RangeProperty("Return Speed", new RangeValue(1, 90, 5, 15, 1), SliderScale.LOG);
     public RangeProperty cps = new RangeProperty("CPS", new RangeValue(1, 20, 8, 12, 1));
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
-    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    @ShowWhen(property = "Rotation Mode", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
-    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    @ShowWhen(property = "Rotation Mode", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final BooleanProperty pitchBand = new BooleanProperty("Pitch Band", false);
-    @PropertyInfo(reliesOn = "Pitch Band", value = "true")
+    @ShowWhen(property = "Pitch Band", is = "true")
+    @PropertyGroup(Group.ADVANCED)
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
     public EntityPlayer target = null;

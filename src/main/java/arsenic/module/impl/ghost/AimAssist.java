@@ -1,10 +1,12 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -40,7 +42,8 @@ public class AimAssist extends Module {
     public final EnumProperty<AimMode> mode = new EnumProperty<>("Mode", AimMode.Override);
     public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
 
-    @PropertyInfo(reliesOn = "Rotation Mode", value = "Heuristics")
+    @ShowWhen(property = "Rotation Mode", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
 
     private static final float PREDICTION_TICKS = 3f;

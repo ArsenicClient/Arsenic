@@ -3,15 +3,12 @@ package arsenic.config;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.interfaces.IConfig;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import java.io.File;
-import java.io.FileReader;
 import java.util.Collection;
-import java.util.Map;
 
+/** One file in the Configs folder: the settings of every module. */
 public class ModuleConfig implements IConfig<Module> {
 
     private final File config;
@@ -30,18 +27,18 @@ public class ModuleConfig implements IConfig<Module> {
         return Arsenic.getArsenic().getModuleManager().getModules();
     }
 
-    /** Keeps the saved settings of modules that are not loaded right now (e.g. a disabled addon). */
+    /** Modules the file does not mention, and settings it is missing, go back to their defaults instead of keeping the last config's. */
     @Override
-    public JsonObject getJson(JsonObject data) {
-        IConfig.super.getJson(data);
-        try (FileReader reader = new FileReader(config)) {
-            for (Map.Entry<String, JsonElement> old : new JsonParser().parse(reader).getAsJsonObject().entrySet())
-                if (!data.has(old.getKey()))
-                    data.add(old.getKey(), old.getValue());
-        } catch (Exception ignored) {
-            // no previous file, or unreadable: nothing to keep
-        }
-        return data;
+    public void loadConfig() {
+        JsonObject data = IConfig.read(config);
+        Arsenic.getArsenic().getConfigManager().applyModules(data == null ? new JsonObject() : data);
     }
 
+    public long lastModified() {
+        return config.lastModified();
+    }
+
+    public boolean exists() {
+        return config.isFile();
+    }
 }

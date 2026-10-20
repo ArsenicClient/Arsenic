@@ -1,5 +1,7 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -13,7 +15,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.SliderScale;
@@ -52,18 +54,22 @@ public class TellyScaffold extends Module {
     }
 
     public final EnumProperty<Rotations> rotations = new EnumProperty<>("Rotations", Rotations.Heuristics);
-    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    @ShowWhen(property = "Rotations", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty turnTicks = new DoubleProperty("Turn Ticks", new DoubleValue(3, 8, 5, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    @ShowWhen(property = "Rotations", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty maxTurnStep = new DoubleProperty("Max Turn Step", new DoubleValue(30, 180, 70, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    @ShowWhen(property = "Rotations", is = "Heuristics")
     public final DoubleProperty bridgeSpeed = new DoubleProperty("Bridge Speed", new DoubleValue(20, 180, 90, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    @ShowWhen(property = "Rotations", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty sideAngle = new DoubleProperty("Side Angle", new DoubleValue(0, 60, 45, 1));
-    @PropertyInfo(reliesOn = "Rotations", value = "Heuristics")
+    @ShowWhen(property = "Rotations", is = "Heuristics")
     public final BooleanProperty climb = new BooleanProperty("Climb", true);
-    @PropertyInfo(reliesOn = "Rotations", value = "Snap")
+    @ShowWhen(property = "Rotations", is = "Snap")
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
+    @PropertyGroup(Group.ADVANCED)
     public final DoubleProperty startTick = new DoubleProperty("Start Tick", new DoubleValue(1, 8, 1, 1));
     public final BooleanProperty autoJump = new BooleanProperty("Auto Jump", true);
     /** Off holds sprint back, whatever the sprint key or Sprint module say: jumps are shorter, with time to spare. */

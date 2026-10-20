@@ -1,13 +1,20 @@
 package arsenic.gui.click.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
+import arsenic.module.property.Group;
+import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.java.SoundUtils;
@@ -18,12 +25,21 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Keyboard;
 
 public class ModuleComponent extends Component implements IContainer<PropertyComponent<?>>, IAlwaysKeyboardInput {
 
-    private final Collection<PropertyComponent<?>> contents = new ArrayList<>();
+    /** Every setting; only the selected group's are drawn and clicked (see {@link #getContents()}). */
+    private final List<PropertyComponent<?>> allContents = new ArrayList<>();
+    private final Map<Group, List<PropertyComponent<?>>> groups = new EnumMap<>(Group.class);
+    private Group selected = Group.MAIN;
+    /** Where each group's icon was drawn: x1, y1, x2, y2 (all 0 when it is not shown). */
+    private final float[][] groupZones = new float[Group.values().length][4];
     private boolean open, binding;
     private ModuleSource self;
     private PosInfo posInfo;
@@ -61,13 +77,65 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     public ModuleComponent(@NotNull ModuleSource self) {
         this.self = self;
         this.name = self.getName();
-        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+        buildContents();
     }
 
     /** Builds the settings again from the source, for an addon whose module was loaded or reloaded. */
     void refreshContents() {
-        contents.clear();
-        self.getProperties().forEach(property -> contents.add(property.createComponent()));
+        buildContents();
+    }
+
+    private void buildContents() {
+        allContents.clear();
+        groups.clear();
+        for (Property<?> property : self.getProperties()) {
+            PropertyComponent<?> component = property.createComponent();
+            allContents.add(component);
+            groups.computeIfAbsent(property.getGroup(), g -> new ArrayList<>()).add(component);
+        }
+        if (!groups.containsKey(selected))
+            selected = groups.isEmpty() ? Group.MAIN : groups.keySet().iterator().next();
+    }
+
+    /** A group whose settings are all hidden right now (by a reliesOn rule) gets no icon. */
+    private boolean hasVisible(Group group) {
+        List<PropertyComponent<?>> list = groups.get(group);
+        if (list != null)
+            for (PropertyComponent<?> component : list)
+                if (component.self.isVisible())
+                    return true;
+        return false;
+    }
+
+    /** Moves off the selected group if its settings were all hidden. */
+    private void keepSelectionVisible() {
+        if (hasVisible(selected))
+            return;
+        for (Group group : Group.values())
+            if (hasVisible(group)) {
+                selected = group;
+                return;
+            }
+    }
+
+    private List<PropertyComponent<?>> shown() {
+        List<PropertyComponent<?>> list = groups.get(selected);
+        return list == null ? Collections.emptyList() : list;
+    }
+
+    private void selectGroup(Group group) {
+        if (group == selected || !hasVisible(group))
+            return;
+        closePopups(shown());
+        selected = group;
+        SoundUtils.chordEnum();
+    }
+
+    private static void closePopups(Collection<PropertyComponent<?>> components) {
+        components.forEach(component -> {
+            if (component instanceof arsenic.utils.interfaces.IAlwaysClickable)
+                ((arsenic.utils.interfaces.IAlwaysClickable) component).setNotAlwaysClickable();
+        });
     }
 
     @Override
@@ -144,15 +212,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         RenderUtils.resetColorText();
 
         PosInfo pi = new PosInfo(x1 + pad * 1.1f, y2);
+        for (float[] zone : groupZones)
+            Arrays.fill(zone, 0);
         if (openPct > 0.001f) {
             UITheme.divider(x1 + pad, y2, x2 - pad, openPct);
             ScissorUtils.subScissor((int) x1, (int) y2, (int) (x2 + expandX * 2), (int) (y2 + expandY), 2);
             pi.moveY(pad * 0.4f);
-            float tagH = height * 0.4f;
-            int tierColor = tierColour(self.getTier());
-            UITheme.chip(ri.getFr(), self.getTier().getDisplayName(), x2 - pad, pi.getY() + tagH / 2f, tagH,
-                    UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
-            pi.moveY(tagH + pad * 0.3f);
+            keepSelectionVisible();
             // the description, as addon rows show it; same wrapping and colour. An empty one leaves no gap.
             String description = self.getDescription();
             if (description != null && !description.trim().isEmpty()) {
@@ -164,17 +230,88 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
                 }
                 pi.moveY(pad * 0.3f);
             }
-            for (PropertyComponent<?> child : contents)
+            for (PropertyComponent<?> child : shown())
                 pi.moveY(child.updateComponent(pi, ri) * 1.06f);
-            pi.moveY(pad * 0.6f);
+
+            // the bottom row closes the card: the tier tag on the left, the group icons on the right
+            pi.moveY(pad * 0.2f);
+            float rowH = height * 0.72f;
+            float tagH = height * 0.4f;
+            int tierColor = tierColour(self.getTier());
+            String tier = self.getTier().getDisplayName();
+            float tagW = ri.getFr().getWidth(tier) + tagH * 0.84f;
+            UITheme.chip(ri.getFr(), tier, x1 + pad * 1.1f + tagW, pi.getY() + rowH / 2f, tagH,
+                    UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
+            if (hasVisible(selected))
+                drawGroupIcons(pi.getY(), rowH, pad, openPct);
+            pi.moveY(rowH + pad * 0.5f);
             ScissorUtils.endSubScissor();
         }
         contentHeight = openPct > 0.001f
                 ? pi.getY() - y2
-                : contents.size() * height * 0.98f;
+                : (shown().size() + 2) * height * 0.98f;
         expandY = (pi.getY() - y2) * openPct;
 
         return expandY + height;
+    }
+
+    /** One icon per group that has settings, right-aligned, the selected one lit. */
+    private void drawGroupIcons(float y, float rowH, float pad, float openPct) {
+        float mx = lastMouseX, my = lastMouseY;
+        float right = x2 - pad;
+        Group[] all = Group.values();
+        for (int i = all.length - 1; i >= 0; i--) {
+            Group group = all[i];
+            if (!hasVisible(group))
+                continue;
+            float bx1 = right - rowH;
+            boolean active = group == selected;
+            boolean hover = mx >= bx1 && mx <= right && my >= y && my <= y + rowH;
+            if (active || hover)
+                DrawUtils.drawRoundedRect(bx1, y, right, y + rowH, UITheme.radiusChip(rowH),
+                        active ? UITheme.alpha(UITheme.accent(), (int) (55 * openPct))
+                               : UITheme.alpha(ThemeManager.getBlack(), (int) (60 * openPct)));
+
+            int tint = active ? UITheme.accent() : (hover ? UITheme.textPrimary() : UITheme.textMuted());
+            float icon = rowH * 0.76f, ix = bx1 + (rowH - icon) / 2f, iy = y + (rowH - icon) / 2f;
+            Minecraft.getMinecraft().getTextureManager().bindTexture(icon(group));
+            GlStateManager.enableBlend();
+            RenderUtils.color2(tint, (active || hover ? 1f : 0.55f) * openPct);
+            Gui.drawModalRectWithCustomSizedTexture((int) ix, (int) iy, 0, 0, (int) icon, (int) icon, icon, icon);
+            GlStateManager.color(1f, 1f, 1f, 1f);
+
+            groupZones[group.ordinal()] = new float[] { bx1, y, right, y + rowH };
+            right = bx1 - pad * 0.3f;
+        }
+    }
+
+    private static final Map<Group, ResourceLocation> ICONS = new EnumMap<>(Group.class);
+
+    private static ResourceLocation icon(Group group) {
+        return ICONS.computeIfAbsent(group, g -> new ResourceLocation("arsenic", "icons/" + g.getIcon() + ".png"));
+    }
+
+    private float lastMouseX, lastMouseY;
+
+    @Override
+    public void mouseUpdate(int mouseX, int mouseY) {
+        super.mouseUpdate(mouseX, mouseY);
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+    }
+
+    @Override
+    public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
+        if (open && mouseButton == 0) {
+            for (Group group : Group.values()) {
+                float[] z = groupZones[group.ordinal()];
+                if (z[2] > z[0] && mouseX >= z[0] && mouseX <= z[2] && mouseY >= z[1] && mouseY <= z[3]) {
+                    selectGroup(group);
+                    return true;
+                }
+            }
+        }
+        return super.handleClick(mouseX, mouseY, mouseButton);
     }
 
     @Override
@@ -220,16 +357,13 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private void toggleOpen() {
         open = !open;
         SoundUtils.chordOpen();
-        if (!open) {
-            contents.forEach(component -> {
-                if (component instanceof arsenic.utils.interfaces.IAlwaysClickable)
-                    ((arsenic.utils.interfaces.IAlwaysClickable) component).setNotAlwaysClickable();
-            });
-        }
+        if (!open)
+            closePopups(allContents);
     }
 
+    /** The selected group's settings only, so clicks never reach settings that are not drawn. */
     @Override
-    public final Collection<PropertyComponent<?>> getContents() { return contents; }
+    public final Collection<PropertyComponent<?>> getContents() { return shown(); }
 
     public final String getName() { return name; }
 

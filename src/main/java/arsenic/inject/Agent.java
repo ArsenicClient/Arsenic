@@ -105,8 +105,12 @@ public final class Agent {
      */
     public static void premain(String args, Instrumentation inst) {
         Consumer<String> status = statusWriter(args);
-        if (reportSplitArgument(status))
+        String stray = SplitArgumentFix.strayMainClass();
+        if (stray != null) {
+            // only returns when the game could not be started again without the stray word
+            SplitArgumentFix.fix(stray, status);
             return;
+        }
         // before the game defines anything, so addons can be compiled against Minecraft as it was defined
         recorder = new DefinedClasses();
         inst.addTransformer(recorder);
@@ -120,45 +124,6 @@ public final class Agent {
         }, "Arsenic-premain");
         waiter.setDaemon(true);
         waiter.start();
-    }
-
-    /**
-     * Launchers split JVM arguments on spaces, so a path like "Arsenic (1).jar" leaves a word such as "(1).jar"
-     * behind, which Java then takes for the main class: the game exits with "Could not find or load main class
-     * (1).jar" and nothing else. The agent runs before that happens, so it says what went wrong and which argument
-     * to use instead (a dialog, as players rarely read the launcher's log).
-     *
-     * @return true when the game is about to fail this way
-     */
-    private static boolean reportSplitArgument(Consumer<String> status) {
-        String command = System.getProperty("sun.java.command", "").trim();
-        int space = command.indexOf(' ');
-        String main = space < 0 ? command : command.substring(0, space);
-        // "java -jar game.jar" also names a jar here, but that one exists
-        if (!main.toLowerCase(java.util.Locale.ROOT).endsWith(".jar") || new File(main).isFile())
-            return false;
-
-        String argument = Injector.agentArg();
-        String message = "Java took \"" + main + "\" for the game's main class, so the game won't start.\n"
-                + "A JVM argument has a space in it and the launcher split it in two.\n\n"
-                + "In the launcher's JVM arguments, remove the Arsenic argument (and the \"" + main + "\" after it)\n"
-                + "and add this instead:\n\n" + argument;
-        status.accept("ERROR " + message.replace("\n\n", " ").replace('\n', ' '));
-        try {
-            if (!java.awt.GraphicsEnvironment.isHeadless()) {
-                javax.swing.JTextField field = new javax.swing.JTextField(argument);
-                field.setEditable(false);
-                Object[] options = {"Copy argument", "Close"};
-                int choice = javax.swing.JOptionPane.showOptionDialog(null, new Object[]{message, field},
-                        "Arsenic can't start", javax.swing.JOptionPane.DEFAULT_OPTION, javax.swing.JOptionPane.ERROR_MESSAGE,
-                        null, options, options[0]);
-                if (choice == 0)
-                    java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
-                            .setContents(new java.awt.datatransfer.StringSelection(argument), null);
-            }
-        } catch (Throwable ignored) {
-        }
-        return true;
     }
 
     /**

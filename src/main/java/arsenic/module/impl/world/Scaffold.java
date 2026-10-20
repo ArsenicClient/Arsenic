@@ -2,7 +2,7 @@ package arsenic.module.impl.world;
 
 import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -44,7 +44,7 @@ public class Scaffold extends Module {
 
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     public BooleanProperty eagle = new BooleanProperty("Eagle", true);
-    @PropertyInfo(reliesOn = "Eagle", value = "true")
+    @ShowWhen(property = "Eagle", is = "true")
     public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 3, 2, 0.1));
 
     private final ScaffoldCore core = new ScaffoldCore(ScaffoldCore.Tuning.best(), new Random());

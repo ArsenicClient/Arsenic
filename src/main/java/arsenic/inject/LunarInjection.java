@@ -136,7 +136,7 @@ final class LunarInjection {
             return false;
         }
         List<String> kept = withoutArsenic(args.group(1));
-        if (kept.size() == arguments(args.group(1)).size()) {
+        if (String.join(" ", kept).equals(written(args.group(1)))) {
             log.accept("Arsenic is not in Lunar's JVM arguments");
             return false;
         }
@@ -153,23 +153,49 @@ final class LunarInjection {
         return kept;
     }
 
+    /** JVM options whose value is the next word ("-cp x"). Any other word without a "-" ends the JVM's options. */
+    private static final List<String> VALUE_OPTIONS = Arrays.asList("-cp", "-classpath", "--class-path", "-p",
+            "--module-path", "--upgrade-module-path", "--add-modules", "--limit-modules", "--add-opens", "--add-exports",
+            "--add-reads", "--patch-module", "--enable-native-access");
+
     /**
-     * The JVM arguments, each with the words after it that do not start with "-". Lunar splits on spaces, so an agent
-     * path with a space in it ("Arsenic (1).jar", or a user folder like "John Smith") was written by older injectors
-     * as several words. Kept together, the whole of such an argument is removed instead of leaving "(1).jar" behind,
-     * which Java would take for the main class.
+     * The JVM arguments, without stray words. Lunar splits on spaces, so a path with a space in it ("Arsenic (1).jar",
+     * or a user folder like "John Smith") ends up as several words, and Java takes the first word that is neither an
+     * option nor an option's value for the main class: the game exits with "Could not find or load main class
+     * (1).jar". Such words can only break the launch, so they go. An Arsenic agent argument keeps its stray words
+     * (they are part of its path), so it is recognised and removed as a whole.
      */
     private static List<String> arguments(String jsonValue) {
         List<String> arguments = new ArrayList<>();
+        List<Boolean> split = new ArrayList<>();
+        boolean expectsValue = false;
         for (String token : unescape(jsonValue).trim().split("\\s+")) {
             if (token.isEmpty())
                 continue;
-            if (token.startsWith("-") || arguments.isEmpty())
+            int last = arguments.size() - 1;
+            if (token.startsWith("-")) {
                 arguments.add(token);
-            else
-                arguments.set(arguments.size() - 1, arguments.get(arguments.size() - 1) + " " + token);
+                split.add(false);
+                expectsValue = VALUE_OPTIONS.contains(token);
+            } else if (expectsValue) {
+                arguments.set(last, arguments.get(last) + " " + token);
+                expectsValue = false;
+            } else if (last >= 0) {
+                arguments.set(last, arguments.get(last) + " " + token);
+                split.set(last, true);
+            }
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            // a split argument that is not Arsenic's keeps its first word: the rest would be the main class
+            if (split.get(i) && !isArsenicAgent(arguments.get(i)))
+                arguments.set(i, arguments.get(i).split(" ")[0]);
         }
         return arguments;
+    }
+
+    /** The JVM arguments exactly as written, one space apart, to tell whether anything changed. */
+    private static String written(String jsonValue) {
+        return String.join(" ", unescape(jsonValue).trim().split("\\s+"));
     }
 
     private static String replaceJvmArgs(String text, Matcher args, String value) {

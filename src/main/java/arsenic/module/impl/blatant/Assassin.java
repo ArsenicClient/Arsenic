@@ -1,5 +1,7 @@
 package arsenic.module.impl.blatant;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.Priorities;
@@ -67,6 +69,7 @@ public class Assassin extends Module {
     public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ticks)", new DoubleValue(10, 80, 50, 1));
     public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 10000, 3000, 100));
     public final BooleanProperty faceTarget = new BooleanProperty("Face Target", true);
+    @PropertyGroup(Group.VISUAL)
     public final BooleanProperty showGhost = new BooleanProperty("Show Ghost", true);
 
     private static final int JOIN_GRACE_TICKS = 100;

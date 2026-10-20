@@ -181,22 +181,50 @@ The increment is also the rounding step: `0.1` gives one decimal, `1` gives inte
 **`SliderScale`:** `LINEAR` (default) or `LOG`. `LOG` gives most of the slider's travel to the low end of the range, which
 suits ranges like 1-360 where you mostly want small values. It only changes the slider, never the stored value.
 
-### Showing a setting only when another has a value: `@PropertyInfo`
+### Showing a setting only when another has a value: `@ShowWhen`
 
 ```java
-@PropertyInfo(reliesOn = "Rotate", value = "true")           // BooleanProperty named "Rotate"
+@ShowWhen(property = "Rotate", is = "true")                    // BooleanProperty named "Rotate"
 public final DoubleProperty rotSpeed = ...;
 
-@PropertyInfo(reliesOn = "Block", value = "Custom")          // EnumProperty named "Block"
+@ShowWhen(property = "Block", is = { "Custom", "List" })       // EnumProperty: any of these
 public final DoubleProperty blockId = ...;
+
+@ShowWhen(property = "Mode", not = "Off")                      // anything but these
+@ShowWhen(property = "Rotate", is = "true")                    // several on one field must all hold
+public final DoubleProperty smoothing = ...;
 ```
 
-- `reliesOn` is the **display name** (the first constructor argument) of another property on the same module.
-- `value` is compared as a string: for a `BooleanProperty` it is parsed with `Boolean.parseBoolean` (use `"true"` / `"false"`);
-  for an `EnumProperty` it is the constant's `name()` and the match is **case-sensitive**.
+- `property` is the **display name** (the first constructor argument) of another property on the same module; its field
+  name works too. Names and values are matched **ignoring case**.
+- Give either `is` (shown while the value is any of these) or `not` (shown while it is none of these), not both.
+  A `BooleanProperty`'s values are `"true"` / `"false"`; an `EnumProperty`'s are its constants' names.
 - Only `BooleanProperty` and `EnumProperty` can be depended on. Chains work: a property whose parent is hidden is hidden too.
+- **Every rule is checked when the module loads.** An unknown setting or value, a rule on a non-public field, or a rule
+  that depends on itself (also through other settings) is listed in the addon errors (in the log for built-in modules),
+  with the names you could have used. That rule is skipped, so the setting stays visible instead of disappearing.
 - It only controls whether the setting is shown in the ClickGUI. A hidden property still holds and returns its value, so
   read it only where it is relevant.
+- The older `@PropertyInfo(reliesOn = "Rotate", value = "true")` still works, is checked the same way, and means
+  `@ShowWhen(property = "Rotate", is = "true")`. It is deprecated; use `@ShowWhen` in new code.
+
+### Sorting settings under the module's icons: `@PropertyGroup`
+
+An open module shows up to three icons at its bottom right: a gear (main settings), an eye (visuals) and a gear with a plus
+(advanced). A property without the annotation is a main setting, so most modules need nothing.
+
+```java
+@PropertyGroup(Group.VISUAL)                                   // arsenic.module.property.Group
+public final BooleanProperty render = new BooleanProperty("Render", true);
+
+@PropertyGroup(Group.ADVANCED)
+@ShowWhen(property = "Rotate", is = "true")                    // both annotations can be used together
+public final DoubleProperty rotSpeed = ...;
+```
+
+- An icon only shows when at least one of its settings is visible right now, so a module with only main settings looks
+  as before.
+- A `FolderProperty`'s group applies to everything inside it.
 
 ## Events
 
@@ -823,7 +851,7 @@ thread) use `mc.addScheduledTask(runnable)` to get back onto the game thread.
 ## Worked example: BedCover
 
 A complete, compiling addon that uses everything above: it finds the nearest bed and covers its open sides with blocks.
-Properties with `@PropertyInfo`, silent rotation with `MovementFix`, the aim solver, placing from
+Properties with `@ShowWhen`, silent rotation with `MovementFix`, the aim solver, placing from
 `EventSilentRotation.Post`, hotbar handling with `isSwappingHotbar`, real sneak for the bed, verify-and-fall-back, world
 and HUD visuals that default on. Save it as `BedCover.java`; every API it calls is in the API reference below.
 (It has been compiled against the client, not tested on a server.)
@@ -842,7 +870,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -884,7 +912,7 @@ public class BedCover extends Module {
             new EnumProperty<>("Movement Fix", SilentRotationManager.MovementFix.SILENT);
     public final BooleanProperty render = new BooleanProperty("Render", true);
     public final BooleanProperty hud = new BooleanProperty("HUD", true);
-    @PropertyInfo(reliesOn = "HUD", value = "true")
+    @ShowWhen(property = "HUD", is = "true")
     public final BooleanProperty showCount = new BooleanProperty("Show Count", true);
 
     private final HudElement panel = hudElement("BedCover", 4, 120, 90, 16);
@@ -1196,7 +1224,7 @@ public class BedCover extends Module {
 - **`EventDisplayGuiScreen` is posted after the screen opened**, so it cannot veto it.
 - **Listener fields are read from your class only.** Listeners declared in a base class you extend are ignored.
 - **Properties must be `public` fields** to be shown and saved. `ButtonProperty` and `StringProperty` are never saved.
-- **`@PropertyInfo` hides, it does not disable.** A hidden setting keeps its value; ignore it in code when its mode is off.
+- **`@ShowWhen` hides, it does not disable.** A hidden setting keeps its value; ignore it in code when its mode is off.
 - **Use `MSTimer`/ticks, not `System.currentTimeMillis()` and not threads** (see the cookbook).
 - **Compile errors skip only the one file**, but another addon that depends on that file will fail too. Read the chat output
   of `.addon reload`.
@@ -1310,7 +1338,7 @@ module that already does it (paths under `src/main/java/arsenic/` and `src/addon
 |---|---|
 | legit block placing, face solver, GCD dither, step timeouts | `module/impl/player/AutoBlockIn.java` |
 | legit breaking, jittered aim, progress bar | `src/addons/packs/bedwars/impl/Breaker.java` |
-| properties, `@PropertyInfo`, `SliderScale.LOG`, `EventSilentRotation` + `.Post` | `src/addons/java/Nuker.java` |
+| properties, `@ShowWhen`, `SliderScale.LOG`, `EventSilentRotation` + `.Post` | `src/addons/java/Nuker.java` |
 | hotbar swap, refilling, `isSwappingHotbar` | `src/addons/java/AutoSoup.java` |
 | world drawing | `src/addons/java/Tracers.java` |
 | how the rotation is applied | `utils/rotations/SilentRotationManager.java`, `event/impl/EventSilentRotation.java` |
@@ -1344,6 +1372,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     /** True while the module is moving items around the hotbar, so AutoWeapon keeps its hands off. */ public boolean isSwappingHotbar();
     public List<HudElement> getHudElements();
     public void registerProperties() throws IllegalAccessException;
+    /** What was wrong with this module's @ShowWhen rules when it was registered (see Visibility). */ public List<String> getPropertyProblems();
     public String getHudInfo();
     protected void onEnable();
     protected void onDisable();
@@ -1364,7 +1393,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public void setKeybind(int keybind);
     public Collection<Property<?>> getContents();
     public List<? extends Property<?>> getProperties();
-    public void loadFromJson(JsonObject obj);
+    /** Each value loads on its own: a missing or broken one keeps its current value and the rest still load. */ public void loadFromJson(JsonObject obj);
     protected void postApplyConfig();
     public JsonObject saveInfoToJson(JsonObject obj);
     public String getJsonKey();
@@ -1404,6 +1433,16 @@ public enum ModuleTier {
 }
 ```
 
+### arsenic.module.property.Group
+
+```java
+public enum Group {
+    MAIN, VISUAL, ADVANCED;
+    public String getLabel();
+    /** The icon's file name in assets/arsenic/icons, without .png. */ public String getIcon();
+}
+```
+
 ### arsenic.module.property.impl.BooleanProperty
 
 ```java
@@ -1412,6 +1451,8 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     public JsonObject saveInfoToJson(JsonObject obj);
     public void loadFromJson(JsonObject obj);
     public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public java.util.List<String> possibleValues();
 }
 ```
 
@@ -1493,6 +1534,8 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     public boolean setByName(String name);
     public List<String> getModeNames();
     public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public List<String> possibleValues();
 }
 ```
 
@@ -1577,7 +1620,9 @@ public class TextProperty extends SerializableProperty<String> {
 
 ```java
 public interface IReliable {
-    Supplier<Boolean> valueCheck(String value);
+    /** True while this setting has the value and is itself shown. Kept for older code; ShowWhen uses the methods below. */ Supplier<Boolean> valueCheck(String value);
+    /** The value as ShowWhen compares it: "true"/"false", or the enum constant's name. */ String currentValue();
+    /** Every value #currentValue() can return, so ShowWhen values can be checked when the module is registered. */ List<String> possibleValues();
 }
 ```
 
@@ -1596,7 +1641,17 @@ public abstract class Property<T> implements IContainable {
     public void onValueUpdate();
     public void setVisible(Supplier<Boolean> visible);
     public boolean isVisible();
+    public Group getGroup();
+    /** Normally set from PropertyGroup; for properties that are not fields (e.g. built by an addon at runtime). */ public void setGroup(Group group);
     public String getName();
+}
+```
+
+### arsenic.module.property.PropertyGroup
+
+```java
+public @interface PropertyGroup {
+    Group value();
 }
 ```
 
@@ -1617,6 +1672,28 @@ public abstract class SerializableProperty<T> extends Property<T> implements ISe
     protected SerializableProperty(String name, T value);
     public String getJsonKey();
     public String getName();
+}
+```
+
+### arsenic.module.property.ShowWhen
+
+```java
+public @interface ShowWhen {
+    String property();
+    /** Shown while the target has any of these values. */ String[] is() default;
+    /** Shown while the target has none of these values. */ String[] not() default;
+
+    @interface All {
+        ShowWhen[] value();
+    }
+}
+```
+
+### arsenic.module.property.Visibility
+
+```java
+public final class Visibility {
+    /** Wires the rules of every public property field of owner. A rule with a problem is left out, so its setting stays */ public static List<String> wire(Object owner);
 }
 ```
 

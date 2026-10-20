@@ -12,7 +12,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleTier;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -42,7 +42,7 @@ public class Breaker extends Module {
 
     public final EnumProperty<BreakMode> breakMode = new EnumProperty<>("Break Mode", BreakMode.Legit);
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(3, 4.5, 4.5, 0.1));
-    @PropertyInfo(reliesOn = "Break Mode", value = "Legit")
+    @ShowWhen(property = "Break Mode", is = "Legit")
     public final DoubleProperty rotSpeed = new DoubleProperty("Rotation Speed", new DoubleValue(1, 360, 120, 1), SliderScale.LOG);
 
     public enum BreakMode {

@@ -2,6 +2,8 @@ package arsenic.module.impl.ghost;
 
 import arsenic.module.ModuleTier;
 import arsenic.utils.keystrokes.SyntheticKeys;
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -30,6 +32,8 @@ public class Clicker extends Module {
     private boolean lmbDown;
     
     public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", true);
+    @PropertyGroup(Group.VISUAL)
+    public final BooleanProperty clickSounds = new BooleanProperty("Click Sounds", true);
 
     @Override
     public String getHudInfo() {
@@ -61,7 +65,7 @@ public class Clicker extends Module {
 
         ClickManager clicks = ClickManager.get();
         if (clicks.isDue(ClickManager.Client.CLICKER)) {
-            if (shouldPlayClickSound() && soundTimer.finished(80)) {
+            if (clickSounds.getValue() && shouldPlayClickSound() && soundTimer.finished(80)) {
                 SoundUtils.playSound("click");
                 soundTimer.reset();
             }

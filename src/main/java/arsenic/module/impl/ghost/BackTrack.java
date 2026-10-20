@@ -1,5 +1,7 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
@@ -49,6 +51,7 @@ public class BackTrack extends Module {
     private static final double REACH_LIMIT = 2.95;
 
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(GRIM_MIN_LAG_MS, GRIM_MAX_LAG_MS, 40, 80, 10), SliderScale.LOG);
+    @PropertyGroup(Group.VISUAL)
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 
     private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();

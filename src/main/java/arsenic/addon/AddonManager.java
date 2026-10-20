@@ -739,12 +739,16 @@ public final class AddonManager {
                 return;
             }
             loaded.add(module);
+            // the addon still loads; these only say which @ShowWhen rules were left out
+            for (String rule : module.getPropertyProblems())
+                errors.add(className + ": " + rule);
 
             JsonObject saved = previousState.get(module.getName());
+            Arsenic.getArsenic().getConfigManager().rememberDefaults(module);
             if (saved != null)
                 module.loadFromJson(saved);
-            else if (Arsenic.getArsenic().getConfigManager().getCurrentConfig() != null)
-                applyConfig(module);
+            else
+                Arsenic.getArsenic().getConfigManager().applyToModule(module);
             Integer key = keybinds.get(module.getClass().getSimpleName());
             if (key != null)
                 module.setKeybind(key);
@@ -757,17 +761,6 @@ public final class AddonManager {
         }
     }
 
-    /** Applies the current config's saved values to a module that was added after the config was loaded. */
-    private void applyConfig(Module module) {
-        File file = Arsenic.getArsenic().getConfigManager().getCurrentConfig().getDirectory();
-        try (FileReader reader = new FileReader(file)) {
-            JsonElement saved = new JsonParser().parse(reader).getAsJsonObject().get(module.getJsonKey());
-            if (saved != null)
-                module.loadFromJson(saved.getAsJsonObject());
-        } catch (Exception ignored) {
-            // no saved config for this module yet
-        }
-    }
 
     private Map<String, String> readSources() throws java.io.IOException {
         Map<String, String> sources = new TreeMap<>();

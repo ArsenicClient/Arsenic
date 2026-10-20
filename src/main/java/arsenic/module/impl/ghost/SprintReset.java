@@ -11,8 +11,6 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.EnumProperty;
-import arsenic.utils.rotations.RotationUtils;
-import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 
@@ -22,11 +20,7 @@ import static arsenic.utils.lag.LagManager.getPing;
 public class SprintReset extends Module {
     public int hurtTime = 1;
     public EntityPlayer target;
-    public final EnumProperty<wMode> mode = new EnumProperty<>("Mode", wMode.COMBO);
-    public boolean hasTapped = false;
-
-    private boolean sawHurt = false;
-    private final MSTimer attackTimer = new MSTimer();
+    public final EnumProperty<wMode> mode = new EnumProperty<>("Mode", wMode.NORMAL);
 
     @Override
     public String getHudInfo() {
@@ -37,9 +31,6 @@ public class SprintReset extends Module {
     public final Listener<EventAttack> eventAttackListener = event -> {
         if (event.getTarget() != null && event.getTarget() instanceof EntityPlayer) {
             target = (EntityPlayer) event.getTarget();
-            hasTapped = false;
-            sawHurt = false;
-            attackTimer.reset();
             hurtTime = Math.max(1, getPing()/20) + 1;
         }
     };
@@ -51,33 +42,6 @@ public class SprintReset extends Module {
             return;
 
         switch (mode.getValue()) {
-            case COMBO:
-                double distToTarget = RotationUtils.getDistanceToEntityBox(target);
-                double targetDistToPlayer = RotationUtils.getDistanceToEntityBox(mc.thePlayer, target);
-
-                if (target.hurtTime > 0)
-                    sawHurt = true;
-
-                if (distToTarget > 4.5) {
-                    target = null;
-                    return;
-                }
-                if (!sawHurt && attackTimer.hasTimeElapsed(getPing() + 500L)) {
-                    target = null;
-                    return;
-                }
-                if (sawHurt && target.hurtTime < hurtTime) {
-                    target = null;
-                    return;
-                }
-                if(!hasTapped || (targetDistToPlayer < 3.05 && distToTarget < 2.95)) {
-                    event.setSpeed(0);
-                    resetSprint();
-                    hasTapped = true;
-                    return;
-                }
-
-                break;
             case NORMAL:
                 if (mc.thePlayer.isSprinting() && target.hurtTime == hurtTime) {
                     event.setSpeed(0);
@@ -97,7 +61,6 @@ public class SprintReset extends Module {
 
     public enum wMode {
         NORMAL,
-        COMBO,
         UNSPRINT
     }
 
