@@ -24,7 +24,18 @@ buildscript {
 apply plugin: "net.minecraftforge.gradle.forge"
 apply plugin: "idea"
 
-version          = "v3.0"
+// v3.<n>: n is the number of commits made since v3.0 (commit 903), so every commit bumps the minor version
+def commitCount = {
+    try {
+        def proc = ["git", "rev-list", "--count", "HEAD"].execute(null, projectDir)
+        def n = proc.text.trim()
+        proc.waitFor()
+        return proc.exitValue() == 0 ? n.toInteger() : 903
+    } catch (Exception ignored) {
+        return 903
+    }
+}()
+version          = "v3." + Math.max(0, commitCount - 903)
 group            = "arsenic"
 archivesBaseName = "Arsenic"
 
@@ -314,6 +325,7 @@ def configureArsenicJar = { Jar task ->
             "Agent-Class"                : "arsenic.inject.Agent",
             // -javaagent:Arsenic.jar loads the client at launch, where the attach API is turned off (e.g. Lunar)
             "Premain-Class"              : "arsenic.inject.Agent",
+            "Implementation-Version"     : project.version,
             "Can-Retransform-Classes"    : true,
             "Can-Redefine-Classes"       : true
     )

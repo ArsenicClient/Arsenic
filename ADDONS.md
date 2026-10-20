@@ -2033,7 +2033,6 @@ public class Arsenic {
     public SilentRotationManager getSilentRotationManager();
     public ThemeManager getThemeManager();
     public ServerInfo getServerInfo();
-    public LaunchID getLaunchID();
     public FriendManager getFriendManager();
 }
 ```

@@ -28,9 +28,9 @@ final class InjectorWindow {
     private static final Color SURFACE_HOVER = new Color(0x16161B);
     private static final Color BORDER = new Color(0x1E1E24);
     private static final Color BORDER_HOVER = new Color(0x2A2A35);
-    private static final Color TEXT = new Color(0xF2F2F5);
-    private static final Color TEXT_SECONDARY = new Color(0x8A8A96);
-    private static final Color TEXT_MUTED = new Color(0x55555F);
+    private static final Color TEXT = new Color(0xFFFFFF);
+    private static final Color TEXT_SECONDARY = new Color(0xFFFFFF);
+    private static final Color TEXT_MUTED = new Color(0xFFFFFF);
     private static final Color ACCENT = new Color(0xDD425E);
     private static final Color ACCENT_HOVER = new Color(0xE85A74);
     private static final Color SUCCESS = new Color(0x3FB950);
@@ -136,6 +136,10 @@ final class InjectorWindow {
         JLabel product = label("  Injector", 13f, Font.PLAIN, TEXT_SECONDARY);
         product.setBorder(new EmptyBorder(6, 4, 0, 0));
         brand.add(product);
+        String ver = InjectorWindow.class.getPackage().getImplementationVersion();
+        JLabel version = label("  " + (ver != null ? ver : "dev"), 13f, Font.PLAIN, TEXT);
+        version.setBorder(new EmptyBorder(6, 0, 0, 0));
+        brand.add(version);
         bar.add(brand, BorderLayout.WEST);
 
         JPanel controls = transparent(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -382,7 +386,7 @@ final class InjectorWindow {
 
     private void setStatus(String text, Color color) {
         statusLabel.setText(text.isEmpty() ? " " : text);
-        statusLabel.setForeground(color);
+        statusLabel.setForeground(Color.WHITE);
     }
 
     private void appendLog(String line) {
@@ -528,7 +532,6 @@ final class InjectorWindow {
 
         JPanel text = transparent(new GridLayout(0, 1, 0, 3));
         text.add(label("Lunar Client", 13f, Font.BOLD, TEXT));
-        text.add(label("Lunar turns attach off, so Arsenic is added to its launch arguments instead.", 12f, Font.PLAIN, TEXT_SECONDARY));
         text.add(label("This closes Lunar Client and any game running in it first.", 12f, Font.PLAIN, TEXT_SECONDARY));
         panel.add(text, BorderLayout.CENTER);
 
