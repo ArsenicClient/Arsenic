@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -324,7 +325,7 @@ public final class Agent {
         };
 
         DefinedClasses defined = recorder;
-        Function<String, byte[]> recorded = defined == null ? null : name -> defined.get(game.loader, name);
+        Function<String, byte[]> recorded = defined == null ? null : name -> defined.getOrLoad(game.loader, name);
         launch.getMethod("start", File.class, Runnable.class, Consumer.class, String.class, Function.class, Function.class)
                 .invoke(null, jar, installHooks, status, game.namespace.name(), classBytes(inst, game.loader), recorded);
     }
@@ -389,6 +390,25 @@ public final class Agent {
         byte[] get(ClassLoader loader, String internalName) {
             return loaders.get(internalName) == loader ? classes.get(internalName) : null;
         }
+
+        /**
+         * Like {@link #get}, but a class the game has not loaded yet (a packet or scoreboard class before joining a
+         * world) is loaded, without initializing it, so it is recorded as it is defined.
+         */
+        byte[] getOrLoad(ClassLoader loader, String internalName) {
+            byte[] bytes = get(loader, internalName);
+            if (bytes != null || loaders.containsKey(internalName) || misses.contains(internalName))
+                return bytes;
+            try {
+                Class.forName(internalName.replace('/', '.'), false, loader);
+            } catch (Throwable t) {
+                misses.add(internalName);
+                return null;
+            }
+            return get(loader, internalName);
+        }
+
+        private final Set<String> misses = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         long size(ClassLoader loader) {
             return loaders.values().stream().filter(l -> l == loader).count();
