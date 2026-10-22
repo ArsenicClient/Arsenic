@@ -2542,7 +2542,10 @@ public final class AutoBlocker {
     public static boolean isRenderBlocking();
     public static void setRenderBlocking(boolean blocking);
     /** Legit: really raises the sword for a moment after we are hit (hurt time 10 to 6) while the target is */ public void tickLegit(EntityPlayer target, boolean active);
-    /** Before KillAura attacks this tick. A block from the last tick comes down now, and nothing attacks in this tick. */ public void tickPacket(Mode mode, EntityPlayer target, boolean active);
+    /** Before KillAura attacks this tick. Nothing attacks in a tick that starts blocking. Hypixel's block from the last */ public void tickPacket(Mode mode, EntityPlayer target, boolean active);
+    /** Hypixel Hold, once this tick's look ray is known: lowers the sword when the next tick is going to attack, since a */ public void releaseBeforeAttack(Mode mode, boolean attackNextTick);
+    /** Whether an attack on this entity would hurt it: our look ray meets it within reach, and it is out of its hurt */ public boolean shouldHit(Mode mode, Entity hit, Vec3 hitVec);
+    /** #shouldHit(Mode, Entity, Vec3) for an attack this many ticks from now, the look ray kept as it is. */ public boolean shouldHit(Mode mode, Entity hit, Vec3 hitVec, int ticksAhead);
     /** Called by KillAura once its attack for this tick went out, with the entity hit and where the look ray met it. */ public void onAttack(Mode mode, Entity hit, Vec3 hitVec, boolean active);
     public boolean canAttack();
     /** Whether the sword is up because of a packet block, so KillAura does not wait on its own use of the item. */ public boolean isBlocking();
@@ -2551,7 +2554,7 @@ public final class AutoBlocker {
     public void stopPacket();
 
     public enum Mode {
-        None, Legit, Hypixel, Hypixel2;
+        None, Legit, Hypixel, HypixelHold;
     }
 }
 ```

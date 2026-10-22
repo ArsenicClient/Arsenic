@@ -14,6 +14,7 @@ import arsenic.event.impl.EventPlayerJoinWorld;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
 import arsenic.event.impl.EventUpdate;
+import arsenic.injection.accessor.IMixinEntity;
 import arsenic.injection.accessor.IMixinEntityPlayerSP;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -21,6 +22,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleTier;
 import arsenic.module.impl.client.TargetManager;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
@@ -34,6 +36,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C03PacketPlayer;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.potion.Potion;
@@ -60,15 +63,23 @@ import java.util.List;
  * Timer flag (and the setback that follows shows up as Simulation). A ten block run therefore holds for about two
  * seconds. The simulation matches SimPlayer in the MinecraftSimulator repo: drag is picked before the move, float
  * rounding as in 1.8.9, and ground speed / air control are the previous tick's, so it only starts while sprinting.
+ *
+ * Through mode runs straight at the target instead and hits it as soon as the sent look is on its hitbox within reach
+ * (swing and attack are held with everything else), then keeps running through it and away until Escape Distance from
+ * it, and only then releases (earlier if Max Hold runs out or the path ahead is blocked, liquid or has no ground). The
+ * server sees the approach, the hit and the escape all at once, ending out of the target's reach.
  */
 @ModuleInfo(name = "Assassin", description = "Blinks a simulated sprint jump to behind the nearest player", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class Assassin extends Module {
 
+    public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Behind);
     public final RangeProperty distance = new RangeProperty("Trigger Distance", new RangeValue(4, 20, 9, 11, 0.5));
     public final DoubleProperty behind = new DoubleProperty("Behind Distance", new DoubleValue(1, 4, 2, 0.1));
-    public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ticks)", new DoubleValue(10, 80, 50, 1));
+    public final DoubleProperty escapeDistance = new DoubleProperty("Escape Distance", new DoubleValue(3, 50, 6, 0.5));
+    public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ticks)", new DoubleValue(10, 1000, 50, 1));
     public final DoubleProperty cooldown = new DoubleProperty("Cooldown (ms)", new DoubleValue(0, 10000, 3000, 100));
     public final BooleanProperty faceTarget = new BooleanProperty("Face Target", true);
+    public final BooleanProperty hitSlowdown = new BooleanProperty("Hit Slowdown", true);
     @PropertyGroup(Group.VISUAL)
     public final BooleanProperty showGhost = new BooleanProperty("Show Ghost", true);
 
@@ -76,6 +87,9 @@ public class Assassin extends Module {
     private static final float MAX_TURN = 60f;
     private static final double REACHED = 1.0;
     private static final double MOTION_CUTOFF = 0.005;
+    /** Below vanilla's 3 so the hit still lands after the target moves a little before the release. */
+    private static final double HIT_REACH = 2.9;
+    private static final int GROUND_SEARCH = 5;
     /** EntityPlayer.jumpMovementFactor while sprinting, rounded as the game does. */
     private static final float AIR_ACCEL_SPRINT = (float) ((double) 0.02F + (double) 0.02F * 0.3D);
 
@@ -83,6 +97,12 @@ public class Assassin extends Module {
     private int heldTicks;
     private EntityPlayer target;
     private final MSTimer lastRun = MSTimer.expired();
+
+    // through mode
+    private Phase phase;
+    private double runX, runZ;
+    private double lastTargetX, lastTargetZ;
+    private boolean holdLook;
 
     // simulated player
     private AxisAlignedBB box;
@@ -139,7 +159,9 @@ public class Assassin extends Module {
         event.cancel();
         heldTicks++;
 
-        boolean done = !targetStillValid() || !simulateTick() || isBehind();
+        boolean done = mode.getValue() == Mode.Through
+                ? !throughTick()
+                : !targetStillValid() || !simulateTick() || isBehind();
         if (done || heldTicks >= maxHold.getValue().getInput())
             finish(false);
     };
@@ -243,6 +265,15 @@ public class Assassin extends Module {
         sentYaw = accessor.getLastReportedYaw();
         sentPitch = accessor.getLastReportedPitch();
 
+        double dx = target.posX - p.posX, dz = target.posZ - p.posZ;
+        double len = Math.max(Math.sqrt(dx * dx + dz * dz), 1.0E-4);
+        runX = dx / len;
+        runZ = dz / len;
+        lastTargetX = target.posX;
+        lastTargetZ = target.posZ;
+        phase = Phase.RUN;
+        holdLook = false;
+
         pendingVelocity = null;
         heldTicks = 0;
         active = true;
@@ -307,6 +338,110 @@ public class Assassin extends Module {
         box = null;
         heldTicks = 0;
         pendingVelocity = null;
+        phase = null;
+    }
+
+    /**
+     * One held tick of Through mode: run at the target and hit it once in reach, then keep running through it until
+     * Escape Distance away. @return false when the run should be released here
+     */
+    private boolean throughTick() {
+        if (target != null && mc.theWorld.playerEntities.contains(target)) {
+            lastTargetX = target.posX;
+            lastTargetZ = target.posZ;
+        }
+
+        if (phase == Phase.RUN) {
+            if (!targetStillValid())
+                return false;
+            // the click comes before the tick's movement, using the look the previous packet sent, as in vanilla
+            if (facingTarget()) {
+                hit();
+                phase = Phase.ESCAPE;
+            } else if ((posX() - target.posX) * runX + (posZ() - target.posZ) * runZ > 1.0) {
+                // ran past without lining up a hit
+                phase = Phase.ESCAPE;
+            }
+        }
+
+        if (phase == Phase.ESCAPE) {
+            double dx = posX() - lastTargetX, dz = posZ() - lastTargetZ;
+            double escape = escapeDistance.getValue().getInput();
+            if (dx * dx + dz * dz >= escape * escape || !groundAhead())
+                return false;
+        }
+        return simulateTick();
+    }
+
+    /**
+     * Swing and attack go into the hold. A 1.8 sprint hit slows the attacker to 0.6 before the tick's movement (the
+     * client re-sprints in the same tick while sprint is held), and Grim expects that slowdown from a sprinting 1.8 hit.
+     */
+    private void hit() {
+        mc.thePlayer.swingItem();
+        send(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
+        holdLook = true;
+        if (hitSlowdown.getValue()) {
+            motionX *= 0.6D;
+            motionZ *= 0.6D;
+        }
+    }
+
+    /** Whether the last sent look from the simulated eyes lands on the target's hitbox within reach. */
+    private boolean facingTarget() {
+        Vec3 eyes = new Vec3(posX(), box.minY + mc.thePlayer.getEyeHeight(), posZ());
+        Vec3 look = ((IMixinEntity) mc.thePlayer).invokeGetVectorForRotation(sentPitch, sentYaw);
+        Vec3 end = eyes.addVector(look.xCoord * HIT_REACH, look.yCoord * HIT_REACH, look.zCoord * HIT_REACH);
+        // no collision border: the margin covers the target being somewhere else by the time the server checks
+        AxisAlignedBB hitbox = target.getEntityBoundingBox();
+        return hitbox.isVecInside(eyes) || hitbox.calculateIntercept(eyes, end) != null;
+    }
+
+    /** Ground under the next few blocks the escape heads into, so it never jumps off into the void. */
+    private boolean groundAhead() {
+        float rad = sentYaw * 0.017453292F;
+        double awayX = -MathHelper.sin(rad), awayZ = MathHelper.cos(rad);
+        int feet = MathHelper.floor_double(box.minY);
+        for (int step = 1; step <= 3; step++) {
+            int x = MathHelper.floor_double(posX() + awayX * step), z = MathHelper.floor_double(posZ() + awayZ * step);
+            boolean found = false;
+            for (int y = feet; y >= feet - GROUND_SEARCH && !found; y--) {
+                BlockPos pos = new BlockPos(x, y, z);
+                if (!mc.theWorld.isBlockLoaded(pos))
+                    return false;
+                found = mc.theWorld.getBlockState(pos).getBlock().getMaterial().blocksMovement();
+            }
+            if (!found)
+                return false;
+        }
+        return true;
+    }
+
+    /** Yaw and pitch to steer toward this tick. */
+    private float[] wantedRotation() {
+        if (mode.getValue() != Mode.Through) {
+            double[] goal = steerPoint();
+            return new float[]{yawTo(goal[0], goal[1]), sentPitch};
+        }
+        if (phase == Phase.RUN)
+            return new float[]{yawTo(target.posX, target.posZ), pitchToTarget()};
+        // keep going the way we came through until past where the target is, then straight away from it
+        if ((posX() - lastTargetX) * runX + (posZ() - lastTargetZ) * runZ < 1.0)
+            return new float[]{yawTo(lastTargetX + runX * 2, lastTargetZ + runZ * 2), 0f};
+        return new float[]{yawTo(2 * posX() - lastTargetX, 2 * posZ() - lastTargetZ), 0f};
+    }
+
+    private float yawTo(double x, double z) {
+        return (float) (Math.toDegrees(Math.atan2(z - posZ(), x - posX())) - 90.0);
+    }
+
+    /** Pitch at the middle of the target's hitbox, as far from its top and bottom edges as possible. */
+    private float pitchToTarget() {
+        double eyeY = box.minY + mc.thePlayer.getEyeHeight();
+        AxisAlignedBB hitbox = target.getEntityBoundingBox();
+        double aimY = (hitbox.minY + hitbox.maxY) / 2.0;
+        double horizontal = Math.max(horizontalDistance(posX(), posZ(), target), 1.0E-4);
+        return (float) -Math.toDegrees(Math.atan2(aimY - eyeY, horizontal));
     }
 
     private boolean targetStillValid() {
@@ -355,15 +490,40 @@ public class Assassin extends Module {
     }
 
     /**
-     * One tick of EntityLivingBase.onLivingUpdate / moveEntityWithHeading for a player holding forward, sprint and jump,
-     * then the movement packet for it. @return false when the run cannot continue (blocked, liquid, unloaded chunk)
+     * One simulated tick and its movement packet. When the tick cannot go ahead, the copy is put back to the last tick
+     * that was sent, so the release lands exactly where the server already has us.
+     * @return false when the run cannot continue (blocked, liquid, unloaded chunk)
      */
     private boolean simulateTick() {
-        double[] goal = steerPoint();
-        float wanted = (float) (Math.toDegrees(Math.atan2(goal[1] - posZ(), goal[0] - posX())) - 90.0);
-        float turn = MathHelper.clamp_float(MathHelper.wrapAngleTo180_float(wanted - sentYaw), -MAX_TURN, MAX_TURN);
-        float[] rotation = RotationUtils.patchGCD(new float[]{sentYaw, sentPitch}, new float[]{sentYaw + turn, sentPitch});
-        float yaw = rotation[0];
+        AxisAlignedBB lastBox = box;
+        double lastX = motionX, lastY = motionY, lastZ = motionZ;
+        boolean lastGround = ground;
+        int lastJumpTicks = jumpTicks;
+        boolean lastHoldLook = holdLook;
+        if (step())
+            return true;
+        box = lastBox;
+        motionX = lastX;
+        motionY = lastY;
+        motionZ = lastZ;
+        ground = lastGround;
+        jumpTicks = lastJumpTicks;
+        holdLook = lastHoldLook;
+        return false;
+    }
+
+    /**
+     * One tick of EntityLivingBase.onLivingUpdate / moveEntityWithHeading for a player holding forward, sprint and jump,
+     * then the movement packet for it. @return false when nothing was sent (blocked, liquid, unloaded chunk)
+     */
+    private boolean step() {
+        // the hit tick keeps the look the hit was checked with, so the old and new look both land on the hitbox
+        float[] wanted = holdLook ? new float[]{sentYaw, sentPitch} : wantedRotation();
+        holdLook = false;
+        float turn = MathHelper.clamp_float(MathHelper.wrapAngleTo180_float(wanted[0] - sentYaw), -MAX_TURN, MAX_TURN);
+        float tilt = MathHelper.clamp_float(wanted[1] - sentPitch, -MAX_TURN, MAX_TURN);
+        float[] rotation = RotationUtils.patchGCD(new float[]{sentYaw, sentPitch}, new float[]{sentYaw + turn, sentPitch + tilt});
+        float yaw = rotation[0], pitch = rotation[1];
         float rad = yaw * 0.017453292F;
         float sin = MathHelper.sin(rad), cos = MathHelper.cos(rad);
 
@@ -405,10 +565,11 @@ public class Assassin extends Module {
         if (mc.theWorld.isAnyLiquid(box))
             return false;
 
-        Packet<?> packet = yaw != sentYaw
-                ? new C03PacketPlayer.C06PacketPlayerPosLook(posX(), box.minY, posZ(), yaw, sentPitch, ground)
+        Packet<?> packet = yaw != sentYaw || pitch != sentPitch
+                ? new C03PacketPlayer.C06PacketPlayerPosLook(posX(), box.minY, posZ(), yaw, pitch, ground)
                 : new C03PacketPlayer.C04PacketPlayerPosition(posX(), box.minY, posZ(), ground);
         sentYaw = yaw;
+        sentPitch = pitch;
         send(packet);
         return true;
     }
@@ -456,6 +617,14 @@ public class Assassin extends Module {
     private static double horizontalDistance(double x, double z, EntityPlayer player) {
         double dx = player.posX - x, dz = player.posZ - z;
         return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    public enum Mode {
+        Behind, Through
+    }
+
+    private enum Phase {
+        RUN, ESCAPE
     }
 
     /** Goes through the network manager, so LagManager holds it with everything else. */

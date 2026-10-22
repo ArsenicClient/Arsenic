@@ -181,12 +181,14 @@ public class KillAura extends Module {
         }
         if (hitflick.attackedThisTick()) {
             resetAttackCycle();
-            // Hypixel blocks the tick after any attack; Hypixel 2's interact needs our own look ray, so it skips this one
-            if (packetBlock)
-                blocker.onAttack(autoBlock.getValue(), null, null, blockActive);
         }
         EntityPlayer hitPlayer = hit instanceof EntityPlayer && TargetManager.isValidTarget((EntityPlayer) hit)
                 ? (EntityPlayer) hit : null;
+        // Hypixel Hold lowers the sword a tick early when the next tick's click would hurt the target
+        if (packetBlock)
+            blocker.releaseBeforeAttack(autoBlock.getValue(), hitPlayer != null
+                    && ClickManager.get().remainingMs(ClickManager.Client.KILLAURA) <= 50
+                    && blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.hitVec, 1));
         if ((target != null || hitPlayer != null)
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
@@ -198,7 +200,9 @@ public class KillAura extends Module {
                 && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
                 && !(packetBlock && !blocker.canAttack())) {
             if (hitPlayer != null) {
-                if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
+                // Hypixel waits for a hit that would do damage
+                if (packetBlock && !blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.hitVec)) {
+                } else if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
                 } else {
                     mc.thePlayer.swingItem();
@@ -217,8 +221,6 @@ public class KillAura extends Module {
             } else if (hit == null && target != null && shouldSwingAtAir(event)) {
                 mc.thePlayer.swingItem();
                 resetAttackCycle();
-                if (packetBlock)
-                    blocker.onAttack(autoBlock.getValue(), null, null, blockActive);
             }
         }
         wasUsingItem = usingItem;
