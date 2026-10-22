@@ -8,5 +8,6 @@ Not ported to 26.3:
 
 - The injector (`arsenic.inject`, `arsenic.runtime`): Fabric loads the client as a mod, with mixins.
 - Recorder, RotationView and the capture tools.
-- The sword block-hit render animation, and theming of vanilla screens.
-- Chams and the old GL shader effects (blur, bloom, animated backgrounds).
+- The sword block-hit render animation.
+- The Kawase blur/bloom shaders themselves: blur is rebuilt on the game's own blur (`BlurBackdrop`), bloom is drawn
+  as offset rings (`PostProcessing`), chams as a render type of their own (`ChamsRenderer`).

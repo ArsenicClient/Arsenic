@@ -24,11 +24,17 @@
         "mixin.MixinLightmapRenderStateExtractor",
         "mixin.MixinLivingEntity",
         "mixin.MixinLivingEntityRenderer",
+        "mixin.MixinLoadingOverlay",
         "mixin.MixinLocalPlayer",
         "mixin.MixinMinecraft",
         "mixin.MixinMultiPlayerGameMode",
         "mixin.MixinPlayer",
-        "mixin.MixinStringDecomposer"
+        "mixin.MixinStringDecomposer",
+        "mixin.MixinScreen",
+        "mixin.MixinAbstractButton",
+        "mixin.MixinAbstractSliderButton",
+        "mixin.MixinAbstractSelectionList",
+        "mixin.MixinGuiRenderer"
     ],
     "injectors": {
         "defaultRequire": 1

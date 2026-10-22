@@ -1,6 +1,9 @@
 package arsenic.utils.render;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
@@ -9,6 +12,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fc;
+import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -19,6 +23,24 @@ import org.jspecify.annotations.Nullable;
  * quads (a triangle is a quad with a repeated vertex) and handed to the render state directly.
  */
 public final class QuadBatch {
+
+    /**
+     * While set, shapes are not filled with their colour but with this screen-sized texture, sampled
+     * at their own screen position (the colour's alpha still applies). Used to show a blurred copy of
+     * the frame through arbitrary shapes, see {@link BlurBackdrop}.
+     */
+    private static @Nullable GpuTextureView screenSample;
+
+    private static int sampledShapes;
+
+    public static void sampleScreen(@Nullable GpuTextureView texture) {
+        screenSample = texture;
+    }
+
+    /** How many batches have been submitted in {@link #sampleScreen} mode so far. */
+    public static int sampledShapes() {
+        return sampledShapes;
+    }
 
     private float[] xs = new float[64];
     private float[] ys = new float[64];
@@ -104,11 +126,48 @@ public final class QuadBatch {
                 (int) Math.ceil(maxX) - bx + 1, (int) Math.ceil(maxY) - by + 1).transformMaxBounds(pose);
         if (scissor != null)
             bounds = scissor.intersection(bounds);
+        if (screenSample != null) {
+            sampledShapes++;
+            graphics.guiRenderState.addGuiElement(new SampledState(
+                    java.util.Arrays.copyOf(xs, vertexCount),
+                    java.util.Arrays.copyOf(ys, vertexCount),
+                    java.util.Arrays.copyOf(colors, vertexCount),
+                    pose, scissor, bounds, screenSample, graphics.guiWidth(), graphics.guiHeight()));
+            return;
+        }
         graphics.guiRenderState.addGuiElement(new State(
                 java.util.Arrays.copyOf(xs, vertexCount),
                 java.util.Arrays.copyOf(ys, vertexCount),
                 java.util.Arrays.copyOf(colors, vertexCount),
                 pose, scissor, bounds));
+    }
+
+    /** The shapes filled with a screen-sized texture at their screen position; the texture is stored bottom row first. */
+    private record SampledState(float[] xs, float[] ys, int[] colors, Matrix3x2fc pose,
+                                @Nullable ScreenRectangle scissorArea, @Nullable ScreenRectangle bounds,
+                                GpuTextureView texture, int guiWidth, int guiHeight)
+            implements GuiElementRenderState {
+
+        @Override
+        public void buildVertices(VertexConsumer consumer) {
+            Vector2f screen = new Vector2f();
+            for (int i = 0; i < xs.length; i++) {
+                pose.transformPosition(xs[i], ys[i], screen);
+                consumer.addVertexWith2DPose(pose, xs[i], ys[i])
+                        .setUv(screen.x / guiWidth, 1f - screen.y / guiHeight)
+                        .setColor(colors[i] | 0x00FFFFFF);
+            }
+        }
+
+        @Override
+        public RenderPipeline pipeline() {
+            return RenderPipelines.GUI_TEXTURED;
+        }
+
+        @Override
+        public TextureSetup textureSetup() {
+            return TextureSetup.singleTexture(texture, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+        }
     }
 
     private record State(float[] xs, float[] ys, int[] colors, Matrix3x2fc pose,

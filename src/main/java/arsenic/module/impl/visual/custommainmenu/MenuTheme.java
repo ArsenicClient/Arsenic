@@ -3,15 +3,21 @@ package arsenic.module.impl.visual.custommainmenu;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
-import arsenic.utils.timer.FrameClock;
-import net.minecraft.client.Minecraft;
 import arsenic.utils.render.QuadBatch;
+import arsenic.utils.timer.FrameClock;
+import arsenic.utils.timer.HoverAnimation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * The look of the client's menus: the ocean (or Element 33) scene as the backdrop - the full scene
  * when there is no world behind the screen, a tinted veil with ambient effects when there is - and
- * the bordered pill shape the buttons and panels use. On 1.8 mixins also restyled every vanilla
- * screen's buttons, sliders and lists with this; that theming is not ported to 26.x.
+ * the bordered pill shape the buttons and panels use. Every vanilla screen picks this up too (see
+ * MixinScreen and the widget mixins): its backdrop, buttons, sliders and lists, and the one shared
+ * scene keeps the fish where they were when you move between screens.
  */
 public final class MenuTheme {
 
@@ -19,6 +25,8 @@ public final class MenuTheme {
     private static final ElementScene ELEMENT_SCENE = new ElementScene();
     private static final FrameClock CLOCK = new FrameClock();
     private static float parX, parY;
+    /** Per-widget hover animation. */
+    private static final Map<AbstractWidget, HoverAnimation> HOVER = new WeakHashMap<>();
 
     private MenuTheme() {}
 
@@ -144,5 +152,48 @@ public final class MenuTheme {
             batch.quad(ox[i], oy[i], borderColour, fx[i], fy[i], faded, fx[j], fy[j], faded, ox[j], oy[j], borderColour);
         }
         batch.submit();
+    }
+
+    // ---- lists ------------------------------------------------------------------------------------
+
+    /** The area behind a scrolling list: a dark, slightly tinted pane the ocean shows through. */
+    public static void drawListPane(int left, int top, int right, int bottom) {
+        DrawUtils.drawVerticalGradient(left, top, right, bottom, 0x70000000 | ColorUtils.mixRgb(0x000000, main(), 0.10f),
+                0x90000000 | ColorUtils.mixRgb(0x000000, main(), 0.04f));
+    }
+
+    /** The edges above and below a list: an accent hairline over a deep-water band. */
+    public static void drawListEdge(int left, int right, int y, boolean top) {
+        int deep = 0xC0000000 | ColorUtils.mixRgb(bg(), 0x000000, 0.45f);
+        DrawUtils.drawRect(left, y, right, y + 2, deep);
+        float edge = top ? y + 1 : y;
+        DrawUtils.drawRect(left, edge, right, edge + 1, accent(150));
+    }
+
+    // ---- buttons ----------------------------------------------------------------------------------
+
+    /** A vanilla button (or a slider's track) as a pill with an animated hover. */
+    public static void drawButton(AbstractWidget b, boolean hovered) {
+        int bw = b.getWidth(), bh = b.getHeight();
+        float hover = HOVER.computeIfAbsent(b, k -> new HoverAnimation()).update(hovered && b.active);
+        float x1 = b.getX(), y1 = b.getY(), x2 = x1 + bw, y2 = y1 + bh;
+        int baseFill = (b.active ? 125 : 75) << 24 | ColorUtils.mixRgb(0x000000, main(), 0.12f);
+        int fill = ColorUtils.mixArgb(baseFill, accent(105), hover);
+        drawPill(x1, y1, x2, y2, Math.min(bh, bw) / 2f, 1f, fill,
+                ColorUtils.mixArgb(ink(b.active ? 55 : 28), accent(235), hover));
+    }
+
+    /**
+     * A vanilla slider's filled track and knob. Plain rectangles: rounded shapes break down at this
+     * size and draw stray brackets.
+     */
+    public static void drawSlider(int left, int knobX, int y, int height) {
+        // the filled part of the track, kept inside the pill's rounded ends
+        int fillFrom = left + 8, fillTo = knobX + 4;
+        if (fillTo > fillFrom)
+            DrawUtils.drawRect(fillFrom, y + 5, fillTo, y + height - 5, accent(110));
+        // the knob: an accent outline around a bright face
+        DrawUtils.drawRect(knobX, y + 2, knobX + 8, y + height - 2, accent(255));
+        DrawUtils.drawRect(knobX + 1, y + 3, knobX + 7, y + height - 3, ink(245));
     }
 }

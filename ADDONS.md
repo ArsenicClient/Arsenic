@@ -293,6 +293,7 @@ packet. Which event to act from is a Grim question, not just a timing one; the w
 | `EventRender2D` | HUD pass, once per frame | `getGraphics()` (the GUI draw target), `getWidth()`/`getHeight()` (scaled screen size), `getSr()`, `getPartialTicks()` | no |
 | `EventRenderWorldLast` | after the world was rendered, once per frame; draw with the gizmo helpers in `RenderUtils` | public `partialTicks` | no |
 | `EventRenderThirdPerson` | when the player model is drawn | yaw/pitch/prevYaw/prevPitch with setters, `setAccepted(true)` to apply them | no |
+| `EventShader.Blur` | the frosted-glass pass behind HUD elements, first in the HUD: the shapes you draw are filled with the blurred world behind them (only the alpha of your colour is used) | `getIterations/setIterations`, `getOffset/setOffset` | no |
 | `EventShader.Bloom` | the glow pass behind HUD elements: what you draw is drawn again, faint and offset, as a halo | `getIterations/setIterations`, `getOffset/setOffset` | no |
 | `EventFov` | when the camera's field of view is worked out (not the held item's) | `getFov()`, `setFov(f)` | no |
 

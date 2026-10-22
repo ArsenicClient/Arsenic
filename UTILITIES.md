@@ -48,8 +48,11 @@ animation durations `DUR_HOVER/PRESS/TOGGLE/EXPAND`), `gui/themes/ThemeManager` 
 | `DrawUtils` | All 2D drawing: `drawRect`, `drawRoundedRect`, `drawRoundedOutline`, `drawBorderedRoundedRect`, gradients, `drawShadow`, `drawBlurredShadow`, `drawGlassRect`, circles, triangle. **`drawVerticalGradient(x1,y1,x2,y2,top,bottom)`** for plain top→bottom ARGB gradients. |
 | `RenderUtils` | World drawing through the game's gizmos, in absolute world positions and only inside `EventRenderWorldLast`: `renderBlock`, `renderBox`, `drawBoundingBox`, `drawLine`, `drawQuad`, `drawTriangle`, `drawFlatCircle`, `drawFilledCircle`, `drawRing`, `drawPoint`, `drawWorldText`, `drawCircle(entity, ...)`; `interpolatedPosition(entity)`, `cameraPosition()`, textures (`getResourcePath`), colour interpolation. |
 | `EntityGlow` | `glow(entity, rgb)` outlines an entity through walls for this frame (the vanilla glowing outline). |
+| `ChamsRenderer` | ESP's chams: flat colour player models through walls, by swapping the model's render type. |
+| `BlurBackdrop`, `QuadBatch.sampleScreen` | A blurred copy of the frame behind the HUD; while sampling, shapes are filled with it at their screen position (frosted panels, see `EventShader.Blur`). |
 | `TargetFx` | The target-indicator styles shared by KillAura and the target HUD. |
 | `GuiCanvas`, `QuadBatch`, `RenderContext` | The 2D draw target `DrawUtils` writes to; batched quads. |
+| `custommainmenu/MenuTheme`, `ScreenTransition` | The menu look every screen uses (backdrop, pills, lists, sliders) and the cross-fade between screens. `gui/ArsenicSplash` is the loading screen. |
 | `WorldToScreen` | Project a world position onto the screen for 2D overlays. |
 | `ScissorUtils` | Nested scissor stack: `subScissor`, `endSubScissor`, `resetScissor`. Use for clipped scroll areas. |
 | `PosInfo`, `RenderInfo` | Small carriers passed through GUI/font draw calls. |

@@ -85,8 +85,10 @@ public class Arsenic implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("arsenic", "hud"), (graphics, deltaTracker) -> {
             try (RenderContext ignored = RenderContext.begin(graphics)) {
                 PostProcessing postProcessing = moduleManager.getModuleByClass(PostProcessing.class);
-                if (postProcessing != null && postProcessing.isEnabled())
+                if (postProcessing != null && postProcessing.isEnabled()) {
+                    postProcessing.renderBlur();
                     postProcessing.renderGlow();
+                }
                 eventManager.post(new EventRender2D(graphics, deltaTracker.getGameTimeDeltaPartialTick(false)));
             }
         });

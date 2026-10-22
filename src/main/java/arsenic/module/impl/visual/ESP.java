@@ -32,14 +32,13 @@ public class ESP extends Module {
         Box,
         /** Coloured outline through walls - vanilla's glowing-entity outline, in the team colour. */
         Glow,
-        /**
-         * Flat coloured player models on 1.8. Modern Minecraft renders entities through its own
-         * feature pipeline, so this now draws the same through-wall outline as Glow.
-         */
+        /** Flat, translucent player models in the team colour, through walls (see ChamsRenderer). */
         Chams
     }
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
+
+    private static final float CHAMS_ALPHA = 0.6f;
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
@@ -53,7 +52,7 @@ public class ESP extends Module {
         }
     };
 
-    private boolean isTarget(Entity entity) {
+    public boolean isTarget(Entity entity) {
         return entity instanceof Player player && player != mc.player && !AntiBot.isBot(player);
     }
 
@@ -73,7 +72,19 @@ public class ESP extends Module {
 
     /** Read by MixinMinecraft#shouldEntityAppearGlowing. */
     public boolean shouldGlow(Entity entity) {
-        return isEnabled() && mode.getValue() != Mode.Box && isTarget(entity);
+        return isEnabled() && mode.getValue() == Mode.Glow && isTarget(entity);
+    }
+
+    public boolean isChamsEnabled() {
+        return mode.getValue() == Mode.Chams;
+    }
+
+    public int getChamsColour(Player entity) {
+        return resolveColour(entity);
+    }
+
+    public float getChamsAlpha() {
+        return CHAMS_ALPHA;
     }
 
     /** Read by MixinEntity#getTeamColor so the outline takes the BedWars team colour. */
