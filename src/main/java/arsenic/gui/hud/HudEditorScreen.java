@@ -2,15 +2,13 @@ package arsenic.gui.hud;
 
 import arsenic.utils.java.MathUtils;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.function.IntConsumer;
-import java.util.function.IntSupplier;
 
 import arsenic.gui.click.UITheme;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
-import arsenic.module.impl.visual.HUD;
-import arsenic.module.impl.visual.Radar;
+import arsenic.module.Module;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.gui.screens.Screen;
@@ -38,48 +36,27 @@ public class HudEditorScreen extends Screen {
     private float resetX1, resetY1, resetX2, resetY2;
 
     private static final class Element {
+        final HudElement h;
         final String label;
-        final IntSupplier getX, getY;
-        final IntConsumer setX, setY;
-        int width, height;
-        final IntSupplier sizeW, sizeH;
-        final boolean rightAnchored;
 
-        Element(String label, IntSupplier getX, IntConsumer setX, IntSupplier getY, IntConsumer setY,
-                int width, int height, boolean rightAnchored) {
-            this(label, getX, setX, getY, setY, width, height, rightAnchored, null, null);
+        Element(Module owner, HudElement h) {
+            this.h = h;
+            this.label = h.label;
         }
 
-        Element(String label, IntSupplier getX, IntConsumer setX, IntSupplier getY, IntConsumer setY,
-                int width, int height, boolean rightAnchored, IntSupplier sizeW, IntSupplier sizeH) {
-            this.label = label;
-            this.getX = getX;
-            this.setX = setX;
-            this.getY = getY;
-            this.setY = setY;
-            this.width = width;
-            this.height = height;
-            this.rightAnchored = rightAnchored;
-            this.sizeW = sizeW;
-            this.sizeH = sizeH;
-        }
+        int width() { return h.width; }
+
+        int height() { return h.height; }
 
         float x1(int screenWidth) {
-            return rightAnchored ? screenWidth + getX.getAsInt() - width : getX.getAsInt();
+            return h.rightAnchored ? screenWidth + h.x - h.width : h.x;
         }
 
-        float y1() { return getY.getAsInt(); }
-
-        void refresh() {
-            if (sizeW != null)
-                width = sizeW.getAsInt();
-            if (sizeH != null)
-                height = sizeH.getAsInt();
-        }
+        float y1() { return h.y; }
 
         void moveTo(int screenWidth, float x, float y) {
-            setX.accept(Math.round(rightAnchored ? x + width - screenWidth : x));
-            setY.accept(Math.round(y));
+            h.x = Math.round(h.rightAnchored ? x + h.width - screenWidth : x);
+            h.y = Math.round(y);
         }
     }
 
@@ -90,36 +67,20 @@ public class HudEditorScreen extends Screen {
     @Override
     protected void init() {
         elements.clear();
-        elements.add(new Element("Module List",
-                () -> HUD.arrayListX, v -> HUD.arrayListX = v,
-                () -> HUD.arrayListY, v -> HUD.arrayListY = v, 92, 70, true));
-        elements.add(new Element("Watermark",
-                () -> HUD.watermarkX, v -> HUD.watermarkX = v,
-                () -> HUD.watermarkY, v -> HUD.watermarkY = v, 78, 16, false,
-                () -> HUD.watermarkW, () -> HUD.watermarkH));
-        elements.add(new Element("TargetHUD",
-                () -> HUD.targetHUDX, v -> HUD.targetHUDX = v,
-                () -> HUD.targetHUDY, v -> HUD.targetHUDY = v, 152, 52, false));
-        elements.add(new Element("Coordinates",
-                () -> HUD.coordsX, v -> HUD.coordsX = v,
-                () -> HUD.coordsY, v -> HUD.coordsY = v, 96, 16, false,
-                () -> HUD.coordsW, () -> HUD.coordsH));
-        elements.add(new Element("Keybinds",
-                () -> HUD.keybindsX, v -> HUD.keybindsX = v,
-                () -> HUD.keybindsY, v -> HUD.keybindsY = v, 104, 46, false,
-                () -> HUD.keybindsW, () -> HUD.keybindsH));
-        elements.add(new Element("Radar",
-                () -> Radar.radarX, v -> Radar.radarX = v,
-                () -> Radar.radarY, v -> Radar.radarY = v, 124, 124, false));
+        // every HUD spot of the enabled modules, addons included
+        Arsenic.getArsenic().getModuleManager().getModules().stream()
+                .sorted(Comparator.comparing(Module::getName))
+                .forEach(m -> m.getHudElements().stream()
+                        .filter(h -> m.isEnabled() && h.active.getAsBoolean())
+                        .forEach(h -> elements.add(new Element(m, h))));
 
-        elements.forEach(Element::refresh);
         snapOnScreenElements();
     }
 
     private void snapOnScreenElements() {
         for (Element e : elements) {
             float x1 = e.x1(width), y1 = e.y1();
-            float clampedX = Math.max(-e.width + 12, Math.min(width - 12, x1));
+            float clampedX = Math.max(-e.width() + 12, Math.min(width - 12, x1));
             float clampedY = MathUtils.clamp(y1, 0, height - 12);
             if (clampedX != x1 || clampedY != y1)
                 e.moveTo(width, clampedX, clampedY);
@@ -138,7 +99,6 @@ public class HudEditorScreen extends Screen {
     }
 
     private void draw(int mouseX, int mouseY) {
-        elements.forEach(Element::refresh);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
         DrawUtils.drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
@@ -171,7 +131,7 @@ public class HudEditorScreen extends Screen {
 
     private void drawElement(FontRendererExtension<?> fr, Element e, int mouseX, int mouseY) {
         float x1 = e.x1(width), y1 = e.y1();
-        float x2 = x1 + e.width, y2 = y1 + e.height;
+        float x2 = x1 + e.width(), y2 = y1 + e.height();
         boolean active = dragging == e;
         boolean hovered = MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2);
 
@@ -234,7 +194,6 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        elements.forEach(Element::refresh);
         int mouseX = (int) event.x(), mouseY = (int) event.y();
         if (Keys.fromSdlButton(event.button()) != 0)
             return false;
@@ -245,14 +204,14 @@ public class HudEditorScreen extends Screen {
             return true;
         }
         if (inside(mouseX, mouseY, resetX1, resetY1, resetX2, resetY2)) {
-            HUD.resetPositions();
+            elements.forEach(e -> e.h.reset());
             return true;
         }
 
         for (int i = elements.size() - 1; i >= 0; i--) {
             Element e = elements.get(i);
             float x1 = e.x1(width), y1 = e.y1();
-            if (inside(mouseX, mouseY, x1, y1, x1 + e.width, y1 + e.height)) {
+            if (inside(mouseX, mouseY, x1, y1, x1 + e.width(), y1 + e.height())) {
                 dragging = e;
                 dragOffsetX = (int) (mouseX - x1);
                 dragOffsetY = (int) (mouseY - y1);
@@ -264,7 +223,6 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        elements.forEach(Element::refresh);
         int mouseX = (int) event.x(), mouseY = (int) event.y();
         if (dragging == null || Keys.fromSdlButton(event.button()) != 0)
             return false;
@@ -275,15 +233,15 @@ public class HudEditorScreen extends Screen {
         activeGuidesX.clear();
         activeGuidesY.clear();
 
-        targetX = snapAxis(targetX, dragging.width, candidateXs(dragging), activeGuidesX);
-        targetY = snapAxis(targetY, dragging.height, candidateYs(dragging), activeGuidesY);
+        targetX = snapAxis(targetX, dragging.width(), candidateXs(dragging), activeGuidesX);
+        targetY = snapAxis(targetY, dragging.height(), candidateYs(dragging), activeGuidesY);
 
         if (GRID > 1) {
             targetX = Math.round(targetX / GRID) * (float) GRID;
             targetY = Math.round(targetY / GRID) * (float) GRID;
         }
 
-        targetX = Math.max(-dragging.width + 12, Math.min(width - 12, targetX));
+        targetX = Math.max(-dragging.width() + 12, Math.min(width - 12, targetX));
         targetY = MathUtils.clamp(targetY, 0, height - 12);
 
         dragging.moveTo(width, targetX, targetY);
@@ -323,8 +281,8 @@ public class HudEditorScreen extends Screen {
                 continue;
             float x1 = e.x1(width);
             list.add(x1);
-            list.add(x1 + e.width / 2f);
-            list.add(x1 + e.width);
+            list.add(x1 + e.width() / 2f);
+            list.add(x1 + e.width());
         }
         return list;
     }
@@ -339,8 +297,8 @@ public class HudEditorScreen extends Screen {
                 continue;
             float y1 = e.y1();
             list.add(y1);
-            list.add(y1 + e.height / 2f);
-            list.add(y1 + e.height);
+            list.add(y1 + e.height() / 2f);
+            list.add(y1 + e.height());
         }
         return list;
     }

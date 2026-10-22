@@ -2,6 +2,7 @@ package arsenic.module.impl.player;
 
 import arsenic.utils.io.Keys;
 import com.mojang.blaze3d.platform.InputConstants;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -14,7 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.HitResult;
 import arsenic.utils.io.Keys;
 
-@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true)
+@ModuleInfo(name = "AutoTool",category = ModuleCategory.PLAYER, hidden = true, tier = ModuleTier.LEGIT)
 public class AutoTool extends Module {
     public final BooleanProperty shiftOnly = new BooleanProperty("Shift Only", false);
 

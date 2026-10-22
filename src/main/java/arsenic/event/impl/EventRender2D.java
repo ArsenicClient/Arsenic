@@ -25,4 +25,9 @@ public class EventRender2D implements Event {
     public int getWidth() { return graphics.guiWidth(); }
 
     public int getHeight() { return graphics.guiHeight(); }
+
+    /** The scaled screen size under its 1.8 name. */
+    public arsenic.utils.render.ScaledResolution getSr() {
+        return new arsenic.utils.render.ScaledResolution(net.minecraft.client.Minecraft.getInstance());
+    }
 }

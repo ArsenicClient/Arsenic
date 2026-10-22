@@ -1,6 +1,9 @@
 package arsenic.module.impl.ghost;
 
-import arsenic.utils.timer.MSTimer;
+import arsenic.module.ModuleTier;
+import arsenic.utils.keystrokes.SyntheticKeys;
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -14,28 +17,27 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
-import arsenic.utils.java.JavaUtils;
 import arsenic.utils.java.SoundUtils;
+import arsenic.utils.click.ClickManager;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.MovingObjectPosition;
 
-@ModuleInfo(name = "Clicker", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Clicker", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class Clicker extends Module {
 
     public final RangeProperty rangeProperty = new RangeProperty("Cps", new RangeValue(1, 20, 7, 9, 1));
-    final MSTimer timer = new MSTimer();
-    private long cps,prevCps;
     private final MSTimer soundTimer = new MSTimer();
     private boolean lmbDown;
-    private int lastDropTick = -1;
     
     public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", true);
+    @PropertyGroup(Group.VISUAL)
+    public final BooleanProperty clickSounds = new BooleanProperty("Click Sounds", true);
 
     @Override
     public String getHudInfo() {
-        return lmbDown ? cps + " cps" : rangeProperty.getValueString();
+        return lmbDown ? String.format("%.1f cps", ClickManager.get().getMedian(ClickManager.Client.CLICKER)) : rangeProperty.getValueString();
     }
 
     private boolean shouldPlayClickSound() {
@@ -61,25 +63,19 @@ public class Clicker extends Module {
         if (weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return;
 
-        int tick = mc.thePlayer.ticksExisted;
-        if (tick % 12 == 0 && tick != lastDropTick) {
-            lastDropTick = tick;
-            cps -= (long) JavaUtils.getRandom(1,3);
-        }
-
-        if (cps == prevCps) cps -= (long) JavaUtils.getRandom(1,3);
-
-        cps = Math.max(1, cps);
-        if (timer.hasTimeElapsed(1000L / cps)) {
-            if (shouldPlayClickSound() && soundTimer.finished(80)) {
+        ClickManager clicks = ClickManager.get();
+        if (clicks.isDue(ClickManager.Client.CLICKER)) {
+            if (clickSounds.getValue() && shouldPlayClickSound() && soundTimer.finished(80)) {
                 SoundUtils.playSound("click");
                 soundTimer.reset();
             }
-            int key = mc.gameSettings.keyBindAttack.getKeyCode();
-            KeyBinding.onTick(key);
-            prevCps = cps;
-            cps = (long) rangeProperty.getValue().getRandomInRange();
-            timer.reset();
+            clickOnce();
+            clicks.onClick(ClickManager.Client.CLICKER, rangeProperty.getValue());
         }
     };
+
+    private void clickOnce() {
+        KeyBinding.onTick(mc.gameSettings.keyBindAttack.getKeyCode());
+        SyntheticKeys.press(SyntheticKeys.Key.LMB);
+    }
 }

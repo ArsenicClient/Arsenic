@@ -1,4 +1,5 @@
 package arsenic.module.impl.player;
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.ColorUtils;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -32,7 +33,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
-@ModuleInfo(name = "AutoBlockIn", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AutoBlockIn", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class AutoBlockIn extends Module {
     public final DoubleProperty speed = new DoubleProperty("Speed", new DoubleValue(1, 20, 15, 1));
 

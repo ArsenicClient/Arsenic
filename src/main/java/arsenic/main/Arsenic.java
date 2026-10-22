@@ -1,9 +1,9 @@
 package arsenic.main;
 
+import arsenic.addon.AddonManager;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.config.FriendManager;
-import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.event.impl.EventRender2D;
 import arsenic.gui.ErrorOverlay;
@@ -46,6 +46,7 @@ public class Arsenic implements ClientModInitializer {
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
+    private final AddonManager addonManager = new AddonManager();
     private final Fonts fonts = new Fonts();
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
@@ -54,7 +55,6 @@ public class Arsenic implements ClientModInitializer {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
-    private final LaunchID launchID = new LaunchID();
     private final FriendManager friendManager = new FriendManager();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
@@ -66,6 +66,9 @@ public class Arsenic implements ClientModInitializer {
         getEventManager().subscribe(serverInfo);
         getEventManager().subscribe(notificationManager);
         getEventManager().subscribe(new LagManager());
+        getEventManager().subscribe(new arsenic.utils.lag.PingTracker());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BadPacketsManager());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BedwarsTracker());
         getEventManager().subscribe(errorOverlay);
 
         logger.info("Subscribed managers");
@@ -122,13 +125,28 @@ public class Arsenic implements ClientModInitializer {
     public final long getClientVersion() { return clientVersion; }
 
     @Contract(pure = true)
-    public final @NotNull String getClientVersionString() { return String.valueOf(clientVersion); }
+    public final @NotNull String getClientVersionString() {
+        if (versionString == null)
+            versionString = readJarVersion();
+        return versionString;
+    }
+
+    private static String versionString;
+
+    /** The release version ("v3.n"), from fabric.mod.json (filled in by the build). */
+    private static String readJarVersion() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("arsenic")
+                .map(mod -> "v" + mod.getMetadata().getVersion().getFriendlyString())
+                .orElse("dev");
+    }
 
     public final Logger getLogger() { return logger; }
 
     public final EventManager getEventManager() { return eventManager; }
 
     public final ModuleManager getModuleManager() { return moduleManager; }
+
+    public final AddonManager getAddonManager() { return addonManager; }
 
     public final ErrorOverlay getErrorOverlay() { return errorOverlay; }
 
@@ -149,8 +167,6 @@ public class Arsenic implements ClientModInitializer {
     public final ThemeManager getThemeManager() { return themeManager; }
 
     public final ServerInfo getServerInfo() { return serverInfo; }
-
-    public final LaunchID getLaunchID() { return launchID; }
 
     public final FriendManager getFriendManager() { return friendManager; }
 }

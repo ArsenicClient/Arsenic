@@ -1,5 +1,6 @@
 package arsenic.gui.click;
 
+import arsenic.utils.render.GuiCanvas;
 import arsenic.utils.render.RenderContext;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -16,6 +17,9 @@ import net.minecraft.network.chat.Component;
  * here the design space is mapped onto the vanilla GUI space by scaling the pose, and mouse
  * coordinates are mapped back the other way. Subclasses implement the {@code drawScr} /
  * {@code mouseClick} / ... hooks and only ever see design-unit coordinates.
+ * <p>
+ * Screens that return true from {@link #fixedCanvas()} lay out on the {@link GuiCanvas} instead: the design
+ * units are canvas units, scaled to fit the window and centred, so they look the same on every monitor.
  */
 public class CustomGuiScreen extends Screen {
 
@@ -51,30 +55,56 @@ public class CustomGuiScreen extends Screen {
         return false;
     }
 
+    /** Screens that lay out on the fixed {@link GuiCanvas} override this, so they look the same on every monitor. */
+    protected boolean fixedCanvas() {
+        return false;
+    }
+
+    /** Window pixels per design unit. */
+    private float pixelsPerUnit() {
+        return fixedCanvas() ? GuiCanvas.scale() : scale;
+    }
+
     /** Design units per vanilla GUI unit. */
     protected float factor() {
-        return scale / (float) minecraft.getWindow().getGuiScale();
+        return pixelsPerUnit() / (float) minecraft.getWindow().getGuiScale();
     }
 
     @Override
     protected final void init() {
-        float f = factor();
-        width = Math.round(width / f);
-        height = Math.round(height / f);
+        if (fixedCanvas()) {
+            scale = GuiCanvas.scale();
+            width = (int) GuiCanvas.WIDTH;
+            height = (int) GuiCanvas.HEIGHT;
+        } else {
+            float f = factor();
+            width = Math.round(width / f);
+            height = Math.round(height / f);
+        }
         this.doInit();
     }
 
     @Override
     public final void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
+        boolean canvas = fixedCanvas();
+        if (canvas) {
+            GuiCanvas.setActive(true);
+            scale = GuiCanvas.scale();
+        }
         float f = factor();
-        curWidth = minecraft.getWindow().getWidth() / scale;
-        curHeight = minecraft.getWindow().getHeight() / scale;
+        float guiScale = (float) minecraft.getWindow().getGuiScale();
+        curWidth = minecraft.getWindow().getWidth() / pixelsPerUnit();
+        curHeight = minecraft.getWindow().getHeight() / pixelsPerUnit();
         graphics.pose().pushMatrix();
+        if (canvas)
+            graphics.pose().translate(GuiCanvas.offsetX() / guiScale, GuiCanvas.offsetY() / guiScale);
         graphics.pose().scale(f, f);
         try (RenderContext ignored = RenderContext.begin(graphics)) {
-            this.drawScr(toDesign(mouseX), toDesign(mouseY), partialTicks);
+            this.drawScr(getRealMouseX(), getRealMouseY(), partialTicks);
         } finally {
             graphics.pose().popMatrix();
+            if (canvas)
+                GuiCanvas.setActive(false);
         }
     }
 
@@ -133,19 +163,23 @@ public class CustomGuiScreen extends Screen {
     }
 
     public int getRealMouseX(double guiX) {
+        if (fixedCanvas())
+            return (int) GuiCanvas.unitX((float) (guiX * minecraft.getWindow().getGuiScale()));
         return toDesign(guiX);
     }
 
     public int getRealMouseY(double guiY) {
+        if (fixedCanvas())
+            return (int) GuiCanvas.unitY((float) (guiY * minecraft.getWindow().getGuiScale()));
         return toDesign(guiY);
     }
 
     /** Pointer position in design units, for code that polls instead of handling events. */
     public int getRealMouseX() {
-        return toDesign(minecraft.mouseHandler.getScaledXPos(minecraft.getWindow()));
+        return getRealMouseX(minecraft.mouseHandler.getScaledXPos(minecraft.getWindow()));
     }
 
     public int getRealMouseY() {
-        return toDesign(minecraft.mouseHandler.getScaledYPos(minecraft.getWindow()));
+        return getRealMouseY(minecraft.mouseHandler.getScaledYPos(minecraft.getWindow()));
     }
 }

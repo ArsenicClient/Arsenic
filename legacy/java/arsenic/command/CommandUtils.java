@@ -19,6 +19,21 @@ import java.util.stream.Collectors;
 
 public final class CommandUtils {
 
+    /** A loaded module by name; addons are modules once loaded (at start-up, injection or .addon reload). */
+    public static arsenic.module.Module findModule(String name) {
+        return arsenic.main.Arsenic.getArsenic().getModuleManager().getModuleByName(name);
+    }
+
+    /** What to tell the player when {@link #findModule} finds nothing. */
+    public static String missingModule(String name) {
+        return isAddon(name) ? name + " is not loaded, run .addon reload (or see Errors in the Addon Manager)" : name + " is not a valid module";
+    }
+
+    /** True when there is an addon with this name. */
+    public static boolean isAddon(String name) {
+        return arsenic.main.Arsenic.getArsenic().getAddonManager().findAddon(name) != null;
+    }
+
     private CommandUtils() {}
 
     public static final class PropMatch {

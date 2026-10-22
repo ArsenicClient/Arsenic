@@ -31,7 +31,7 @@ public class Theme implements ISerializable {
     private int configsHoverBorder = 0xFF2A2A35;
     private int enumBackground = new Color(26, 25, 25, 205).getRGB();
     private int folderBackground = new Color(26, 25, 25, 150).getRGB();
-    private int textPrimary = 0xFFDDDDDD;
+    private int textPrimary = 0xFFFFFFFF;
     private int textSecondary = 0xFF888888;
     private int textMuted = 0xFF444444;
     private int error = 0xFFE24B4A;

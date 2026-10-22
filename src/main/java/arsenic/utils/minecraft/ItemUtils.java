@@ -49,6 +49,29 @@ public class ItemUtils extends UtilityClass {
         return equippable.slot();
     }
 
+    /** The worn armour piece by 1.8's armorInventory index: 0 boots, 1 leggings, 2 chestplate, 3 helmet. */
+    public static ItemStack armorInventory(net.minecraft.world.entity.LivingEntity entity, int index) {
+        return entity.getItemBySlot(armorSlotFromIndex(3 - index));
+    }
+
+    /** The item with this id ("diamond_sword", "minecraft:ender_pearl"), or null. */
+    public static net.minecraft.world.item.Item item(String id) {
+        net.minecraft.resources.Identifier key = id == null ? null : net.minecraft.resources.Identifier.tryParse(id.trim().toLowerCase(java.util.Locale.ROOT));
+        if (key == null)
+            return null;
+        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(key)
+                .filter(i -> i != net.minecraft.world.item.Items.AIR).orElse(null);
+    }
+
+    /** The block with this id ("bed", "minecraft:chest"), or null. */
+    public static net.minecraft.world.level.block.Block block(String id) {
+        net.minecraft.resources.Identifier key = id == null ? null : net.minecraft.resources.Identifier.tryParse(id.trim().toLowerCase(java.util.Locale.ROOT));
+        if (key == null)
+            return null;
+        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(key)
+                .filter(b -> b != net.minecraft.world.level.block.Blocks.AIR).orElse(null);
+    }
+
     /** 1.8 armour index: 0 helmet, 1 chestplate, 2 leggings, 3 boots. */
     public static EquipmentSlot armorSlotFromIndex(int index) {
         return switch (index) {

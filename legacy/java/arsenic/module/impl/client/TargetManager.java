@@ -1,12 +1,12 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.config.FriendManager;
 import arsenic.event.impl.EventMouse;
 import arsenic.event.impl.EventPacket;
 import net.minecraft.util.MovingObjectPosition;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.player.AutoHunt;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.entity.player.EntityPlayer;
@@ -21,6 +21,12 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.play.client.C02PacketUseEntity;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 
@@ -32,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true)
+@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true, tier = ModuleTier.QOL)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),
@@ -176,10 +182,18 @@ public class TargetManager extends Module {
         return v != null ? v : sortMode.getValue().sv.value(player);
     }
 
+    /** Modules (e.g. addons) may restrict who can be targeted while they are enabled. */
+    private static boolean allowedByModules(EntityPlayer ep) {
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
+            if (m.isEnabled() && !m.allowsTarget(ep))
+                return false;
+        return true;
+    }
+
     public static boolean isValidTarget(EntityPlayer ep) {
         return (ep != mc.thePlayer)
                 && !Arsenic.getArsenic().getFriendManager().isFriend(ep)
-                && AutoHunt.allowsTarget(ep)
+                && allowedByModules(ep)
                 && (bots.getValue()      || !AntiBot.isBot(ep))
                 && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
                 && (invis.getValue()      || !ep.isInvisible())
@@ -190,13 +204,54 @@ public class TargetManager extends Module {
     public enum SortMode {
         SmartSwitch(TargetManager::getServerHurtTimeOnPacketArrival),
         Fov(player -> (float) Math.abs(RotationUtils.fovFromEntity(player))),
-        Health(TargetManager::getEffectiveHealth);
+        Health(TargetManager::getHealthSortValue);
 
         private final SortValue sv;
 
         SortMode(SortValue sv) {
             this.sv = sv;
         }
+    }
+
+    /** Everyone one hit from death ties at the top (the stable sort keeps their order); the rest go by effective health. */
+    private static float getHealthSortValue(EntityPlayer player) {
+        return isOneHit(player) ? -1f : getEffectiveHealth(player);
+    }
+
+    public static boolean isOneHit(EntityPlayer player) {
+        return player.getHealth() + player.getAbsorptionAmount() <= getHitDamage(player);
+    }
+
+    /** Vanilla 1.8 damage of a non-crit hit with the held item against this player, after armour, resistance and protection. */
+    public static float getHitDamage(EntityPlayer target) {
+        ItemStack held = mc.thePlayer.getHeldItem();
+        double dmg = 1.0;
+        if (held != null)
+            for (Map.Entry<String, AttributeModifier> m : held.getAttributeModifiers().entries())
+                if (m.getKey().equals(SharedMonsterAttributes.attackDamage.getAttributeUnlocalizedName())
+                        && m.getValue().getOperation() == 0)
+                    dmg += m.getValue().getAmount();
+
+        PotionEffect weakness = mc.thePlayer.getActivePotionEffect(Potion.weakness);
+        if (weakness != null)
+            dmg -= 0.5 * (weakness.getAmplifier() + 1);
+        PotionEffect strength = mc.thePlayer.getActivePotionEffect(Potion.damageBoost);
+        if (strength != null)
+            dmg *= 1.0 + 1.3 * (strength.getAmplifier() + 1);
+        dmg = Math.max(0.0, dmg);
+        if (held != null)
+            dmg += EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, held) * 1.25;
+
+        dmg *= (25.0 - target.getTotalArmorValue()) / 25.0;
+        PotionEffect resistance = target.getActivePotionEffect(Potion.resistance);
+        if (resistance != null)
+            dmg *= Math.max(0, 25 - (resistance.getAmplifier() + 1) * 5) / 25.0;
+
+        int epf = Math.min(25, EnchantmentHelper.getEnchantmentModifierDamage(target.inventory.armorInventory,
+                DamageSource.causePlayerDamage(mc.thePlayer)));
+        if (epf > 0) // the server rolls (epf+1)/2 + rand(epf/2 + 1); use the expected value
+            dmg *= (25.0 - Math.min(20.0, ((epf + 1) >> 1) + (epf >> 1) / 2.0)) / 25.0;
+        return (float) dmg;
     }
 
     private static float getEffectiveHealth(EntityPlayer player) {

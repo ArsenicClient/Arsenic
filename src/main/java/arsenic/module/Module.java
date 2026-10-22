@@ -7,10 +7,12 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
+import arsenic.command.Command;
+import arsenic.gui.hud.HudElement;
 import arsenic.main.Arsenic;
-import arsenic.module.property.IReliable;
 import arsenic.module.property.Property;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.PropertyGroup;
+import arsenic.module.property.Visibility;
 import arsenic.module.property.SerializableProperty;
 import arsenic.notifications.Notification;
 import arsenic.notifications.NotificationManager;
@@ -18,6 +20,7 @@ import arsenic.notifications.NotificationType;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.interfaces.ISerializable;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 
 public class Module implements IContainer<Property<?>>, ISerializable {
 
@@ -32,11 +35,16 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     private boolean hidden;
     private String displayName;
     private int keybind;
+    /** Set for modules that came from an addon. They stay out of the category lists and appear in search and the Addon Manager. */
+    private boolean addon;
 
     private boolean registered;
 
     private final List<Property<?>> properties = new ArrayList<>();
     protected final List<SerializableProperty<?>> serializableProperties = new ArrayList<>();
+    private final List<HudElement> hudElements = new ArrayList<>();
+    private final List<Command> commands = new ArrayList<>();
+    private final List<String> propertyProblems = new ArrayList<>();
 
     public Module() {
         if (!this.getClass().isAnnotationPresent(ModuleInfo.class))
@@ -62,6 +70,40 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         properties.add(p);
     }
 
+    /** Registers a draggable HUD spot for this module; it appears in the HUD editor and is saved with the module. */
+    protected final HudElement hudElement(String label, int x, int y, int width, int height) {
+        return hudElement(label, x, y, width, height, false);
+    }
+
+    protected final HudElement hudElement(String label, int x, int y, int width, int height, boolean rightAnchored) {
+        HudElement element = new HudElement(label, x, y, width, height, rightAnchored);
+        hudElements.add(element);
+        return element;
+    }
+
+    /** Registers a chat command that exists while this module is loaded (used by addons). */
+    protected final void registerCommand(Command command) {
+        commands.add(command);
+    }
+
+    public final List<Command> getCommands() {
+        return commands;
+    }
+
+    /** While this module is enabled, TargetManager only accepts targets this returns true for. */
+    public boolean allowsTarget(Player player) {
+        return true;
+    }
+
+    /** True while the module is moving items around the hotbar, so AutoWeapon keeps its hands off. */
+    public boolean isSwappingHotbar() {
+        return false;
+    }
+
+    public final List<HudElement> getHudElements() {
+        return hudElements;
+    }
+
     public void registerProperties() throws IllegalAccessException {
         if (enabled && !registered) {
             Arsenic.getInstance().getEventManager().subscribe(this);
@@ -73,34 +115,22 @@ public class Module implements IContainer<Property<?>>, ISerializable {
                 continue;
 
             Property<?> property = (Property<?>) fieldObject;
+            PropertyGroup group = field.getAnnotation(PropertyGroup.class);
+            if (group != null)
+                property.setGroup(group.value());
             properties.add(property);
             if (property instanceof SerializableProperty<?>)
                 serializableProperties.add((SerializableProperty<?>) property);
         }
-        for (final Field field : getClass().getDeclaredFields()) {
-            try {
-                if (!field.isAccessible())
-                    field.setAccessible(true);
-                if (field.isAnnotationPresent(PropertyInfo.class)) {
-                    Property<?> property = (Property<?>) field.get(this);
-                    final PropertyInfo info = field.getDeclaredAnnotation(PropertyInfo.class);
-                    for (final Field field2 : getClass().getDeclaredFields()) {
-                        if (!field2.isAccessible())
-                            field2.setAccessible(true);
-                        Object obj = field2.get(this);
-                        if (!(obj instanceof SerializableProperty))
-                            continue;
-                        SerializableProperty<?> p = (SerializableProperty<?>) field2.get(this);
-                        if (p instanceof IReliable && p.getJsonKey().equals(info.reliesOn())) {
-                            property.setVisible(((IReliable) p).valueCheck(info.value()));
-                            break;
-                        }
-                    }
-                }
-            } catch (ClassCastException e) {
-                throw new RuntimeException("The @PropertyInfo is only meant for properties & the target should only be Serializable properties that implement IReliable");
-            }
-        }
+        propertyProblems.clear();
+        propertyProblems.addAll(Visibility.wire(this));
+        for (String problem : propertyProblems)
+            Arsenic.getArsenic().getLogger().error("{}: {}", name, problem);
+    }
+
+    /** What was wrong with this module's @ShowWhen rules when it was registered (see {@link Visibility}). */
+    public final List<String> getPropertyProblems() {
+        return propertyProblems;
     }
 
     public String getHudInfo() {
@@ -195,6 +225,14 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         this.displayName = displayName;
     }
 
+    public final boolean isAddon() {
+        return addon;
+    }
+
+    final void markAddon() {
+        addon = true;
+    }
+
     public final int getKeybind() {
         return keybind;
     }
@@ -212,24 +250,57 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         return properties;
     }
 
+    /** Each value loads on its own: a missing or broken one keeps its current value and the rest still load. */
     @Override
     public void loadFromJson(JsonObject obj) {
+        if (obj.has("hud") && obj.get("hud").isJsonObject())
+            hudElements.forEach(element -> element.load(obj.getAsJsonObject("hud")));
         try {
-
-            keybind = obj.get("bind").getAsInt();
-            // configs written by the 1.8 client stored LWJGL2 key codes
-            if (!obj.has("bindFormat"))
-                keybind = arsenic.utils.io.Keys.fromLwjgl2(keybind);
-            setEnabledSilently(obj.get("enabled").getAsBoolean());
+            if (obj.has("bind")) {
+                keybind = obj.get("bind").getAsInt();
+                // configs written by the 1.8 client stored LWJGL2 key codes
+                if (!obj.has("bindFormat"))
+                    keybind = arsenic.utils.io.Keys.fromLwjgl2(keybind);
+            }
             if (obj.has("hidden"))
                 hidden = obj.get("hidden").getAsBoolean();
+        } catch (RuntimeException e) {
+            Arsenic.getArsenic().getLogger().info("Bad bind/hidden value in {}'s config", getName());
+        }
 
-            serializableProperties
-                    .forEach(property -> property.loadFromJson(obj.getAsJsonObject(property.getJsonKey())));
-        } catch (NullPointerException | IllegalArgumentException e) {
-            Arsenic.getArsenic().getLogger().info("Error loading {}'s config (If this the first launch or the first launch after an update ignore this)", getName());
+        for (SerializableProperty<?> property : serializableProperties) {
+            if (!obj.has(property.getJsonKey()) || !obj.get(property.getJsonKey()).isJsonObject())
+                continue;
+            try {
+                property.loadFromJson(obj.getAsJsonObject(property.getJsonKey()));
+            } catch (RuntimeException e) {
+                Arsenic.getArsenic().getLogger().info("Could not load {} > {} from the config: {}", getName(), property.getJsonKey(), e);
+            }
+        }
+
+        // after the settings, so onEnable sees the loaded values
+        try {
+            if (obj.has("enabled"))
+                setEnabledFromConfig(obj.get("enabled").getAsBoolean());
+        } catch (RuntimeException e) {
+            Arsenic.getArsenic().getLogger().info("Could not apply {}'s enabled state: {}", getName(), e);
         }
         postApplyConfig();
+    }
+
+    /** In a world the module is switched like a normal toggle (onEnable/onDisable run) but without a notification. */
+    private void setEnabledFromConfig(boolean enabled) {
+        if (mc.player == null || mc.level == null) {
+            setEnabledSilently(enabled);
+            return;
+        }
+        boolean wasHidden = hidden;
+        hidden = true;
+        try {
+            setEnabled(enabled);
+        } finally {
+            hidden = wasHidden;
+        }
     }
 
     protected void postApplyConfig() {
@@ -242,6 +313,12 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         obj.addProperty("bindFormat", "sdl");
         obj.addProperty("enabled", enabled);
         obj.addProperty("hidden", hidden);
+
+        if (!hudElements.isEmpty()) {
+            JsonObject hud = new JsonObject();
+            hudElements.forEach(element -> element.save(hud));
+            obj.add("hud", hud);
+        }
 
         serializableProperties.forEach(property -> property.addToJson(obj));
         return obj;

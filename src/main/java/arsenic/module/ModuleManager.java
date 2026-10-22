@@ -15,6 +15,11 @@ import java.util.stream.Collectors;
 public class ModuleManager {
 
     private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
+    /**
+     * Built-in modules of a tier this build leaves out. They are never listed, enabled or saved, but the engine reads
+     * them by class (getModuleByClass), so they still exist and stay disabled.
+     */
+    private final Map<Class<? extends Module>, Module> unavailable = new HashMap<>();
 
     public final int initialize() {
         if(modules.size() != 0)
@@ -22,13 +27,8 @@ public class ModuleManager {
 
         ClassScanner.findSubTypes("arsenic.module", Module.class).forEach(this::addModule);
 
-        // devmode.properties is only packaged into the "-dev" jar (see build.gradle devJar)
-        if(ModuleManager.class.getResource("/devmode.properties") == null) {
-            modules.entrySet().removeIf(entry -> {
-                ModuleInfo info = entry.getValue().getClass().getAnnotation(ModuleInfo.class);
-                return info != null && info.tier() == ModuleTier.DEV;
-            });
-        }
+        Arsenic.getInstance().getAddonManager().installDefaults();
+        Arsenic.getInstance().getAddonManager().load(this);
 
         Arsenic.getInstance().getEventManager().subscribe(this);
         return modules.size();
@@ -52,7 +52,8 @@ public class ModuleManager {
     }
 
     public <T extends Module> T getModuleByClass(Class<T> moduleClass) {
-        return (T) modules.get(moduleClass);
+        Module module = modules.get(moduleClass);
+        return (T) (module != null ? module : unavailable.get(moduleClass));
     }
 
     public final Module getModuleByName(String str) {
@@ -63,11 +64,10 @@ public class ModuleManager {
         return null;
     }
 
-    private static final int CLICK_GUI_KEY = com.mojang.blaze3d.platform.InputConstants.KEY_RSHIFT;
-
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
-        if (event.getKeycode() == CLICK_GUI_KEY) {
+        int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
+        if (clickGuiKey != 0 && event.getKeycode() == clickGuiKey) {
             Minecraft.getInstance().gui.setScreen(Arsenic.getArsenic().getClickGuiScreen());
             return;
         }
@@ -83,11 +83,38 @@ public class ModuleManager {
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
     };
 
+    /** Registers a module that did not come from the client jar (an addon). @return why it was rejected, or null. */
+    public String registerExternal(Module module) {
+        // modules of a tier this jar was not built with stay out, addons included
+        if (!BuildTiers.allows(module.getTier()))
+            return module.getTier().getDisplayName() + " modules are not in this build";
+        if (getModuleByName(module.getName()) != null)
+            return "a module named " + module.getName() + " already exists";
+        try {
+            module.registerProperties();
+        } catch (Exception e) {
+            return "could not register properties: " + e;
+        }
+        module.markAddon();
+        modules.put(module.getClass(), module);
+        module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::add);
+        return null;
+    }
+
+    public void unregisterExternal(Module module) {
+        modules.remove(module.getClass());
+        module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::remove);
+    }
+
     private void addModule(Class<? extends Module> moduleClass) {
         try {
             Module module = moduleClass.getDeclaredConstructor().newInstance();
             module.registerProperties();
-            modules.put(moduleClass, module);
+            ModuleInfo info = moduleClass.getAnnotation(ModuleInfo.class);
+            if (info != null && !BuildTiers.allows(info.tier()))
+                unavailable.put(moduleClass, module);
+            else
+                modules.put(moduleClass, module);
         } catch (Exception e) {e.printStackTrace();}
     }
 }

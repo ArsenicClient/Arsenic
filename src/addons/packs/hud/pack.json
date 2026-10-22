@@ -1,0 +1,27 @@
+{
+  "id": "hud",
+  "name": "HUD",
+  "description": "Information panels and warnings: hit feedback, hit counts, armour durability, health and enemy warnings, TPS, lagbacks, inventory counts, ping, detector hints, item drops, reach and the block you aim at. Client-side only.",
+  "icon": "textures/item/clock_00.png",
+  "autoInstall": false,
+  "addons": {
+    "HitMarker": "Flashes a cross on the crosshair when one of your hits lands.",
+    "HitSound": "Plays a sound when one of your hits lands, and another on a kill. Pick the sounds, volume and pitch.",
+    "HitCounter": "Counts the hits you land and take in the current fight, and resets after a quiet period.",
+    "ArmorStatus": "Panel with the durability of your armour and held item, and the nearest player's.",
+    "HealthWarning": "Flashes the screen, plays a sound and turns the HUD panel red when your health drops below a limit.",
+    "EnemyWarning": "Warns when a player who is not on your friend list comes within a chosen distance. Ignores players the AntiBot filters.",
+    "TpsMeter": "Estimates the server TPS from the time updates it sends, and shows it red below 18.",
+    "LagbackAlert": "Alerts when the server pulls you back to another position, with the distance.",
+    "ItemCounter": "Counts blocks, arrows, ender pearls and golden apples in your inventory.",
+    "PingWarning": "Shows your ping, red while it is above a limit.",
+    "ItemAlerts": "Chat alert when chosen items are dropped near you, with a short HUD line.",
+    "KnockbackMeter": "Shows how hard the last hit you took, and the last one you gave, pushed.",
+    "BowCharge": "Shows the bow charge percentage while you draw.",
+    "Speedometer": "Shows your horizontal speed in blocks per second.",
+    "NearbyCount": "Counts players nearby, split into teammates and enemies.",
+    "AfkDetector": "Lists players who have stood still for a long time.",
+    "ReachDisplay": "Shows the distance to the last entity you attacked.",
+    "MemoryUsage": "Shows the memory the game is using, in megabytes."
+  }
+}

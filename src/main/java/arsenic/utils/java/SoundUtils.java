@@ -41,6 +41,43 @@ public class SoundUtils {
     }
 
 
+    // 1.8 sound names that were renamed outright; the rest follow the general rules in byName
+    private static final java.util.Map<String, String> LEGACY_SOUNDS = java.util.Map.ofEntries(
+            java.util.Map.entry("random.orb", "entity.experience_orb.pickup"),
+            java.util.Map.entry("random.levelup", "entity.player.levelup"),
+            java.util.Map.entry("random.anvil_land", "block.anvil.land"),
+            java.util.Map.entry("random.click", "ui.button.click"),
+            java.util.Map.entry("random.pop", "entity.item.pickup"),
+            java.util.Map.entry("random.successful_hit", "entity.arrow.hit_player"),
+            java.util.Map.entry("random.bow", "entity.arrow.shoot"),
+            java.util.Map.entry("random.break", "entity.item.break"),
+            java.util.Map.entry("random.explode", "entity.generic.explode"),
+            java.util.Map.entry("random.fizz", "block.fire.extinguish"),
+            java.util.Map.entry("random.hurt", "entity.player.hurt"),
+            java.util.Map.entry("game.player.hurt", "entity.player.hurt"),
+            java.util.Map.entry("note.bd", "block.note_block.basedrum"));
+
+    /**
+     * A vanilla sound by its modern id ("entity.experience_orb.pickup") or its 1.8 name ("random.orb", "note.pling",
+     * "mob.villager.yes"), or null.
+     */
+    public static SoundEvent byName(String name) {
+        String key = name.trim().toLowerCase(java.util.Locale.ROOT);
+        if (key.startsWith("minecraft:"))
+            key = key.substring("minecraft:".length());
+        if (LEGACY_SOUNDS.containsKey(key))
+            key = LEGACY_SOUNDS.get(key);
+        else if (key.startsWith("note."))
+            key = "block.note_block." + key.substring("note.".length());
+        else if (key.startsWith("mob."))
+            key = "entity." + key.substring("mob.".length());
+        Identifier id = Identifier.tryParse(key);
+        if (id == null)
+            return null;
+        return net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.getOptional(id).orElse(null);
+    }
+
+
     private static final int[] CHORD_ENABLE   = { 0, 2, 4 };
     private static final int[] CHORD_DISABLE  = { 2, 5, 7 };
     private static final int[] CHORD_CATEGORY = { 1, 4, 6 };

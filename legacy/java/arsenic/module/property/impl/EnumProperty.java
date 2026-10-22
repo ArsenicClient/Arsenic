@@ -77,6 +77,16 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
     }
 
     @Override
+    public String currentValue() {
+        return value.name();
+    }
+
+    @Override
+    public List<String> possibleValues() {
+        return getModeNames();
+    }
+
+    @Override
     public PropertyComponent<EnumProperty<?>> createComponent() {
         return new EnumComponent(this);
     }

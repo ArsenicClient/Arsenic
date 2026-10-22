@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
@@ -22,7 +23,7 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.Color;
 
-@ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Trajectories extends Module {
 
     @EventLink

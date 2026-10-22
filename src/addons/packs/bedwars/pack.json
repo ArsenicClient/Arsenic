@@ -1,0 +1,20 @@
+{
+  "id": "bedwars",
+  "name": "BedWars",
+  "description": "Everything for BedWars: shoot down fireballs, break beds, warn when your bed is hit, read the team status from the sidebar and count final kills.",
+  "icon": "textures/block/red_wool.png",
+  "autoInstall": true,
+  "addons": {
+    "AntiFireball": "BedWars: silently aims at fireballs that come within reach and punches them away before they hit you. Ignores brand new fireballs for a moment so it never swings at your own.",
+    "Breaker": "BedWars bed breaker. Finds the nearest enemy bed, aims at it and mines it, and if something is in the way it mines whatever the line to the bed hits first. Has a vanilla-pace mode and a faster through-walls mode.",
+    "BedAlarm": "Highlights your bed once the game starts (the bed nearest your spawn, corrected if you ever hit your own bed) and alerts in chat, with a sound and a HUD flash, when it is broken.",
+    "BedwarsStatus": "Team panel from the BedWars sidebar: which beds are up, and how many players are left per team.",
+    "FinalKillCounter": "Counts final kills in BedWars from chat: yours and the game total.",
+    "BedDefender": "Walls your nearest bed in with the strongest blocks in your hotbar: obsidian first, then end stone, clay, planks, logs, glass and wool."
+  },
+  "requires": {
+    "BedwarsStatus": [
+      "hypixel/GameDetector"
+    ]
+  }
+}

@@ -2,7 +2,18 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-version = project.version
+// 3.<n>: n is the number of commits made since v3.0 (commit 903), the same numbering as the 1.8.9 client on main
+def commitCount = {
+    try {
+        def proc = ["git", "rev-list", "--count", "HEAD"].execute(null, projectDir)
+        def n = proc.text.trim()
+        proc.waitFor()
+        return proc.exitValue() == 0 ? n.toInteger() : 903
+    } catch (Exception ignored) {
+        return 903
+    }
+}()
+version = "3." + Math.max(0, commitCount - 903)
 group = project.group
 
 base {
@@ -15,6 +26,7 @@ repositories {
         url = 'https://jitpack.io'
         content { includeGroup 'com.github.jagrosh' }
     }
+    mavenCentral()
 }
 
 loom {
@@ -38,14 +50,70 @@ dependencies {
     // DiscordIPC talks to Discord over a unix socket on Linux/macOS
     implementation include("com.kohlschutter.junixsocket:junixsocket-common:2.6.2")
     implementation include("com.kohlschutter.junixsocket:junixsocket-native-common:2.6.2")
+    // Compiles addon .java files at runtime without needing a JDK; it has to read Java 25 class files
+    implementation include("org.eclipse.jdt:ecj:${project.ecj_version}")
+}
+
+// API.md: the public surface addons can call, scanned from the sources (tools/apidump/ApiDump.java) so it cannot
+// drift from the code. Written to build/generated/addon-api and bundled into the jar next to the addons.
+def addonApiDir = layout.buildDirectory.dir("generated/addon-api").get().asFile
+tasks.register("generateAddonApi") {
+    def apiEntries = [
+            "arsenic/module/Module.java", "arsenic/module/ModuleInfo.java", "arsenic/module/ModuleCategory.java",
+            "arsenic/module/ModuleTier.java", "arsenic/module/property",
+            "arsenic/event/types", "arsenic/event/impl", "arsenic/event/bus/Listener.java",
+            "arsenic/event/bus/annotations", "arsenic/event/bus/Priorities.java",
+            "arsenic/asm/RequiresPlayer.java", "arsenic/command/Command.java", "arsenic/command/CommandInfo.java",
+            "arsenic/main/Arsenic.java", "arsenic/gui/hud/HudElement.java", "arsenic/injection/accessor",
+            "arsenic/utils/rotations", "arsenic/utils/timer", "arsenic/utils/java", "arsenic/utils/minecraft",
+            "arsenic/utils/render/DrawUtils.java", "arsenic/utils/render/RenderUtils.java",
+            "arsenic/utils/render/RenderContext.java", "arsenic/utils/render/WorldToScreen.java",
+            "arsenic/utils/io/Keys.java", "arsenic/utils/lag/LagManager.java"
+    ]
+    def apiDumpClasses = layout.buildDirectory.dir("tmp/apidump").get().asFile
+    inputs.dir "src/main/java"
+    inputs.file "tools/apidump/ApiDump.java"
+    outputs.dir addonApiDir
+    outputs.file "ADDONS.md"
+
+    doLast {
+        apiDumpClasses.mkdirs()
+        ant.javac(srcdir: file("tools/apidump"), destdir: apiDumpClasses, includeantruntime: false)
+        addonApiDir.mkdirs()
+        providers.javaexec {
+            classpath apiDumpClasses
+            mainClass = "ApiDump"
+            args([file("src/main/java").absolutePath, new File(addonApiDir, "API.md").absolutePath] + apiEntries)
+        }.result.get()
+        // embed the dump at the bottom of ADDONS.md between its markers
+        def doc = file("ADDONS.md")
+        def api = new File(addonApiDir, "API.md").getText("UTF-8")
+                .replaceFirst(/(?s)^.*?\n(?=## )/, "")
+                .replaceAll(/(?m)^## /, "### ")
+        def text = doc.getText("UTF-8")
+        def begin = "<!-- API:BEGIN -->", end = "<!-- API:END -->"
+        int b = text.indexOf(begin), e = text.indexOf(end)
+        if (b >= 0 && e > b) {
+            def updated = text.substring(0, b + begin.length()) + "\n" + api.trim() + "\n" + text.substring(e)
+            if (updated != text) doc.write(updated, "UTF-8")
+        }
+    }
 }
 
 processResources {
+    dependsOn "generateAddonApi"
     def version = project.version
     inputs.property "version", version
 
     filesMatching("fabric.mod.json") {
         expand "version": version
+    }
+    from(addonApiDir) { into "assets/arsenic/addons" }
+    from("src/addons") {
+        include "addons.json"
+        include "java/*.java"
+        include "packs/**"
+        into "assets/arsenic/addons"
     }
 }
 
@@ -60,33 +128,121 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
-jar {
-    from("LICENSE") {
-        rename { "${it}_${project.archives_base_name}" }
+// Default addons: ordinary modules written exactly like user addons (Mojang names, default package). They are
+// compiled here as a check and so IDEs treat them as source, but they are not part of the jar's classes; their
+// .java sources are bundled as resources and copied into the Arsenic/addons folder at startup. Loose addons live
+// in src/addons/java, each pack in src/addons/packs/<id> with a pack.json and its addons in impl.
+def addonSourceDirs = [file("src/addons/java")]
+file("src/addons/packs").listFiles({ File f -> f.isDirectory() } as FileFilter)?.each { File pack ->
+    File impl = new File(pack, "impl")
+    if (impl.isDirectory()) addonSourceDirs << impl
+}
+// Compiled as a check against the client, and nothing else. Not a source set: IntelliJ would give it a module of its
+// own with no dependency on the client, so every import of the client would show as unresolved there.
+tasks.register("compileAddonsJava", JavaCompile) {
+    source addonSourceDirs
+    destinationDirectory = layout.buildDirectory.dir("classes/addons")
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    // the same language level the runtime addon compiler uses (AddonCompiler.JAVA_LEVEL)
+    options.release = 21
+}
+build.dependsOn "compileAddonsJava"
+
+// The release jars and the module tiers each one holds. The plain jar is the Blatant release. Every jar has the same
+// classes, because the engine calls into module classes directly; buildtiers.properties (written below) tells
+// arsenic.module.BuildTiers which of them load.
+def tierJars = [
+        qol    : ["QOL"],
+        visual : ["QOL", "VISUAL"],
+        legit  : ["QOL", "VISUAL", "LEGIT"],
+        blatant: ["QOL", "VISUAL", "LEGIT", "BLATANT"],
+        dev    : ["QOL", "VISUAL", "LEGIT", "BLATANT", "DEV"]
+]
+
+// The tier of each bundled addon, keyed by its path under src/addons ("java/AutoBow.java", "packs/pit/impl/AutoHunt.java").
+// An addon without a tier is LEGIT, the same default as ModuleInfo.
+def addonTiers = [:]
+file("src/addons").eachFileRecurse(groovy.io.FileType.FILES) { File f ->
+    String rel = file("src/addons").toPath().relativize(f.toPath()).toString().replace('\\', '/')
+    if (!(rel ==~ /(java\/[^\/]+|packs\/[^\/]+\/impl\/[^\/]+)\.java/))
+        return
+    String tier = "LEGIT"
+    def info = (f.getText("UTF-8") =~ /(?s)@ModuleInfo\((.*?)\)\s*\r?\n\s*public/)
+    if (info.find()) {
+        def named = (info.group(1) =~ /tier\s*=\s*(?:arsenic\.module\.)?(?:ModuleTier\.)?(\w+)/)
+        if (named.find())
+            tier = named.group(1)
+    }
+    addonTiers[rel] = tier
+}
+
+// The Arsenic folder each jar uses in the user's home folder. These are apart from the 1.8.9 client's folders: the
+// two clients' configs, keybinds and addons do not work in each other.
+def folderOf = [qol: "Arsenic-26-QOL", visual: "Arsenic-26-Visual", legit: "Arsenic-26-Legit", blatant: "Arsenic-26", dev: "Arsenic-26-Dev"]
+
+// A release jar: the main jar's contents plus its tier list and folder name, and no addon source of a tier it leaves
+// out. Addons are not referenced by the client, so leaving their sources out is safe; a missing source is skipped at
+// run time.
+def tierJar = { String key, String classifier ->
+    def dir = layout.buildDirectory.dir("tiers/$key").get().asFile
+    def tiers = tierJars[key]
+    tasks.register("${key}Jar", Jar) {
+        archiveClassifier = classifier
+        dependsOn jar
+        from(zipTree(jar.archiveFile)) {
+            exclude "META-INF/MANIFEST.MF"
+            exclude "buildtiers.properties"
+        }
+        from(dir) { include "buildtiers.properties" }
+        exclude { el ->
+            String prefix = "assets/arsenic/addons/"
+            String addon = el.path.startsWith(prefix) ? el.path.substring(prefix.length()) : null
+            addon != null && addonTiers.containsKey(addon) && !tiers.contains(addonTiers[addon])
+        }
+        manifest {
+            from(jar.manifest)
+        }
+        doFirst {
+            dir.mkdirs()
+            new File(dir, "buildtiers.properties").text = "tiers=" + tiers.join(",") + "\nfolder=" + folderOf[key] + "\n"
+        }
+    }
+    build.dependsOn "${key}Jar"
+}
+
+def blatantTiersDir = layout.buildDirectory.dir("tiers/blatant").get().asFile
+def writeBlatantTiers = tasks.register("writeBlatantTiers") {
+    outputs.dir blatantTiersDir
+    doLast {
+        blatantTiersDir.mkdirs()
+        new File(blatantTiersDir, "buildtiers.properties").text =
+                "tiers=" + tierJars.blatant.join(",") + "\nfolder=" + folderOf.blatant + "\n"
     }
 }
 
-// Second jar built alongside the normal one on every `gradle build`: the same contents plus a
-// devmode.properties, which unlocks the DEV-tier modules (see ModuleManager).
-def devmodeDir = layout.buildDirectory.dir("devmode")
-tasks.register("devJar", Jar) {
-    archiveClassifier = "dev"
-    dependsOn jar
-    from(zipTree(jar.archiveFile)) {
-        exclude "META-INF/MANIFEST.MF"
+jar {
+    dependsOn writeBlatantTiers
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
     }
-    from(devmodeDir)
-    manifest {
-        from(jar.manifest)
-        attributes("DevMode": true)
-    }
-    doFirst {
-        def dir = devmodeDir.get().asFile
-        dir.mkdirs()
-        new File(dir, "devmode.properties").text = "devmode=true\n"
+    // the plain jar is the Blatant release
+    from(blatantTiersDir) { include "buildtiers.properties" }
+    manifest.attributes("Implementation-Version": project.version)
+}
+
+tierJar("qol", "qol")
+tierJar("visual", "visual")
+tierJar("legit", "legit")
+tierJar("dev", "dev")
+
+// Old jars never pile up in build/libs: it is emptied before any jar is built
+tasks.register("cleanLibs") {
+    def libs = layout.buildDirectory.dir("libs").get().asFile
+    doLast {
+        fileTree(libs).each { it.delete() }
     }
 }
-build.dependsOn devJar
+jar.dependsOn "cleanLibs"
 
 loom {
     runs {

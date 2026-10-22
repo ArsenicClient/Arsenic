@@ -1,12 +1,13 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.TextProperty;
 
-@ModuleInfo(name = "NameHider", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "NameHider", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.QOL)
 public class NameHider extends Module {
 
     public final TextProperty name = new TextProperty("Name", "ArsenicClient");

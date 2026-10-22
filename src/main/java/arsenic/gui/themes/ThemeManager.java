@@ -44,9 +44,10 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
 
         if(getContentByJsonKey("Classic") == null) {
             Theme classic = new Theme("Classic", 0xFFDD425E, new Color(0xFFDD425E).darker().getRGB(), 0xFFFFFE, 0xFF494949);
-            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.AURORA);
+            classic.setBgShader(arsenic.gui.click.GuiStyle.BgShader.FIRESTORM);
             themeList.add(classic);
         }
+        
         if (getContentByJsonKey("Void") == null) {
             Theme voidTheme = new Theme("Void", 0xFF7C3AED, new Color(0xFF7C3AED).darker().getRGB(), 0xFFF0EEFF, 0xFF1A1025);
             voidTheme.setClickGuiBackground(0xDD0F081A);
@@ -171,8 +172,9 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
     public static int getEnumBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getEnumBackground(); }
     public static int getFolderBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getFolderBackground(); }
     public static int getTextPrimary() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextPrimary(); }
-    public static int getTextSecondary() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextSecondary(); }
-    public static int getTextMuted() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextMuted(); }
+    // secondary/muted text used to be gray and hard to read; everything is primary text now
+    public static int getTextSecondary() { return getTextPrimary(); }
+    public static int getTextMuted() { return getTextPrimary(); }
     public static int getError() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getError(); }
     public static int getStatus() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getStatus(); }
 

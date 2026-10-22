@@ -1,7 +1,8 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -40,13 +41,13 @@ import net.minecraft.world.phys.Vec3;
 import arsenic.utils.io.Keys;
 import com.mojang.blaze3d.platform.InputConstants;
 
-@ModuleInfo(name = "Scaffold", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "Scaffold", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class Scaffold extends Module {
 
     public final RangeProperty rotationSpeed = new RangeProperty("Rotation Speed", new RangeValue(1, 360, 180, 360, 1), SliderScale.LOG);
     public BooleanProperty eagle = new BooleanProperty("Eagle", true);
-    @PropertyInfo(reliesOn = "Eagle", value = "true")
-    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0.1, 3, 2, 0.1));
+    @ShowWhen(property = "Eagle", is = "true")
+    public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 3, 2, 0.1));
 
     private final ScaffoldCore core = new ScaffoldCore(ScaffoldCore.Tuning.best(), new Random());
     private BlockData blockData;
@@ -83,6 +84,7 @@ public class Scaffold extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotationListener = event -> {
+        event.setBlockUserInput(true);
         Item item = keyBlock();
         ScaffoldCore.Rotation rotation = core.rotate(input(true, item != null && haveBlocks()), ScaffoldUtil.WORLD);
         event.setSpeed(rotation.speed);
@@ -176,9 +178,8 @@ public class Scaffold extends Module {
 
     private boolean haveBlocks() {
         long now = System.currentTimeMillis();
-        net.minecraft.client.multiplayer.PlayerInfo info = mc.getConnection() == null ? null
-                : mc.getConnection().getPlayerInfo(mc.player.getUUID());
-        long window = (info != null ? Math.max(0, info.getLatency()) : 100) + 60;
+        int ping = arsenic.utils.lag.LagManager.getPing();
+        long window = (ping > 0 ? ping : 100) + 60;
         while (!recentPlacements.isEmpty() && now - recentPlacements.peekFirst() > window)
             recentPlacements.pollFirst();
         return getBlockCount() - recentPlacements.size() > 0;

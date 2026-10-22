@@ -6,7 +6,9 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.network.NetworkPlayerInfo;
+import net.minecraft.network.EnumConnectionState;
+import net.minecraft.network.EnumPacketDirection;
+import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.ThreadQuickExitException;
 import net.minecraft.network.play.INetHandlerPlayClient;
@@ -28,39 +30,15 @@ public final class LagManager {
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static int currentPing = 0;
-    private static long lastPingUpdate;
-
-    public static void updatePing() {
-        if (mc.thePlayer == null || mc.theWorld == null) {
-            return;
-        }
-
-        try {
-            NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(mc.thePlayer.getUniqueID());
-            if (playerInfo != null) {
-                int newPing = playerInfo.getResponseTime();
-                long currentTime = System.currentTimeMillis();
-                if (newPing < 5) {
-                    return;
-                }
-                if (newPing != currentPing || currentTime - lastPingUpdate > 1000) {
-                    currentPing = newPing;
-                    lastPingUpdate = currentTime;
-                }
-            }
-        } catch (Exception e) {
-        }
-    }
+    /** The connection the held and delayed outgoing packets were sent on. */
+    private static volatile NetworkManager heldConnection;
 
     public static int getPing() {
-        updatePing();
-        return currentPing;
+        return PingTracker.getPing();
     }
 
     public static int getPingAsTicks() {
-        updatePing();
-        return currentPing / 50;
+        return PingTracker.getPing() / 50;
     }
 
     @RequiresPlayer
@@ -70,6 +48,18 @@ public final class LagManager {
 
         if (outgoingDelay.consumeSkip(packet))
             return;
+
+        // Only packets the play state encodes client to server are held: anything else (Forge's or a launcher's
+        // own payload packets) cannot be resent through the send queue later and would kick us when encoded.
+        if (!isSendable(packet))
+            return;
+
+        NetworkManager connection = mc.getNetHandler() == null ? null : mc.getNetHandler().getNetworkManager();
+        if (connection != heldConnection) {
+            // packets held for another connection must never go out on this one
+            discardOutgoing();
+            heldConnection = connection;
+        }
 
         if (outgoingDelay.offer(packet)) {
             event.cancel();
@@ -120,6 +110,13 @@ public final class LagManager {
     public static void release(Class<?> holderId) {
         holders.remove(holderId);
         flushUnheld();
+    }
+
+    public static void releaseAndDiscard(Class<?> holderId) {
+        holders.remove(holderId);
+        synchronized (buffer) {
+            buffer.clear();
+        }
     }
 
     public static int countBuffered() {
@@ -234,8 +231,22 @@ public final class LagManager {
     }
 
     public static void sendPacket(Packet<?> packet) {
-        if (mc.getNetHandler() != null)
-            mc.getNetHandler().addToSendQueue(packet);
+        if (mc.getNetHandler() == null || !isSendable(packet)
+                || mc.getNetHandler().getNetworkManager() != heldConnection)
+            return;
+        mc.getNetHandler().addToSendQueue(packet);
+    }
+
+    /** Whether the client can encode this packet for the server while playing. */
+    private static boolean isSendable(Packet<?> packet) {
+        return packet != null && EnumConnectionState.PLAY.getPacketId(EnumPacketDirection.SERVERBOUND, packet) != null;
+    }
+
+    private static void discardOutgoing() {
+        outgoingDelay.discard(ALL_PACKETS);
+        synchronized (buffer) {
+            buffer.clear();
+        }
     }
 
     @SuppressWarnings("unchecked")

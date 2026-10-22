@@ -3,14 +3,8 @@ package arsenic.gui;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.fml.client.SplashProgress;
-import net.minecraftforge.fml.common.ProgressManager;
-import net.minecraftforge.fml.common.ProgressManager.ProgressBar;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.Drawable;
-import org.lwjgl.opengl.SharedDrawable;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -20,12 +14,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.nio.IntBuffer;
-import java.util.Iterator;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_BGRA;
@@ -33,15 +22,13 @@ import static org.lwjgl.opengl.GL12.GL_UNSIGNED_INT_8_8_8_8_REV;
 
 public final class ArsenicSplash {
 
-    private static final Lock lock = new ReentrantLock(true);
     private static final float FONT_BASE_SIZE = 32f;
     private static final int FIRST_CHAR = 32, LAST_CHAR = 126;
 
-    private static volatile boolean pause, done, enabled;
-    private static volatile Throwable threadError;
-    private static Drawable drawable;
-    private static Thread thread;
-    private static Semaphore mutex = new Semaphore(1);
+    private static boolean enabled;
+    private static float goal, shown, fadeOut = 1f;
+    private static String message = "Starting";
+    private static long startedAt;
 
     private static int logoTex, logoW, logoH;
     private static int fontTex, fontW, fontH, fontLineH;
@@ -68,13 +55,13 @@ public final class ArsenicSplash {
 
     private static void loadTheme() {
         element = true;
-        try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
+        try (java.io.Reader r = new java.io.FileReader(new java.io.File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "clientConfig.json"))) {
             com.google.gson.JsonObject style = new com.google.gson.JsonParser().parse(r).getAsJsonObject().getAsJsonObject("GuiStyle");
             String chosen = style.has("screenStyle") ? style.get("screenStyle").getAsString() : style.get("loadingScreen").getAsString();
             element = !"Ocean".equals(chosen);          // anything but Ocean (including the old Toxic) is Element 33
         } catch (Throwable ignored) { }
         int main = 0xDD425E, back = 0x494949;      // Classic, the default theme
-        try (java.io.Reader r = new java.io.FileReader(new java.io.File(Minecraft.getMinecraft().mcDataDir, "Arsenic/clientConfig.json"))) {
+        try (java.io.Reader r = new java.io.FileReader(new java.io.File(arsenic.utils.java.FileUtils.getArsenicFolderDirAsFile(), "clientConfig.json"))) {
             String name = new com.google.gson.JsonParser().parse(r).getAsJsonObject()
                     .getAsJsonObject("themeManager").get("currentTheme").getAsString();
             for (Object[] t : THEMES)
@@ -300,129 +287,58 @@ public final class ArsenicSplash {
         return ColorUtils.luminance(c);
     }
 
+    /**
+     * Sets the bar to {@code fraction} (0 to 1) and the line under it to {@code text}, then draws until the bar has
+     * moved there. Runs on the game thread between the stages of the launch, which owns the window's OpenGL context.
+     */
+    public static void progress(float fraction, String text) {
+        goal = fraction;
+        message = text;
+        if (!enabled)
+            return;
+        long end = System.currentTimeMillis() + 300;
+        while (System.currentTimeMillis() < end)
+            frame();
+    }
+
     public static void start() {
         try {
             loadTheme();
-            try {
-                Field f = SplashProgress.class.getDeclaredField("mutex");
-                f.setAccessible(true);
-                mutex = (Semaphore) f.get(null);
-            } catch (Throwable ignored) {  }
-
-            drawable = new SharedDrawable(Display.getDrawable());
-            Display.getDrawable().releaseContext();
-            drawable.makeCurrent();
-            SplashProgress.getMaxTextureSize();
-
-            thread = new Thread(ArsenicSplash::run, "Arsenic Splash");
-            thread.setUncaughtExceptionHandler((t, e) -> {
-                e.printStackTrace();
-                threadError = e;
-            });
+            setGL();
+            loadLogo();
+            buildFont();
+            startedAt = System.currentTimeMillis();
             enabled = true;
-            thread.start();
         } catch (Throwable t) {
             t.printStackTrace();
             enabled = false;
-            try { Display.getDrawable().makeCurrent(); } catch (LWJGLException ignored) {}
         }
     }
 
-    public static void pause() {
-        if (!usable()) return;
-        pause = true;
-        lock.lock();
-        try {
-            drawable.releaseContext();
-            Display.getDrawable().makeCurrent();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void resume() {
-        if (!usable()) return;
-        pause = false;
-        try {
-            Display.getDrawable().releaseContext();
-            drawable.makeCurrent();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        }
-        lock.unlock();
-    }
-
+    /** Fills the bar, fades the splash out and frees its textures; the game draws over it from then on. */
     public static void finish() {
-        if (!enabled) return;
+        if (!enabled)
+            return;
+        goal = 1f;
+        message = "Ready";
+        for (int i = 0; i < 30; i++)
+            frame();
+        for (int i = 0; i < 20; i++) {
+            fadeOut = 1f - (i + 1) / 20f;
+            frame();
+        }
         enabled = false;
-        try {
-            done = true;
-            thread.join();
-            drawable.releaseContext();
-            Display.getDrawable().makeCurrent();
-            glDeleteTextures(logoTex);
-            glDeleteTextures(fontTex);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static boolean usable() {
-        return enabled && threadError == null && thread.getState() != Thread.State.TERMINATED;
-    }
-
-
-    private static void run() {
-        setGL();
-        loadLogo();
-        buildFont();
-
-        final long startTime = System.currentTimeMillis();
-        float shown = 0f;
-        long last = startTime;
-
-        while (!done) {
-            long now = System.currentTimeMillis();
-            float dt = Math.min(0.1f, (now - last) / 1000f);
-            last = now;
-
-            ProgressBar first = null, last2 = null;
-            Iterator<ProgressBar> it = ProgressManager.barIterator();
-            while (it.hasNext()) {
-                ProgressBar b = it.next();
-                if (first == null) first = b;
-                else last2 = b;
-            }
-
-            float target = 0f;
-            String status = "Starting";
-            if (first != null) {
-                float steps = Math.max(1, first.getSteps());
-                target = first.getStep() / steps;
-                ProgressBar sub = last2 != null ? last2 : first;
-                if (last2 != null)
-                    target += (sub.getStep() / (float) Math.max(1, sub.getSteps())) / steps;
-                status = sub.getMessage() != null && !sub.getMessage().isEmpty()
-                        ? sub.getTitle() + "  -  " + sub.getMessage()
-                        : sub.getTitle();
-            }
-            target = Math.min(1f, target);
-            shown += (target - shown) * Math.min(1f, dt * 6f);
-
-            int w = Display.getWidth(), h = Display.getHeight();
-            float fade = Math.min(1f, (now - startTime) / 600f);
-            draw(w, h, shown, status, fade);
-
-            mutex.acquireUninterruptibly();
-            Display.update();
-            mutex.release();
-            if (pause) {
-                clearGL();
-                setGL();
-            }
-            Display.sync(60);
-        }
+        glDeleteTextures(logoTex);
+        glDeleteTextures(fontTex);
         clearGL();
+    }
+
+    private static void frame() {
+        shown += (Math.min(1f, goal) - shown) * 0.25f;
+        float fade = Math.min(1f, (System.currentTimeMillis() - startedAt) / 600f) * fadeOut;
+        draw(Display.getWidth(), Display.getHeight(), shown, message, fade);
+        Display.update();
+        Display.sync(60);
     }
 
     private static void draw(int w, int h, float progress, String status, float fade) {
@@ -694,7 +610,7 @@ public final class ArsenicSplash {
         IntBuffer buf = BufferUtils.createIntBuffer(argb.length);
         buf.put(argb).flip();
         int id;
-        synchronized (SplashProgress.class) {
+        synchronized (ArsenicSplash.class) {
             id = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, id);
         }
@@ -707,12 +623,6 @@ public final class ArsenicSplash {
 
 
     private static void setGL() {
-        lock.lock();
-        try {
-            Display.getDrawable().makeCurrent();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        }
         glClearColor(bgTop[0], bgTop[1], bgTop[2], 1f);
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -720,23 +630,14 @@ public final class ArsenicSplash {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
+    /** The GL state the game expects, and the viewport for the window as it is now. */
     private static void clearGL() {
-        Minecraft mc = Minecraft.getMinecraft();
-        mc.displayWidth = Display.getWidth();
-        mc.displayHeight = Display.getHeight();
-        mc.resize(mc.displayWidth, mc.displayHeight);
         glColor4f(1f, 1f, 1f, 1f);
         glClearColor(1, 1, 1, 1);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, .1f);
-        try {
-            Display.getDrawable().releaseContext();
-        } catch (LWJGLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            lock.unlock();
-        }
+        glViewport(0, 0, Display.getWidth(), Display.getHeight());
     }
 }

@@ -1,5 +1,8 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
+import arsenic.event.bus.Listener;
+import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventShader;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -18,7 +21,7 @@ import org.joml.Matrix3x2fStack;
  * a soft halo. Blur only has a vanilla equivalent behind whole screens, which the ClickGUI uses for
  * its backdrop; {@link EventShader.Blur} is no longer posted.
  */
-@ModuleInfo(name = "PostProcessing", category = ModuleCategory.GUI, hidden = true)
+@ModuleInfo(name = "PostProcessing", category = ModuleCategory.GUI, hidden = true, tier = ModuleTier.QOL)
 public class PostProcessing extends Module {
 
     private static final int BLOOM_ITERATIONS = 2;

@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
@@ -22,7 +23,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.protocol.game.ServerboundAttackPacket;
 
-@ModuleInfo(name = "DoubleHit", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "DoubleHit", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class DoubleHit extends Module {
 
     public final DoubleProperty maxHold = new DoubleProperty("Max Hold (ms)", new DoubleValue(50, 1500, 400, 10), SliderScale.LOG);

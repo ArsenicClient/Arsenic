@@ -45,19 +45,23 @@ refreshListing();
     @Override
     public String getName() { return self.getName(); }
 
-    private boolean listedWithMore;
+    private int listedSignature;
+
+    private static int tierSignature() {
+        return (GuiStyle.get().isShowBlatant() ? 1 : 0);
+    }
 
     protected boolean followsMoreToggle() {
         return true;
     }
 
     private boolean isListed(ModuleComponent module) {
-        return !followsMoreToggle() || GuiStyle.get().isShowMoreModules()
-                || module.getModule().getTier() == ModuleTier.CORE;
+        return !followsMoreToggle()
+                || GuiStyle.get().isTierShown(module.getTier());
     }
 
     public void refreshListing() {
-        listedWithMore = GuiStyle.get().isShowMoreModules();
+        listedSignature = tierSignature();
         contentsL.clear();
         contentsR.clear();
         for (ModuleComponent module : contents) {
@@ -109,7 +113,8 @@ refreshListing();
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
-if (followsMoreToggle() && listedWithMore != GuiStyle.get().isShowMoreModules())            refreshListing();
+        if (followsMoreToggle() && listedSignature != tierSignature())
+            refreshListing();
         maxHeight = 0;
         scroll += (targetScroll - scroll) * arsenic.gui.click.GuiStyle.scrollEase();
         if (Math.abs(targetScroll - scroll) < 0.5f)
@@ -121,7 +126,7 @@ if (followsMoreToggle() && listedWithMore != GuiStyle.get().isShowMoreModules())
         drawSection(contentsR, pi, ri);
     }
 
-    private void drawSection(List<ModuleComponent> l, PosInfo pi, RenderInfo ri) {
+    protected void drawSection(List<? extends Component> l, PosInfo pi, RenderInfo ri) {
         pi.moveY(scroll);
         float temp = pi.getY();
         float expand = width/10f;

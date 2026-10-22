@@ -1,8 +1,10 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.java.MathUtils;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventRender2D;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.main.Arsenic;
@@ -13,11 +15,15 @@ import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
+import arsenic.runtime.Access;
+import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.culling.ICamera;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -28,13 +34,14 @@ import arsenic.utils.render.GlowRenderer;
 import arsenic.utils.render.RenderUtils;
 
 import java.awt.*;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 
-@ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Esp", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class ESP extends Module {
 
     public enum Mode {
@@ -54,16 +61,25 @@ public class ESP extends Module {
 
     private final GlowRenderer glowRenderer = new GlowRenderer();
     private final List<EntityPlayer> glowTargets = new ArrayList<>();
+    // per player: screen x, top y, bottom y (window pixels), health ratio
+    private final List<double[]> healthBars = new ArrayList<>();
+    private static final Access.FieldRef ARI_MODELVIEW = Access.field(ActiveRenderInfo.class, "MODELVIEW");
+    private static final Access.FieldRef ARI_PROJECTION = Access.field(ActiveRenderInfo.class, "PROJECTION");
+    private final float[] modelview = new float[16];
+    private final float[] projection = new float[16];
 
     @Override
     protected void onDisable() {
         glowRenderer.release();
         glowTargets.clear();
+        healthBars.clear();
     }
 
     @EventLink
     public final Listener<EventRenderWorldLast> renderWorldLast = event -> {
         glowTargets.clear();
+        healthBars.clear();
+        captureMatrices();
         ICamera camera = new Frustum();
         for (EntityPlayer entity : Minecraft.getMinecraft().theWorld.playerEntities) {
             if (entity == mc.thePlayer)
@@ -80,27 +96,16 @@ public class ESP extends Module {
                 continue;
             if (mode.getValue() == Mode.Glow)
                 glowTargets.add(entity);
-            Color color = new Color(resolveColour(entity));
-            GlStateManager.pushMatrix();
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glDepthMask(false);
-            GL11.glLineWidth(2.0F);
             if (mode.getValue() == Mode.Box) {
+                Color color = new Color(resolveColour(entity));
+                RenderUtils.beginWorldOverlay();
+                GL11.glLineWidth(2.0F);
                 RenderUtils.drawShadedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), 63);
                 RenderGlobal.drawOutlinedBoundingBox(axisalignedbb1, color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                GL11.glLineWidth(1.0F);
+                RenderUtils.endWorldOverlay();
             }
-            GL11.glPushMatrix();
-            drawHealthEsp(entity, x, y, z);
-            GL11.glPopMatrix();
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDisable(GL11.GL_BLEND);
-            GL11.glDepthMask(true);
-            GL11.glLineWidth(1.0F);
-            GlStateManager.popMatrix();
+            queueHealthBar(entity, x, y, z);
         }
 
         if (mode.getValue() == Mode.Glow && !glowTargets.isEmpty()) {
@@ -149,25 +154,96 @@ public class ESP extends Module {
         return CHAMS_ALPHA;
     }
 
-    private void drawHealthEsp(EntityPlayer entity, double x, double y, double z) {
-        if (!(entity instanceof EntityLivingBase)) return;
-        EntityLivingBase en = (EntityLivingBase) entity;
-        double r = MathUtils.clamp(en.getHealth() / en.getMaxHealth(), 0.0, 1.0);
-        int b = (int) (74.0D * r);
-        int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
-
-        GlStateManager.pushMatrix();
-        GL11.glTranslated(x, y - 0.2D, z);
-        GL11.glRotated(-mc.getRenderManager().playerViewY, 0.0D, 1.0D, 0.0D);
-        GlStateManager.disableDepth();
-        GL11.glScalef(0.03F, 0.03F, 0.03F);
-        int i = 21;
-        net.minecraft.client.gui.Gui.drawRect(i, -1, i + 4, 75, Color.black.getRGB());
-        net.minecraft.client.gui.Gui.drawRect(i + 1, b, i + 3, 74, Color.darkGray.getRGB());
-        net.minecraft.client.gui.Gui.drawRect(i + 1, 0, i + 3, b, hc);
-        GlStateManager.enableDepth();
-        GlStateManager.popMatrix();
+    /*
+     * Shader packs take over the world pipeline, so anything drawn in world space at RenderWorldLast gets lit, fogged
+     * and composited like terrain (the bar came out dark or vanished). The bar is projected to the screen here and
+     * drawn in the 2D pass, which shaders leave alone.
+     */
+    private void queueHealthBar(EntityPlayer entity, double x, double y, double z) {
+        double r = MathUtils.clamp(entity.getHealth() / entity.getMaxHealth(), 0.0, 1.0);
+        double yaw = Math.toRadians(mc.getRenderManager().playerViewY);
+        double side = 0.69D;
+        double bx = x + Math.cos(yaw) * side, bz = z + Math.sin(yaw) * side;
+        double[] bottom = project(bx, y - 0.2D, bz);
+        double[] top = project(bx, y + 2.05D, bz);
+        if (bottom == null || top == null)
+            return;
+        healthBars.add(new double[] { bottom[0], top[1], bottom[1], r });
     }
+
+    @EventLink
+    public final Listener<EventRender2D> render2D = event -> {
+        if (healthBars.isEmpty())
+            return;
+        double scale = event.getSr().getScaleFactor();
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        for (double[] bar : healthBars) {
+            double cx = bar[0] / scale, top = bar[1] / scale, bottom = bar[2] / scale, r = bar[3];
+            double height = bottom - top;
+            if (height < 2)
+                continue;
+            double w = Math.max(1.5D, height * 4.0D / 76.0D), in = w / 4.0D;
+            int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
+            double fillTop = bottom - in - (height - in * 2) * r;
+            rect(cx - w / 2, top, cx + w / 2, bottom, Color.black.getRGB());
+            rect(cx - w / 2 + in, top + in, cx + w / 2 - in, fillTop, Color.darkGray.getRGB());
+            rect(cx - w / 2 + in, fillTop, cx + w / 2 - in, bottom - in, hc);
+        }
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        healthBars.clear();
+    };
+
+    private static void rect(double x1, double y1, double x2, double y2, int colour) {
+        if (y2 <= y1 || x2 <= x1)
+            return;
+        Tessellator ts = Tessellator.getInstance();
+        WorldRenderer wr = ts.getWorldRenderer();
+        int a = colour >>> 24, r = (colour >> 16) & 0xFF, g = (colour >> 8) & 0xFF, b = colour & 0xFF;
+        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+        wr.pos(x1, y2, 0).color(r, g, b, a).endVertex();
+        wr.pos(x2, y2, 0).color(r, g, b, a).endVertex();
+        wr.pos(x2, y1, 0).color(r, g, b, a).endVertex();
+        wr.pos(x1, y1, 0).color(r, g, b, a).endVertex();
+        ts.draw();
+    }
+
+    /*
+     * The camera matrices as ActiveRenderInfo saved them right after setupCameraTransform. The live GL matrices at
+     * RenderWorldLast can't be trusted: shader packs swap them (shadow pass, composites) and render at their own
+     * resolution, which left the bars floating away from the players.
+     */
+    private void captureMatrices() {
+        FloatBuffer mv = ARI_MODELVIEW.get(null), pr = ARI_PROJECTION.get(null);
+        for (int i = 0; i < 16; i++) {
+            modelview[i] = mv.get(i);
+            projection[i] = pr.get(i);
+        }
+    }
+
+    /** Camera-relative position to window pixels (top-left origin), or null when behind the camera. */
+    private double[] project(double x, double y, double z) {
+        double[] eye = mul(modelview, x, y, z, 1);
+        double[] clip = mul(projection, eye[0], eye[1], eye[2], eye[3]);
+        if (clip[3] <= 0.01D)
+            return null;
+        double sx = (clip[0] / clip[3] + 1) / 2 * mc.displayWidth;
+        double sy = (1 - clip[1] / clip[3]) / 2 * mc.displayHeight;
+        return new double[] { sx, sy };
+    }
+
+    // column-major, as GL stores it
+    private static double[] mul(float[] m, double x, double y, double z, double w) {
+        return new double[] {
+                m[0] * x + m[4] * y + m[8] * z + m[12] * w,
+                m[1] * x + m[5] * y + m[9] * z + m[13] * w,
+                m[2] * x + m[6] * y + m[10] * z + m[14] * w,
+                m[3] * x + m[7] * y + m[11] * z + m[15] * w };
+    }
+
 
     public int getBedWarsColor(EntityPlayer entityPlayer) {
         ItemStack stack = entityPlayer.getCurrentArmor(2);

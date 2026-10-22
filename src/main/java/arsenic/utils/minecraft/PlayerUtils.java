@@ -80,6 +80,18 @@ public class PlayerUtils extends UtilityClass {
      * Swings the main hand and tells the server, like 1.8's swingItem. The animation packet is
      * called a punch now and is sent separately from the swing.
      */
+    /**
+     * Plays a sound to the player only. Takes the 1.8 sound names ("random.orb", "note.pling") as well as modern ids
+     * ("minecraft:entity.experience_orb.pickup").
+     */
+    public static void playSound(String name, float volume, float pitch) {
+        if (mc.player == null || name == null)
+            return;
+        net.minecraft.sounds.SoundEvent sound = arsenic.utils.java.SoundUtils.byName(name);
+        if (sound != null)
+            mc.player.playSound(sound, volume, pitch);
+    }
+
     public static void swingItem() {
         mc.player.swing(InteractionHand.MAIN_HAND, mc.player.getMainHandItem().getAttackAnimation(), false);
         mc.player.connection.send(net.minecraft.network.protocol.game.ServerboundPunchPacket.INSTANCE);
@@ -202,4 +214,5 @@ public class PlayerUtils extends UtilityClass {
         }
         return speed;
     }
+
 }

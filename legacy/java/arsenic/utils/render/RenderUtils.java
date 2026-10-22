@@ -8,6 +8,7 @@ import java.io.InputStream;
 import arsenic.injection.accessor.IMixinMinecraft;
 import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.utils.java.UtilityClass;
+import arsenic.utils.render.shader.ShaderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -17,6 +18,7 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.*;
 import org.lwjgl.opengl.GL11;
 
@@ -48,6 +50,18 @@ public class RenderUtils extends UtilityClass {
     }
     public static void bindTexture(int texture) {
         glBindTexture(GL_TEXTURE_2D, texture);
+    }
+
+    /**
+     * Binds a texture on a texture unit GlStateManager does not track (it only knows units 0 to 7), then leaves unit 0
+     * active. Selecting such a unit through GlStateManager.setActiveTexture makes its next bindTexture throw, and its
+     * state stays on that unit, so every later texture bind in the game fails too.
+     */
+    public static void bindTextureOnUnit(int unit, int texture) {
+        org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0 + unit);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+        GlStateManager.setActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
     }
     public static int alpha(Color color, int newAlpha) {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), newAlpha).getRGB();
@@ -84,7 +98,7 @@ public class RenderUtils extends UtilityClass {
         try {
             assert inputStream != null;
             bf = ImageIO.read(inputStream);
-            return Minecraft.getMinecraft().renderEngine.getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
+            return Minecraft.getMinecraft().getTextureManager().getDynamicTextureLocation("Arsenic", new DynamicTexture(bf));
         } catch (IOException | IllegalArgumentException | NullPointerException e) {
             e.printStackTrace();
             return new ResourceLocation("null");
@@ -350,6 +364,38 @@ public class RenderUtils extends UtilityClass {
         vb.pos(abb.maxX, abb.minY, abb.maxZ).color(r, g, b, a).endVertex();
         ts.draw();
     }
+    /*
+     * Untextured overlays drawn in world space (RenderWorldLast). All state goes through GlStateManager: raw GL11
+     * toggles bypass OptiFine's shader hooks, which then keep the textured/lit program and draw the overlay dark.
+     * Lighting and the lightmap are switched off as well. Pair with endWorldOverlay.
+     */
+    public static void beginWorldOverlay() {
+        GlStateManager.pushMatrix();
+        GlStateManager.disableLighting();
+        GlStateManager.disableTexture2D();
+        GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GlStateManager.disableTexture2D();
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GlStateManager.disableCull();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+    }
+
+    public static void endWorldOverlay() {
+        GlStateManager.disableBlend();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.enableCull();
+        GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GlStateManager.enableTexture2D();
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.popMatrix();
+    }
+
     public static void drawShadedBoundingBox(AxisAlignedBB abb, int r, int g, int b, int a) {
         Tessellator ts = Tessellator.getInstance();
         WorldRenderer vb = ts.getWorldRenderer();
@@ -453,60 +499,102 @@ public class RenderUtils extends UtilityClass {
     public static long lastFrame = 0;
 
     public static void drawCircle(Entity entity, float partialTicks, double rad, int colored, float alpha) {
-        ticks += .004 * (System.currentTimeMillis() - lastFrame);
-
-        lastFrame = System.currentTimeMillis();
-
-        glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_LINE_BIT
-                | GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_HINT_BIT);
-        glPushMatrix();
-        glDisable(GL_TEXTURE_2D);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_ALPHA_TEST);
-        glDisable(GL_CULL_FACE);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(false);
-        glShadeModel(GL_SMOOTH);
-        final double x = interpolate(entity.lastTickPosX, entity.posX, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosX;
-        final double y = interpolate(entity.lastTickPosY, entity.posY, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosY + Math.sin(ticks) + 1;
-        final double z = interpolate(entity.lastTickPosZ, entity.posZ, ((IMixinMinecraft) mc).getTimer().renderPartialTicks) - mc.getRenderManager().viewerPosZ;
-
-        glBegin(GL_TRIANGLE_STRIP);
-
-        for (int seg = 0; seg <= 64; seg++) {
-            final double i = seg * (Math.PI * 2) / 64.0;
-            final double vecX = x + rad * Math.cos(i);
-            final double vecZ = z + rad * Math.sin(i);
-
-            color2(colored, 0);
-
-            glVertex3d(vecX, y - Math.sin(ticks + 1) / 2.7f, vecZ);
-
-            color2(colored, .52f * alpha);
-
-
-            glVertex3d(vecX, y, vecZ);
-        }
-
-        glEnd();
-
-
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glLineWidth(1.5f);
-        glBegin(GL_LINE_STRIP);
-        color2(colored, .5f * alpha);
-        for (int i = 0; i <= 180; i++) {
-            glVertex3d(x - Math.sin(i * PI2 / 90) * rad, y, z + Math.cos(i * PI2 / 90) * rad);
-        }
-        glEnd();
-
-        glPopMatrix();
-        glPopAttrib();
+        drawRing(entity, partialTicks, rad, colored, alpha, TargetFx.Style.CLASSIC);
     }
 
+    // The targetfx program the styles are drawn with. If it fails to build, TargetFx draws a plain ring instead.
+    private static ShaderUtil targetShader;
+    private static int targetShaderState; // 0 untried, 1 ready, 2 failed
+    private static final TargetFx.Target fxTarget = new TargetFx.Target();
+    private static final long fxStart = System.nanoTime();
+
+    public static void drawRing(Entity entity, float partialTicks, double rad, int colored, float alpha, TargetFx.Style style) {
+        // callers pass either 0-255 or 0-1
+        alpha = alpha > 1f ? alpha / 255f : alpha;
+        ticks += .004 * (System.currentTimeMillis() - lastFrame);
+        lastFrame = System.currentTimeMillis();
+
+        if (targetShaderState == 0) {
+            try {
+                targetShader = new ShaderUtil("targetfx", "shaders/targetfx.vsh");
+                targetShaderState = 1;
+            } catch (Throwable t) {
+                targetShaderState = 2;
+            }
+        }
+
+        long now = System.currentTimeMillis();
+        if (consumeHit(entity))
+            lastHitMs = now;
+
+        TargetFx.Target t = fxTarget;
+        t.x = interpolate(entity.lastTickPosX, entity.posX, partialTicks) - mc.getRenderManager().viewerPosX;
+        t.y = interpolate(entity.lastTickPosY, entity.posY, partialTicks) - mc.getRenderManager().viewerPosY;
+        t.z = interpolate(entity.lastTickPosZ, entity.posZ, partialTicks) - mc.getRenderManager().viewerPosZ;
+        t.height = entity.height;
+        t.radius = rad;
+        float health = 1f;
+        t.absorption = 0f;
+        t.maxHealth = 20f;
+        if (entity instanceof EntityLivingBase) {
+            EntityLivingBase living = (EntityLivingBase) entity;
+            t.maxHealth = Math.max(1f, living.getMaxHealth());
+            health = MathHelper.clamp_float(living.getHealth() / t.maxHealth, 0f, 1f);
+            t.absorption = MathHelper.clamp_float(living.getAbsorptionAmount() / t.maxHealth, 0f, 1f);
+        }
+        trackHealth(health, now);
+        t.health = shownHealth;
+        t.healthLag = lagHealth;
+        t.hit = now - lastHitMs < 500 ? 1f - (now - lastHitMs) / 500f : 0f;
+        t.color = colored;
+        t.alpha = alpha;
+
+        // positions are relative to the viewer, so the way back to the viewer is just the target's position reversed
+        t.dirX = -t.x;
+        t.dirZ = -t.z;
+
+        TargetFx.render(style, t, targetShaderState == 1 ? targetShader.getProgramID() : 0, (System.nanoTime() - fxStart) / 1e9);
+    }
+
+    // True once for each new hit on this entity. hurtResistantTime jumps back up to its maximum on a hit, so a rise
+    // since the last frame means a new one.
+    private static int hurtTrackedId = -1;
+    private static int lastHurtTime;
+    private static long lastHitMs;
+
+    // The health bar slides to the real health rather than jumping, and what was just lost lingers for a moment before
+    // draining away after it. Reset with the hit tracking when the target changes.
+    private static float shownHealth = 1f, lagHealth = 1f;
+    private static long lastHealthMs, lagHoldUntil;
+
+    private static void trackHealth(float health, long now) {
+        if (hurtTrackedId != lastHealthId) {
+            lastHealthId = hurtTrackedId;
+            shownHealth = lagHealth = health;
+            lastHealthMs = now;
+        }
+        float dt = Math.min(0.1f, (now - lastHealthMs) / 1000f);
+        lastHealthMs = now;
+        if (health < shownHealth - 0.001f)
+            lagHoldUntil = now + 450;
+        shownHealth += (health - shownHealth) * Math.min(1f, dt * 14f);
+        if (lagHealth < shownHealth)
+            lagHealth = shownHealth;
+        else if (now > lagHoldUntil)
+            lagHealth = Math.max(shownHealth, lagHealth - dt * 0.7f);
+    }
+
+    private static int lastHealthId = -1;
+
+    private static boolean consumeHit(Entity entity) {
+        if (entity.getEntityId() != hurtTrackedId) {
+            hurtTrackedId = entity.getEntityId();
+            lastHurtTime = 0;
+        }
+        boolean hit = entity.hurtResistantTime > lastHurtTime;
+        lastHurtTime = entity.hurtResistantTime;
+        return hit;
+    }
 
     public static final float PI2 = roundToFloat((Math.PI * 2D));
 

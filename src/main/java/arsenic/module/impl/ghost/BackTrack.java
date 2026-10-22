@@ -1,5 +1,8 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
@@ -14,18 +17,15 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.lag.LagManager;
-import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.RenderUtils;
-import arsenic.utils.rotations.RotationUtils;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.network.protocol.game.VecDeltaCodec;
 import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -35,22 +35,23 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
-@ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class BackTrack extends Module {
 
     private static final Predicate<Packet<?>> ALL_TRACKED =
             p -> p instanceof ClientboundMoveEntityPacket || p instanceof ClientboundTeleportEntityPacket
                     || p instanceof ClientboundEntityPositionSyncPacket;
 
-    public enum BacktrackMode {NORMAL, PULSE}
-    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(10, 1000, 50, 100, 10), SliderScale.LOG);
-    public final EnumProperty<BacktrackMode> backtrackMode = new EnumProperty<>("Mode", BacktrackMode.NORMAL);
-    public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
+    // Grim interpolates living entities over 3 ticks and only accepts hits on positions inside that window. 100 ms
+    // (2 ticks) leaves one tick of margin for jitter. The slider and the clamp both use this, so settings cannot go past it.
+    private static final long GRIM_MAX_LAG_MS = 100L;
+    private static final long GRIM_MIN_LAG_MS = 10L;
+    // Grim's reach limit is 3.0; stay just inside it against the server position
+    private static final double REACH_LIMIT = 2.95;
 
-    @Override
-    public String getHudInfo() {
-        return backtrackMode.getValue().name().toLowerCase();
-    }
+    public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(GRIM_MIN_LAG_MS, GRIM_MAX_LAG_MS, 40, 80, 10), SliderScale.LOG);
+    @PropertyGroup(Group.VISUAL)
+    public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 
     private final Map<Integer, TrackEntry> tracked = new ConcurrentHashMap<>();
 
@@ -60,16 +61,33 @@ public class BackTrack extends Module {
         final VecDeltaCodec codec = new VecDeltaCodec();
         final int latency;
         final Player player;
-        final long trackStart;
 
         TrackEntry(Player player, Vec3 vec3, int latency) {
             this.player = player;
             this.vec3 = vec3;
             this.codec.setBase(player.getPositionCodec().getBase());
             this.latency = latency;
-            trackStart = System.currentTimeMillis();
         }
 
+    }
+
+    private int pickLatency() {
+        long picked = (long) latencyRange.getValue().getRandomInRange();
+        return (int) Math.max(GRIM_MIN_LAG_MS, Math.min(picked, GRIM_MAX_LAG_MS));
+    }
+
+    // Distance from our eyes to where the server has the target, which is where Grim measures reach
+    private double serverDistance(TrackEntry entry) {
+        Player target = entry.player;
+        AABB serverBox = target.getBoundingBox().move(
+                entry.vec3.x - target.getX(),
+                entry.vec3.y - target.getY(),
+                entry.vec3.z - target.getZ());
+        Vec3 eyes = mc.player.getEyePosition(1f);
+        double x = Mth.clamp(eyes.x, serverBox.minX, serverBox.maxX);
+        double y = Mth.clamp(eyes.y, serverBox.minY, serverBox.maxY);
+        double z = Mth.clamp(eyes.z, serverBox.minZ, serverBox.maxZ);
+        return eyes.distanceTo(new Vec3(x, y, z));
     }
 
 
@@ -141,7 +159,6 @@ public class BackTrack extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventAttack> eventAttack = event -> {
-        if(backtrackMode.getValue() != BacktrackMode.NORMAL) return;
         if (!(event.getTarget() instanceof Player)) return;
 
         Player target = (Player) event.getTarget();
@@ -149,31 +166,10 @@ public class BackTrack extends Module {
         tracked.computeIfAbsent(target.getId(), id -> new TrackEntry(
                 target,
                 target.position(),
-                (int) latencyRange.getValue().getRandomInRange()
+                pickLatency()
         ));
     };
 
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventPacket.Incoming.Pre> listener = event -> {
-        if(backtrackMode.getValue() != BacktrackMode.PULSE) return;
-        if (!(event.getPacket() instanceof ClientboundDamageEventPacket packet)) return;
-
-        Entity entity = mc.level.getEntity(packet.entityId());
-        if (!(entity instanceof Player)) return;
-
-        Player target = (Player) entity;
-        if (entity == mc.player) return;
-        if (RotationUtils.getDistanceToEntityBox(target) >= 3.0) return;
-
-        tracked.computeIfAbsent(target.getId(), id -> new TrackEntry(
-                target,
-                target.position(),
-                (int) latencyRange.getValue().getRandomInRange()
-        ));
-
-    };
 
     @RequiresPlayer
     @EventLink
@@ -187,12 +183,8 @@ public class BackTrack extends Module {
             int entityId = target.getId();
 
 
-            boolean shouldRemove = false;
-            if (backtrackMode.getValue() == BacktrackMode.NORMAL) {
-                shouldRemove = RotationUtils.getDistanceToEntityBox(target) > 3.0;
-            } else if (backtrackMode.getValue() == BacktrackMode.PULSE) {
-                shouldRemove = System.currentTimeMillis() - entry.trackStart > entry.latency;
-            }
+            // Grim checks reach against the server position, so stop once that is out of reach
+            boolean shouldRemove = serverDistance(entry) > REACH_LIMIT;
 
             if (shouldRemove) {
                 LagManager.releaseDelayedFor(BackTrack.class, filterFor(entityId));
@@ -241,9 +233,6 @@ public class BackTrack extends Module {
                 case FILLED:
                     RenderUtils.drawShadedBoundingBox(bb, color.getRed(), color.getGreen(), color.getBlue(), 63);
                     break;
-                case WIREFRAME:
-                    RenderUtils.drawBoundingBox(bb, color.getRGB());
-                    break;
             }
         }
 
@@ -263,6 +252,6 @@ public class BackTrack extends Module {
 
 
     public enum EspMode {
-        NONE, BOX, FILLED, WIREFRAME, MODEL
+        NONE, BOX, FILLED, MODEL
     }
 }

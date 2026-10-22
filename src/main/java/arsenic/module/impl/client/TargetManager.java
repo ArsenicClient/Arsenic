@@ -1,5 +1,6 @@
 package arsenic.module.impl.client;
 
+import arsenic.module.ModuleTier;
 import arsenic.config.FriendManager;
 import arsenic.event.impl.EventMouse;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -7,7 +8,6 @@ import arsenic.event.impl.EventPacket;
 import net.minecraft.world.phys.HitResult;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.blatant.KillAura;
-import arsenic.module.impl.player.AutoHunt;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +22,14 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.minecraft.PlayerUtils;
 import net.minecraft.network.protocol.game.ServerboundAttackPacket;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.util.Mth;
+import arsenic.utils.minecraft.ItemUtils;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 
@@ -32,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true)
+@ModuleInfo(name = "Targets", category = ModuleCategory.CLIENT, hidden = true, enabled = true, tier = ModuleTier.QOL)
 public class TargetManager extends Module {
     public static EnumProperty<SortMode> sortMode = new EnumProperty<>("Sort Mode", SortMode.SmartSwitch);
     public static BooleanProperty teams = new BooleanProperty("Target Teammates", true),
@@ -175,10 +182,18 @@ public class TargetManager extends Module {
         return v != null ? v : sortMode.getValue().sv.value(player);
     }
 
+    /** Modules (e.g. addons) may restrict who can be targeted while they are enabled. */
+    private static boolean allowedByModules(Player ep) {
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
+            if (m.isEnabled() && !m.allowsTarget(ep))
+                return false;
+        return true;
+    }
+
     public static boolean isValidTarget(Player ep) {
         return (ep != mc.player)
                 && !Arsenic.getArsenic().getFriendManager().isFriend(ep)
-                && AutoHunt.allowsTarget(ep)
+                && allowedByModules(ep)
                 && (bots.getValue()      || !AntiBot.isBot(ep))
                 && (teams.getValue()      || !PlayerUtils.isEntityTeamSameAsPlayer(ep))
                 && (invis.getValue()      || !ep.isInvisible())
@@ -189,13 +204,51 @@ public class TargetManager extends Module {
     public enum SortMode {
         SmartSwitch(TargetManager::getServerHurtTimeOnPacketArrival),
         Fov(player -> (float) Math.abs(RotationUtils.fovFromEntity(player))),
-        Health(TargetManager::getEffectiveHealth);
+        Health(TargetManager::getHealthSortValue);
 
         private final SortValue sv;
 
         SortMode(SortValue sv) {
             this.sv = sv;
         }
+    }
+
+    /** Everyone one hit from death ties at the top (the stable sort keeps their order); the rest go by effective health. */
+    private static float getHealthSortValue(Player player) {
+        return isOneHit(player) ? -1f : getEffectiveHealth(player);
+    }
+
+    public static boolean isOneHit(Player player) {
+        return player.getHealth() + player.getAbsorptionAmount() <= getHitDamage(player);
+    }
+
+    /** Damage of a non-crit, fully charged hit with the held item against this player, after armour, resistance and protection. */
+    public static float getHitDamage(Player target) {
+        ItemStack held = mc.player.getMainHandItem();
+        double dmg = mc.player.getAttributeValue(Attributes.ATTACK_DAMAGE);
+        int sharpness = ItemUtils.enchantLevel(Enchantments.SHARPNESS, held);
+        if (sharpness > 0)
+            dmg += 0.5 * sharpness + 0.5;
+        dmg = Math.max(0.0, dmg);
+
+        float armour = target.getArmorValue();
+        float toughness = (float) target.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
+        // vanilla CombatRules.getDamageAfterAbsorb without the weapon's armour-piercing effects
+        float f = 2.0F + toughness / 4.0F;
+        float effective = Mth.clamp(armour - (float) dmg / f, armour * 0.2F, 20.0F);
+        dmg *= 1.0F - effective / 25.0F;
+
+        MobEffectInstance resistance = target.getEffect(MobEffects.RESISTANCE);
+        if (resistance != null)
+            dmg *= Math.max(0, 25 - (resistance.getAmplifier() + 1) * 5) / 25.0;
+
+        int epf = 0;
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET})
+            epf += ItemUtils.enchantLevel(Enchantments.PROTECTION, target.getItemBySlot(slot));
+        epf = Math.min(20, epf);
+        if (epf > 0)
+            dmg *= 1.0 - epf / 25.0;
+        return (float) dmg;
     }
 
     private static float getEffectiveHealth(Player player) {

@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -16,7 +17,7 @@ import arsenic.utils.io.Keys;
 import com.mojang.blaze3d.platform.InputConstants;
 import arsenic.utils.io.Keys;
 
-@ModuleInfo(name = "AntiAFK", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "AntiAFK", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class AntiAFK extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (s)", new DoubleValue(5, 300, 30, 1));
 

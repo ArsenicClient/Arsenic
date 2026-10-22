@@ -1,0 +1,15 @@
+{
+  "id": "hypixel",
+  "name": "Hypixel utils",
+  "description": "Hypixel helpers: game detection from the sidebar, auto GG and auto play, private message alerts, chat logging and chat timestamps.",
+  "icon": "textures/item/book.png",
+  "autoInstall": false,
+  "addons": {
+    "GameDetector": "Detects the current Hypixel game from the sidebar and shares it with the other addons. Shows the game in a HUD panel.",
+    "AutoGG": "Sends a message (default gg) once after each game ends, after a short random delay.",
+    "AutoPlay": "After a game ends, waits and sends /play with the mode you chose.",
+    "PrivateMessageAlert": "Sound and HUD flash when someone sends you a private message.",
+    "ChatLogger": "Writes chat to a daily log in the Arsenic folder. Off until you enable it.",
+    "BetterChat": "Chat timestamps, and a marker on lines that mention your name. Keeps the server's colours."
+  }
+}

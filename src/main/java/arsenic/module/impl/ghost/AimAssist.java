@@ -1,5 +1,12 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
+import arsenic.module.ModuleTier;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.SliderScale;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.asm.RequiresPlayer;
@@ -19,23 +26,45 @@ import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import arsenic.utils.rotations.SilentRotationManager;
+import net.minecraft.util.Mth;
 
-@ModuleInfo(name = "AimAssist", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "AimAssist", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class AimAssist extends Module {
 
-    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1), SliderScale.LOG);
+    public enum AimMode {
+        /** Your own mouse movement is added on top of the aim. */
+        Additive,
+        /** The aim takes over the axes it is moving. Axes it is not moving still follow your mouse. */
+        Override
+    }
 
-    private static final AimController.RotationMode ROTATION_MODE = AimController.RotationMode.Lazy;
+    public final RangeProperty speed = new RangeProperty("Turn Speed", new RangeValue(1, 90, 8, 12, 1), SliderScale.LOG);
+    public final EnumProperty<AimMode> mode = new EnumProperty<>("Mode", AimMode.Override);
+    public final EnumProperty<AimController.RotationMode> rotationMode = new EnumProperty<>("Rotation Mode", AimController.RotationMode.Lazy);
+
+    @ShowWhen(property = "Rotation Mode", is = "Heuristics")
+    @PropertyGroup(Group.ADVANCED)
+    public final DoubleProperty missChance = new DoubleProperty("Miss Chance", new DoubleValue(0, 50, 5, 1));
+
     private static final float PREDICTION_TICKS = 3f;
+    // Entity.setAngles scales mouse input by this before applying it to rotationYaw / rotationPitch
+    private static final float MOUSE_TO_ROTATION = 0.15f;
+    // A controller step smaller than this counts as "not moving that axis"
+    private static final float OWNS_EPSILON = 0.01f;
 
     private final AimController aim = new AimController();
     private LivingEntity target;
     private boolean aiming;
 
+    // Mouse input taken while aiming, in rotation units, applied to the silent rotation after the aim has stepped
+    private float pendingYaw, pendingPitch;
+
     @Override
     protected void onEnable() {
         target = null;
         aiming = false;
+        clearPending();
         aim.reset();
     }
 
@@ -43,6 +72,7 @@ public class AimAssist extends Module {
     protected void onDisable() {
         target = null;
         aiming = false;
+        clearPending();
     }
 
     @RequiresPlayer
@@ -53,13 +83,34 @@ public class AimAssist extends Module {
         target = pickTarget();
         if (target == null) {
             aim.cancelFlick();
+            // Nothing is aiming, so the buffered mouse input goes straight to the player
+            mc.player.setYRot(mc.player.getYRot() + pendingYaw);
+            mc.player.setXRot(clampPitch(mc.player.getXRot() + pendingPitch));
+            clearPending();
             return;
         }
 
+        aim.setMissChance((float) (missChance.getValue().getInput() / 100));
         float[] rots = aim.aimAt(target, PREDICTION_TICKS);
-        aim.rotate(event, target, rots, ROTATION_MODE,
+        aim.rotate(event, target, rots, rotationMode.getValue(),
                 (float) speed.getValue().getMin(), (float) speed.getValue().getMax(), 0f);
         aiming = true;
+
+        SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
+        float outYaw = event.getYaw();
+        float outPitch = event.getPitch();
+        boolean additive = mode.getValue() == AimMode.Additive;
+        boolean ownsYaw = Math.abs(Mth.wrapDegrees(outYaw - srm.yaw)) > OWNS_EPSILON;
+        boolean ownsPitch = Math.abs(outPitch - srm.pitch) > OWNS_EPSILON;
+
+        if (additive || !ownsYaw)
+            outYaw += pendingYaw;
+        if (additive || !ownsPitch)
+            outPitch += pendingPitch;
+
+        event.setYaw(outYaw);
+        event.setPitch(clampPitch(outPitch));
+        clearPending();
     };
 
     @RequiresPlayer
@@ -93,11 +144,26 @@ public class AimAssist extends Module {
         return mop != null && mop.getType() == HitResult.Type.BLOCK;
     }
 
-    public float modifyYaw(float yaw) {
-        return target == null ? yaw : 0f;
+    private void clearPending() {
+        pendingYaw = 0f;
+        pendingPitch = 0f;
     }
 
+    private static float clampPitch(float pitch) {
+        return Mth.clamp(pitch, -90f, 90f);
+    }
+
+    // Called from setAngles (mouse look). While aiming, the mouse delta is taken here and added back in onRotation.
+    public float modifyYaw(float yaw) {
+        if (target == null) return yaw;
+        pendingYaw += yaw * MOUSE_TO_ROTATION;
+        return 0f;
+    }
+
+    // setAngles subtracts the pitch input, so the rotation delta is the negated value
     public float modifyPitch(float pitch) {
-        return target == null ? pitch : 0f;
+        if (target == null) return pitch;
+        pendingPitch -= pitch * MOUSE_TO_ROTATION;
+        return 0f;
     }
 }

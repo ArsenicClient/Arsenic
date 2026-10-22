@@ -36,6 +36,16 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     }
 
     @Override
+    public String currentValue() {
+        return String.valueOf(value);
+    }
+
+    @Override
+    public java.util.List<String> possibleValues() {
+        return java.util.Arrays.asList("true", "false");
+    }
+
+    @Override
     public PropertyComponent<BooleanProperty> createComponent() {
         return new PropertyComponent<BooleanProperty>(this) {
             private final ButtonComponent buttonComponent = new ButtonComponent(this) {

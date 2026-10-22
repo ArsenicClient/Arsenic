@@ -1,6 +1,7 @@
 package arsenic.module.impl.visual;
 
 import arsenic.utils.render.QuadBatch;
+import arsenic.module.ModuleTier;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -11,7 +12,7 @@ import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
 import net.minecraft.world.entity.player.Player;
 
-@ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Arrows extends Module {
 
 

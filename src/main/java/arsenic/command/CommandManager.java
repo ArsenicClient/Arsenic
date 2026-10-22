@@ -13,6 +13,7 @@ import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
 public class CommandManager {
 
     private final ArrayList<Command> commands;
+    private boolean initialized;
     private List<String> autoCompletions;
     public CommandManager() {
         commands = new ArrayList<>();
@@ -21,11 +22,12 @@ public class CommandManager {
 
     @SuppressWarnings("unchecked")
     public final int initialize() {
-        if (!commands.isEmpty())
+        if (initialized)
             throw new RuntimeException("Double initialization of Command Manager.");
 
         arsenic.utils.java.ClassScanner.findSubTypes("arsenic.command", Command.class).forEach(this::addCommand);
 
+        initialized = true;
         return commands.size();
     }
 
@@ -66,9 +68,14 @@ public class CommandManager {
     }
 
     private boolean handleModuleCommand(String name, String[] args) {
-        Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(name);
-        if (module == null)
+        Module module = CommandUtils.findModule(name);
+        if (module == null) {
+            if (CommandUtils.isAddon(name)) {
+                PlayerUtils.addWaterMarkedMessageToChat(CommandUtils.missingModule(name));
+                return true;
+            }
             return false;
+        }
 
         if (args.length == 0) {
             module.toggle();
@@ -85,6 +92,10 @@ public class CommandManager {
 
         Arsenic.getArsenic().getConfigManager().saveConfig();
         return true;
+    }
+
+    public void remove(Command command) {
+        commands.remove(command);
     }
 
     public void add(Command command) {

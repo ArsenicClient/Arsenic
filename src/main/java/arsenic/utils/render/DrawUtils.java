@@ -27,6 +27,37 @@ public class DrawUtils extends UtilityClass {
     /** Kept for call-site compatibility; the new renderer has no scale-dependent masking. */
     public static float overrideScaleFactor = -1f;
 
+    /** Text in the vanilla font at any position, with a drop shadow; legacy colour codes work. */
+    public static void drawStringWithShadow(String text, float x, float y, int color) {
+        drawString(text, x, y, color, true);
+    }
+
+    public static void drawString(String text, float x, float y, int color) {
+        drawString(text, x, y, color, false);
+    }
+
+    public static void drawString(String text, float x, float y, int color, boolean shadow) {
+        GuiGraphicsExtractor graphics = RenderContext.graphics();
+        // the font only takes whole positions, so fractions go through the pose
+        int ix = (int) Math.floor(x), iy = (int) Math.floor(y);
+        float fx = x - ix, fy = y - iy;
+        boolean shift = fx != 0 || fy != 0;
+        if (shift) {
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(fx, fy);
+        }
+        // fully transparent colours draw nothing in the new renderer; 1.8 code often leaves the alpha out
+        graphics.text(net.minecraft.client.Minecraft.getInstance().font, text, ix, iy,
+                (color >>> 24) == 0 ? color | 0xFF000000 : color, shadow);
+        if (shift)
+            graphics.pose().popMatrix();
+    }
+
+    /** Width of the text in the vanilla font. */
+    public static int getStringWidth(String text) {
+        return net.minecraft.client.Minecraft.getInstance().font.width(text);
+    }
+
     public static void drawRect(float x, float y, float x1, float y1, int color) {
         if (alphaOf(color) == 0)
             return;

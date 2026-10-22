@@ -6,7 +6,8 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.server.RunningOnDifferentThreadException;
 import net.minecraft.network.protocol.Packet;
@@ -28,39 +29,15 @@ public final class LagManager {
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
     private static final Minecraft mc = Minecraft.getInstance();
-    private static int currentPing = 0;
-    private static long lastPingUpdate;
-
-    public static void updatePing() {
-        if (mc.player == null || mc.level == null) {
-            return;
-        }
-
-        try {
-            PlayerInfo playerInfo = mc.getConnection().getPlayerInfo(mc.player.getUUID());
-            if (playerInfo != null) {
-                int newPing = playerInfo.getLatency();
-                long currentTime = System.currentTimeMillis();
-                if (newPing < 5) {
-                    return;
-                }
-                if (newPing != currentPing || currentTime - lastPingUpdate > 1000) {
-                    currentPing = newPing;
-                    lastPingUpdate = currentTime;
-                }
-            }
-        } catch (Exception e) {
-        }
-    }
+    /** The connection the held and delayed outgoing packets were sent on. */
+    private static volatile Connection heldConnection;
 
     public static int getPing() {
-        updatePing();
-        return currentPing;
+        return PingTracker.getPing();
     }
 
     public static int getPingAsTicks() {
-        updatePing();
-        return currentPing / 50;
+        return PingTracker.getPing() / 50;
     }
 
     @RequiresPlayer
@@ -70,6 +47,18 @@ public final class LagManager {
 
         if (outgoingDelay.consumeSkip(packet))
             return;
+
+        // Only packets the play state encodes client to server are held: anything else (Forge's or a launcher's
+        // own payload packets) cannot be resent through the send queue later and would kick us when encoded.
+        if (!isSendable(packet))
+            return;
+
+        Connection connection = mc.getConnection() == null ? null : mc.getConnection().getConnection();
+        if (connection != heldConnection) {
+            // packets held for another connection must never go out on this one
+            discardOutgoing();
+            heldConnection = connection;
+        }
 
         if (outgoingDelay.offer(packet)) {
             event.cancel();
@@ -120,6 +109,13 @@ public final class LagManager {
     public static void release(Class<?> holderId) {
         holders.remove(holderId);
         flushUnheld();
+    }
+
+    public static void releaseAndDiscard(Class<?> holderId) {
+        holders.remove(holderId);
+        synchronized (buffer) {
+            buffer.clear();
+        }
     }
 
     public static int countBuffered() {
@@ -234,8 +230,22 @@ public final class LagManager {
     }
 
     public static void sendPacket(Packet<?> packet) {
-        if (mc.getConnection() != null)
-            mc.getConnection().send(packet);
+        if (mc.getConnection() == null || !isSendable(packet)
+                || mc.getConnection().getConnection() != heldConnection)
+            return;
+        mc.getConnection().send(packet);
+    }
+
+    /** Whether this is a packet the client sends to the server. */
+    private static boolean isSendable(Packet<?> packet) {
+        return packet != null && packet.type().flow() == PacketFlow.SERVERBOUND;
+    }
+
+    private static void discardOutgoing() {
+        outgoingDelay.discard(ALL_PACKETS);
+        synchronized (buffer) {
+            buffer.clear();
+        }
     }
 
     @SuppressWarnings("unchecked")

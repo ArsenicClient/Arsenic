@@ -1,15 +1,18 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
+import arsenic.utils.keystrokes.SyntheticKeys;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventMovementInput;
 import arsenic.event.impl.EventPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.java.SoundUtils;
 import arsenic.utils.rotations.RotationUtils;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -28,25 +31,25 @@ import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "JumpReset", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class JumpReset extends Module {
     public final DoubleProperty chance = new DoubleProperty("Chance", new DoubleValue(0.0, 1, 1, 0.01));
+    public final BooleanProperty sound = new BooleanProperty("Sound", true);
 
     private static final long SWING_WINDOW_MS = 400;
-    private static final long REQUEST_TTL_MS = 250;
     private static final double MELEE_RANGE = 4.5;
+    // Same upward speed as a normal jump in 1.8
+    private static final double JUMP_VELOCITY = 0.42;
 
     private static final long HURT_WINDOW_MS = 150;
 
     private final Map<Integer, Long> swings = new ConcurrentHashMap<>();
     private volatile long lastHurtAt;
-    private volatile long jumpRequestedAt;
 
     @Override
     protected void onDisable() {
         swings.clear();
         lastHurtAt = 0;
-        jumpRequestedAt = 0;
     }
 
     @RequiresPlayer
@@ -65,25 +68,19 @@ public class JumpReset extends Module {
                 lastHurtAt = now;
         } else if (event.getPacket() instanceof ClientboundSetEntityMotionPacket) {
             ClientboundSetEntityMotionPacket velocity = (ClientboundSetEntityMotionPacket) event.getPacket();
+            // Jump before the velocity packet is applied, so the knockback's own Y speed replaces the jump's. Jumping after
+            // it leaves our Y speed higher than the server's, which Grim flags (AntiKB, then Simulation on the vertical drag).
             if (velocity.id() == mc.player.getId()
                     && (velocity.movement().x != 0 || velocity.movement().z != 0)
                     && now - lastHurtAt <= HURT_WINDOW_MS
-                    && Math.random() <= chance.getValue().getInput()) {
-                jumpRequestedAt = now;
+                    && Math.random() <= chance.getValue().getInput()
+                    && mc.player.onGround() && !mc.player.isInWater()
+                    && hitByPlayerMelee(now)) {
+                jump();
+                if (sound.getValue())
+                    SoundUtils.playEvent("cmaj5", 1.5f);
             }
         }
-    };
-
-    @RequiresPlayer
-    @EventLink
-    public final Listener<EventMovementInput> eventMotionListener = event -> {
-        long requestedAt = jumpRequestedAt;
-        if (requestedAt == 0)
-            return;
-        jumpRequestedAt = 0;
-        if (System.currentTimeMillis() - requestedAt > REQUEST_TTL_MS || !hitByPlayerMelee(requestedAt))
-            return;
-        event.setJump(true);
     };
 
     private boolean hitByPlayerMelee(long hitAt) {
@@ -108,5 +105,12 @@ public class JumpReset extends Module {
         Item item = stack.getItem();
         return item instanceof FishingRodItem || item instanceof EggItem || item instanceof SnowballItem
                 || item instanceof BowItem || item instanceof EnderpearlItem || item instanceof PotionItem;
+    }
+
+    private void jump() {
+        net.minecraft.world.phys.Vec3 motion = mc.player.getDeltaMovement();
+        mc.player.setDeltaMovement(motion.x, JUMP_VELOCITY, motion.z);
+        mc.player.needsSync = true;
+        SyntheticKeys.press(SyntheticKeys.Key.JUMP);
     }
 }

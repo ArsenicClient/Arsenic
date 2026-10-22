@@ -1,11 +1,11 @@
 package arsenic.utils.render.shader;
 
 import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.capture.RenderTargets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL14;
 
 import java.util.ArrayList;
@@ -57,7 +57,8 @@ public class KawaseBlur {
             currentIterations = iterations;
         }
 
-        renderFBO(framebufferList.get(1), mc.getFramebuffer().framebufferTexture, kawaseDown, offset);
+        // read the real scene: while visuals are redirected, getFramebuffer() is the overlay
+        renderFBO(framebufferList.get(1), RenderTargets.getScene().framebufferTexture, kawaseDown, offset);
 
         for (int i = 1; i < iterations; i++) {
             renderFBO(framebufferList.get(i + 1), framebufferList.get(i).framebufferTexture, kawaseDown, offset);
@@ -78,9 +79,7 @@ public class KawaseBlur {
         kawaseUp.setUniformi("textureToCheck", 16);
         kawaseUp.setUniformf("halfpixel", 1.0f / lastBuffer.framebufferWidth, 1.0f / lastBuffer.framebufferHeight);
         kawaseUp.setUniformf("iResolution", lastBuffer.framebufferWidth, lastBuffer.framebufferHeight);
-        GL13.glActiveTexture(GL13.GL_TEXTURE16);
-        RenderUtils.bindTexture(stencilFrameBufferTexture);
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
+        RenderUtils.bindTextureOnUnit(16, stencilFrameBufferTexture);
         RenderUtils.bindTexture(framebufferList.get(1).framebufferTexture);
         ShaderUtil.drawQuads();
         kawaseUp.unload();

@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventShader;
@@ -13,7 +14,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.utils.render.*;
 
-@ModuleInfo(name = "PostProcessing",category = ModuleCategory.GUI, hidden = true)
+@ModuleInfo(name = "PostProcessing",category = ModuleCategory.GUI, hidden = true, tier = ModuleTier.QOL)
 public class PostProcessing extends Module {
     private static final int BLUR_ITERATIONS = 2;
     private static final int BLUR_OFFSET = 1;

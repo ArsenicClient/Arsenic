@@ -1,5 +1,8 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
+import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
@@ -34,7 +37,7 @@ import java.util.Optional;
  * Draws where the held bow or throwable will land: the flight path, and a marker on whatever it
  * hits first. The path turns red when it ends on an entity.
  */
-@ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Trajectories", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Trajectories extends Module {
 
     private static final int MAX_STEPS = 200;

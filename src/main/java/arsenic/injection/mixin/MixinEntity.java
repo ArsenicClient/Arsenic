@@ -74,8 +74,13 @@ public abstract class MixinEntity {
     @Inject(method = "getTeamColor", at = @At("HEAD"), cancellable = true)
     private void arsenic$espColour(CallbackInfoReturnable<Integer> cir) {
         arsenic.module.impl.visual.ESP esp = Arsenic.getArsenic().getModuleManager().getModuleByClass(arsenic.module.impl.visual.ESP.class);
-        if (esp != null && esp.shouldGlow((Entity) (Object) this))
+        if (esp != null && esp.shouldGlow((Entity) (Object) this)) {
             cir.setReturnValue(esp.getGlowColour((Entity) (Object) this));
+            return;
+        }
+        Integer requested = arsenic.utils.render.EntityGlow.colourOf((Entity) (Object) this);
+        if (requested != null)
+            cir.setReturnValue(requested);
     }
 
     /**

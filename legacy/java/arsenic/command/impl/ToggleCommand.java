@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import arsenic.command.Command;
 import arsenic.command.CommandInfo;
+import arsenic.command.CommandUtils;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -16,9 +17,9 @@ public class ToggleCommand extends Command {
 
     @Override
     public void execute(String[] args) {
-        Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(args[0]);
+        Module module = CommandUtils.findModule(args[0]);
         if (module == null) {
-            PlayerUtils.addWaterMarkedMessageToChat(args[0] + " is not a valid module");
+            PlayerUtils.addWaterMarkedMessageToChat(CommandUtils.missingModule(args[0]));
             return;
         }
         module.toggle();

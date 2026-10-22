@@ -4,7 +4,7 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.font.FontRendererExtension;
-import arsenic.utils.interfaces.IFontRenderer;
+import arsenic.utils.font.VanillaFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.render.DrawUtils;
@@ -55,16 +55,16 @@ public class Screen extends GuiScreen {
     public void initGui() {
         int bw = 200, bh = 22, gap = 6, pad = 14;
         panelW = bw + pad * 2;
-        panelH = 5 * bh + 4 * gap + pad * 2;
+        panelH = 4 * bh + 3 * gap + pad * 2;
         panelX = this.width / 2 - panelW / 2;
         panelY = (int) (this.height * 0.47f);
         int x = panelX + pad, y = panelY + pad;
-        String[] labels = {I18n.format("menu.singleplayer"), I18n.format("menu.multiplayer"), "Mods",
+        String[] labels = {I18n.format("menu.singleplayer"), I18n.format("menu.multiplayer"),
                 I18n.format("menu.options"), I18n.format("menu.quit")};
-        int[] ids = {1, 2, 3, 0, 4};
-        for (int i = 0; i < 5; i++)
+        int[] ids = {1, 2, 0, 4};
+        for (int i = 0; i < 4; i++)
             this.buttonList.add(new CustomGuiButton(ids[i], x, y + (bh + gap) * i, bw, bh, labels[i], opened, i));
-        this.buttonList.add(new CustomGuiButton(5, this.width - 108, this.height - 28, 100, 20, "Vanilla Menu", opened, 5));
+        this.buttonList.add(new CustomGuiButton(5, this.width - 108, this.height - 28, 100, 20, "Vanilla Menu", opened, 4));
     }
 
     @Override
@@ -112,8 +112,8 @@ public class Screen extends GuiScreen {
         int end = (ColorUtils.mixRgb(main, light ? 0x000000 : 0xFFFFFF, 0.35f) & 0xFFFFFF) | a << 24;
         drawHorizontalGradient(this.width / 2 - ulHalf, ulY, this.width / 2 + ulHalf, ulY + 2, accent(a), end);
 
-        FontRendererExtension<?> fr = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
-        String tag = "Arsenic Client  -  v" + modVersion();
+        FontRendererExtension<?> fr = VanillaFontRenderer.of(mc.fontRendererObj).getFontRendererExtension();
+        String tag = "Arsenic Client  -  " + modVersion();
         fr.drawStringWithShadow(tag, this.width / 2f, ulY + 12, ink((int) (140 * fade)), fr.CENTREX, fr.CENTREY);
 
         float slide = (1f - TickMode.CUBIC.clamped((elapsed - 250) / 700f)) * 14f;
@@ -128,17 +128,14 @@ public class Screen extends GuiScreen {
     }
 
     private static String modVersion() {
-        net.minecraftforge.fml.common.ModContainer c = net.minecraftforge.fml.common.Loader.instance().getIndexedModList().get("arsenic");
-        return c != null ? c.getVersion() : "?";
+        return Arsenic.getArsenic().getClientVersionString();
     }
 
     private void drawFooter(float fade) {
         int a = (int) (fade * 255);
         int h = mc.fontRendererObj.FONT_HEIGHT;
         String user = "Logged in as " + mc.getSession().getUsername();
-        mc.fontRendererObj.drawStringWithShadow(user, 6, this.height - h * 2 - 8, ink(a * 160 / 255));
-        String mods = "Mods loaded: " + net.minecraftforge.fml.common.Loader.instance().getModList().size();
-        mc.fontRendererObj.drawStringWithShadow(mods, 6, this.height - h - 6, ink(a * 110 / 255));
+        mc.fontRendererObj.drawStringWithShadow(user, 6, this.height - h - 6, ink(a * 160 / 255));
 
         int modules = Arsenic.getArsenic().getModuleManager().getModules().size();
         long settings = Arsenic.getArsenic().getModuleManager().getModules().stream().mapToLong(m -> m.getProperties().size()).sum();
@@ -193,7 +190,7 @@ public class Screen extends GuiScreen {
         boolean overPanel = MathUtils.inside(mouseX, mouseY, panelX, panelY, panelX + panelW, panelY + panelH);
         boolean overButton = false;
         for (GuiButton b : this.buttonList)
-            if (MathUtils.insideSized(mouseX, mouseY, b.xPosition, b.yPosition, b.width, b.height))
+            if (MathUtils.insideSized(mouseX, mouseY, b.xPosition, b.yPosition, MenuTheme.buttonWidth(b), MenuTheme.buttonHeight(b)))
                 overButton = true;
         if (mouseButton == 0 && !overPanel && !overButton)
             MenuTheme.click(mouseX, mouseY);
@@ -210,9 +207,6 @@ public class Screen extends GuiScreen {
                 break;
             case 2:
                 this.mc.displayGuiScreen(new GuiMultiplayer(this));
-                break;
-            case 3:
-                this.mc.displayGuiScreen(new net.minecraftforge.fml.client.GuiModList(this));
                 break;
             case 4:
                 this.mc.shutdown();
@@ -249,7 +243,7 @@ public class Screen extends GuiScreen {
             int fill = ColorUtils.mixArgb(ink((int) (20 * in)), accent((int) (80 * in)), hover);
             MenuTheme.drawPill(xPosition, y0, xPosition + width, y0 + height, height / 2f, 1f, fill,
                     ColorUtils.mixArgb(ink((int) (55 * in)), accent((int) (235 * in)), hover));
-            FontRendererExtension<?> fr = ((IFontRenderer) mc.fontRendererObj).getFontRendererExtension();
+            FontRendererExtension<?> fr = VanillaFontRenderer.of(mc.fontRendererObj).getFontRendererExtension();
             int tc = ColorUtils.mixArgb(ink((int) (205 * in)), ink((int) (255 * in)), hover);
             fr.drawStringWithShadow(displayString, xPosition + width / 2f + 2 * hover, y0 + height / 2f, tc, fr.CENTREX, fr.CENTREY);
         }

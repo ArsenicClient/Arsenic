@@ -13,4 +13,15 @@ public interface IMixinPlayerControllerMp {
     @Accessor("isHittingBlock")
     boolean isHittingBlock();
 
+    @Accessor("curBlockDamageMP")
+    float getCurBlockDamageMP();
+
+    @Accessor("curBlockDamageMP")
+    void setCurBlockDamageMP(float damage);
+
+    @Accessor("blockHitDelay")
+    int getBlockHitDelay();
+
+    @Accessor("blockHitDelay")
+    void setBlockHitDelay(int delay);
 }

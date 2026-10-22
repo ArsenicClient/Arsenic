@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -11,7 +12,7 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.network.chat.Component;
 
-@ModuleInfo(name = "RageQuit", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "RageQuit", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class RageQuit extends Module {
 
     public final DoubleProperty health = new DoubleProperty("Health", new DoubleValue(1, 20, 6, 1));

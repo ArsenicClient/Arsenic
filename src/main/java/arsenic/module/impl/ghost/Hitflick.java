@@ -1,5 +1,6 @@
 package arsenic.module.impl.ghost;
 
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.asm.RequiresPlayer;
@@ -11,9 +12,10 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.lag.LagManager;
+import arsenic.utils.minecraft.BadPacketsManager;
 import arsenic.utils.rotations.SilentRotationManager;
 import arsenic.utils.minecraft.ItemUtils;
 import arsenic.utils.minecraft.PlayerUtils;
@@ -23,15 +25,18 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import arsenic.module.property.impl.BooleanProperty;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-@ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT)
+@ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class Hitflick extends Module {
 
     public final EnumProperty<FlickDirection> direction = new EnumProperty<>("Direction", FlickDirection.Right);
@@ -42,11 +47,14 @@ public class Hitflick extends Module {
 
     public final DoubleProperty cooldown = new DoubleProperty("Cooldown", new DoubleValue(0, 1000, 250, 50));
 
-    @PropertyInfo(reliesOn = "Direction", value = "Custom")
+    @ShowWhen(property = "Direction", is = "Custom")
     public final DoubleProperty customAngle = new DoubleProperty("Angle", new DoubleValue(1, 180, 90, 1));
 
-    @PropertyInfo(reliesOn = "Direction", value = "Void")
+    @ShowWhen(property = "Direction", is = "Void")
     public final DoubleProperty maxVoidAngle = new DoubleProperty("Max angle", new DoubleValue(15, 180, 180, 15));
+
+    @ShowWhen(property = "Direction", is = "Void2")
+    public final DoubleProperty void2Angle = new DoubleProperty("Void2 Angle", new DoubleValue(1, 180, 90, 1));
 
     private long sinceLastFlick = 0;
     private long lastFlickTime = 0;
@@ -56,7 +64,8 @@ public class Hitflick extends Module {
     private static final double EXTRA_KNOCKBACK_Y = 0.1;
     private static final double AIR_STRAFE = 0.026;
     private static final int MAX_SIM_TICKS = 40;
-    private static final double VOID_DROP = 14.0;
+    // A fall this long with nothing below counts as void, even when the map has no void floor
+    private static final double VOID_DROP = 10.0;
     private static final int STRAFE_NONE = 0;
     private static final int STRAFE_BACK = 1;
     private static final int STRAFE_LEFT = 2;
@@ -91,6 +100,9 @@ public class Hitflick extends Module {
     private boolean pendingVoidHit;
     private int flickAppliedTick = -1;
     private int attackTick = -1;
+    /** Void2's last side, kept when both sides look the same. */
+    private int void2Side = -1;
+    private final Random random = new Random();
 
     public boolean attackedThisTick() {
         return mc.player != null && attackTick == mc.player.tickCount;
@@ -121,6 +133,22 @@ public class Hitflick extends Module {
             if (voidYaw == null)
                 return false;
             flickYaw = voidYaw;
+            pendingVoidHit = true;
+        } else if (direction.getValue() == FlickDirection.Void2) {
+            int side = void2Side(target, void2Side);
+            if (side == -1)
+                return false;
+            void2Side = side;
+            // OpenB4's Displace: the side's angle, give or take 5 degrees
+            float angle = ((float) void2Angle.getValue().getInput() + (random.nextFloat() * 10f - 5f)) * (side == 0 ? -1 : 1);
+            if (clamp) {
+                int sign = angle < 0 ? -1 : 1;
+                float safe = hitboxHalfAngle(target, originalYaw, sign, Math.abs(angle)) - SAFE_ANGLE_MARGIN;
+                if (safe < MIN_USEFUL_ANGLE)
+                    return false;
+                angle = sign * Math.min(Math.abs(angle), safe);
+            }
+            flickYaw = originalYaw + angle;
             pendingVoidHit = true;
         } else {
             float angle = getFlickAngle();
@@ -156,15 +184,16 @@ public class Hitflick extends Module {
                 break;
 
             case RESTORING:
-                if (pendingTarget != null) {
+                // a block went up since the flick (the server sees an item in use): no swing or attack now
+                if (pendingTarget != null && !BadPacketsManager.serverUsingItem()) {
                     attackTick = mc.player.tickCount;
                     PlayerUtils.swingItem();
                     mc.gameMode.attack(mc.player, pendingTarget);
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
-                    pendingTarget = null;
-                    pendingVoidHit = false;
                 }
+                pendingTarget = null;
+                pendingVoidHit = false;
                 state = FlickState.IDLE;
                 sinceLastFlick = 0;
                 if (blinkDuringFlick.getValue())
@@ -268,6 +297,48 @@ public class Hitflick extends Module {
                 return false;
         }
         return simulateVoid(target, yaw, level, STRAFE_BACK, ROBUST_WIDEN);
+    }
+
+    /**
+     * Void2, from OpenB4's Displace: which side of the target, across our line to it, has more open drop (0 the side a
+     * smaller yaw pushes to, 1 the other), or -1 if neither side does or straight behind it has the most. Columns are
+     * sampled 1 to 8 blocks out, each looking 6 blocks down for ground.
+     */
+    private int void2Side(Entity entity, int previous) {
+        double dx = entity.getX() - mc.player.getX();
+        double dz = entity.getZ() - mc.player.getZ();
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 0.001)
+            return -1;
+        dx /= len;
+        dz /= len;
+        double px = -dz, pz = dx;
+        double y = entity.getY();
+        int minusSide = 0, plusSide = 0, behind = 0;
+        for (int n : new int[]{1, 2, 3, 4, 6, 8}) {
+            int weight = n < 6 ? 2 : 1;
+            for (int i = -1; i <= 1; i++) {
+                if (open(entity.getX() + dx * n + px * i, y, entity.getZ() + dz * n + pz * i))
+                    behind += weight;
+                if (open(entity.getX() - px * n + dx * i, y, entity.getZ() - pz * n + dz * i))
+                    minusSide += weight;
+                if (open(entity.getX() + px * n + dx * i, y, entity.getZ() + pz * n + dz * i))
+                    plusSide += weight;
+            }
+        }
+        if (minusSide == 0 && plusSide == 0)
+            return -1;
+        if (behind >= minusSide && behind >= plusSide)
+            return -1;
+        if (minusSide == plusSide && previous != -1)
+            return previous;
+        return minusSide > plusSide ? 0 : 1;
+    }
+
+    /** No ground within 6 blocks below this point. */
+    private boolean open(double x, double y, double z) {
+        return mc.level.clip(new ClipContext(new Vec3(x, y, z), new Vec3(x, y - 6.0, z), ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.ANY, mc.player)).getType() == HitResult.Type.MISS;
     }
 
     private float hitboxHalfAngle(Entity target, float baseYaw, int sign, float limit) {
@@ -394,11 +465,12 @@ public class Hitflick extends Module {
         pendingVoidHit = false;
         flickAppliedTick = -1;
         attackTick = -1;
+        void2Side = -1;
         voidArrows.clear();
     }
 
     public enum FlickDirection {
-        Left, Right, Back, Custom, Void;
+        Left, Right, Back, Custom, Void, Void2;
     }
     private static final class VoidArrow {
         final double x, y, z;

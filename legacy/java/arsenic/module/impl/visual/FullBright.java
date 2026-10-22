@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
@@ -11,7 +12,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import org.lwjgl.input.Keyboard;
 
-@ModuleInfo(name = "FullBright", category = ModuleCategory.RENDER, keybind = Keyboard.KEY_F, hidden = true)
+@ModuleInfo(name = "FullBright", category = ModuleCategory.RENDER, keybind = Keyboard.KEY_F, hidden = true, tier = ModuleTier.QOL)
 public class FullBright extends Module {
     public final EnumProperty<fEnum> fullbrightmode = new EnumProperty<>("Mode: ",fEnum.Gamma );
 

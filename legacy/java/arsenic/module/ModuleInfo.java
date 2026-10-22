@@ -8,7 +8,7 @@ public @interface ModuleInfo {
 
     String name();
 
-    String description() default "placeholder";
+    String description() default "";
 
     ModuleCategory category();
 
@@ -18,6 +18,6 @@ public @interface ModuleInfo {
 
     boolean hidden() default false;
 
-    ModuleTier tier() default ModuleTier.CORE;
+    ModuleTier tier() default ModuleTier.LEGIT;
 
 }

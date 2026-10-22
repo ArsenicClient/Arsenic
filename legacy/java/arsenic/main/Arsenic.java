@@ -1,9 +1,9 @@
 package arsenic.main;
 
+import arsenic.addon.AddonManager;
 import arsenic.command.CommandManager;
 import arsenic.config.ConfigManager;
 import arsenic.config.FriendManager;
-import arsenic.config.LaunchID;
 import arsenic.event.EventManager;
 import arsenic.gui.ErrorOverlay;
 import arsenic.gui.click.ClickGuiScreen;
@@ -15,14 +15,11 @@ import arsenic.utils.font.Fonts;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.rotations.SilentRotationManager;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@Mod(name = "Arsenic Client", modid = "arsenic", clientSideOnly = true, version = "2.0", useMetadata = true)
 public class Arsenic {
 
     private final String clientName = "Arsenic";
@@ -30,6 +27,7 @@ public class Arsenic {
     private final Logger logger = LogManager.getLogger(clientName);
     private final EventManager eventManager = new EventManager();
     private final ModuleManager moduleManager = new ModuleManager();
+    private final AddonManager addonManager = new AddonManager();
     private final Fonts fonts = new Fonts();
     private final ConfigManager configManager = new ConfigManager();
     private final CommandManager commandManager = new CommandManager();
@@ -38,18 +36,20 @@ public class Arsenic {
     private final SilentRotationManager silentRotationManager = new SilentRotationManager();
     private final ServerInfo serverInfo = new ServerInfo();
     private final NotificationManager notificationManager = new NotificationManager();
-    private final LaunchID launchID = new LaunchID();
     private final FriendManager friendManager = new FriendManager();
     private final ErrorOverlay errorOverlay = new ErrorOverlay();
 
-    @Mod.EventHandler
-    public final void init(FMLInitializationEvent event) {
+    /** Starts the client. Called by the injector (arsenic.runtime.InjectedLaunch) once the game is running. */
+    public final void initialize() {
         logger.info("Loading {}, version {}...", clientName, getClientVersionString());
 
         getEventManager().subscribe(silentRotationManager);
         getEventManager().subscribe(serverInfo);
         getEventManager().subscribe(notificationManager);
         getEventManager().subscribe(new LagManager());
+        getEventManager().subscribe(new arsenic.utils.lag.PingTracker());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BadPacketsManager());
+        getEventManager().subscribe(new arsenic.utils.minecraft.BedwarsTracker());
         getEventManager().subscribe(errorOverlay);
 
         logger.info("Subscribed managers");
@@ -76,7 +76,7 @@ public class Arsenic {
 
     public String getName() { return clientName; }
 
-    @Mod.Instance
+    // set by arsenic.runtime.InjectedLaunch
     private static Arsenic instance;
 
     public static Arsenic getInstance() { return instance; }
@@ -88,13 +88,48 @@ public class Arsenic {
     public final long getClientVersion() { return clientVersion; }
 
     @Contract(pure = true)
-    public final @NotNull String getClientVersionString() { return String.valueOf(clientVersion); }
+    public final @NotNull String getClientVersionString() {
+        if (versionString == null)
+            versionString = readJarVersion();
+        return versionString;
+    }
+
+    private static String versionString;
+
+    /**
+     * The release version ("v3.n") from the jar's manifest. The package lookup only works when the class loader
+     * defined the package from the manifest, which the injector's loaders do not always do, so the manifests on the
+     * class path are also searched for Arsenic's own (the one naming the injector as its main class).
+     */
+    private static String readJarVersion() {
+        Package pkg = Arsenic.class.getPackage();
+        if (pkg != null && pkg.getImplementationVersion() != null)
+            return pkg.getImplementationVersion();
+        try {
+            ClassLoader loader = Arsenic.class.getClassLoader();
+            java.util.Enumeration<java.net.URL> manifests = loader != null
+                    ? loader.getResources("META-INF/MANIFEST.MF")
+                    : ClassLoader.getSystemResources("META-INF/MANIFEST.MF");
+            while (manifests.hasMoreElements()) {
+                try (java.io.InputStream in = manifests.nextElement().openStream()) {
+                    java.util.jar.Attributes main = new java.util.jar.Manifest(in).getMainAttributes();
+                    String version = main.getValue("Implementation-Version");
+                    if (version != null && "arsenic.inject.Injector".equals(main.getValue("Main-Class")))
+                        return version;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "dev";
+    }
 
     public final Logger getLogger() { return logger; }
 
     public final EventManager getEventManager() { return eventManager; }
 
     public final ModuleManager getModuleManager() { return moduleManager; }
+
+    public final AddonManager getAddonManager() { return addonManager; }
 
     public final ErrorOverlay getErrorOverlay() { return errorOverlay; }
 
@@ -115,8 +150,6 @@ public class Arsenic {
     public final ThemeManager getThemeManager() { return themeManager; }
 
     public final ServerInfo getServerInfo() { return serverInfo; }
-
-    public final LaunchID getLaunchID() { return launchID; }
 
     public final FriendManager getFriendManager() { return friendManager; }
 }

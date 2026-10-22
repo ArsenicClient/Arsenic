@@ -2,6 +2,9 @@ package arsenic.module.impl.visual;
 
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.module.ModuleTier;
+import arsenic.utils.java.MathUtils;
+import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -37,7 +40,7 @@ import java.util.Map;
  * screen and drawn as part of the HUD, scaled with distance like a world-space tag would be, which
  * lets the gear row use the game's real item rendering instead of hand-drawn texture sprites.
  */
-@ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Nametags extends Module {
 
     public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));

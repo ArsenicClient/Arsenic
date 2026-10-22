@@ -143,6 +143,11 @@ public final class Keys {
         return isKeyDown(key.getValue());
     }
 
+    /** Holds a key mapping down or lets it go, as 1.8's KeyBinding.setKeyBindState did. */
+    public static void setDown(net.minecraft.client.KeyMapping mapping, boolean down) {
+        mapping.setDown(down);
+    }
+
     public static boolean isKeyDown(int code) {
         return code != NONE && InputConstants.isKeyDown(code);
     }

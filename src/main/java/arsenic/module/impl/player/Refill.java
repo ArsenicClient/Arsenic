@@ -16,7 +16,7 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.ItemStack;
 
-@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER, tier = ModuleTier.EXTRA)
+@ModuleInfo(name = "Refill", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class Refill extends Module {
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 80, 10));
 

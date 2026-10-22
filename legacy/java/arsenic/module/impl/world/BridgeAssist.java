@@ -1,5 +1,6 @@
 package arsenic.module.impl.world;
 
+import arsenic.module.ModuleTier;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.timer.MSTimer;
 import arsenic.asm.RequiresPlayer;
@@ -13,7 +14,8 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import arsenic.module.property.PropertyInfo;
+import arsenic.module.property.Group;
+import arsenic.module.property.PropertyGroup;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -27,15 +29,21 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-@ModuleInfo(name = "BridgeAssist", category = ModuleCategory.MOVEMENT)
+@ModuleInfo(name = "BridgeAssist", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class BridgeAssist extends Module {
 
     private static final double BRIDGE_PITCH = 65.0;
 
     public final DoubleProperty safety = new DoubleProperty("Safety", new DoubleValue(0, 3, 1, 0.1));
     public final BooleanProperty smartMode = new BooleanProperty("Smart Mode", false);
+    /** Rewrites WASD to keep you on the bridge's lane (and shows the arrows). */
+    public final BooleanProperty correctKeys = new BooleanProperty("Auto Correct Keys", true);
+    /** Only bridges while you hold your sneak key; then it decides when you actually sneak. */
+    @PropertyGroup(Group.ADVANCED)
+    public final BooleanProperty onlyOnShift = new BooleanProperty("Only On Shift", false);
 
     private static final double FALL_MARGIN = 0.03;
     private static final double LANE_DEAD = 0.12;
@@ -49,11 +57,18 @@ public class BridgeAssist extends Module {
         lane.diagonals = true;
         lane.window = 15;
         lane.snap = true;
+        // Safety is the lead in ticks, so no minimum lead is forced above 1.0 (the shared default is 3)
+        presses.needLead = 0;
     }
 
     private float[] nudge;
     private boolean bridging;
     private boolean placedSinceTick;
+    private boolean holdingSneak;
+    /** Only On Shift: the physical sneak key is down while bridging, so the sneak key's state is ours to set. */
+    private boolean overriding;
+    /** Smart Mode turned the body this tick. */
+    private boolean steering;
 
     private float arrowForward, arrowStrafe;
     private final MSTimer arrow = MSTimer.expired();
@@ -79,6 +94,18 @@ public class BridgeAssist extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> tickEvent = event -> {
+        boolean wasSteering = steering;
+        steering = false;
+        tick(event);
+        // after a turn the rotation manager would keep re-mapping WASD to the turned body while it catches up,
+        // which is felt in the air right after leaving the block; snap it back to the camera at once instead
+        if (wasSteering && !steering && !mc.thePlayer.onGround) {
+            event.setSpeed(180);
+            event.setYaw(mc.thePlayer.rotationYaw);
+        }
+    };
+
+    private void tick(EventSilentRotation event) {
         bridging = false;
         nudge = null;
         boolean placed = placedSinceTick;
@@ -88,11 +115,21 @@ public class BridgeAssist extends Module {
         if (scaffold != null && scaffold.isEnabled()) {
             presses.reset();
             lane.reset();
+            endOverride();
+            return;
+        }
+
+        if (onlyOnShift.getValue() && !sneakKeyHeld()) {
+            presses.reset();
+            lane.reset();
+            endOverride();
+            setSneak(false);
             return;
         }
 
         if (mc.currentScreen != null || !mc.thePlayer.onGround) {
             presses.airborne();
+            endOverride();
             setSneak(false);
             return;
         }
@@ -102,14 +139,18 @@ public class BridgeAssist extends Module {
         if (!looking) {
             presses.reset();
             lane.reset();
+            endOverride();
             setSneak(false);
             return;
         }
         bridging = PlayerUtils.isPlayerHoldingBlocks();
+        overriding = onlyOnShift.getValue();
 
         float forward = (mc.gameSettings.keyBindForward.isKeyDown() ? 1 : 0) - (mc.gameSettings.keyBindBack.isKeyDown() ? 1 : 0);
         float strafe = (mc.gameSettings.keyBindLeft.isKeyDown() ? 1 : 0) - (mc.gameSettings.keyBindRight.isKeyDown() ? 1 : 0);
-        nudge = lane.compute(forward, strafe, mc.thePlayer.rotationYaw, mc.thePlayer.posX, mc.thePlayer.posZ, true, LANE_DEAD);
+        nudge = correctKeys.getValue()
+                ? lane.compute(forward, strafe, mc.thePlayer.rotationYaw, mc.thePlayer.posX, mc.thePlayer.posZ, true, LANE_DEAD)
+                : null;
         if (nudge != null) {
             arrowForward = Math.signum(nudge[0] - forward);
             arrowStrafe = Math.signum(nudge[1] - strafe);
@@ -122,6 +163,8 @@ public class BridgeAssist extends Module {
             in.moveStrafe /= in.moveScale;
         }
         boolean diagonal = SneakPresses.diagonal(forward, strafe, mc.thePlayer.rotationYaw);
+        // Safety is how many ticks ahead to shift, fractions included (0.5 checks half a tick of motion)
+        presses.hardLead = safety.getValue().getInput();
         setSneak(presses.next(ticks -> ScaffoldCore.willFall(in, ScaffoldUtil.WORLD, ticks, FALL_MARGIN),
                 true, safety.getValue().getInput(), diagonal, placed));
         if (!smartMode.getValue())
@@ -131,12 +174,16 @@ public class BridgeAssist extends Module {
             return;
         event.setSpeed(180);
         event.setYaw(yaw);
-    };
+        steering = true;
+    }
 
     @RequiresPlayer
     @EventLink(Priorities.HIGH)
     public final Listener<EventMovementInput> movementInput = event -> {
         if (nudge == null || (event.getSpeed() == 0 && event.getStrafe() == 0))
+            return;
+        // the nudge is worked out before this tick's movement: never apply it to a jump or once off the ground
+        if (!mc.thePlayer.onGround || event.isJumping())
             return;
         float scale = Math.max(Math.abs(event.getSpeed()), Math.abs(event.getStrafe()));
         event.setSpeed(nudge[0] * scale);
@@ -184,7 +231,35 @@ public class BridgeAssist extends Module {
 
     private void setSneak(boolean wanted) {
         int key = mc.gameSettings.keyBindSneak.getKeyCode();
-        KeyBinding.setKeyBindState(key, wanted || Keyboard.isKeyDown(key));
+        if (overriding) {
+            // Only On Shift: the held key turns bridging on, so it must not also keep us sneaking
+            holdingSneak = wanted;
+            KeyBinding.setKeyBindState(key, wanted);
+            return;
+        }
+        // only let go of a press we made, so other modules (BedDefender) can hold sneak while we idle
+        if (!wanted && !holdingSneak)
+            return;
+        holdingSneak = wanted;
+        // with a screen open the physical shift key must not turn into sneaking (shift-clicking in inventories)
+        KeyBinding.setKeyBindState(key, wanted || (mc.currentScreen == null && sneakKeyHeld()));
+    }
+
+    /** Hands the sneak key back to the player after Only On Shift held it at our value. */
+    private void endOverride() {
+        if (!overriding)
+            return;
+        overriding = false;
+        holdingSneak = false;
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), mc.currentScreen == null && sneakKeyHeld());
+    }
+
+    /** Whether the player is physically holding the sneak key (keyboard or mouse button). */
+    private boolean sneakKeyHeld() {
+        int key = mc.gameSettings.keyBindSneak.getKeyCode();
+        if (key == 0)
+            return false;
+        return key < 0 ? Mouse.isButtonDown(key + 100) : Keyboard.isKeyDown(key);
     }
 
     @Override
@@ -192,8 +267,10 @@ public class BridgeAssist extends Module {
         presses.reset();
         bridging = false;
         nudge = null;
+        steering = false;
         arrow.setTime(0);
         lane.reset();
+        endOverride();
         setSneak(false);
     }
 }

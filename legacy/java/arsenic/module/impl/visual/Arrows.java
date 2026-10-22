@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -13,7 +14,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
 
-@ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Arrows extends Module {
 
 

@@ -10,6 +10,7 @@ import arsenic.module.impl.ghost.Hitflick;
 import arsenic.module.impl.ghost.NoHitDelay;
 import arsenic.module.impl.player.FastPlace;
 import arsenic.module.impl.world.BridgeAssist;
+import arsenic.utils.keystrokes.SyntheticKeys;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -39,8 +40,15 @@ public abstract class MixinMinecraft {
     @Shadow
     public HitResult hitResult;
 
+    @Inject(method = "startAttack", at = @At("RETURN"))
+    private void arsenic$startAttackDone(CallbackInfoReturnable<Boolean> cir) {
+        SyntheticKeys.setVanillaClick(false);
+    }
+
     @Inject(method = "tick", at = @At("HEAD"))
     private void arsenic$tickHead(CallbackInfo ci) {
+        // a left click cancelled before its RETURN would leave this set
+        SyntheticKeys.setVanillaClick(false);
         Arsenic.getInstance().getEventManager().post(new EventGameLoop());
         Arsenic.getInstance().getEventManager().post(new EventRunTick());
     }
@@ -68,7 +76,7 @@ public abstract class MixinMinecraft {
     @Inject(method = "shouldEntityAppearGlowing", at = @At("RETURN"), cancellable = true)
     private void arsenic$espGlow(net.minecraft.world.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
         arsenic.module.impl.visual.ESP esp = Arsenic.getArsenic().getModuleManager().getModuleByClass(arsenic.module.impl.visual.ESP.class);
-        if (esp != null && esp.shouldGlow(entity))
+        if ((esp != null && esp.shouldGlow(entity)) || arsenic.utils.render.EntityGlow.colourOf(entity) != null)
             cir.setReturnValue(true);
     }
 
@@ -90,6 +98,7 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
     private void arsenic$startAttack(CallbackInfoReturnable<Boolean> cir) {
+        SyntheticKeys.setVanillaClick(true);
         ModuleManager modules = Arsenic.getArsenic().getModuleManager();
 
         // better hitreg: a miss no longer locks out the next click for 10 ticks

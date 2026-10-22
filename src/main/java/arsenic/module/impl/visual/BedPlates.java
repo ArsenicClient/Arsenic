@@ -1,5 +1,6 @@
 package arsenic.module.impl.visual;
 
+import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -25,7 +26,7 @@ import org.joml.Matrix3x2fStack;
 
 import java.util.*;
 
-@ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true)
+@ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class BedPlates extends Module {
 
 
@@ -59,6 +60,7 @@ public class BedPlates extends Module {
         }
 
         removeBrokenBeds();
+        pruneFarChunks();
 
         int chunkRadius = getChunkRadius();
         int playerCX = mc.player.getBlockX() >> 4;
@@ -105,6 +107,19 @@ public class BedPlates extends Module {
         }
     };
 
+
+    /** Forget chunks the player has left behind so the scan bookkeeping does not grow forever. */
+    private void pruneFarChunks() {
+        int r = getChunkRadius() + 2;
+        int pcx = mc.player.getBlockX() >> 4;
+        int pcz = mc.player.getBlockZ() >> 4;
+        java.util.function.LongPredicate far = ck ->
+                Math.abs((int) (ck >> 32) - pcx) > r || Math.abs((int) (long) ck - pcz) > r;
+        scannedChunks.removeIf(far::test);
+        chunkBeds.keySet().removeIf(far::test);
+        queuedChunks.removeIf(far::test);
+        rescanQueue.removeIf(far::test);
+    }
 
     private void removeBrokenBeds() {
         List<String> stale = new ArrayList<>();

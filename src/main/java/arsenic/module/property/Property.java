@@ -11,6 +11,7 @@ public abstract class Property<T> implements IContainable {
     protected T value;
     protected Module parent;
     protected Supplier<Boolean> visible = () -> true;
+    private Group group = Group.MAIN;
 
     public final void setParent(Module parent) {
         this.parent = parent;
@@ -38,6 +39,11 @@ public abstract class Property<T> implements IContainable {
     public void setVisible(Supplier<Boolean> visible) { this.visible = visible; }
 
     public boolean isVisible() { return visible.get(); }
+
+    public Group getGroup() { return group; }
+
+    /** Normally set from {@link PropertyGroup}; for properties that are not fields (e.g. built by an addon at runtime). */
+    public void setGroup(Group group) { this.group = group == null ? Group.MAIN : group; }
 
     public abstract PropertyComponent<?> createComponent();
 

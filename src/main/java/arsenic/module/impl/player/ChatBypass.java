@@ -1,5 +1,6 @@
 package arsenic.module.impl.player;
 
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
@@ -12,7 +13,7 @@ import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@ModuleInfo(name = "ChatBypass", category = ModuleCategory.PLAYER, hidden = true)
+@ModuleInfo(name = "ChatBypass", category = ModuleCategory.PLAYER, hidden = true, tier = ModuleTier.LEGIT)
 public class ChatBypass extends Module {
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Filtered);

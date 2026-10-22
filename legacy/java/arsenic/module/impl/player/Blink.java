@@ -1,9 +1,9 @@
 package arsenic.module.impl.player;
 
-import arsenic.asm.RequiresPlayer;
+import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
-import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventPlayerJoinWorld;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
@@ -13,24 +13,49 @@ import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.render.RenderUtils;
-import net.minecraft.network.Packet;
 import net.minecraft.util.Vec3;
 
 import java.awt.*;
-import java.util.ArrayList;
 
-@ModuleInfo(name = "Blink", category = ModuleCategory.PLAYER)
+@ModuleInfo(name = "Blink", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class Blink extends Module {
 
     public final DoubleProperty doubleProperty = new DoubleProperty("Max Blink ticks", new DoubleValue(1, 20, 20, 1));
     private Vec3 startPos;
     private int ticksElapsed;
+    private static final int JOIN_GRACE_TICKS = 200;
 
-    @RequiresPlayer
+    private boolean worldReady() {
+        return mc.thePlayer != null && mc.theWorld != null && mc.getNetHandler() != null;
+    }
+
+    private boolean canBlink() {
+        return worldReady() && !mc.isSingleplayer() && mc.thePlayer.ticksExisted >= JOIN_GRACE_TICKS;
+    }
+
+    /** Drops held packets (they belong to a world that no longer exists) and turns the module off. */
+    private void resetStale() {
+        startPos = null;
+        ticksElapsed = 0;
+        LagManager.releaseAndDiscard(this.getClass());
+        if (isEnabled())
+            setEnabledSilently(false);
+    }
+
+    @EventLink
+    public final Listener<EventPlayerJoinWorld> onJoinWorld = event -> {
+        if (event.getEntity() == mc.thePlayer)
+            resetStale();
+    };
+
     @EventLink
     public final Listener<EventTick> onPacket = event -> {
+        if (!worldReady()) {
+            resetStale();
+            return;
+        }
         ticksElapsed++;
-        if(ticksElapsed > doubleProperty.getValue().getInput()) {
+        if (ticksElapsed > doubleProperty.getValue().getInput()) {
             onDisable();
             onEnable();
         }
@@ -47,9 +72,12 @@ public class Blink extends Module {
         return ticksElapsed + "/" + (int) doubleProperty.getValue().getInput() + "t";
     }
 
-    @RequiresPlayer
     @Override
     protected void onEnable() {
+        if (!canBlink()) {
+            setEnabledSilently(false);
+            return;
+        }
         startPos = mc.thePlayer.getPositionVector();
         LagManager.acquire(this.getClass());
     }
@@ -58,6 +86,9 @@ public class Blink extends Module {
     protected void onDisable() {
         startPos = null;
         ticksElapsed = 0;
-        LagManager.release(this.getClass());
+        if (worldReady())
+            LagManager.release(this.getClass());
+        else
+            LagManager.releaseAndDiscard(this.getClass());
     }
 }
