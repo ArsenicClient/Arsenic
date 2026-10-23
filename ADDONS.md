@@ -1733,6 +1733,13 @@ public class EventDisplayGuiScreen extends CancellableEvent {
 }
 ```
 
+### arsenic.event.impl.EventDropTick
+
+```java
+public class EventDropTick extends CancellableEvent {
+}
+```
+
 ### arsenic.event.impl.EventFov
 
 ```java
@@ -2551,6 +2558,8 @@ public final class AutoBlocker {
     /** Whether the sword is up because of a packet block, so KillAura does not wait on its own use of the item. */ public boolean isBlocking();
     /** Every outgoing packet, before it is sent. Returns true to drop it: an attack in a tick that already released. */ public boolean onOutgoing(Packet<?> packet);
     /** After the tick's movement packet went out. The client's item use from a block is cleared here: it already slowed */ public void afterMovement();
+    /** After the tick's movement packet went out: whether the server now sees the sword up for this tick. */ public void recordSent(boolean up);
+    /** Whether the sword was up as the server saw it this many ticks ago. */ public boolean wasBlocking(int ticksAgo);
     public void stopPacket();
 
     public enum Mode {
@@ -2804,6 +2813,7 @@ public final class LagManager {
     public static int getPingAsTicks();
     public Listener<EventPacket.OutGoing> onOutgoing;
     public Listener<EventPacket.Incoming.Pre> onIncoming;
+    /** Delayed incoming packets are handled at the start of the game tick, where vanilla handles the ones it received */ public Listener<EventRunTick> onRunTick;
     public Listener<EventTick> onTick;
     public static void acquire(Class<?> holderClass, Predicate<Packet<?>> filter);
     public static void acquire(Class<?> holderClass);

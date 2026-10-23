@@ -56,6 +56,8 @@ public final class AutoBlocker {
     private boolean attackedThisTick, releasedThisTick;
     /** Our last attack that is taken to have landed, so the target is not hit again inside its hurt time. */
     private int ticks, lastHitTick = Integer.MIN_VALUE / 2, lastHitId = -1;
+    /** Whether the sword was up as the server saw it, for each of the last ticks, by ticksExisted. */
+    private final boolean[] sentBlocking = new boolean[64];
 
     /** Whether the first-person sword is drawn blocking for a packet block that is fighting (the real one lasts a tick). */
     private static volatile boolean renderBlocking;
@@ -183,6 +185,17 @@ public final class AutoBlocker {
     public void afterMovement() {
         if (blocking && mc.thePlayer.isUsingItem())
             mc.thePlayer.clearItemInUse();
+    }
+
+    /** After the tick's movement packet went out: whether the server now sees the sword up for this tick. */
+    public void recordSent(boolean up) {
+        sentBlocking[mc.thePlayer.ticksExisted & (sentBlocking.length - 1)] = up;
+    }
+
+    /** Whether the sword was up as the server saw it this many ticks ago. */
+    public boolean wasBlocking(int ticksAgo) {
+        ticksAgo = Math.max(0, Math.min(sentBlocking.length - 1, ticksAgo));
+        return sentBlocking[(mc.thePlayer.ticksExisted - ticksAgo) & (sentBlocking.length - 1)];
     }
 
     public void stopPacket() {

@@ -187,7 +187,7 @@ public final class HookTransformer implements ClassFileTransformer {
 
         String sp = "client/entity/EntityPlayerSP";
         add(Kind.HEAD_CANCEL, sp, "onUpdateWalkingPlayer", "()V", PLAYER_HOOKS, "onUpdateWalkingPlayerHead");
-        add(Kind.HEAD, sp, "onUpdate", "()V", PLAYER_HOOKS, "onUpdateHead");
+        add(Kind.HEAD_CANCEL, sp, "onUpdate", "()V", PLAYER_HOOKS, "onUpdateHead");
         add(Kind.RETURN, sp, "onUpdate", "()V", PLAYER_HOOKS, "onUpdateReturn");
         add(Kind.HEAD, sp, "onLivingUpdate", "()V", PLAYER_HOOKS, "onLivingUpdateHead");
         add(Kind.HEAD_CANCEL, sp, "swingItem", "()V", PLAYER_HOOKS, "swingItemHead");

@@ -44,8 +44,16 @@ public final class MinecraftHooks {
         KeyBinding.setKeyBindState(keyCode, pressed);
     }
 
+    private static boolean attackBlocked;
+
+    /** Makes the attack key read as released for the rest of this game tick: no click, no held breaking. */
+    public static void blockAttackThisTick() {
+        attackBlocked = true;
+    }
+
     /** runTick HEAD. */
     public static void runTickHead(Minecraft self) {
+        attackBlocked = false;
         Arsenic.getInstance().getEventManager().post(new EventGameLoop());
         MinecraftAPI.KEY_CODE = null;
         Arsenic.getInstance().getEventManager().post(new EventRunTick());
@@ -79,6 +87,8 @@ public final class MinecraftHooks {
         GameSettings gameSettings = Minecraft.getMinecraft().gameSettings;
         if (keyBinding != gameSettings.keyBindAttack && keyBinding != gameSettings.keyBindUseItem)
             return false;
+        if (attackBlocked && keyBinding == gameSettings.keyBindAttack)
+            return true;
         return Arsenic.getArsenic().getSilentRotationManager().isBlockingUserInput();
     }
 

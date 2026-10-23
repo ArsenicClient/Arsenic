@@ -89,8 +89,8 @@ public final class PlayerHooks {
                 .post(new EventUpdate.Post(self.posX, self.posY, self.posZ, self.rotationYaw, self.rotationPitch, self.onGround));
     }
 
-    /** EntityPlayerSP.onUpdate HEAD. */
-    public static void onUpdateHead(EntityPlayerSP self) {
+    /** EntityPlayerSP.onUpdate HEAD. @return true to drop the tick */
+    public static boolean onUpdateHead(EntityPlayerSP self) {
         Arsenic.getInstance().getEventManager().post(new EventTick());
         for (int i = 0; i < 3; i++) {
             if (Mouse.isButtonDown(i) && !mouseDownLastTick[i]) {
@@ -101,6 +101,13 @@ public final class PlayerHooks {
                 Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
             }
         }
+        EventDropTick drop = new EventDropTick();
+        Arsenic.getInstance().getEventManager().post(drop);
+        if (!drop.isCancelled())
+            return false;
+        // the RETURN hook is not reached from here
+        Arsenic.getInstance().getEventManager().post(new EventTick.Post());
+        return true;
     }
 
     /** EntityPlayerSP.onUpdate RETURN. */
