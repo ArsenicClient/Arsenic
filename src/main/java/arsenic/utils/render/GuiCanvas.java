@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 /**
  * A fixed design canvas, so a screen lays out identically on every monitor.
  *
- * The canvas is the 1980x1080 layout at GUI scale 2 (990x540 units). It is scaled uniformly to fit the window and
+ * The canvas is the 1980x1080 layout at GUI scale 2 (1040x567 units). It is scaled uniformly to fit the window and
  * centred, so a screen with a different shape gets bars rather than a stretched or reflowed layout.
  *
  * Screens that opt in draw in canvas units. While {@link #isActive()} is set, scissor rectangles are converted through
@@ -13,12 +13,20 @@ import net.minecraft.client.Minecraft;
  */
 public final class GuiCanvas {
 
-    public static final float WIDTH = 990f;
-    public static final float HEIGHT = 540f;
+    public static final float WIDTH = 1040f;
+    public static final float HEIGHT = 567f;
 
     private static boolean active;
+    /** Extra zoom for fixed-canvas screens: 1 is the default fit, larger makes everything bigger. */
+    private static float scaleFactor = 1f;
 
     private GuiCanvas() {}
+
+    public static void setScaleFactor(float factor) {
+        scaleFactor = Math.max(0.5f, Math.min(2f, factor));
+    }
+
+    public static float scaleFactor() { return scaleFactor; }
 
     public static void setActive(boolean on) {
         active = on;
@@ -31,7 +39,7 @@ public final class GuiCanvas {
     /** Pixels per canvas unit. */
     public static float scale() {
         Minecraft mc = Minecraft.getMinecraft();
-        return Math.min(mc.displayWidth / WIDTH, mc.displayHeight / HEIGHT);
+        return Math.min(mc.displayWidth / WIDTH, mc.displayHeight / HEIGHT) * scaleFactor;
     }
 
     /** Left edge of the canvas in window pixels. Bars on either side are equal, so this is half the spare width. */

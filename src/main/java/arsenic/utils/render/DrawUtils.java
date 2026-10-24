@@ -18,6 +18,7 @@ public class DrawUtils extends UtilityClass {
     private static final ShaderUtil roundedGradientShader = new ShaderUtil("roundedRectGradient");
     private static final ShaderUtil shadowShader = new ShaderUtil("roundedRectShadow");
     private static final ShaderUtil glassShader = new ShaderUtil("liquidGlass");
+    private static final ShaderUtil outlineShader = new ShaderUtil("roundRectOutline");
 
     public static float overrideScaleFactor = -1f;
 
@@ -121,7 +122,26 @@ public class DrawUtils extends UtilityClass {
     }
 
     public static void drawRoundedOutline(float x, float y, float x1, float y1, final float radius, final float borderSize, final int color) {
-        drawRoundedOutline(x, y, x1, y1, radius, borderSize, color, new boolean[]{true, true, true, true});
+        if (x1 <= x || y1 <= y || borderSize <= 0f)
+            return;
+        float width = x1 - x, height = y1 - y;
+        float sf = scaleFactor();
+        float thickness = Math.max(1f, borderSize * sf);
+        float pad = thickness * 0.5f + 2f;
+
+        RenderUtils.resetColor();
+        RenderUtils.startBlend();
+        RenderUtils.applyGuiBlend();
+        RenderUtils.setAlphaLimit(0);
+        outlineShader.init();
+        setupSdfUniforms(x, y, width, height, radius, pad, outlineShader);
+        outlineShader.setUniformf("outlineThickness", thickness);
+        outlineShader.setUniformf("color", ((color >> 16) & 0xFF) / 255f,
+                ((color >> 8) & 0xFF) / 255f, (color & 0xFF) / 255f,
+                ((color >>> 24) & 0xFF) / 255f);
+        drawSdfQuad(x, y, width, height, pad);
+        outlineShader.unload();
+        RenderUtils.endBlend();
     }
 
     public static void drawBorderedRoundedRect(float x, float y, float d, float y1, float radius, float borderSize, int borderC, int insideC, boolean[] round) {
@@ -195,11 +215,11 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.applyGuiBlend();
         RenderUtils.setAlphaLimit(0);
         glassShader.init();
-        setupRoundedRectUniforms(x, y, width, height, radius - 1f, glassShader);
+        setupSdfUniforms(x, y, width, height, radius, 2f, glassShader);
         glassShader.setUniformf("color", film.getRed() / 255f, film.getGreen() / 255f, film.getBlue() / 255f, film.getAlpha() / 255f);
         glassShader.setUniformf("highlight", rr, rg, rb, Math.min(1f, strength));
         glassShader.setUniformf("time", (System.currentTimeMillis() % 1000000L) / 1000f);
-        ShaderUtil.drawQuads(x, y, width + 0.6f, height + 0.6f);
+        drawSdfQuad(x, y, width, height, 2f);
         glassShader.unload();
         RenderUtils.endBlend();
     }
@@ -212,11 +232,11 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.setAlphaLimit(0);
         roundedShader.init();
 
-        setupRoundedRectUniforms(x, y, width, height, radius - 1f, roundedShader);
-        roundedShader.setUniformi("blur",1);
+        setupSdfUniforms(x, y, width, height, radius, 2f, roundedShader);
+        
         roundedShader.setUniformf("color", color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f);
 
-        ShaderUtil.drawQuads(x, y, width+0.6f, height+0.6f);
+        drawSdfQuad(x, y, width, height, 2f);
         roundedShader.unload();
         RenderUtils.endBlend();
     }
@@ -226,12 +246,12 @@ public class DrawUtils extends UtilityClass {
         RenderUtils.resetColor();
         RenderUtils.startBlend();
         roundedGradientShader.init();
-        setupRoundedRectUniforms(x, y, width, height, radius, roundedGradientShader);
+        setupSdfUniforms(x, y, width, height, radius, 2f, roundedGradientShader);
         roundedGradientShader.setUniformf("color1", topLeft.getRed() / 255f, topLeft.getGreen() / 255f, topLeft.getBlue() / 255f, topLeft.getAlpha() / 255f);
         roundedGradientShader.setUniformf("color2", bottomLeft.getRed() / 255f, bottomLeft.getGreen() / 255f, bottomLeft.getBlue() / 255f, bottomLeft.getAlpha() / 255f);
         roundedGradientShader.setUniformf("color3", topRight.getRed() / 255f, topRight.getGreen() / 255f, topRight.getBlue() / 255f, topRight.getAlpha() / 255f);
         roundedGradientShader.setUniformf("color4", bottomRight.getRed() / 255f, bottomRight.getGreen() / 255f, bottomRight.getBlue() / 255f, bottomRight.getAlpha() / 255f);
-        ShaderUtil.drawQuads(x, y, width+0.6f, height+0.6f);
+        drawSdfQuad(x, y, width, height, 2f);
         roundedGradientShader.unload();
         RenderUtils.endBlend();
     }
@@ -307,11 +327,21 @@ public class DrawUtils extends UtilityClass {
         finish();
         glLineWidth(1.0f);
     }
-    private static void setupRoundedRectUniforms(float x, float y, float width, float height, float radius, ShaderUtil roundedTexturedShader) {
-        float sf = overrideScaleFactor > 0 ? overrideScaleFactor : new ScaledResolution(mc).getScaleFactor();
-        roundedTexturedShader.setUniformf("location", x * sf,
-                (mc.displayHeight - (height * sf)) - (y * sf));
-        roundedTexturedShader.setUniformf("rectSize", width * sf, height * sf);
-        roundedTexturedShader.setUniformf("radius", radius);
+    private static float scaleFactor() {
+        return overrideScaleFactor > 0 ? overrideScaleFactor : new ScaledResolution(mc).getScaleFactor();
+    }
+
+    private static void setupSdfUniforms(float x, float y, float width, float height, float radius,
+                                         float padPx, ShaderUtil shader) {
+        float sf = scaleFactor();
+        shader.setUniformf("quadSize", width * sf + padPx * 2f, height * sf + padPx * 2f);
+        shader.setUniformf("rectSize", width * sf, height * sf);
+        shader.setUniformf("radius", radius * sf);
+        shader.setUniformf("location", x * sf, (mc.displayHeight - (height * sf)) - (y * sf));
+    }
+
+    private static void drawSdfQuad(float x, float y, float width, float height, float padPx) {
+        float pad = padPx / scaleFactor();
+        ShaderUtil.drawQuads(x - pad, y - pad, width + pad * 2f, height + pad * 2f);
     }
 }

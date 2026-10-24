@@ -4,7 +4,12 @@ import arsenic.config.ConfigManager;
 import arsenic.config.ModuleConfig;
 import arsenic.gui.click.GuiStyle;
 import arsenic.gui.click.UITheme;
-import arsenic.gui.themes.ThemeManager;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
+import arsenic.gui.design.M3Icons;
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
 import arsenic.utils.font.FontRendererExtension;
@@ -13,18 +18,14 @@ import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
-import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.TimeUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ChatAllowedCharacters;
-import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Keyboard;
 
 import java.io.BufferedReader;
@@ -52,8 +53,6 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("dd MMM, HH:mm");
 
-    private static final ResourceLocation LOCAL_ICON = new ResourceLocation("arsenic", "icons/local.png");
-    private static final ResourceLocation ONLINE_ICON = new ResourceLocation("arsenic", "icons/online.png");
 
     private static final float BOTTOM_MARGIN = 28f;
     private static final float ROW_GAP = 6f;
@@ -131,6 +130,9 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private Field focused;
 
     private Tab tab = Tab.LOCAL;
+    private long tabSwitchTime = System.currentTimeMillis() - 1000L;
+    private final AnimationTimer localTabTimer =
+            new AnimationTimer(M3.DUR_MEDIUM, () -> tab == Tab.LOCAL, TickMode.CUBIC);
     /** The saved config being renamed, or null. */
     private String renaming;
     /** What a red "Sure?" button is waiting for (e.g. "delete:name" or "reset"), and since when. */
@@ -186,14 +188,14 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         if (confirmKey != null && System.currentTimeMillis() - confirmTime > CONFIRM_MS)
             confirmKey = null;
 
-        float x = pi.getX() + 5;
+        float x = pi.getX() + 2;
         float contentTop = pi.getY() + scroll + 12;
-        float maxX = ri.getGuiScreen().width * 7 / 8f - 10;
-        float w = maxX - x - 5;
+        float maxX = ri.getGuiScreen().width - 62f;
+        float w = maxX - x - 4;
         float y = contentTop;
 
         y = drawTabs(ri, x, y, w);
-        y = drawStatus(ri, x, y, w);
+        y = drawStatus(ri, x, y + tabReveal(), w);
 
         if (tab == Tab.LOCAL)
             y = drawLocal(ri, x, y, w);
@@ -208,32 +210,45 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     }
 
     private float drawTabs(RenderInfo ri, float x, float y, float w) {
-        float h = 26, gap = 6;
-        float tabW = (w - gap) / 2f;
+        float h = 34, pad = 4, gap = 2;
+        M3Components.card(x, y, x + w, y + h, h / 2f, M3.alpha(M3.surfaceContainerHighest(), 125));
+        float tabW = (w - pad * 2f - gap) / 2f;
+        float selected = localTabTimer.getPercent();
         for (Tab t : Tab.values()) {
-            float tx = x + t.ordinal() * (tabW + gap);
-            boolean active = tab == t;
-            boolean hovered = hover(ri, tx, y, tx + tabW, y + h);
+            float tx = x + pad + t.ordinal() * (tabW + gap);
+            float active = t == Tab.LOCAL ? selected : 1f - selected;
+            boolean hovered = hover(ri, tx, y + pad, tx + tabW, y + h - pad);
 
-            int fill = active ? UITheme.mix(ThemeManager.getConfigsCard(), UITheme.accent(), 0.12f)
-                    : (hovered ? ThemeManager.getConfigsHoverBackground() : ThemeManager.getConfigsCard());
-            UITheme.surface(tx, y, tx + tabW, y + h, 8f, fill,
-                    active || hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, active ? 1f : 0.6f);
-            DrawUtils.drawRoundedOutline(tx, y, tx + tabW, y + h, 8f, active ? 1.4f : 1f,
-                    active ? UITheme.alpha(UITheme.accent(), 190)
-                           : (hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder()));
+            if (active > 0.01f)
+                DrawUtils.drawRoundedRect(tx, y + pad, tx + tabW, y + h - pad, (h - pad * 2f) / 2f,
+                        M3.alpha(M3.primaryContainer(), (int) (255 * active)));
+            if (hovered && active < 0.85f)
+                DrawUtils.drawRoundedRect(tx, y + pad, tx + tabW, y + h - pad, (h - pad * 2f) / 2f,
+                        M3.alpha(M3.onSurface(), 18));
+            if (active > 0.01f)
+                DrawUtils.drawRoundedOutline(tx, y + pad, tx + tabW, y + h - pad, (h - pad * 2f) / 2f,
+                        1f, M3.alpha(M3.primary(), (int) (135 * active)));
 
             String label = t == Tab.LOCAL ? "My configs" : "Online";
-            int color = active ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary();
-            float icon = h - 12;
+            int color = M3.mix(M3.onSurfaceVariant(), M3.onSecondaryContainer(), active);
+            String glyph = t == Tab.LOCAL ? M3Icons.LOCAL : M3Icons.ONLINE;
+            float iconW = M3Icons.font().getWidth(glyph);
             float textW = ri.getFr().getWidth(label);
-            float startX = tx + (tabW - (icon + 5 + textW)) / 2f;
-            drawIcon(t == Tab.LOCAL ? LOCAL_ICON : ONLINE_ICON, startX, y + (h - icon) / 2f, icon, color);
-            ri.getFr().drawString(label, startX + icon + 5, y + h / 2f, color, ri.getFr().CENTREY);
+            float startX = tx + (tabW - (iconW + 6 + textW)) / 2f;
+            M3Icons.drawLeft(glyph, startX, y + h / 2f, color);
+            ri.getFr().drawString(label, startX + iconW + 6, y + h / 2f, color, ri.getFr().CENTREY);
 
             hits.add(new Hit(tx, y, tx + tabW, y + h, () -> switchTab(t)));
         }
-        return y + h + 10;
+        return y + h + 12;
+    }
+
+    private float tabReveal() {
+        if (!GuiStyle.transitionEnabled())
+            return 0f;
+        float p = MathUtils.clamp01((System.currentTimeMillis() - tabSwitchTime) / (float) M3.DUR_MEDIUM);
+        p = 1f - (1f - p) * (1f - p) * (1f - p);
+        return (1f - p) * 8f;
     }
 
     /** The last result (saved, loaded, an error...), fading out after a few seconds. */
@@ -245,14 +260,16 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         if (age > STATUS_MS)
             return y;
         float pct = age > STATUS_MS - 600 ? (STATUS_MS - age) / 600f : 1f;
-        float h = 22;
-        int tint = s.error ? ThemeManager.getError() : UITheme.accent();
-        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 7f,
-                UITheme.alpha(UITheme.mix(ThemeManager.getConfigsCard(), tint, 0.18f), pct));
-        DrawUtils.drawRoundedRect(x, y, x + 3, y + h, 1.5f, UITheme.alpha(tint, pct));
-        ri.getFr().drawString(ellipsize(ri.getFr(), s.text, w - 24, 1f), x + 12, y + h / 2f,
-                UITheme.alpha(ThemeManager.getTextPrimary(), pct), ri.getFr().CENTREY);
-        return y + h + 10;
+        float h = 32;
+        int tint = s.error ? M3.error() : M3.primary();
+        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 11f,
+                UITheme.alpha(UITheme.mix(M3.surfaceContainerHigh(), tint, 0.22f), pct));
+        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 11f, 1f, UITheme.alpha(tint, pct * 0.45f));
+        M3Icons.drawLeft(s.error ? M3Icons.ERROR : M3Icons.CHECK, x + 12, y + h / 2f,
+                UITheme.alpha(tint, pct));
+        ri.getFr().drawString(ellipsize(ri.getFr(), s.text, w - 48, 1f), x + 36, y + h / 2f,
+                UITheme.alpha(M3.onSurface(), pct), ri.getFr().CENTREY);
+        return y + h + 12;
     }
 
     /* ------------------------------------------------------------------ local tab */
@@ -263,42 +280,43 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         sectionLabel(ri, "In use", x, y);
         y += 16;
 
-        float cardH = 46;
-        UITheme.surface(x, y, x + w, y + cardH, 10f,
-                UITheme.mix(ThemeManager.getConfigsCard(), UITheme.accent(), 0.10f), UITheme.Elevation.RAISED, 1f);
-        DrawUtils.drawRoundedOutline(x, y, x + w, y + cardH, 10f, 1.4f, UITheme.alpha(UITheme.accent(), 190));
-        UITheme.accentBar(x, y, x + 3, y + cardH, 10f, 1f);
+        float cardH = 56;
+        DrawUtils.drawRoundedRect(x, y, x + w, y + cardH, 14f,
+                UITheme.mix(M3.surfaceContainerHigh(), M3.secondaryContainer(), 0.45f));
+        DrawUtils.drawRoundedOutline(x, y, x + w, y + cardH, 14f, 1f, M3.alpha(M3.primary(), 150));
+        UITheme.accentBar(x, y + 10, x + 3, y + cardH - 10, 12f, 1f);
 
+        float bh = 24;
         float bx = x + w - 10;
-        bx -= button(ri, bx, y + (cardH - 22) / 2f, 22, isConfirming("reset") ? "Sure?" : "Reset",
+        bx -= button(ri, bx, y + (cardH - bh) / 2f, bh, isConfirming("reset") ? "Sure?" : "Reset",
                 isConfirming("reset") ? Tone.DANGER : Tone.NORMAL, this::resetCurrent, true) + 6;
-        bx -= button(ri, bx, y + (cardH - 22) / 2f, 22, "Copy", Tone.NORMAL,
+        bx -= button(ri, bx, y + (cardH - bh) / 2f, bh, "Copy", Tone.NORMAL,
                 () -> copyToClipboard(null), true) + 6;
-        bx -= button(ri, bx, y + (cardH - 22) / 2f, 22, "Save", Tone.PRIMARY, () -> {
+        bx -= button(ri, bx, y + (cardH - bh) / 2f, bh, "Save", Tone.PRIMARY, () -> {
             configManager.saveConfig();
             info("Saved " + configManager.getCurrentName());
-        }, true) + 10;
+        }, true) + 12;
 
         String name = current == null ? "None" : current.getName();
-        ri.getFr().drawString(ellipsize(ri.getFr(), name, bx - x - 16, 1f), x + 14, y + 15, ThemeManager.getTextPrimary(), ri.getFr().CENTREY);
+        ri.getFr().drawString(ellipsize(ri.getFr(), name, bx - x - 20, 1f), x + 16, y + 19, M3.onSurface(), ri.getFr().CENTREY);
         String meta = current == null ? "No config is selected"
-                : "Saves automatically  ·  " + modified(current);
-        small(ri, ellipsize(ri.getFr(), meta, bx - x - 16, 0.85f), x + 14, y + 31);
-        y += cardH + 14;
+                : "Auto-saved  ·  " + modified(current);
+        small(ri, ellipsize(ri.getFr(), meta, bx - x - 20, 0.85f), x + 16, y + 38);
+        y += cardH + 16;
 
         sectionLabel(ri, "Save as new", x, y);
         y += 16;
 
-        float h = 24;
-        float btnW = Math.max(70, ri.getFr().getWidth("Create") + 24);
-        drawField(ri, createField, x, y, w - btnW - 6, h);
+        float h = 30;
+        float btnW = Math.max(78, ri.getFr().getWidth("Create") + 30);
+        drawField(ri, createField, x, y, w - btnW - 8, h);
         button(ri, x + w, y, h, "Create", Tone.PRIMARY, this::createConfig, true, btnW);
-        y += h + 6;
+        y += h + 8;
 
-        float half = (w - 6) / 2f;
+        float half = (w - 8) / 2f;
         button(ri, x + half, y, h, "Import from clipboard", Tone.NORMAL, this::importFromClipboard, true, half);
         button(ri, x + w, y, h, "Open folder", Tone.NORMAL, this::openFolder, true, half);
-        y += h + 16;
+        y += h + 18;
 
         sectionLabel(ri, "Saved configs  ·  " + localList.size(), x, y);
         y += 16;
@@ -316,20 +334,19 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         String name = config.getName();
         boolean active = configManager.isCurrent(name);
         boolean isRenaming = name.equals(renaming);
-        float h = 36;
+        float h = 44;
         boolean hovered = hover(ri, x, y, x + w, y + h);
 
-        int fill = active ? UITheme.mix(ThemeManager.getConfigsCard(), UITheme.accent(), 0.08f) : ThemeManager.getConfigsCard();
-        UITheme.surface(x, y, x + w, y + h, 9f, fill,
-                hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, hovered ? 1f : 0.6f);
-        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 9f, 1f,
-                active ? UITheme.alpha(UITheme.accent(), 150)
-                       : (hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder()));
+        int fill = active ? UITheme.mix(M3.surfaceContainerHigh(), M3.secondaryContainer(), 0.62f)
+                : (hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh());
+        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 12f, fill);
+        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 12f, 1f,
+                active ? UITheme.alpha(M3.primary(), 160)
+                       : (hovered ? M3.alpha(M3.outline(), 150) : M3.alpha(M3.outlineVariant(), 120)));
 
-        float dot = 3f;
-        DrawUtils.drawCircle(x + 13, y + h / 2f, dot, active ? UITheme.accent() : ThemeManager.getConfigsHoverBorder());
-        float textX = x + 24;
-        float bh = 20, by = y + (h - bh) / 2f;
+        DrawUtils.drawCircle(x + 14, y + h / 2f, 3.5f, active ? M3.primary() : M3.alpha(M3.outline(), 150));
+        float textX = x + 26;
+        float bh = 24, by = y + (h - bh) / 2f;
         float bx = x + w - 8;
 
         if (isRenaming) {
@@ -356,9 +373,9 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         }
 
         float textMax = bx - textX - 4;
-        ri.getFr().drawString(ellipsize(ri.getFr(), name, textMax, 1f), textX, y + 12,
-                active ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary(), ri.getFr().CENTREY);
-        small(ri, ellipsize(ri.getFr(), modified(config), textMax, 0.85f), textX, y + 25);
+        ri.getFr().drawString(ellipsize(ri.getFr(), name, textMax, 1f), textX, y + 16,
+                active ? M3.onSurface() : M3.onSurfaceVariant(), ri.getFr().CENTREY);
+        small(ri, ellipsize(ri.getFr(), modified(config), textMax, 0.85f), textX, y + 31);
 
         // clicking the row itself loads it; added last so the buttons win
         if (!active)
@@ -411,14 +428,14 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     }
 
     private float drawOnlineRow(RenderInfo ri, OnlineConfig config, float x, float y, float w) {
-        float h = 38;
+        float h = 46;
         boolean hovered = hover(ri, x, y, x + w, y + h);
-        UITheme.surface(x, y, x + w, y + h, 9f, ThemeManager.getConfigsCard(),
-                hovered ? UITheme.Elevation.RAISED : UITheme.Elevation.FLAT, hovered ? 1f : 0.6f);
-        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 9f, 1f,
-                hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder());
+        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 12f,
+                hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh());
+        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 12f, 1f,
+                hovered ? M3.alpha(M3.outline(), 150) : M3.alpha(M3.outlineVariant(), 120));
 
-        float bh = 20, by = y + (h - bh) / 2f;
+        float bh = 24, by = y + (h - bh) / 2f;
         float bx = x + w - 8;
         if (hovered) {
             bx -= button(ri, bx, by, bh, "Use", Tone.PRIMARY, () -> download(config, true), true) + 5;
@@ -428,17 +445,17 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         float textX = x + 12;
         float textMax = bx - textX - 4;
         String name = ellipsize(ri.getFr(), config.name, textMax, 1f);
-        ri.getFr().drawString(name, textX, y + 13, ThemeManager.getTextPrimary(), ri.getFr().CENTREY);
+        ri.getFr().drawString(name, textX, y + 16, M3.onSurface(), ri.getFr().CENTREY);
         if (!config.tag.isEmpty()) {
             float tagX = textX + ri.getFr().getWidth(name) + 8;
             float tagW = ri.getFr().getWidth(config.tag) * 0.85f + 12;
             if (tagX + tagW < bx - 4) {
-                DrawUtils.drawRoundedRect(tagX, y + 6, tagX + tagW, y + 20, 4f, UITheme.alpha(UITheme.accent(), 40));
-                ri.getFr().drawString(config.tag, tagX + 6, y + 13, UITheme.accent(), ri.getFr().getScaleModifier(0.85f), ri.getFr().CENTREY);
+                DrawUtils.drawRoundedRect(tagX, y + 8, tagX + tagW, y + 23, 7.5f, UITheme.alpha(UITheme.accent(), 40));
+                ri.getFr().drawString(config.tag, tagX + 6, y + 16, UITheme.accent(), ri.getFr().getScaleModifier(0.85f), ri.getFr().CENTREY);
             }
         }
         String when = config.updatedAt > 0 ? DATE_FMT.format(new Date(config.updatedAt)) : "unknown date";
-        small(ri, ellipsize(ri.getFr(), "by " + config.author + "  ·  " + when, textMax, 0.85f), textX, y + 28);
+        small(ri, ellipsize(ri.getFr(), "by " + config.author + "  ·  " + when, textMax, 0.85f), textX, y + 33);
         return y + h;
     }
 
@@ -459,26 +476,28 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         int fill, border, text;
         switch (tone) {
             case PRIMARY:
-                fill = UITheme.alpha(UITheme.accent(), hovered ? 255 : 215);
-                border = UITheme.alpha(UITheme.accent(), 255);
-                text = UITheme.readableOn(UITheme.accent());
+                fill = hovered ? M3.mix(M3.primary(), M3.onPrimary(), 0.10f) : M3.primary();
+                border = fill;
+                text = M3.onPrimary();
                 break;
             case DANGER:
-                fill = UITheme.alpha(ThemeManager.getError(), hovered ? 230 : 150);
-                border = UITheme.alpha(ThemeManager.getError(), 255);
-                text = ThemeManager.getWhite();
+                fill = hovered ? M3.mix(M3.error(), M3.onError(), 0.10f) : M3.error();
+                border = fill;
+                text = M3.onError();
                 break;
             default:
-                fill = hovered ? ThemeManager.getConfigsHoverBackground() : ThemeManager.getButtonBackground();
-                border = hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder();
-                text = ThemeManager.getTextPrimary();
+                fill = hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh();
+                border = hovered ? M3.alpha(M3.outline(), 150) : M3.alpha(M3.outlineVariant(), 120);
+                text = M3.onSurface();
         }
         if (!enabled) {
             fill = UITheme.fade(fill, 0.5f);
             text = UITheme.fade(text, 0.5f);
         }
-        DrawUtils.drawRoundedRect(x1, y, rightX, y + h, Math.min(7f, h / 2f), fill);
-        DrawUtils.drawRoundedOutline(x1, y, rightX, y + h, Math.min(7f, h / 2f), 1f, border);
+        float radius = h / 2f;
+        DrawUtils.drawRoundedRect(x1, y, rightX, y + h, radius, fill);
+        if (tone == Tone.NORMAL)
+            DrawUtils.drawRoundedOutline(x1, y, rightX, y + h, radius, 1f, border);
         ri.getFr().drawString(label, x1 + w / 2f, y + h / 2f, text,
                 ri.getFr().getScaleModifier(0.9f), ri.getFr().CENTREX, ri.getFr().CENTREY);
         if (enabled)
@@ -489,22 +508,22 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     private void drawField(RenderInfo ri, Field field, float x, float y, float w, float h) {
         boolean isFocused = focused == field;
         boolean hovered = hover(ri, x, y, x + w, y + h);
-        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 7f, ThemeManager.getConfigsBackground());
-        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 7f, isFocused ? 1.4f : 1f,
-                isFocused ? UITheme.alpha(UITheme.accent(), 220)
-                          : (hovered ? ThemeManager.getConfigsHoverBorder() : ThemeManager.getConfigsCardBorder()));
+        DrawUtils.drawRoundedRect(x, y, x + w, y + h, 10f, M3.surfaceContainerLow());
+        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 10f, isFocused ? 1.5f : 1f,
+                isFocused ? UITheme.alpha(UITheme.accent(), 230)
+                          : (hovered ? M3.alpha(M3.outline(), 150) : M3.alpha(M3.outlineVariant(), 120)));
 
         FontRendererExtension<?> fr = ri.getFr();
         float pad = 8, room = w - pad * 2 - 2;
         if (field.text.length() == 0)
             fr.drawString(ellipsize(fr, field.placeholder, room, 1f), x + pad, y + h / 2f,
-                    UITheme.fade(ThemeManager.getTextMuted(), 0.45f), fr.CENTREY);
+                    UITheme.fade(M3.onSurfaceVariant(), 0.45f), fr.CENTREY);
         // the end of the text stays visible while typing
         String shown = field.text.toString();
         while (shown.length() > 0 && fr.getWidth(shown) > room)
             shown = shown.substring(1);
         if (!shown.isEmpty())
-            fr.drawString(shown, x + pad, y + h / 2f, ThemeManager.getTextPrimary(), fr.CENTREY);
+            fr.drawString(shown, x + pad, y + h / 2f, M3.onSurface(), fr.CENTREY);
         if (isFocused && TimeUtils.blink(500)) {
             float cx = x + pad + (shown.isEmpty() ? 0 : fr.getWidth(shown)) + 1;
             DrawUtils.drawRect(cx, y + 5, cx + 1, y + h - 5, UITheme.accent());
@@ -513,27 +532,13 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     }
 
     private void sectionLabel(RenderInfo ri, String label, float x, float y) {
-        StringBuilder sb = new StringBuilder();
-        String upper = label.toUpperCase();
-        for (int i = 0; i < upper.length(); i++) {
-            sb.append(upper.charAt(i));
-            if (i < upper.length() - 1)
-                sb.append(' ');
-        }
-        ri.getFr().drawString(sb.toString(), x, y, ThemeManager.getTextMuted(), ri.getFr().getScaleModifier(0.78f));
+        ri.getFr().drawString(label.toUpperCase(java.util.Locale.ROOT), x, y,
+                M3.alpha(M3.onSurfaceVariant(), 215), ri.getFr().getScaleModifier(0.82f));
     }
 
     private void small(RenderInfo ri, String text, float x, float y) {
-        ri.getFr().drawString(text, x, y, UITheme.fade(ThemeManager.getTextMuted(), 0.6f),
+        ri.getFr().drawString(text, x, y, UITheme.fade(M3.onSurfaceVariant(), 0.6f),
                 ri.getFr().getScaleModifier(0.85f), ri.getFr().CENTREY);
-    }
-
-    private void drawIcon(ResourceLocation res, float x, float y, float size, int color) {
-        Minecraft.getMinecraft().getTextureManager().bindTexture(res);
-        GlStateManager.enableBlend();
-        RenderUtils.color2(color, 1f);
-        Gui.drawModalRectWithCustomSizedTexture((int) x, (int) y, 0, 0, (int) size, (int) size, (int) size, (int) size);
-        GlStateManager.color(1f, 1f, 1f, 1f);
     }
 
     private static String ellipsize(FontRendererExtension<?> fr, String text, float maxWidth, float scale) {
@@ -567,6 +572,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
         renaming = null;
         confirmKey = null;
         targetScroll = 0;
+        tabSwitchTime = System.currentTimeMillis();
         if (t == Tab.ONLINE && !fetchedOnce && !fetching)
             fetch();
     }

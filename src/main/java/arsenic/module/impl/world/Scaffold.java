@@ -18,6 +18,9 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
+import arsenic.gui.hud.HudStyle;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.minecraft.ScaffoldUtil;
 import arsenic.utils.render.DrawUtils;
@@ -162,51 +165,6 @@ public class Scaffold extends Module {
                 true, true);
     };
 
-    @EventLink
-    public final Listener<EventRender2D> onRender2D = event -> {
-        int blockCount = getBlockCount();
-        if (isEnabled() && blockCount > 0) {
-            animatedScale = interpolate(animatedScale, 1.0f, 0.1f);
-        } else if (!isEnabled() || blockCount == 0) {
-            animatedScale = interpolate(animatedScale, 0.0f, 0.15f);
-        }
-
-        if (animatedScale <= 0.01f) return;
-
-        drawBlockCounter();
-    };
-
-    @EventLink
-    public final Listener<EventShader.Blur> blurListener = event -> {
-        if (animatedScale <= 0.01f) return;
-
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) return;
-
-        int blockCount = getBlockCount();
-        String text = String.valueOf(blockCount);
-        int iconSize = 16;
-        int padding = 4;
-        int textWidth = (int) fr.getWidth(text);
-        int bw = iconSize + padding + textWidth + padding * 2;
-        int bh = iconSize + padding * 2;
-
-        ScaledResolution sr = new ScaledResolution(mc);
-        int x = blockCounterX;
-        int y = blockCounterY;
-        if (x == -1) x = (sr.getScaledWidth() - bw) / 2;
-        if (y == -1) y = sr.getScaledHeight() - 40 - bh;
-
-        GL11.glPushMatrix();
-        GL11.glTranslated(x + bw / 2.0, y + bh / 2.0, 0);
-        GL11.glScalef(animatedScale, animatedScale, 1.0f);
-        GL11.glTranslated(-(x + bw / 2.0), -(y + bh / 2.0), 0);
-
-        Gui.drawRect(x, y, x + bw, y + bh, -1);
-
-        GL11.glPopMatrix();
-    };
-
     private final java.util.ArrayDeque<Long> recentPlacements = new java.util.ArrayDeque<>();
 
     private boolean haveBlocks() {
@@ -231,144 +189,54 @@ public class Scaffold extends Module {
     }
 
     private void drawBlockCounter() {
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) return;
-
         int blockCount = getBlockCount();
         float alpha = Math.min(1f, animatedScale);
 
         HudDimensions d = computeHudDimensions();
         if (d == null) return;
 
-        if (blockCount > maxBlockCount) {
+        if (blockCount > maxBlockCount)
             maxBlockCount = blockCount;
-        }
         animatedBlockCount = interpolate(animatedBlockCount, blockCount, 0.15f);
         float displayCount = MathUtils.clamp(animatedBlockCount, 0, maxBlockCount);
         animatedRingFill = maxBlockCount > 0 ? displayCount / maxBlockCount : 0f;
 
+        float flash = blockFlashIntensity;
         GL11.glPushMatrix();
         applyScaleTransform(d.cx, d.cy);
 
-        float flashI = blockFlashIntensity;
-        int bgBase = 26;
-        int bgR = bgBase, bgG = bgBase, bgB = bgBase;
-        if (flashI > 0f) {
-            int theme = getThemeColor();
-            int tr = (theme >> 16) & 0xFF;
-            int tg = (theme >> 8)  & 0xFF;
-            int tb =  theme        & 0xFF;
-            bgR = (int)(bgBase + (tr - bgBase) * flashI * 0.55f);
-            bgG = (int)(bgBase + (tg - bgBase) * flashI * 0.55f);
-            bgB = (int)(bgBase + (tb - bgBase) * flashI * 0.55f);
-        }
-        float pillR = d.h / 2f;
-        int bgColor = new Color(bgR, bgG, bgB, (int)(alpha * 140)).getRGB();
-        DrawUtils.drawRoundedRect(d.x, d.y, d.x + d.w, d.y + d.h, pillR, bgColor);
+        int fill = M3.alpha(M3.surfaceContainerHigh(), (int) (alpha * 240));
+        if (flash > 0.01f)
+            fill = M3.mix(fill, M3.alpha(M3.primaryContainer(), (int) (alpha * 240)), flash * 0.55f);
+        HudStyle.card(d.x, d.y, d.x + d.w, d.y + d.h, d.h / 2f, fill,
+                M3.alpha(flash > 0.01f ? M3.primary() : M3.outlineVariant(), (int) (alpha * 110)));
 
-        int themeColor = getThemeColor();
-        int borderColor = flashI > 0f
-                ? ((int)(alpha * 0xFF) << 24) | interpolateColor(themeColor, themeColor, flashI)
-                : ((int)(alpha * 0xFF) << 24) | themeColor;
-        if (flashI > 0f) {
-            int br = Math.min(255, ((themeColor >> 16) & 0xFF) + (int)(flashI * 80));
-            int bg = Math.min(255, ((themeColor >> 8)  & 0xFF) + (int)(flashI * 80));
-            int bb = Math.min(255, ( themeColor        & 0xFF) + (int)(flashI * 80));
-            borderColor = ((int)(alpha * 0xFF) << 24) | (br << 16) | (bg << 8) | bb;
-        }
-        DrawUtils.drawRoundedOutline(d.x, d.y, d.x + d.w, d.y + d.h, pillR, 1.5f, borderColor);
+        float iconR = 13f;
+        float iconCx = d.x + 8f + iconR;
+        float iconCy = d.y + 19f;
+        if (flash > 0.01f)
+            DrawUtils.drawCircle(iconCx, iconCy, iconR + 2f, M3.alpha(M3.primary(), (int) (alpha * 35 * flash)));
+        HudStyle.iconBadge(M3Icons.CUBE, iconCx, iconCy, iconR,
+                M3.alpha(M3.primary(), (int) (alpha * 235)), M3.alpha(M3.onPrimary(), (int) (alpha * 255)));
 
-        float ringCX = d.x + d.ringRadius + d.ringPad;
-        float ringCY = d.cy;
-        float ringR   = d.ringRadius;
+        FontRendererExtension<?> label = HudStyle.label();
+        FontRendererExtension<?> title = HudStyle.title();
+        float textX = iconCx + iconR + 10f;
+        label.drawString("Blocks", textX, d.y + 16f,
+                M3.alpha(M3.onSurfaceVariant(), (int) (alpha * 240)), label.CENTREY);
 
-        int ringTrackColor = new Color(255, 255, 255, (int)(alpha * 25)).getRGB();
-        drawArc(ringCX, ringCY, ringR, 2.5f, 0f, 1f, ringTrackColor);
+        String count = String.valueOf(Math.round(displayCount));
+        title.drawString(count, d.x + d.w - 9f - title.getWidth(count), d.y + 16f,
+                M3.alpha(M3.primary(), (int) (alpha * 255)), title.CENTREY);
 
-        float fill = animatedRingFill;
-        int arcColor;
-        if (fill > 0.5f) {
-            arcColor = borderColor;
-        } else if (fill > 0.25f) {
-            float t = (0.5f - fill) / 0.25f;
-            arcColor = ((int)(alpha * 0xFF) << 24) | interpolateColor(themeColor, 0xFFBE50, t);
-        } else {
-            float t = Math.min(1f, (0.25f - fill) / 0.25f);
-            arcColor = ((int)(alpha * 0xFF) << 24) | interpolateColor(0xFFBE50, 0xFF6E64, t);
-        }
-        if (flashI > 0f) {
-            int ar = Math.min(255, ((arcColor >> 16) & 0xFF) + (int)(flashI * 60));
-            int ag = Math.min(255, ((arcColor >> 8)  & 0xFF) + (int)(flashI * 60));
-            int ab = Math.min(255, ( arcColor        & 0xFF) + (int)(flashI * 60));
-            arcColor = ((int)(alpha * 0xFF) << 24) | (ar << 16) | (ag << 8) | ab;
-        }
-        if (fill > 0.0001f) {
-            drawArc(ringCX, ringCY, ringR, 2.5f, 0f, fill, arcColor);
-        }
+        float barX1 = textX;
+        float barX2 = d.x + d.w - 9f;
+        HudStyle.gradientProgress(barX1, d.y + 30f, barX2, d.y + 33.5f, 1.75f, animatedRingFill,
+                M3.alpha(M3.surfaceContainerHighest(), (int) (alpha * 220)),
+                M3.alpha(M3.secondary(), (int) (alpha * 255)),
+                M3.alpha(M3.primary(), (int) (alpha * 255)));
 
-        String countStr = String.valueOf(blockCount);
-
-        int textColor = ((int)(alpha * 0xFF) << 24) | 0xFFFFFF;
-        if (flashI > 0.01f) {
-            float popScale = 1f + flashI * 0.20f;
-            GL11.glPushMatrix();
-            GL11.glTranslatef(ringCX, ringCY, 0f);
-            GL11.glScalef(popScale, popScale, 1f);
-            GL11.glTranslatef(-ringCX, -ringCY, 0f);
-            fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
-            GL11.glPopMatrix();
-        } else {
-            fr.drawStringWithShadow(countStr, ringCX, ringCY, textColor, fr.CENTREX, fr.CENTREY);
-        }
-
-        float textX  = ringCX + ringR + d.ringPad + 3f;
-        float labelY = d.y + 5f;
-
-        String label = "Blocks";
-        float labelH = (float) fr.getHeight(label);
-        int labelColor = ((int)(alpha * 0xFF) << 24) | 0x999999;
-        fr.drawStringWithShadow(label, textX, labelY, labelColor);
-
-        float bps = computeBps();
-        String bpsStr  = String.format("%.1f", bps);
-        String bpsUnit = " BPS";
-        float bpsY = labelY + labelH + 2f;
-        int whiteColor = ((int)(alpha * 0xFF) << 24) | 0xFFFFFF;
-        int unitColor  = ((int)(alpha * 0xFF) << 24) | themeColor;
-        fr.drawStringWithShadow(bpsStr, textX, bpsY, whiteColor);
-        fr.drawStringWithShadow(bpsUnit, textX + (float) fr.getWidth(bpsStr), bpsY, unitColor);
-
-        float dividerX = textX + (float) fr.getWidth(bpsStr + bpsUnit) + 4f;
-        fr.drawStringWithShadow(" | ", dividerX, bpsY, labelColor);
-        float afterDiv = dividerX + (float) fr.getWidth(" | ");
-
-        int bpm = Math.round(bps * 60f);
-        String bpmStr  = String.valueOf(bpm);
-        String bpmUnit = " BPM";
-        fr.drawStringWithShadow(bpmStr, afterDiv, bpsY, new Color(
-                255, 255, 255, (int)(alpha * 180)).getRGB());
-        fr.drawStringWithShadow(bpmUnit, afterDiv + (float) fr.getWidth(bpmStr), bpsY,
-                new Color((themeColor >> 16) & 0xFF, (themeColor >> 8) & 0xFF, themeColor & 0xFF,
-                        (int)(alpha * 120)).getRGB());
-
-        float barY  = bpsY + (float) fr.getHeight(bpsStr) + 3f;
-        float barW  = d.w - (textX - d.x) - d.ringPad;
-        float barH  = 2.5f;
-        int barBg   = new Color(255, 255, 255, (int)(alpha * 20)).getRGB();
-        int barFill = new Color(
-                (arcColor >> 16) & 0xFF,
-                (arcColor >> 8)  & 0xFF,
-                arcColor        & 0xFF,
-                (int)(alpha * 180)).getRGB();
-        DrawUtils.drawRoundedRect(textX, barY, textX + barW, barY + barH, barH / 2f, barBg);
-        if (fill > 0.0001f) {
-            DrawUtils.drawRoundedRect(textX, barY, textX + barW * fill, barY + barH, barH / 2f, barFill);
-        }
-
-        String pctStr = Math.round(fill * 100f) + "%";
-        fr.drawStringWithShadow(pctStr, textX + barW - (float) fr.getWidth(pctStr),
-                barY + barH + 4f, labelColor);
-
+        HudStyle.resetColor();
         GL11.glPopMatrix();
     }
 
@@ -389,32 +257,26 @@ public class Scaffold extends Module {
     }
 
     private HudDimensions computeHudDimensions() {
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) return null;
+        if (HudStyle.title() == null)
+            return null;
 
+        FontRendererExtension<?> label = HudStyle.label();
+        FontRendererExtension<?> title = HudStyle.title();
         int blockCount = getBlockCount();
-        String countStr  = String.valueOf(blockCount);
-        float bps        = computeBps();
-        int   bpm        = Math.round(bps * 60f);
-        String bpsLine   = String.format("%.1f BPS | %d BPM", bps, bpm);
-
-        float ringRadius = 14f;
-        float ringPad    = 6f;
-        float ringDiam   = ringRadius * 2f;
-        float textW      = (float) Math.max(fr.getWidth("Blocks"), fr.getWidth(bpsLine));
-        float rightPad   = 13f;
-
-        int w = (int)(ringPad + ringDiam + ringPad + textW + rightPad);
-        int h = 42;
+        String count = String.valueOf(blockCount);
+        float icon = 26f;
+        float pad = 8f;
+        float textW = Math.max(title.getWidth("Blocks") + 24f + title.getWidth(count), 82f);
+        int w = (int) Math.ceil(pad + icon + 10f + textW + pad);
+        int h = 44;
 
         ScaledResolution sr = new ScaledResolution(mc);
         int x = blockCounterX != -1 ? blockCounterX : (sr.getScaledWidth() - w) / 2;
-        int y = blockCounterY != -1 ? blockCounterY : sr.getScaledHeight() - 42 - h;
+        int y = blockCounterY != -1 ? blockCounterY : sr.getScaledHeight() - 40 - h;
 
         HudDimensions d = new HudDimensions();
         d.x = x; d.y = y; d.w = w; d.h = h;
         d.cx = x + w / 2f; d.cy = y + h / 2f;
-        d.ringRadius = ringRadius; d.ringPad = ringPad;
         return d;
     }
 

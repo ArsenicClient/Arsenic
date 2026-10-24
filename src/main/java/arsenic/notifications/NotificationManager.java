@@ -34,7 +34,7 @@ public class NotificationManager {
             activeNotifications.add(n);
         }
 
-        int height = 30;
+        int height = Notification.HEIGHT;
         int baseY = sr.getScaledHeight() - 15 - height;
 
         for (int i = 0; i < activeNotifications.size(); i++) {

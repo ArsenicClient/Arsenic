@@ -2,15 +2,21 @@ package arsenic.inject;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * What runs when the client jar is double-clicked: a window ({@link InjectorWindow}) that lists the running Minecraft
@@ -52,13 +58,20 @@ public final class Injector {
         final String mainClass;
         /** Whether the attach API lists it. Lunar turns attach off, so it only shows up in the OS process scan. */
         final boolean attachable;
+        /** Launcher instance the game runs from, when the system exposes it (Prism and MultiMC set it). */
+        final String instance;
 
         Game(String id, Client client, String version, String mainClass, boolean attachable) {
+            this(id, client, version, mainClass, attachable, null);
+        }
+
+        Game(String id, Client client, String version, String mainClass, boolean attachable, String instance) {
             this.id = id;
             this.client = client;
             this.version = version;
             this.mainClass = mainClass;
             this.attachable = attachable;
+            this.instance = instance;
         }
 
         /** Unknown versions are allowed; the agent checks the game itself. */
@@ -80,12 +93,13 @@ public final class Injector {
         String title() {
             if (client == Client.OTHER)
                 return mainClass.substring(mainClass.lastIndexOf('.') + 1);
-            return "Minecraft " + (version == null ? "" : shortVersion(version));
+            return "Minecraft" + (version == null ? "" : " " + shortVersion(version));
         }
 
         /** Stable text for the game, to tell whether the list changed. Command lines hold access tokens, so only this is shown. */
         String label() {
-            return title() + " (" + client.display + ", pid " + id + ")";
+            String where = instance == null || instance.isEmpty() ? "" : " [" + instance + "]";
+            return title() + where + " (" + client.display + ", pid " + id + ")";
         }
 
         @Override
@@ -101,9 +115,11 @@ public final class Injector {
     }
 
     public static void main(String[] args) throws Exception {
+        sweepStaleStatusFiles();
         List<String> argList = new ArrayList<>();
         Collections.addAll(argList, args);
-        boolean console = argList.contains("--list") || argList.contains("--pid");
+        boolean headless = GraphicsEnvironment.isHeadless();
+        boolean console = argList.contains("--list") || argList.contains("--pid") || headless;
 
         if (!attachAvailable()) {
             if (!argList.contains(RELAUNCHED) && relaunchWithJdk(args, console))
@@ -131,6 +147,11 @@ public final class Injector {
             System.exit(result.startsWith("OK") ? 0 : 1);
         }
 
+        if (headless) {
+            System.err.println("No display is available. Use --list to see running games, or --pid <id> to inject.");
+            System.exit(2);
+        }
+
         InjectorWindow.open();
     }
 
@@ -154,6 +175,12 @@ public final class Injector {
         java.util.Map<String, Game> byPid = new java.util.LinkedHashMap<>();
         String self = selfPid();
 
+        // The OS scan has the full command line (version, FMLTweaker, launcher arguments); the attach API often only
+        // reports the main class, so its entry is used only where the OS scan found nothing.
+        java.util.Map<String, Game> fromOs = new java.util.LinkedHashMap<>();
+        for (Game game : osGames(all))
+            fromOs.put(game.id, game);
+
         Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
         Class<?> descClass = Class.forName("com.sun.tools.attach.VirtualMachineDescriptor");
         Method id = descClass.getMethod("id");
@@ -163,6 +190,13 @@ public final class Injector {
             String name = (String) displayName.invoke(desc);
             if (pid.equals(self))
                 continue;
+
+            Game seen = fromOs.remove(pid);
+            if (seen != null) {
+                byPid.put(pid, new Game(pid, seen.client, seen.version, seen.mainClass, true, seen.instance));
+                continue;
+            }
+
             String command = name;
             Client client = classify(name);
             if ((client == Client.OTHER || client == Client.UNKNOWN) && mayBeMinecraft(name)) {
@@ -180,12 +214,11 @@ public final class Injector {
             if (client == Client.OTHER && !all)
                 continue;
             String main = command.split(" ")[0];
-            byPid.put(pid, new Game(pid, client, argument(command, "--version"), main, true));
+            byPid.put(pid, new Game(pid, client, versionOf(command), main, true, null));
         }
 
-        // games the attach API does not list (attach turned off, or no perf data): keep the attach entry when both find it
-        for (Game game : osGames(all))
-            byPid.putIfAbsent(game.id, game);
+        for (Game game : fromOs.values())
+            byPid.put(game.id, game);
 
         return new ArrayList<>(byPid.values());
     }
@@ -212,6 +245,9 @@ public final class Injector {
         if (localAppData != null)
             dirs.add(new File(localAppData, "Arsenic"));
         dirs.add(new File(System.getProperty("user.home"), ".arsenic"));
+        String tmp = System.getProperty("java.io.tmpdir");
+        if (tmp != null)
+            dirs.add(new File(tmp, "arsenic-" + System.getProperty("user.name", "user")));
         String systemDrive = System.getenv("SystemDrive");
         if (systemDrive != null)
             dirs.add(new File(systemDrive + File.separator, "Arsenic"));
@@ -249,18 +285,17 @@ public final class Injector {
             Client client = classify(cmd);
             if (client == Client.OTHER && !all)
                 continue;
-            games.add(new Game(pid, client, argument(cmd, "--version"), mainClassOf(cmd), false));
+            games.add(new Game(pid, client, versionOf(cmd), mainClassOf(cmd), false, instanceName(pid)));
         }
         return games;
     }
 
     /** {pid, commandLine} for running processes; empty when the scan is unavailable. */
     private static List<String[]> osProcesses() {
-        String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
         try {
-            if (os.contains("win"))
+            if (windows())
                 return windowsProcesses();
-            if (os.contains("mac"))
+            if (mac())
                 return macProcesses();
             return linuxProcesses();
         } catch (Exception e) {
@@ -326,23 +361,98 @@ public final class Injector {
     private static List<String[]> linuxProcesses() {
         List<String[]> games = new ArrayList<>();
         File[] dirs = new File("/proc").listFiles();
-        if (dirs == null)
-            return games;
-        for (File dir : dirs) {
-            String pid = dir.getName();
-            if (!isPid(pid))
-                continue;
-            try {
-                byte[] raw = Files.readAllBytes(new File(dir, "cmdline").toPath());
-                if (raw.length == 0)
+        int readable = 0;
+        if (dirs != null) {
+            for (File dir : dirs) {
+                String pid = dir.getName();
+                if (!isPid(pid))
                     continue;
-                String cmd = new String(raw, StandardCharsets.UTF_8).replace('\0', ' ').trim();
-                if (cmd.contains("java"))
-                    games.add(new String[]{pid, cmd});
-            } catch (Exception ignored) {
+                try {
+                    // launcher wrapper scripts mention java and minecraft too, but are not the game itself
+                    Path exe = Files.readSymbolicLink(new File(dir, "exe").toPath());
+                    if (!exe.getFileName().toString().startsWith("java"))
+                        continue;
+                } catch (Exception ignored) {
+                    // no exe link (permissions): the command line still has to mention java
+                }
+                try {
+                    byte[] raw = Files.readAllBytes(new File(dir, "cmdline").toPath());
+                    readable++;
+                    if (raw.length == 0)
+                        continue;
+                    String cmd = new String(raw, StandardCharsets.UTF_8).replace('\0', ' ').trim();
+                    if (cmd.contains("java"))
+                        games.add(new String[]{pid, cmd});
+                } catch (Exception ignored) {
+                }
             }
         }
+        // /proc unreadable (hidepid, a container): ps still lists this user's own processes
+        return readable == 0 ? psProcesses() : games;
+    }
+
+    private static List<String[]> psProcesses() {
+        List<String[]> games = new ArrayList<>();
+        for (String line : run("ps", "-eww", "-o", "pid=,args=").split("\n")) {
+            String t = line.trim();
+            int space = t.indexOf(' ');
+            if (space <= 0)
+                continue;
+            String pid = t.substring(0, space);
+            String cmd = t.substring(space + 1);
+            if (isPid(pid) && cmd.contains("java"))
+                games.add(new String[]{pid, cmd});
+        }
         return games;
+    }
+
+    /** The launcher instance a game runs from, when the environment exposes it (Prism and MultiMC set these). */
+    private static String instanceName(String pid) {
+        if (!linux())
+            return null;
+        try {
+            byte[] raw = Files.readAllBytes(new File("/proc", pid + "/environ").toPath());
+            String instance = null, id = null, name = null, dir = null;
+            for (String entry : new String(raw, StandardCharsets.UTF_8).split("\0")) {
+                if (entry.startsWith("INST_INSTANCE_NAME="))
+                    instance = entry.substring("INST_INSTANCE_NAME=".length());
+                else if (entry.startsWith("INST_ID="))
+                    id = entry.substring("INST_ID=".length());
+                else if (entry.startsWith("INST_NAME="))
+                    name = entry.substring("INST_NAME=".length());
+                else if (entry.startsWith("INST_MC_DIR="))
+                    dir = entry.substring("INST_MC_DIR=".length());
+            }
+            if (instance != null && !instance.isEmpty())
+                return instance;
+            if (id != null && !id.isEmpty())
+                return id;
+            if (name != null && !name.isEmpty())
+                return name;
+            if (dir != null) {
+                while (dir.endsWith("/"))
+                    dir = dir.substring(0, dir.length() - 1);
+                if (dir.endsWith("/.minecraft"))
+                    dir = dir.substring(0, dir.length() - "/.minecraft".length());
+                int slash = dir.lastIndexOf('/');
+                if (slash >= 0 && slash + 1 < dir.length())
+                    return dir.substring(slash + 1);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private static boolean linux() {
+        return !windows() && !mac();
+    }
+
+    private static boolean windows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    }
+
+    private static boolean mac() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
     }
 
     private static boolean isPid(String s) {
@@ -392,9 +502,15 @@ public final class Injector {
     /** Works out the client from the main class and arguments the JVM reports for the process. */
     static Client classify(String commandLine) {
         String lower = commandLine.toLowerCase(Locale.ROOT);
-        String version = argument(commandLine, "--version");
+        String version = versionOf(commandLine);
         if (lower.contains("com.moonsworth.lunar") || lower.contains("lunarclient"))
             return Client.LUNAR;
+        if (lower.contains("org.polymc.entrypoint") || lower.contains("org.multimc.entrypoint")
+                || lower.contains("org.prismlauncher.entrypoint")) {
+            // these launchers start the game from their own main class; the class path says which loader it uses
+            boolean forge = lower.contains("fmltweaker") || lower.contains("net.minecraftforge") || lower.contains("forge-");
+            return forge ? Client.FORGE : Client.VANILLA;
+        }
         if (commandLine.contains("net.minecraft.launchwrapper.Launch")) {
             boolean forge = commandLine.contains("FMLTweaker") || version != null && version.toLowerCase(Locale.ROOT).contains("forge");
             return forge ? Client.FORGE : Client.VANILLA;
@@ -404,6 +520,15 @@ public final class Injector {
         if (lower.contains("minecraft"))
             return Client.UNKNOWN;
         return Client.OTHER;
+    }
+
+    /** The Minecraft version, from the launcher argument or from the Minecraft/Forge jar on the class path. */
+    private static String versionOf(String commandLine) {
+        String version = argument(commandLine, "--version");
+        if (version != null)
+            return version;
+        Matcher matcher = Pattern.compile("(?:minecraft|forge)-(\\d+\\.\\d+(?:\\.\\d+)?)").matcher(commandLine.toLowerCase(Locale.ROOT));
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private static String argument(String commandLine, String key) {
@@ -483,48 +608,171 @@ public final class Injector {
             File jar = ownJar();
             if (!jar.isFile())
                 return "ERROR Run the injector from the Arsenic jar (" + jar + " is not a jar)";
-            status = File.createTempFile("arsenic-inject", ".txt");
+            status = createStatusFile();
 
             progress.accept("Attaching to the game...");
             Class<?> vmClass = Class.forName("com.sun.tools.attach.VirtualMachine");
             Object vm = vmClass.getMethod("attach", String.class).invoke(null, pid);
             // newer JDKs misread the reply of a Java 8 game ("Failed to load agent library: 0") even though the
             // agent ran, so the agent's own status file decides; the error only counts if the agent stays silent
-            String loadError = null;
+            Throwable loadFailure = null;
             try {
                 progress.accept("Loading the client...");
                 vmClass.getMethod("loadAgent", String.class, String.class).invoke(vm, jar.getAbsolutePath(), argPrefix + status.getAbsolutePath());
             } catch (java.lang.reflect.InvocationTargetException e) {
-                Throwable cause = e.getCause();
-                loadError = cause.getMessage() != null ? cause.getMessage() : cause.toString();
+                loadFailure = e.getCause();
             } finally {
                 vmClass.getMethod("detach").invoke(vm);
             }
 
+            StatusLog log = new StatusLog(status);
             long start = System.currentTimeMillis();
             long deadline = start + TIMEOUT_MS;
-            int seen = 0;
+            boolean anyOutput = false;
             while (System.currentTimeMillis() < deadline) {
-                List<String> lines = Files.readAllLines(status.toPath(), StandardCharsets.UTF_8);
-                if (lines.isEmpty() && loadError != null && System.currentTimeMillis() - start > 5_000)
-                    return "ERROR " + loadError;
-                for (; seen < lines.size(); seen++) {
-                    String line = lines.get(seen);
+                List<String> lines;
+                try {
+                    lines = log.read();
+                } catch (java.io.IOException e) {
+                    Thread.sleep(100);
+                    continue;
+                }
+                if (loadFailure != null && lines.isEmpty() && !anyOutput && System.currentTimeMillis() - start > 5_000)
+                    return "ERROR " + attachFailure(loadFailure, pid);
+                for (String line : lines) {
                     if (line.equals("OK") || line.startsWith("ERROR"))
                         return line;
                     progress.accept(line.startsWith("LOG ") ? line.substring(4) : line + "...");
                 }
+                if (!lines.isEmpty())
+                    anyOutput = true;
                 Thread.sleep(100);
             }
-            return "ERROR The game did not answer. Is it frozen or minimised to a loading screen?";
+            String message = loadFailure != null
+                    ? attachFailure(loadFailure, pid)
+                    : "The game did not answer. Is it frozen or minimised to a loading screen?";
+            String sandbox = sandboxHint(pid);
+            if (sandbox != null)
+                message += " " + sandbox + ".";
+            return "ERROR " + message;
         } catch (java.lang.reflect.InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            return "ERROR " + (cause.getMessage() != null ? cause.getMessage() : cause.toString());
+            return "ERROR " + attachFailure(e.getCause(), pid);
         } catch (Exception e) {
             return "ERROR " + e;
         } finally {
             if (status != null)
                 status.deleteOnExit();
+        }
+    }
+
+    /** Creates the file the agent reports progress into, readable and writable by this user only. */
+    private static File createStatusFile() throws java.io.IOException {
+        File status = File.createTempFile("arsenic-inject", ".txt");
+        try {
+            Files.setPosixFilePermissions(status.toPath(), PosixFilePermissions.fromString("rw-------"));
+        } catch (Exception ignored) {
+            // not a POSIX file system (Windows)
+        }
+        return status;
+    }
+
+    /** Removes status files left behind by an injector that never finished. */
+    private static void sweepStaleStatusFiles() {
+        File[] files = new File(System.getProperty("java.io.tmpdir", ".")).listFiles();
+        if (files == null)
+            return;
+        long cutoff = System.currentTimeMillis() - 3_600_000L;
+        for (File file : files) {
+            String name = file.getName();
+            if (name.startsWith("arsenic-inject") && name.endsWith(".txt") && file.isFile() && file.lastModified() < cutoff)
+                file.delete();
+        }
+    }
+
+    /**
+     * The lines the agent has written in full. A line is only taken once its newline has arrived, so a half-written
+     * "OK" is never read as something else.
+     */
+    private static final class StatusLog {
+        private final File file;
+        private final ByteArrayOutputStream pending = new ByteArrayOutputStream();
+        private long offset;
+
+        StatusLog(File file) {
+            this.file = file;
+        }
+
+        List<String> read() throws java.io.IOException {
+            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+                raf.seek(offset);
+                byte[] buffer = new byte[2048];
+                int n;
+                while ((n = raf.read(buffer)) > 0) {
+                    pending.write(buffer, 0, n);
+                    offset += n;
+                }
+            }
+            byte[] bytes = pending.toByteArray();
+            List<String> lines = new ArrayList<>();
+            int start = 0;
+            for (int i = 0; i < bytes.length; i++) {
+                if (bytes[i] != '\n')
+                    continue;
+                int end = i;
+                if (end > start && bytes[end - 1] == '\r')
+                    end--;
+                lines.add(new String(bytes, start, end - start, StandardCharsets.UTF_8));
+                start = i + 1;
+            }
+            pending.reset();
+            if (start < bytes.length)
+                pending.write(bytes, start, bytes.length - start);
+            return lines;
+        }
+    }
+
+    /** Turns an attach failure into something the user can act on. */
+    private static String attachFailure(Throwable cause, String pid) {
+        String message = cause == null ? "Unknown error"
+                : cause.getMessage() != null ? cause.getMessage() : cause.toString();
+        String lower = message.toLowerCase(Locale.ROOT);
+        String hint;
+        if (lower.contains("invalid process identifier") || lower.contains("no such process"))
+            hint = "The game exited, or the process belongs to another user.";
+        else if (lower.contains("permission denied"))
+            hint = "Arsenic and the game have to run as the same user.";
+        else if (lower.contains("not responding") || lower.contains("not loaded"))
+            hint = "The game is still starting; wait for the main menu and try again.";
+        else if (lower.contains("failed to load agent") || lower.contains("disableattach"))
+            hint = "The game did not accept the agent; if it is still loading, wait for the main menu, otherwise launch it with -javaagent instead.";
+        else if (lower.contains("attachnotsupported") || lower.contains("no providers installed"))
+            hint = "This Java cannot attach to other processes; run the injector with a JDK.";
+        else
+            hint = message;
+        String sandbox = sandboxHint(pid);
+        if (sandbox != null)
+            hint += " " + sandbox + ".";
+        return hint;
+    }
+
+    /** Why attach cannot work here, or null when nothing suggests a sandbox. */
+    private static String sandboxHint(String pid) {
+        if (new File("/.flatpak-info").isFile() || System.getenv("FLATPAK_ID") != null)
+            return "Arsenic is running inside a Flatpak sandbox; launch the game with -javaagent in its JVM arguments instead";
+        if (System.getenv("SNAP") != null || System.getenv("SNAP_NAME") != null)
+            return "Arsenic is running inside a Snap sandbox; launch the game with -javaagent in its JVM arguments instead";
+        if (linux() && sandboxedTarget(pid))
+            return "The game runs in a different mount namespace (a sandbox); launch it with -javaagent in its JVM arguments instead";
+        return null;
+    }
+
+    /** True when the game has a different root (mount namespace), which hides the attach socket it listens on. */
+    private static boolean sandboxedTarget(String pid) {
+        try {
+            Path root = Files.readSymbolicLink(new File("/proc", pid + "/root").toPath());
+            return !"/".equals(root.toString());
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -560,8 +808,8 @@ public final class Injector {
     }
 
     private static File javaExecutable(File home, boolean windowed) {
-        boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
-        return new File(home, "bin/" + (windowed && windows ? "javaw.exe" : windows ? "java.exe" : "java"));
+        boolean win = windows();
+        return new File(home, "bin/" + (windowed && win ? "javaw.exe" : win ? "java.exe" : "java"));
     }
 
     /** A JDK home: has jcmd (JDKs only) and, for Java 8, tools.jar. */
@@ -594,9 +842,19 @@ public final class Injector {
         String home = System.getProperty("user.home");
         roots.add(new File(home, ".jdks"));
         roots.add(new File(home, ".gradle/jdks"));
+        roots.add(new File(home, ".sdkman/candidates/java"));
+        roots.add(new File(home, ".asdf/installs/java"));
+        String sdkman = System.getenv("SDKMAN_DIR");
+        if (sdkman != null)
+            roots.add(new File(sdkman, "candidates/java"));
         roots.add(new File("/usr/lib/jvm"));
+        roots.add(new File("/usr/lib64/jvm"));
+        roots.add(new File("/usr/java"));
+        roots.add(new File("/opt/java"));
         roots.add(new File("/Library/Java/JavaVirtualMachines"));
         for (File root : roots) {
+            candidates.add(root);
+            candidates.add(new File(root, "Contents/Home"));
             File[] children = root.listFiles(File::isDirectory);
             if (children == null)
                 continue;

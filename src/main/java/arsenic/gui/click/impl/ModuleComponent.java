@@ -10,6 +10,8 @@ import java.util.Map;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -25,10 +27,6 @@ import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Keyboard;
 
@@ -151,24 +149,21 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float openPct = openTimer.getPercent();
         float hover = hoverPct();
 
-        float pad = height * 0.42f;
-        float radius = UITheme.radiusCard(height);
+        float pad = height * 0.4f;
+        float radius = 14f;
         float cardY2 = y2 + expandY;
 
-        float elevation = Math.max(hover * 0.7f, Math.max(openPct * 0.5f, enabledPct * 0.35f)) + 0.3f;
-        UITheme.surface(x1, y1, x2, cardY2, radius, ThemeManager.getModuleBackground(),
-                UITheme.Elevation.RAISED, Math.min(1f, elevation));
-        UITheme.hoverWash(x1, y1, x2, cardY2, radius, hover);
+        int fill = M3.mix(M3.surfaceContainerLow(), M3.surfaceContainerHigh(), Math.max(hover * 0.75f, openPct * 0.6f));
+        if (enabledPct > 0.01f)
+            fill = M3.mix(fill, M3.primaryContainer(), enabledPct * 0.20f);
+        DrawUtils.drawRoundedRect(x1, y1, x2, cardY2, radius, fill);
+        DrawUtils.drawRoundedOutline(x1, y1, x2, cardY2, radius, 1f,
+                M3.alpha(enabledPct > 0.5f ? M3.primary() : M3.outlineVariant(), enabledPct > 0.5f ? 90 : 90));
 
-        if (enabledPct > 0.01f) {
-            float barW = Math.max(1.5f, height * 0.07f);
-            UITheme.accentBar(x1, y1, x1 + barW, cardY2, radius, enabledPct);
-        }
-
-        float chevronCx = x1 + pad * 1.25f;
+        float chevronCx = x1 + pad * 1.1f;
         chevronZoneX2 = chevronCx + pad;
-        int chevronColor = UITheme.alpha(UITheme.textMuted(), (int) (140 + 115 * Math.max(hover, openPct)));
-        UITheme.chevron(chevronCx, midPointY, height * 0.26f, Math.max(1f, height * 0.055f), chevronColor, openPct);
+        int chevronColor = M3.alpha(M3.onSurfaceVariant(), (int) (160 + 85 * Math.max(hover, openPct)));
+        UITheme.chevron(chevronCx, midPointY, height * 0.22f, Math.max(1f, height * 0.045f), chevronColor, openPct);
 
         buttonComponent.updateComponent(posInfo, ri);
         toggleZoneX1 = Math.min(x2, buttonComponent.getTrackX1()) - pad * 0.5f;
@@ -180,9 +175,10 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float chipRight = toggleZoneX1 - pad * 0.6f;
         if (hasBind || hover > 0.02f) {
             float bindPct = bindTimer.getPercent();
-            int chipFill = chipBacking(Math.max(hover, hasBind ? 1f : 0f), bindPct);
-            int chipText = binding ? UITheme.accent()
-                    : UITheme.alpha(UITheme.textMuted(), (int) (255 * Math.max(hover, hasBind ? 0.8f : 0f)));
+            int chipFill = binding ? M3.alpha(M3.primaryContainer(), 245)
+                    : M3.alpha(M3.surfaceContainerHighest(), 235);
+            int chipText = binding ? M3.onPrimaryContainer()
+                    : M3.alpha(M3.onSurfaceVariant(), (int) (255 * Math.max(hover, hasBind ? 0.9f : 0f)));
             float chipW = UITheme.chip(ri.getFr(), bindName.isEmpty() ? "-" : bindName,
                     chipRight, midPointY, chipHeight, chipText, chipFill);
             bindZoneX2 = chipRight;
@@ -196,8 +192,8 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         if (isHidden || hover > 0.02f) {
             // hidden: a grey "Hidden" chip; not hidden: a red "Hide" chip, shown while the row is hovered
             float chipAlpha = isHidden ? 1f : hover;
-            int hiddenChipFill = UITheme.alpha(isHidden ? 0xFF6E6E6E : 0xFFD94040, (int) (200 * chipAlpha));
-            int hiddenChipText = UITheme.alpha(0xFFFFFFFF, (int) (255 * chipAlpha));
+            int hiddenChipFill = M3.alpha(isHidden ? M3.surfaceContainerHighest() : M3.errorContainer(), (int) (230 * chipAlpha));
+            int hiddenChipText = M3.alpha(isHidden ? M3.onSurfaceVariant() : M3.onError(), (int) (255 * chipAlpha));
             float hiddenChipW = UITheme.chip(ri.getFr(), isHidden ? "Hidden" : "Hide",
                     hiddenChipRight, midPointY, chipHeight, hiddenChipText, hiddenChipFill);
             hiddenZoneX2 = hiddenChipRight;
@@ -206,9 +202,9 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             hiddenZoneX1 = hiddenZoneX2 = hiddenChipRight;
         }
 
-        float textX = chevronZoneX2 + pad * 0.35f;
-        int titleColor = UITheme.mix(UITheme.textSecondary(), UITheme.textPrimary(), enabledPct);
-        ri.getFr().drawString(name, textX, midPointY, titleColor, ri.getFr().CENTREY);
+        float textX = chevronZoneX2 + pad * 0.3f;
+        int titleColor = M3.mix(M3.onSurfaceVariant(), M3.primary(), enabledPct);
+        M3.label().drawString(name, textX, midPointY, titleColor, M3.label().CENTREY);
         RenderUtils.resetColorText();
 
         PosInfo pi = new PosInfo(x1 + pad * 1.1f, y2);
@@ -225,7 +221,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
                 float lineH = ri.getFr().getHeight("Ag") + 1.5f;
                 for (String line : AddonCardComponent.wrap(ri.getFr(), description, x2 - x1 - pad * 2.2f)) {
                     ri.getFr().drawString(line, x1 + pad * 1.1f, pi.getY() + lineH / 2f,
-                            UITheme.alpha(UITheme.textSecondary(), (int) (255 * openPct)), ri.getFr().CENTREY);
+                            M3.alpha(M3.onSurfaceVariant(), (int) (220 * openPct)), ri.getFr().CENTREY);
                     pi.moveY(lineH);
                 }
                 pi.moveY(pad * 0.3f);
@@ -241,7 +237,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             String tier = self.getTier().getDisplayName();
             float tagW = ri.getFr().getWidth(tier) + tagH * 0.84f;
             UITheme.chip(ri.getFr(), tier, x1 + pad * 1.1f + tagW, pi.getY() + rowH / 2f, tagH,
-                    UITheme.alpha(tierColor, (int) (255 * openPct)), UITheme.alpha(tierColor, (int) (40 * openPct)));
+                    M3.alpha(tierColor, (int) (230 * openPct)), M3.alpha(tierColor, (int) (34 * openPct)));
             if (hasVisible(selected))
                 drawGroupIcons(pi.getY(), rowH, pad, openPct);
             pi.moveY(rowH + pad * 0.5f);
@@ -268,27 +264,18 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             boolean active = group == selected;
             boolean hover = mx >= bx1 && mx <= right && my >= y && my <= y + rowH;
             if (active || hover)
-                DrawUtils.drawRoundedRect(bx1, y, right, y + rowH, UITheme.radiusChip(rowH),
-                        active ? UITheme.alpha(UITheme.accent(), (int) (55 * openPct))
-                               : UITheme.alpha(ThemeManager.getBlack(), (int) (60 * openPct)));
+                DrawUtils.drawRoundedRect(bx1, y, right, y + rowH, rowH * 0.4f,
+                        active ? M3.alpha(M3.secondaryContainer(), (int) (230 * openPct))
+                               : M3.alpha(M3.surfaceContainerHighest(), (int) (150 * openPct)));
 
-            int tint = active ? UITheme.accent() : (hover ? UITheme.textPrimary() : UITheme.textMuted());
-            float icon = rowH * 0.76f, ix = bx1 + (rowH - icon) / 2f, iy = y + (rowH - icon) / 2f;
-            Minecraft.getMinecraft().getTextureManager().bindTexture(icon(group));
-            GlStateManager.enableBlend();
-            RenderUtils.color2(tint, (active || hover ? 1f : 0.55f) * openPct);
-            Gui.drawModalRectWithCustomSizedTexture((int) ix, (int) iy, 0, 0, (int) icon, (int) icon, icon, icon);
-            GlStateManager.color(1f, 1f, 1f, 1f);
+            int tint = active ? M3.onSecondaryContainer() : (hover ? M3.onSurface() : M3.onSurfaceVariant());
+            float alpha = (active || hover ? 1f : 0.55f) * openPct;
+            M3Icons.drawCentered(M3Icons.group(group.name()), (bx1 + right) / 2f, y + rowH / 2f,
+                    M3.alpha(tint, (int) (255 * alpha)));
 
             groupZones[group.ordinal()] = new float[] { bx1, y, right, y + rowH };
             right = bx1 - pad * 0.3f;
         }
-    }
-
-    private static final Map<Group, ResourceLocation> ICONS = new EnumMap<>(Group.class);
-
-    private static ResourceLocation icon(Group group) {
-        return ICONS.computeIfAbsent(group, g -> new ResourceLocation("arsenic", "icons/" + g.getIcon() + ".png"));
     }
 
     private float lastMouseX, lastMouseY;
@@ -340,11 +327,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     private static int tierColour(arsenic.module.ModuleTier tier) {
         switch (tier) {
-            case QOL: return 0xFF9E9E9E;
-            case VISUAL: return 0xFF55CCFF;
-            case BLATANT: return 0xFFFF5555;
-            case DEV: return 0xFFFFAA00;
-            default: return 0xFF55FF55;
+            case QOL: return 0xFFB8C0CC;
+            case VISUAL: return 0xFF8FC7FF;
+            case BLATANT: return 0xFFFFB4AB;
+            case DEV: return 0xFFFFD37A;
+            default: return 0xFF9BE8A8;
         }
     }
 
@@ -381,6 +368,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     public int getWidth(int i) {
         return (int) UITheme.space(i, 30);
+    }
+
+    @Override
+    public int getHeight(int i) {
+        return 42;
     }
 
     @Override

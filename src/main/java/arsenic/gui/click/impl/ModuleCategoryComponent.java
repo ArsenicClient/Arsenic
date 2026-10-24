@@ -2,6 +2,9 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.GuiStyle;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
+import arsenic.gui.design.M3Icons;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
@@ -29,7 +32,6 @@ import java.util.stream.Collectors;
 
 public class ModuleCategoryComponent extends Component implements IContainer<ModuleComponent> {
     protected final ModuleCategory self;
-    protected final ResourceLocation icon;
     protected float scroll, targetScroll, maxHeight;
     protected boolean isCC, isHovered;
     protected List<ModuleComponent> contentsL = new ArrayList<>();
@@ -40,7 +42,6 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 
     public ModuleCategoryComponent(ModuleCategory category) {
         self = category;
-        icon = new ResourceLocation("arsenic", "icons/" + self.getName().toLowerCase() + ".png");
         contents = self.getContents().stream().map(ModuleComponent::new).sorted(Comparator.comparing(ModuleComponent::getName)).collect(Collectors.toList());
 refreshListing();
     }
@@ -84,35 +85,9 @@ refreshListing();
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float anim = Math.max(enabledTimer.getPercent(), hoverTimer.getPercent());
-        expandX = anim * (width / 40f);
-        int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
-        int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
-
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-
-        if (anim > 0.01f)
-            DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
-                    arsenic.gui.click.GuiStyle.shadowSpread(height * 0.18f),
-                    arsenic.gui.click.GuiStyle.shadowAlpha((int) (130 * anim)), 4);
-
-        DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
-
-        int onPanel = arsenic.gui.click.UITheme.readableOn(ThemeManager.getModuleBackground());
-        int onAccent = arsenic.gui.click.UITheme.readableOn(getEnabledColor());
-        int foreground = arsenic.gui.click.UITheme.mix(onPanel, onAccent, anim);
-
-        float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
-        float iconX = x1 + (width / 7f) + expandX - iconSize;
-        float iconY = midPointY - iconSize / 2f;
-        Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
-        RenderUtils.color2(foreground, 1f);
-        Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
-
-        GlStateManager.color(1f, 1f, 1f, 1f);
-
-        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, foreground, ri.getFr().CENTREY);
+        expandX = 0;
+        M3Components.navItem(ri.getFr(), getName(), M3Icons.category(getName()), x1, y1, x2, y2,
+                enabledTimer.getPercent(), hoverTimer.getPercent(), true);
         return height;
     }
 
@@ -138,9 +113,8 @@ refreshListing();
     protected void drawSection(List<? extends Component> l, PosInfo pi, RenderInfo ri) {
         pi.moveY(scroll);
         float temp = pi.getY();
-        float expand = width/10f;
-        pi.moveY(expand);
-        l.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri) + expand));
+        float gap = 5f;
+        l.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri) + gap));
         temp = pi.getY() - temp;
         if(temp > maxHeight)
             maxHeight = temp;
@@ -183,19 +157,16 @@ refreshListing();
 
     public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
         if (maxHeight <= 0) return;
-        float scrollbarHeight = barHeight * (barHeight / (barHeight + maxHeight));
-        float scrollbarY = y + (this.scroll / -maxHeight) * (barHeight - scrollbarHeight);
-        DrawUtils.drawRoundedRect(x - 3, y, x - 1, y + barHeight, 1f, ThemeManager.getScrollbarTrack());
-        DrawUtils.drawRoundedRect(x - 3, scrollbarY, x - 1, scrollbarY + scrollbarHeight, 1f, ThemeManager.getScrollbarThumb());
+        M3Components.scrollbar(x, y, barHeight, maxHeight, scroll);
     }
 
     @Override
     public int getWidth(int i) {
-        return 10 * (i / 100);
+        return 174;
     }
 
     @Override
     public int getHeight(int i) {
-        return 5 * (i / 100);
+        return 36;
     }
 }

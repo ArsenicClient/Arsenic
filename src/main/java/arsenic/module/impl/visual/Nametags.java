@@ -12,6 +12,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
@@ -24,10 +25,13 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.model.IBakedModel;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.StringUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -40,6 +44,13 @@ public class Nametags extends Module {
 
     public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));
     public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(8, 128, 64, 1));
+    public final BooleanProperty health = new BooleanProperty("Health", true);
+    public final BooleanProperty armor = new BooleanProperty("Armor", true);
+    public final BooleanProperty distance = new BooleanProperty("Distance", true);
+    public final BooleanProperty potions = new BooleanProperty("Potions", true);
+    public final BooleanProperty items = new BooleanProperty("Items", true);
+    public final BooleanProperty background = new BooleanProperty("Background", true);
+    public final BooleanProperty outline = new BooleanProperty("Outline", true);
 
     private static final float BASE_SCALE = 0.02666667F;
     private static final int PAD = 2;
@@ -66,20 +77,22 @@ public class Nametags extends Module {
                     - mc.getRenderManager().viewerPosZ;
 
             String name = StringUtils.stripControlCodes(player.getName());
-            String healthText = true
-                    ? String.format(" §7%.1f", player.getHealth())
-                    : "";
-            String distText = false
-                    ? String.format(" §7[%.0f]", mc.thePlayer.getDistanceToEntity(player))
-                    : "";
+            float dist = mc.thePlayer.getDistanceToEntity(player);
+            String healthText = health.getValue() ? String.format(" §7%.1f", player.getHealth()) : "";
+            String distText = distance.getValue() ? String.format(" §7[%.0f]", dist) : "";
             String text = name + healthText + distText;
+            List<String> potionLines = potions.getValue() ? potionLines(player) : new ArrayList<>();
 
             float scale = BASE_SCALE * (float) tagScale.getValue().getInput();
 
             int textWidth = (int) Math.ceil(fr.getWidth(text));
+            int potionLineHeight = (int) Math.ceil(fr.getHeight("A"));
+            for (String line : potionLines)
+                textWidth = Math.max(textWidth, (int) Math.ceil(fr.getWidth(line)));
             int textHeight = (int) Math.ceil(fr.getHeight(text));
             int left = -(textWidth / 2);
             int right = left + textWidth;
+            int bottom = textHeight + PAD + (potionLines.isEmpty() ? 0 : potionLines.size() * potionLineHeight + 2);
 
             float healthPercent = MathUtils.clamp01(player.getHealth() / player.getMaxHealth());
             int healthColor = healthPercent > 0.5f ? 0xFF2ECC71
@@ -98,14 +111,23 @@ public class Nametags extends Module {
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
-            drawGear(fr, collectGear(player));
+            if (items.getValue() || armor.getValue())
+                drawGear(fr, collectGear(player));
 
-            Gui.drawRect(left - PAD, -PAD, right + PAD, textHeight + PAD, new Color(0, 0, 0, 110).getRGB());
-            int barRight = left - PAD + Math.round((textWidth + PAD * 2) * healthPercent);
-            Gui.drawRect(left - PAD, textHeight + PAD, barRight, textHeight + PAD + 1, healthColor);
+            if (background.getValue())
+                Gui.drawRect(left - PAD, -PAD, right + PAD, bottom, new Color(0, 0, 0, 130).getRGB());
+            if (outline.getValue())
+                drawOutline(left - PAD, -PAD, right + PAD, bottom, new Color(255, 255, 255, 55).getRGB());
+            if (health.getValue()) {
+                int barRight = left - PAD + Math.round((textWidth + PAD * 2) * healthPercent);
+                Gui.drawRect(left - PAD, textHeight + PAD, barRight, textHeight + PAD + 1, healthColor);
+            }
 
             GlStateManager.enableTexture2D();
             fr.drawString(text, left, textHeight / 2f, 0xFFFFFFFF, fr.CENTREY);
+            for (int i = 0; i < potionLines.size(); i++)
+                fr.drawString(potionLines.get(i), left, textHeight + PAD + 2 + i * potionLineHeight,
+                        0xFFC8C8C8);
 
             GlStateManager.color(1f, 1f, 1f, 1f);
             GlStateManager.disableBlend();
@@ -116,13 +138,57 @@ public class Nametags extends Module {
 
     private List<ItemStack> collectGear(EntityPlayer player) {
         List<ItemStack> gear = new ArrayList<>();
-        ItemStack held = player.getHeldItem();
-        if (held != null) gear.add(held);
-        for (int i = 3; i >= 0; i--) {
-            ItemStack armor = player.getCurrentArmor(i);
-            if (armor != null) gear.add(armor);
+        if (items.getValue()) {
+            ItemStack held = player.getHeldItem();
+            if (held != null) gear.add(held);
+        }
+        if (armor.getValue()) {
+            for (int i = 3; i >= 0; i--) {
+                ItemStack armor = player.getCurrentArmor(i);
+                if (armor != null) gear.add(armor);
+            }
         }
         return gear;
+    }
+
+    private List<String> potionLines(EntityPlayer player) {
+        List<String> lines = new ArrayList<>();
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            Potion potion = Potion.potionTypes[effect.getPotionID()];
+            if (potion == null)
+                continue;
+            String name = I18n.format(potion.getName());
+            int amplifier = effect.getAmplifier();
+            if (amplifier > 0)
+                name += " " + roman(amplifier + 1);
+            lines.add("§7" + name + " §8" + formatDuration(effect.getDuration()));
+            if (lines.size() >= 4)
+                break;
+        }
+        return lines;
+    }
+
+    private String roman(int value) {
+        switch (value) {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            case 4: return "IV";
+            case 5: return "V";
+            default: return String.valueOf(value);
+        }
+    }
+
+    private String formatDuration(int ticks) {
+        int seconds = Math.max(0, ticks / 20);
+        return String.format("%d:%02d", seconds / 60, seconds % 60);
+    }
+
+    private void drawOutline(int x1, int y1, int x2, int y2, int color) {
+        Gui.drawRect(x1, y1, x2, y1 + 1, color);
+        Gui.drawRect(x1, y2 - 1, x2, y2, color);
+        Gui.drawRect(x1, y1, x1 + 1, y2, color);
+        Gui.drawRect(x2 - 1, y1, x2, y2, color);
     }
 
     private void drawGear(FontRendererExtension<?> fr, List<ItemStack> gear) {

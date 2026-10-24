@@ -45,7 +45,7 @@ public final class HookTransformer implements ClassFileTransformer {
     enum Kind {
         HEAD,            // void hook(self, args) at the start
         HEAD_CANCEL,     // boolean hook(self, args) at the start; true returns from the (void) target
-        HEAD_RETURN,     // R hook(self, args) at the start; non-null is returned. For boolean targets: int, <0 continues
+        HEAD_RETURN,     // R hook(self, args) at the start; non-null/non-negative is returned (negative continues for int)
         ARG,             // T hook(self, args) at the start; the result replaces argument `index`
         RETURN,          // void hook(self, args) before every return
         TAIL,            // void hook(self, args) before the last return
@@ -207,6 +207,7 @@ public final class HookTransformer implements ClassFileTransformer {
         String living = "entity/EntityLivingBase";
         add(Kind.HEAD_CANCEL, living, "jump", "()V", PLAYER_HOOKS, "jumpHead");
         add(Kind.HEAD, living, "onLivingUpdate", "()V", PLAYER_HOOKS, "livingUpdateHead");
+        add(Kind.HEAD_RETURN, living, "getArmSwingAnimationEnd", "()I", PLAYER_HOOKS, "swingDuration");
 
         String er = "client/renderer/EntityRenderer";
         add(Kind.BEFORE_FIELD, er, "renderWorldPass", "(IFJ)V", RENDER_HOOKS, "renderWorldPassHand")
@@ -222,6 +223,8 @@ public final class HookTransformer implements ClassFileTransformer {
                     .ref(MC + "client/gui/GuiScreen", "drawScreen", "(IIF)V");
         add(Kind.HEAD_CANCEL, er, "getMouseOver", "(F)V", RENDER_HOOKS, "getMouseOver");
         add(Kind.HEAD_CANCEL, er, "hurtCameraEffect", "(F)V", RENDER_HOOKS, "hurtCameraEffectHead");
+        add(Kind.HEAD, er, "setupFog", "(IF)V", RENDER_HOOKS, "setupFogHead");
+        add(Kind.RETURN, er, "setupFog", "(IF)V", RENDER_HOOKS, "setupFogReturn");
         // the hook changes what getFOVModifier returns when useFOVSetting is true; these are the callers that pass true
         add(Kind.MODIFY_RESULT, er, "setupCameraTransform", "(FI)V", RENDER_HOOKS, "fovModifier")
                 .ref(MC + er, "getFOVModifier", "(FZ)F");
@@ -504,11 +507,12 @@ public final class HookTransformer implements ClassFileTransformer {
                     LabelNode proceed = new LabelNode();
                     head.add(new InsnNode(DUP));
                     boolean bool = ret.getSort() == Type.BOOLEAN;
-                    head.add(new JumpInsnNode(bool ? IFLT : IFNULL, proceed));
-                    head.add(new InsnNode(bool ? IRETURN : ARETURN));
+                    boolean integer = ret.getSort() == Type.INT;
+                    head.add(new JumpInsnNode(bool || integer ? IFLT : IFNULL, proceed));
+                    head.add(new InsnNode(bool || integer ? IRETURN : ARETURN));
                     head.add(proceed);
                     if (frames)
-                        head.add(frame(cn, mn, bool ? INTEGER : names.type(ret.getInternalName())));
+                        head.add(frame(cn, mn, bool || integer ? INTEGER : names.type(ret.getInternalName())));
                     head.add(new InsnNode(POP));
                     count = 1;
                     break;
