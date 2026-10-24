@@ -42,6 +42,7 @@ import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
+import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
@@ -72,6 +73,9 @@ public class KillAura extends Module {
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
+    @PropertyGroup(Group.VISUAL)
+    public final BooleanProperty blockTracker = new BooleanProperty("Block Tracker", false);
+    private int hitsTaken, hitsBlocked;
     public EntityPlayer target = null;
     private boolean hadTarget = false;
     private boolean wasUsingItem;
@@ -102,6 +106,7 @@ public class KillAura extends Module {
         target = null;
         hadTarget = false;
         everOnTarget = false;
+        hitsTaken = hitsBlocked = 0;
         aim.reset();
         ClickManager.get().reset(ClickManager.Client.KILLAURA);
     }
@@ -230,6 +235,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Post> onPostMotion = event -> {
+        blocker.recordSent(blocker.isBlocking() || autoBlock.getValue() == AutoBlocker.Mode.Legit && mc.thePlayer.isBlocking());
         if (AutoBlocker.isPacketMode(autoBlock.getValue()))
             blocker.afterMovement();
     };
@@ -247,7 +253,29 @@ public class KillAura extends Module {
     public final Listener<EventPacket.Incoming.Pre> onServerMove = event -> {
         if (disableOnFlag.getValue() && event.getPacket() instanceof S08PacketPlayerPosLook)
             setEnabled(false);
+        // packets arrive on the network thread; the vanilla handler runs it on the main thread too
+        if (blockTracker.getValue() && event.getPacket() instanceof S19PacketEntityStatus) {
+            S19PacketEntityStatus status = (S19PacketEntityStatus) event.getPacket();
+            mc.addScheduledTask(() -> trackBlock(status));
+        }
     };
+
+    /**
+     * Block Tracker: on each hit we take while fighting with an autoblock, says in chat whether the sword was up when
+     * the server took the hit. That was a ping ago: the hurt comes back half a ping late, and what we sent then reached
+     * the server half a ping later. The client cannot tell a hit from other damage, so a fall in a fight counts too.
+     */
+    private void trackBlock(S19PacketEntityStatus status) {
+        if (mc.thePlayer == null || status.getOpCode() != 2 || status.getEntity(mc.theWorld) != mc.thePlayer
+                || target == null || autoBlock.getValue() == AutoBlocker.Mode.None)
+            return;
+        boolean blocked = blocker.wasBlocking(LagManager.getPingAsTicks());
+        hitsTaken++;
+        if (blocked)
+            hitsBlocked++;
+        PlayerUtils.addMessageToChat((blocked ? "§aBlocked" : "§cNot blocked") + " §7("
+                + hitsBlocked + "/" + hitsTaken + ")");
+    }
 
     @RequiresPlayer
     @EventLink

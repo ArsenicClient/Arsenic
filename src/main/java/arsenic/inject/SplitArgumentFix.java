@@ -140,10 +140,23 @@ final class SplitArgumentFix {
             return windowsArguments(line);
         }
         // Linux: NUL-separated, exact
-        byte[] raw = Files.readAllBytes(Paths.get("/proc/self/cmdline"));
-        List<String> args = new ArrayList<>(Arrays.asList(new String(raw, StandardCharsets.UTF_8).split("\0")));
-        if (args.isEmpty())
-            throw new IOException("empty /proc/self/cmdline");
+        if (new File("/proc/self/cmdline").isFile()) {
+            byte[] raw = Files.readAllBytes(Paths.get("/proc/self/cmdline"));
+            List<String> args = new ArrayList<>(Arrays.asList(new String(raw, StandardCharsets.UTF_8).split("\0")));
+            if (!args.isEmpty())
+                return args;
+        }
+        // macOS: ProcessHandle (Java 9+, which every launcher's game runs on) reads the exact arguments; by
+        // reflection because the agent is built for Java 8
+        Class<?> handle = Class.forName("java.lang.ProcessHandle");
+        Object info = handle.getMethod("info").invoke(handle.getMethod("current").invoke(null));
+        Object command = ((java.util.Optional<?>) info.getClass().getMethod("command").invoke(info)).orElse(null);
+        Object arguments = ((java.util.Optional<?>) info.getClass().getMethod("arguments").invoke(info)).orElse(null);
+        if (command == null || arguments == null)
+            throw new IOException("no command line for process " + pid);
+        List<String> args = new ArrayList<>();
+        args.add((String) command);
+        args.addAll(Arrays.asList((String[]) arguments));
         return args;
     }
 
