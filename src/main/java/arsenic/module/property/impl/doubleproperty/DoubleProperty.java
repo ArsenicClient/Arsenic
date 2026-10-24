@@ -3,6 +3,8 @@ package arsenic.module.property.impl.doubleproperty;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
@@ -58,7 +60,6 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
 
             private boolean dragging;
             private float trackX1, trackX2, trackWidth;
-            private float dragX1, dragWidth;
 
             private final AnimationTimer grabTimer =
                     new AnimationTimer(UITheme.DUR_HOVER, () -> dragging, TickMode.CUBIC);
@@ -68,37 +69,35 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 float percent = scale.toPercent(getValue().getInput(), getValue().getMinBound(), getValue().getMaxBound());
 
                 float grab = grabTimer.getPercent();
+                float hover = hoverPct();
+                float active = Math.max(grab, hover * 0.6f);
 
                 float chipHeight = height * 0.5f;
+                int chipFill = dragging
+                        ? UITheme.alpha(M3.primary(), 235)
+                        : UITheme.alpha(ThemeManager.getButtonBackground(), 190);
+                int chipFg = dragging ? M3.onPrimary() : M3.onSurfaceVariant();
                 float chipWidth = UITheme.chip(ri.getFr(), self.getValueString(), x2, midPointY, chipHeight,
-                        UITheme.mix(UITheme.textSecondary(), UITheme.accent(), Math.max(percent * 0.35f, grab)),
-                        UITheme.alpha(ThemeManager.getBlack(), 70));
+                        chipFill, chipFg);
 
                 trackX1 = controlX1();
                 trackX2 = x2 - chipWidth - pad() * 0.7f;
                 trackWidth = Math.max(1f, trackX2 - trackX1);
-                float fillX = trackX1 + percent * trackWidth;
 
-                float trackH = Math.max(3f, height * 0.3f) + grab * height * 0.04f;
-                float trackY1 = midPointY - trackH / 2f, trackY2 = midPointY + trackH / 2f;
-                float trackRadius = trackH / 2f;
-
-                DrawUtils.drawRoundedRect(trackX1, trackY1, trackX2, trackY2, trackRadius,
-                        UITheme.alpha(ThemeManager.getButtonBackground(), 200));
-                float fillEnd = Math.max(fillX, trackX1 + trackH);
-                DrawUtils.drawGradientRoundedRect(trackX1, trackY1, fillEnd, trackY2, trackRadius,
-                        UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
+                float handleX = M3Components.sliderControl(trackX1, midPointY, trackWidth, percent, active);
+                if (grab > 0.02f) {
+                    float bubbleBottom = midPointY - height * 0.62f;
+                    M3Components.sliderLabel(ri.getFr(), self.getValueString(), handleX, bubbleBottom - 20f);
+                }
 
                 return height;
             }
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if (mouseX < trackX1 || mouseX > trackX2)
+                if (mouseX < trackX1 - pad() || mouseX > trackX2 + pad())
                     return;
                 dragging = true;
-                dragX1 = trackX1;
-                dragWidth = trackWidth;
                 applyFromMouse(mouseX);
             }
 
@@ -117,7 +116,7 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
             }
 
             private void applyFromMouse(int mouseX) {
-                float pct = MathUtils.clamp01((mouseX - dragX1) / dragWidth);
+                float pct = MathUtils.clamp01((mouseX - trackX1) / trackWidth);
                 double min = getValue().getMinBound(), max = getValue().getMaxBound();
                 getValue().setInput(scale.fromPercent(pct, min, max));
                 onValueUpdate();

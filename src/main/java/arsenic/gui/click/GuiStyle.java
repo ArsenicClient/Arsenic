@@ -25,8 +25,13 @@ public final class GuiStyle implements ISerializable {
     }
 
     public enum Transition {
-        BURN, DISSOLVE, GLITCH, FADE
+        BURN, DISSOLVE, GLITCH, FADE, SCALE, NONE
     }
+
+    private static final Transition[] MENU_TRANSITIONS = {
+            Transition.BURN, Transition.SCALE, Transition.FADE,
+            Transition.DISSOLVE, Transition.GLITCH, Transition.NONE
+    };
 
     public enum LogoMode { CLASSIC, MODERN }
 
@@ -102,6 +107,10 @@ public final class GuiStyle implements ISerializable {
     private int clickGuiKey = org.lwjgl.input.Keyboard.KEY_RSHIFT;
     /** Whether the client's custom menus are on: its main menu, ocean backgrounds, themed buttons and lists, container buttons and screen fades. */
     private boolean customMenus = true;
+    /** GUI-tab override for the open/close animation; null means use the preset. */
+    private Transition menuTransition;
+    /** Extra zoom on the fixed GUI canvas: 1 is default, larger enlarges the whole menu. */
+    private float clickGuiScale = 1f;
 
     public int getClickGuiKey() { return clickGuiKey; }
 
@@ -117,8 +126,36 @@ public final class GuiStyle implements ISerializable {
     public Preset getPreset() { return preset; }
 
     public void setPreset(Preset preset) {
-        if (preset != null)
+        if (preset != null) {
             this.preset = preset;
+            this.menuTransition = null;
+        }
+    }
+
+    public float getClickGuiScale() { return clickGuiScale; }
+
+    public void setClickGuiScale(float scale) {
+        clickGuiScale = MathUtils.clamp(scale, 0.7f, 1.8f);
+    }
+
+    public Transition getMenuTransition() {        if (menuTransition != null)
+            return menuTransition;
+        return preset.transitionEnabled ? preset.transition : Transition.NONE;
+    }
+
+    public void setMenuTransition(Transition transition) {
+        this.menuTransition = transition;
+    }
+
+    public void cycleMenuTransition() {
+        Transition current = getMenuTransition();
+        int index = 0;
+        for (int i = 0; i < MENU_TRANSITIONS.length; i++)
+            if (MENU_TRANSITIONS[i] == current) {
+                index = (i + 1) % MENU_TRANSITIONS.length;
+                break;
+            }
+        menuTransition = MENU_TRANSITIONS[index];
     }
 
     public boolean isCustomFont() { return customFont; }
@@ -187,11 +224,19 @@ public final class GuiStyle implements ISerializable {
 
     public static boolean scanlinesEnabled() { return p().scanlines; }
 
-    public static boolean transitionEnabled() { return p().transitionEnabled; }
+    public static boolean transitionEnabled() {
+        return INSTANCE.menuTransition != null
+                ? INSTANCE.menuTransition != Transition.NONE
+                : p().transitionEnabled;
+    }
 
     public static LogoMode logoMode() { return p().logo; }
 
-    public static Transition transition() { return p().transition; }
+    public static Transition transition() {
+        if (INSTANCE.menuTransition != null && INSTANCE.menuTransition != Transition.NONE)
+            return INSTANCE.menuTransition;
+        return p().transition;
+    }
 
     public static int transitionTimeMs() { return (int) (p().transitionTime * 1000f); }
 
@@ -241,6 +286,8 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("screenStyle", screenStyle);
         obj.addProperty("clickGuiKey", clickGuiKey);
         obj.addProperty("customMenus", customMenus);
+        obj.addProperty("menuTransition", menuTransition == null ? "" : menuTransition.name());
+        obj.addProperty("clickGuiScale", clickGuiScale);
         return obj;
     }
 
@@ -267,6 +314,12 @@ public final class GuiStyle implements ISerializable {
                 customMenus = obj.get("customMainMenu").getAsBoolean();
             if (obj.has("customMenus"))
                 customMenus = obj.get("customMenus").getAsBoolean();
+            if (obj.has("menuTransition")) {
+                String name = obj.get("menuTransition").getAsString();
+                menuTransition = name.isEmpty() ? null : Transition.valueOf(name);
+            }
+            if (obj.has("clickGuiScale"))
+                setClickGuiScale(obj.get("clickGuiScale").getAsFloat());
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

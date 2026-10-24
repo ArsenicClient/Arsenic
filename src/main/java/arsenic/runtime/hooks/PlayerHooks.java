@@ -9,6 +9,7 @@ import arsenic.module.impl.client.Cape;
 import arsenic.module.impl.client.CapeHandler;
 import arsenic.module.impl.ghost.HitSelect;
 import arsenic.module.impl.movement.NoJumpDelay;
+import arsenic.module.impl.visual.SwingAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -46,6 +47,11 @@ public final class PlayerHooks {
     private static float cachedRotationPitch, cachedRotationYaw;
 
     private PlayerHooks() {}
+
+    /** EntityLivingBase.getArmSwingAnimationEnd HEAD_RETURN; -1 keeps vanilla. */
+    public static int swingDuration(EntityLivingBase self) {
+        return SwingAnimation.swingDuration(self);
+    }
 
     /** EntityPlayerSP.onUpdateWalkingPlayer HEAD. @return true to cancel */
     public static boolean onUpdateWalkingPlayerHead(EntityPlayerSP self) {

@@ -3,7 +3,10 @@ package arsenic.inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -202,10 +205,32 @@ final class LunarInjection {
         return text.substring(0, args.start(1)) + escape(value) + text.substring(args.end(1));
     }
 
+    /**
+     * Replaces the settings in one step, after keeping the previous file as {@code .bak}, so an interrupted write
+     * cannot leave Lunar without a launcher.json.
+     */
     private static void save(File settings, String after) throws IOException {
-        Files.write(settings.toPath(), after.getBytes(StandardCharsets.UTF_8));
+        File dir = settings.getParentFile();
+        Files.copy(settings.toPath(), new File(dir, settings.getName() + ".bak").toPath(),
+                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+        Path temp = Files.createTempFile(dir.toPath(), settings.getName() + ".", ".tmp");
+        try {
+            Files.write(temp, after.getBytes(StandardCharsets.UTF_8));
+            try {
+                Files.setPosixFilePermissions(temp, Files.getPosixFilePermissions(settings.toPath()));
+            } catch (Exception ignored) {
+                // not a POSIX file system (Windows)
+            }
+            try {
+                Files.move(temp, settings.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, settings.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temp);
+        }
         // backups written by older injectors
-        Files.deleteIfExists(new File(settings.getParentFile(), settings.getName() + ".arsenic-backup").toPath());
+        Files.deleteIfExists(new File(dir, settings.getName() + ".arsenic-backup").toPath());
     }
 
     private static String read(File settings) throws IOException {

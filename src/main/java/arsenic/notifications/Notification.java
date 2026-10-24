@@ -3,9 +3,14 @@ package arsenic.notifications;
 import arsenic.utils.timer.MSTimer;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.DrawUtils;
+import arsenic.utils.render.RenderUtils;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
 
 public class Notification {
+    public static final int HEIGHT = 42;
     protected static final Minecraft mc = Minecraft.getMinecraft();
     private final NotificationType type;
     private final String title;
@@ -23,7 +28,8 @@ public class Notification {
         this.message = message;
         fadedIn = 200L * length;
         fadeOut = fadedIn + 1500L * length;
-        end = fadeOut + 300L * length;
+        end = fadeOut + 300L * length;
+
     }
 
     public boolean isShown() {
@@ -38,44 +44,45 @@ public class Notification {
         if (alpha <= 0.01f) return;
 
         int width = getWidth();
-        int height = 30;
+        int height = HEIGHT;
 
-        int bgColor = ((int) (0x90 * alpha) << 24) | 0x101010;
-        int borderColor = getBorderColor(alpha);
+        DrawUtils.drawShadow(x, y, x + width, y + height, 12f, 12f, (int) (90 * alpha), 5);
+        DrawUtils.drawRoundedRect(x, y, x + width, y + height, 12f,
+                M3.alpha(M3.surfaceContainerHigh(), (int) (242 * alpha)));
+        DrawUtils.drawRoundedOutline(x, y, x + width, y + height, 12f, 1f,
+                M3.alpha(M3.outlineVariant(), (int) (120 * alpha)));
 
-        DrawUtils.drawRoundedRect(x, y, x + width, y + height, 4, bgColor);
-        DrawUtils.drawRoundedOutline(x, y, x + width, y + height, 4, 1, borderColor);
+        int accent = getBorderColor(alpha);
+        DrawUtils.drawRoundedRect(x + 8f, y + 11f, x + 11f, y + height - 11f, 1.5f, accent);
 
-        int textColor = ((int) (0xFF * alpha) << 24) | 0xFFFFFF;
-        int subColor = ((int) (0xCC * alpha) << 24) | 0xCCCCCC;
+        int titleColor = M3.alpha(M3.onSurface(), (int) (255 * alpha));
+        int subColor = M3.alpha(M3.onSurfaceVariant(), (int) (230 * alpha));
 
-        mc.fontRendererObj.drawString(title, x + 8, (int) y + 5, textColor);
-        mc.fontRendererObj.drawString(message, x + 8, (int) y + 17, subColor);
+        M3.label().drawString(title, x + 20f, y + 13f, titleColor, M3.label().CENTREY);
+        M3.body().drawString(message, x + 20f, y + 28f, subColor, M3.body().CENTREY);
+        RenderUtils.resetColorText();
     }
 
     private int getBorderColor(float alpha) {
         int alphaMask = (int) (0xFF * alpha) << 24;
-        int themeColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        int r = (themeColor >> 16) & 0xFF;
-        int g = (themeColor >> 8) & 0xFF;
-        int b = themeColor & 0xFF;
+        int base;
         switch (type) {
             case INFO:
-                return alphaMask | ((r) << 16) | ((g) << 8) | b;
+                base = M3.primary();
+                break;
             case WARNING:
-                return alphaMask | 0xFFD600;
+                base = 0xFFFFD37A;
+                break;
             default:
-                return alphaMask | 0xFF1744;
+                base = M3.error();
+                break;
         }
+        return (alphaMask & 0xFF000000) | (base & 0x00FFFFFF);
     }
 
     public int getWidth() {
-        int titleW = mc.fontRendererObj.getStringWidth(title);
-        int msgW = mc.fontRendererObj.getStringWidth(message);
-        return Math.max(Math.max(titleW, msgW) + 24, 120);
-    }
-
-    private int getHeight() {
-        return 30;
+        int titleW = (int) Math.ceil(M3.label().getWidth(title));
+        int msgW = (int) Math.ceil(M3.body().getWidth(message));
+        return Math.max(Math.max(titleW, msgW) + 32, 150);
     }
 }

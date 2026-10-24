@@ -184,6 +184,11 @@ public final class Agent {
                         + game.namespace.name().toLowerCase() + "): " + e.getMessage() + ". It was built without"
                         + " reobfuscation; build it with `gradlew build` and inject the jar from build/libs", e);
             throw new IllegalStateException("Could not start the client: " + chain(e), e);
+        } catch (NoClassDefFoundError e) {
+            if (String.valueOf(e.getMessage()).contains("Could not initialize class"))
+                throw new IllegalStateException("A previous injection in this game failed while loading the client."
+                        + " This JVM cannot retry that class; restart the game, then inject again.", e);
+            throw new IllegalStateException("Could not start the client: " + chain(e), e);
         } catch (Throwable t) {
             throw new IllegalStateException("Could not start the client: " + chain(t), t);
         }
@@ -282,6 +287,9 @@ public final class Agent {
         File jar = new File(jarUrl.toURI());
         RuntimeNames runtimeNames = RuntimeNames.create(game.namespace, game.loader);
         addToLoader(inst, game.loader, jarUrl);
+        // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
+        clearLoaderCaches(game.loader);
+        checkClientNames(game);
         // the client's classes are prepared as they load, so this must be in place before the first one does
         // Forge's LaunchClassLoader takes the accessor transformer; a launcher's own loader (Lunar's Forge) does not, so
         // the client's classes are rewritten by the ClientTransformer as they load instead
@@ -290,9 +298,6 @@ public final class Agent {
             register.invoke(game.loader, "arsenic.runtime.AccessorTransformer");
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
-        // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
-        clearLoaderCaches(game.loader);
-        checkClientNames(game);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)

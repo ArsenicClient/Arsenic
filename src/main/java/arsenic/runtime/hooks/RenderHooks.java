@@ -11,11 +11,14 @@ import arsenic.runtime.Access;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.ghost.Reach;
 import arsenic.module.impl.player.NameHider;
+import arsenic.module.impl.visual.CustomFog;
 import arsenic.module.impl.visual.HUD;
 import arsenic.module.impl.visual.Nametags;
 import arsenic.module.impl.visual.NoHurtCam;
 import arsenic.module.impl.visual.PostProcessing;
 import arsenic.module.impl.visual.RotationView;
+import arsenic.module.impl.visual.SwingAnimation;
+import arsenic.module.impl.visual.ViewModel;
 import arsenic.module.impl.visual.custommainmenu.ScreenTransition;
 import arsenic.utils.render.ChamsRenderer;
 import arsenic.utils.render.capture.RenderTargets;
@@ -121,6 +124,16 @@ public final class RenderHooks {
         EventFov event = new EventFov(fov);
         Arsenic.getArsenic().getEventManager().getBus().post(event);
         return event.isModified() ? event.getFov() : fov;
+    }
+
+    /** setupFog HEAD: apply the CustomFog colour before vanilla builds the fog colour buffer. */
+    public static void setupFogHead(EntityRenderer self, int pass, float partialTicks) {
+        CustomFog.setupFogHead(self, pass, partialTicks);
+    }
+
+    /** setupFog RETURN: apply the CustomFog distance after vanilla has chosen the terrain fog mode. */
+    public static void setupFogReturn(EntityRenderer self, int pass, float partialTicks) {
+        CustomFog.setupFogReturn(self, pass, partialTicks);
     }
 
     /** getMouseOver HEAD: replaces the vanilla method. @return true (always cancels) */
@@ -241,6 +254,11 @@ public final class RenderHooks {
             GlStateManager.enableRescaleNormal();
             GlStateManager.pushMatrix();
 
+            ViewModel viewModel = Arsenic.getArsenic().getModuleManager().getModuleByClass(ViewModel.class);
+            boolean viewModelActive = viewModel != null && viewModel.isEnabled();
+            if (viewModelActive)
+                viewModel.applyPosition();
+
             ItemStack itemToRender = ITEM_TO_RENDER.get(self);
             if (itemToRender != null) {
                 if (itemToRender.getItem() instanceof ItemMap) {
@@ -267,10 +285,24 @@ public final class RenderHooks {
                     }
                 } else {
                     DO_ITEM_USED_TRANSFORMATIONS.invoke(self, swingProgress);
-                    TRANSFORM_FIRST_PERSON_ITEM.invoke(self, f, swingProgress);
+                    SwingAnimation swing = Arsenic.getArsenic().getModuleManager()
+                            .getModuleByClass(SwingAnimation.class);
+                    if (swing != null && swing.isEnabled())
+                        swing.applyTransform(f, swingProgress);
+                    else
+                        TRANSFORM_FIRST_PERSON_ITEM.invoke(self, f, swingProgress);
                 }
 
-                self.renderItem(player, itemToRender, ItemCameraTransforms.TransformType.FIRST_PERSON);
+                if (viewModelActive)
+                    viewModel.applyScale();
+
+                Runnable drawHeldItem = () -> self.renderItem(player, itemToRender,
+                        ItemCameraTransforms.TransformType.FIRST_PERSON);
+                if (viewModelActive && viewModel.glowMode() == ViewModel.GlowMode.Glow)
+                    viewModel.renderHeldGlow(drawHeldItem);
+                drawHeldItem.run();
+                if (viewModelActive && viewModel.glowMode() == ViewModel.GlowMode.Cham)
+                    viewModel.renderHeldGlow(drawHeldItem);
             }
 
             GlStateManager.popMatrix();

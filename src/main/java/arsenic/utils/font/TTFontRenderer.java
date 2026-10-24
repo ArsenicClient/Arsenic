@@ -284,7 +284,7 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     private boolean isValid(char c) {
-        return c > 10 && c < 256 && c != 127;
+        return c >= 32 && c != 127 && (c < '\uD800' || c > '\uDFFF');
     }
 
     private void drawLine(float x, float y, float x2, float y2, float width) {
