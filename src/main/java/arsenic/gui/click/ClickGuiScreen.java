@@ -16,6 +16,7 @@ import arsenic.utils.font.VanillaFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.*;
 import arsenic.gui.design.Backdrop;
+import arsenic.gui.design.Hover;
 import arsenic.gui.design.M3;
 import arsenic.gui.design.M3Components;
 import arsenic.gui.design.M3Icons;
@@ -125,7 +126,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     /** 1 while the shell is hidden and offset for the opening/closing transition, 0 when settled. */
     private float shellPhase() {
-        if (GuiStyle.transitionEnabled() && GuiStyle.transition() == GuiStyle.Transition.SCALE)
+        // the burn itself reveals and removes the GUI; a sliding shell and dark scrim on top would hide it
+        if (GuiStyle.transitionEnabled())
             return 0f;
         long now = System.currentTimeMillis();
         float p;
@@ -163,10 +165,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return true;
     }
 
+    /** The burn's box is the window, so the post-processing masks vanish in the same pattern as the GUI. */
     public float[] getBurnBoxPx() {
-        int bx = width / 8, by = height / 6;
-        return new float[]{GuiCanvas.pixelX(bx), GuiCanvas.pixelY(by),
-                GuiCanvas.pixelX(width - bx), GuiCanvas.pixelY(height - by), 30f * GuiCanvas.scale()};
+        layout();
+        return new float[]{GuiCanvas.pixelX(winX1), GuiCanvas.pixelY(winY1),
+                GuiCanvas.pixelX(winX2), GuiCanvas.pixelY(winY2), 28f * GuiCanvas.scale()};
     }
 
     public void init() {
@@ -185,6 +188,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         contentSwitchTime = openTime;
         closing = false;
         RenderUtils.captureCoverage = false;
+        Hover.reset();
     }
 
     /** Re-inits the current screen so a canvas scale change relays out immediately. */
@@ -198,6 +202,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private float contentX1, contentY1, contentX2, contentY2;
     private float searchX1, searchY1, searchX2, searchY2;
     private float footerX1, footerY1, footerX2, footerY2;
+    /** The bottom bar holding the footer buttons; the module list scrolls under its top edge. */
+    private float trayX1, trayY1, trayX2, trayY2;
 
     private void layout() {
         winX1 = 44f;
@@ -208,14 +214,18 @@ public class ClickGuiScreen extends CustomGuiScreen {
         railY1 = winY1 + 14f;
         railX2 = winX1 + 206f;
         railY2 = winY2 - 14f;
-        contentX1 = railX2 + 22f;
-        contentY1 = winY1 + 76f;
-        contentX2 = winX2 - 18f;
+        contentX1 = railX2 + 16f;
+        contentY1 = winY1 + 66f;
+        contentX2 = winX2 - 14f;
         footerX1 = contentX1;
-        footerX2 = contentX2 - 8f;
-        footerY2 = winY2 - 16f;
-        footerY1 = footerY2 - 40f;
-        contentY2 = footerY1 - 12f;
+        footerX2 = contentX2;
+        footerY2 = winY2 - 18f;
+        footerY1 = footerY2 - 36f;
+        trayX1 = railX2 + 10f;
+        trayX2 = winX2 - 10f;
+        trayY1 = footerY1 - 10f;
+        trayY2 = winY2 - 10f;
+        contentY2 = trayY1;
         searchX2 = contentX2 - 2f;
         searchX1 = searchX2 - 258f;
         searchY1 = winY1 + 18f;
@@ -251,6 +261,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void drawScr(int mouseX, int mouseY, float partialTicks) {
+        GuiStyle.tickFrame();
         DrawUtils.overrideScaleFactor = this.scale;
         layout();
 
@@ -268,6 +279,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
         if (shellOffset > 0.01f)
             offsetShell(shellOffset);
+
+        Hover.beginFrame(mouseX, mouseY);
+        if (closing || shell > 0.02f)
+            Hover.suppress(true);
 
         boolean captured = false;
         if (scaleStyle) {
@@ -311,57 +326,77 @@ public class ClickGuiScreen extends CustomGuiScreen {
         M3.headline().setScale(fontScale);
 
         M3Components.window(winX1, winY1, winX2, winY2, 28f);
-        M3Components.card(railX1, railY1, railX2, railY2, 22f, M3.alpha(M3.surfaceContainer(), 185));
+        M3Components.glass(railX1, railY1, railX2, railY2, 22f, M3.alpha(M3.surfaceContainer(), 200), 0.25f);
 
-        ResourceLocation logoPath = GuiStyle.logoMode() == GuiStyle.LogoMode.MODERN
-                ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
-                : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
-        float logoW = 96f;
-        float logoH = logoW * 166f / 588f;
-        mc.getTextureManager().bindTexture(logoPath);
-        RenderUtils.color2(M3.onSurface(), 0.94f);
-        Gui.drawModalRectWithCustomSizedTexture((int) (railX1 + 18f), (int) (railY1 + 18f), 0, 0,
-                (int) logoW, (int) logoH, (int) logoW, (int) logoH);
+        // as large as the rail's width allows, centred in the header band above the categories
+        float logoX = railX1 + 16f;
+        float logoH = arsenic.gui.design.LabLogo.heightFor(railX2 - railX1 - 32f, 32f);
+        float logoY = railY1 + (60f - logoH) / 2f;
+        boolean logoHover = Hover.test(LOGO_KEY, logoX, logoY, logoX + arsenic.gui.design.LabLogo.width(logoH), logoY + logoH);
+        arsenic.gui.design.LabLogo.draw(logoX, logoY, logoH, logoHover);
         GlStateManager.color(1f, 1f, 1f, 1f);
-
-        M3.body().drawString(Arsenic.getArsenic().getClientVersionString(), railX1 + 19f, railY1 + 52f,
-                M3.alpha(M3.onSurfaceVariant(), 190), M3.body().CENTREY);
         RenderUtils.resetColorText();
 
-        float reveal = contentReveal();
 
         GlStateManager.pushMatrix();
+        float mascotTop = railY2 - 10f - MASCOT_H;
         if (addonMode) {
-            addonPage.drawSidebar(railX1 + 9f, railY1 + 64f + reveal * 0.45f,
-                    railX1 + 8f, railX2 - 8f, railY2 - 132f, ri);
+            // the addon list scrolls in the space above the mascot's slot
+            addonPage.drawSidebar(railX1 + 9f, railY1 + 60f,
+                    railX1 + 8f, railX2 - 8f, mascotTop - 6f, ri);
+            drawMascot(mascotTop - 6f, mouseX, mouseY);
         } else {
-            PosInfo pi = new PosInfo(railX1 + 9f, railY1 + 64f + reveal * 0.45f);
+            PosInfo pi = new PosInfo(railX1 + 9f, railY1 + 60f);
             components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+            drawMascot(pi.getY(), mouseX, mouseY);
         }
 
         searchComponent.updateComponent(new PosInfo(searchX1, searchY1), ri);
 
         String title = addonMode ? "Addons" : (cmcc == searchComponent ? "Search" : cmcc.getName());
-        String subtitle = addonMode ? "Manage the addons installed on this client" : categorySubtitle();
-        M3.headline().drawString(title, contentX1, winY1 + 38f + reveal * 0.35f,
+        M3.headline().drawString(title, contentX1 + 2f, (searchY1 + searchY2) / 2f,
                 M3.onSurface(), M3.headline().CENTREY);
-        M3.body().drawString(subtitle, contentX1, winY1 + 55f + reveal * 0.35f,
-                M3.alpha(M3.onSurfaceVariant(), 200), M3.body().CENTREY);
         RenderUtils.resetColorText();
 
         ScissorUtils.subScissor((int) contentX1, (int) contentY1, (int) contentX2, (int) contentY2, 2);
-        float half = (contentX2 - contentX1) / 2f;
-        PosInfo piL = new PosInfo(contentX1 + 2f, contentY1 + 2f + reveal);
-        PosInfo piR = new PosInfo(contentX1 + half + 5f, contentY1 + 2f + reveal);
+        Hover.pushClip(contentX1, contentY1, contentX2, contentY2);
+        boolean listCaptured = beginListCapture();
+        float colGap = 10f;
+        // the columns sit 2 units inside the clip so a card's outline (drawn on its edge) isn't cut off
+        float inset = 2f;
+        float colX = contentX1 + inset;
+        float colW = (contentX2 - 8f - colX - colGap) / 2f;   // 8: the scrollbar's lane
+        ModuleComponent.columnWidth = colW;
+        ModuleCategoryComponent.contentWidth = contentX2 - contentX1;
+        float top = contentY1 + 2f;
         if (addonMode) {
-            addonPage.drawContent(piL.getX(), piR.getX(), contentY1, contentX2 - contentX1 - 4f, ri);
+            addonPage.drawContent(colX, colX + colW + colGap, contentY1, contentX2 - colX - 4f, ri);
             addonPage.subtractFromMaxScrollHeight(contentY2 - contentY1);
         } else {
-            cmcc.drawLeft(piL, ri);
-            cmcc.drawRight(piR, ri);
+            float slide = slideProgress();
+            float span = contentX2 - contentX1;
+            if (slide < 1f && slideFrom != null && slideFrom != cmcc) {
+                // the old category leaves; it can't take the cursor on its way out
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                slideFrom.drawLeft(new PosInfo(colX + off, top), ri);
+                slideFrom.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
+                Hover.suppress(wasSuppressed);
+            }
+            float off = slide < 1f ? slideDir * span * (1f - slide) : 0f;
+            cmcc.drawLeft(new PosInfo(colX + off, top), ri);
+            cmcc.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
             cmcc.subtractFromMaxScrollHeight(contentY2 - contentY1);
         }
+        if (listCaptured) {
+            float above = addonMode ? addonPage.hiddenAbove() : cmcc.hiddenAbove();
+            float below = addonMode ? addonPage.hiddenBelow() : cmcc.hiddenBelow();
+            endListCapture(above, below);
+        }
 
+        Hover.popClip();
+        // popups (dropdowns, colour pickers) draw last, so they also win the cursor over rows beneath
         renderLastList.forEach(Runnable::run);
         renderLastList.clear();
 
@@ -374,9 +409,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         GlStateManager.popMatrix();
 
+        drawTray();
         drawFooter(mouseX, mouseY);
         if (addonMode)
             drawReloadButton(mouseX, mouseY);
+
+        Backdrop.overlay();
 
         getFontRenderer().resetScale();
         M3.label().resetScale();
@@ -456,22 +494,25 @@ public class ClickGuiScreen extends CustomGuiScreen {
         GL11.glPopMatrix();
     }
 
-    private float contentReveal() {
-        if (!GuiStyle.transitionEnabled())
-            return 0f;
-        float p = MathUtils.clamp01((System.currentTimeMillis() - contentSwitchTime) / (float) M3.DUR_MEDIUM);
-        p = 1f - (1f - p) * (1f - p) * (1f - p);
-        return (1f - p) * 10f;
+    /** The distillery fills all the room the nav list leaves at the bottom of the rail. */
+    private void drawMascot(float navBottom, int mouseX, int mouseY) {
+        float y2 = railY2 - 10f;
+        float y1 = navBottom + 6f;
+        float x1 = railX1 + 10f, x2 = railX2 - 10f;
+        boolean hover = Hover.test(MASCOT_KEY, x1, y1, x2, y2);
+        sceneX1 = x1; sceneY1 = y1; sceneX2 = x2; sceneY2 = y2;
+        arsenic.gui.design.DistilleryScene.draw(x1, y1, x2, y2, hover, mouseX, mouseY);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        RenderUtils.resetColorText();
     }
 
-    private String categorySubtitle() {
-        if (cmcc == searchComponent)
-            return "Type to filter every module and addon";
-        int count = cmcc.getContents().size();
-        return count == 1 ? "1 module" : count + " modules";
-    }
-
+    private float sceneX1, sceneY1, sceneX2, sceneY2;
     private float reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2;
+    private static final Object LOGO_KEY = new Object(), MASCOT_KEY = new Object();
+    /** In the addon manager the scene keeps this much of the rail; the addon list scrolls above it. */
+    private static final float MASCOT_H = 120f;
+    private static final Object RELOAD_KEY = new Object(), BLATANT_KEY = new Object(),
+            ADDON_KEY = new Object(), HUD_KEY = new Object();
 
     private void drawReloadButton(int mouseX, int mouseY) {
         reloadBtnX2 = searchX1 - 10f;
@@ -479,7 +520,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         reloadBtnY1 = searchY1;
         reloadBtnY2 = searchY2;
 
-        boolean hovered = MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
+        boolean hovered = Hover.test(RELOAD_KEY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
         M3Components.button(getFontRenderer(), "Reload", reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2,
                 hovered ? 1f : 0f, false);
     }
@@ -519,9 +560,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
         hudBtnY1 = footerY1;
         hudBtnY2 = footerY2;
 
-        boolean blatantHover = MathUtils.inside(mouseX, mouseY, tierRects[0][0], tierRects[0][1], tierRects[0][2], tierRects[0][3]);
-        boolean addonHover = MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2);
-        boolean hudHover = MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2);
+        boolean blatantHover = Hover.test(BLATANT_KEY, tierRects[0][0], tierRects[0][1], tierRects[0][2], tierRects[0][3]);
+        boolean addonHover = Hover.test(ADDON_KEY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2);
+        boolean hudHover = Hover.test(HUD_KEY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2);
         tierHovered[0] = blatantHover;
         addonBtnHovered = addonHover;
         hudBtnHovered = hudHover;
@@ -546,6 +587,93 @@ public class ClickGuiScreen extends CustomGuiScreen {
         footerLabel(hudBtnX1, hudBtnX2 - 12f, cy, M3Icons.HUD, "HUD Editor", hudFg);
     }
 
+    /** The bottom bar behind the footer buttons: a rounded panel, inset like the rail. */
+    private void drawTray() {
+        int tray = M3.mix(M3.surfaceContainer(), M3.surfaceContainerLow(), 0.5f) | 0xFF000000;
+        float r = 16f;
+        DrawUtils.drawRoundedRect(trayX1, trayY1, trayX2, trayY2, r, tray);
+        DrawUtils.drawRoundedOutline(trayX1, trayY1, trayX2, trayY2, r, 1f, M3.alpha(M3.outlineVariant(), 130));
+    }
+
+    // ---- list edge fade ----
+
+    private net.minecraft.client.shader.Framebuffer listFbo;
+    private int listPrevFbo;
+    private boolean listPrevCoverage;
+    /** How far the list fades to transparent at its top and bottom edges. */
+    private static final float LIST_FADE = 12f;
+
+    /**
+     * Sends the module list to its own transparent texture so its edges can fade out instead of being
+     * cut off. Returns false (draw straight to the screen) where framebuffers aren't available.
+     */
+    private boolean beginListCapture() {
+        if (!net.minecraft.client.renderer.OpenGlHelper.isFramebufferEnabled())
+            return false;
+        listPrevFbo = GL11.glGetInteger(36006);                // GL_FRAMEBUFFER_BINDING; the burn may own it
+        listPrevCoverage = RenderUtils.captureCoverage;
+        try {
+            listFbo = arsenic.utils.render.shader.ShaderUtil.createFrameBuffer(listFbo);
+            listFbo.framebufferColor = new float[]{0f, 0f, 0f, 0f};
+            listFbo.framebufferClear();
+            listFbo.bindFramebuffer(false);
+            RenderUtils.captureCoverage = true;
+            return true;
+        } catch (Exception e) {
+            restoreListTarget();
+            return false;
+        }
+    }
+
+    private void restoreListTarget() {
+        net.minecraft.client.renderer.OpenGlHelper.glBindFramebuffer(
+                net.minecraft.client.renderer.OpenGlHelper.GL_FRAMEBUFFER, listPrevFbo);
+        GlStateManager.viewport(0, 0, mc.displayWidth, mc.displayHeight);
+        RenderUtils.captureCoverage = listPrevCoverage;
+    }
+
+    /**
+     * Draws the captured list back. An edge only fades while there is list hidden past it: the top once
+     * you scroll down, the bottom while more rows wait below; each ramps in over the first LIST_FADE
+     * units of scrolling, so an unscrolled list starts crisp.
+     */
+    private void endListCapture(float hiddenAbove, float hiddenBelow) {
+        restoreListTarget();
+        float x1 = contentX1, x2 = contentX2, y1 = contentY1, y2 = contentY2;
+        float f = Math.min(LIST_FADE, (y2 - y1) / 4f);
+        float u1 = GuiCanvas.pixelX(x1) / mc.displayWidth, u2 = GuiCanvas.pixelX(x2) / mc.displayWidth;
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.disableAlpha();
+        // the capture is premultiplied, so fading every channel together is a correct fade
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.shadeModel(GL11.GL_SMOOTH);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.bindTexture(listFbo.framebufferTexture);
+        net.minecraft.client.renderer.Tessellator tess = net.minecraft.client.renderer.Tessellator.getInstance();
+        net.minecraft.client.renderer.WorldRenderer wr = tess.getWorldRenderer();
+        wr.begin(GL11.GL_QUADS, net.minecraft.client.renderer.vertex.DefaultVertexFormats.POSITION_TEX_COLOR);
+        float[] ys = {y1, y1 + f, y2 - f, y2};
+        float topEdge = 1f - MathUtils.clamp01(hiddenAbove / LIST_FADE);
+        float bottomEdge = 1f - MathUtils.clamp01(hiddenBelow / LIST_FADE);
+        float[] as = {topEdge, 1f, 1f, bottomEdge};
+        for (int i = 0; i < 3; i++) {
+            float ya = ys[i], yb = ys[i + 1];
+            float va = 1f - GuiCanvas.pixelY(ya) / mc.displayHeight, vb = 1f - GuiCanvas.pixelY(yb) / mc.displayHeight;
+            float aa = as[i], ab = as[i + 1];
+            wr.pos(x1, ya, 0).tex(u1, va).color(aa, aa, aa, aa).endVertex();
+            wr.pos(x1, yb, 0).tex(u1, vb).color(ab, ab, ab, ab).endVertex();
+            wr.pos(x2, yb, 0).tex(u2, vb).color(ab, ab, ab, ab).endVertex();
+            wr.pos(x2, ya, 0).tex(u2, va).color(aa, aa, aa, aa).endVertex();
+        }
+        tess.draw();
+        GlStateManager.shadeModel(GL11.GL_FLAT);
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GlStateManager.enableAlpha();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+    }
+
     private void footerLabel(float x1, float x2, float cy, String glyph, String label, int color) {
         float textW = getFontRenderer().getWidth(label);
         float iconW = M3Icons.font().getWidth(glyph);
@@ -560,14 +688,20 @@ public class ClickGuiScreen extends CustomGuiScreen {
         int fill = active
                 ? M3.primaryContainer()
                 : M3.mix(M3.surfaceContainerHigh(), M3.surfaceContainerHighest(), hover);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, (y2 - y1) / 2f, fill);
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, (y2 - y1) / 2f, 1f,
-                M3.alpha(active ? M3.primary() : M3.outlineVariant(), active ? 120 : 100));
+        float r = 10f;
+        M3Components.glass(x1, y1, x2, y2, r, fill, 0f);
+        if (active)
+            DrawUtils.drawRoundedOutline(x1, y1, x2, y2, r, 1f, M3.alpha(M3.primary(), 140));
+        if (hover > 0.01f)
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2, r, M3.alpha(M3.onSurface(), (int) (14 * hover)));
     }
 
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
         if (closing || shellPhase() > 0.02f)
+            return;
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
+                && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY))
             return;
         if (addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
@@ -660,12 +794,41 @@ public class ClickGuiScreen extends CustomGuiScreen {
             setAddonMode(false);
         if (cmcc != mcc) {
             prevCmcc = cmcc;
+            int from = navIndex(cmcc), to = navIndex(mcc);
+            slideDir = to >= from ? 1f : -1f;
+            slideFrom = cmcc;
+            slideStart = System.currentTimeMillis();
+            Hover.reset();
             cmcc.setCurrentCategory(false);
             mcc.setCurrentCategory(true);
             cmcc = mcc;
             contentSwitchTime = System.currentTimeMillis();
         }
     }
+    private ModuleCategoryComponent slideFrom;
+    private float slideDir = 1f;
+    private long slideStart;
+    private static final int SLIDE_MS = 280;
+
+    /** 0 just after a category switch, 1 once the new page is in place (ease-out). */
+    private float slideProgress() {
+        float t = MathUtils.clamp01((System.currentTimeMillis() - slideStart) / (float) SLIDE_MS);
+        float u = 1f - t;
+        return 1f - u * u * u;
+    }
+
+    /** Position in the rail, so going down the list slides left and going up slides right; search is last. */
+    private int navIndex(ModuleCategoryComponent mcc) {
+        int i = 0;
+        for (UICategoryComponent group : components)
+            for (ModuleCategoryComponent c : group.getContents()) {
+                if (c == mcc)
+                    return i;
+                i++;
+            }
+        return i;
+    }
+
     public ModuleCategoryComponent getCmcc() {
         return cmcc;
     }

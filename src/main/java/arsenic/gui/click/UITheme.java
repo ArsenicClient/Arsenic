@@ -92,12 +92,8 @@ public final class UITheme {
             return;
 
         intensity = MathUtils.clamp01(intensity);
-        float h = y2 - y1;
-
         GL11.glEnable(GL11.GL_BLEND);
-
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, fill);
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f, alpha(M3.outlineVariant(), 110));
+        arsenic.gui.design.M3Components.glass(x1, y1, x2, y2, radius, fill, elevation.spread * intensity);
     }
 
     public static void surface(float x1, float y1, float x2, float y2, float radius, int fill, Elevation elevation) {

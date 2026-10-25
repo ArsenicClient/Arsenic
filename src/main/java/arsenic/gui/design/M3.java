@@ -24,20 +24,32 @@ public final class M3 {
     public static final int DUR_LONG = 360;
 
     private static int cachedSeed;
+    private static boolean cachedLight;
     private static Scheme cachedScheme;
 
     private M3() {}
 
     /** The generated dark scheme for a seed colour, without needing the client booted. */
     public static Scheme schemeFor(int seed) {
-        return Scheme.of(seed);
+        return Scheme.of(seed, false);
+    }
+
+    public static Scheme schemeFor(int seed, boolean light) {
+        return Scheme.of(seed, light);
+    }
+
+    /** Whether the light scheme is active (GUI tab, "Light mode"). */
+    public static boolean isLight() {
+        return arsenic.gui.click.GuiStyle.lightMode();
     }
 
     public static Scheme colors() {
         int seed = ThemeManager.getMainColor();
-        if (cachedScheme == null || cachedSeed != seed) {
+        boolean light = isLight();
+        if (cachedScheme == null || cachedSeed != seed || cachedLight != light) {
             cachedSeed = seed;
-            cachedScheme = Scheme.of(seed);
+            cachedLight = light;
+            cachedScheme = Scheme.of(seed, light);
         }
         return cachedScheme;
     }
@@ -111,7 +123,7 @@ public final class M3 {
         return lum > 145f ? 0xFF15161A : 0xFFF4F5F7;
     }
 
-    /** The generated dark-scheme roles for one seed colour. */
+    /** The generated scheme roles (dark or light) for one seed colour. */
     public static final class Scheme {
         public final int seed;
         public final int primary, onPrimary, primaryContainer, onPrimaryContainer;
@@ -124,51 +136,96 @@ public final class M3 {
         public final int error, onError, errorContainer, scrim;
         public final int inverseSurface, inverseOnSurface;
 
-        private Scheme(int seed, double h, double c) {
+        public final boolean light;
+
+        private Scheme(int seed, double h, double c, boolean light) {
             this.seed = seed;
+            this.light = light;
             double cp = Math.max(0.055, Math.min(0.19, c));
             double cn = Math.min(0.016, Math.max(0.006, c * 0.12));
             double cv = Math.min(0.045, Math.max(0.012, c * 0.3));
 
-            primary = rgb(80, cp, h);
-            onPrimary = rgb(20, cp, h);
-            primaryContainer = rgb(30, cp, h);
-            onPrimaryContainer = rgb(90, cp, h);
+            // tones follow the M3 baseline schemes: dark uses 80/20/30/90, light 40/100/90/10
+            double pT = light ? 50 : 80, onPT = light ? 100 : 20, pcT = light ? 90 : 30, onPcT = light ? 22 : 90;
 
-            secondary = rgb(80, cp * 0.42, h);
-            onSecondary = rgb(20, cp * 0.42, h);
-            secondaryContainer = rgb(30, cp * 0.42, h);
-            onSecondaryContainer = rgb(90, cp * 0.42, h);
+            primary = rgb(pT, cp, h);
+            onPrimary = rgb(onPT, cp, h);
+            primaryContainer = rgb(pcT, cp * (light ? 0.6 : 1), h);
+            onPrimaryContainer = rgb(onPcT, cp, h);
 
-            tertiary = rgb(80, cp * 0.75, h + 60);
-            onTertiary = rgb(20, cp * 0.75, h + 60);
-            tertiaryContainer = rgb(30, cp * 0.75, h + 60);
-            onTertiaryContainer = rgb(90, cp * 0.75, h + 60);
+            secondary = rgb(pT, cp * 0.42, h);
+            onSecondary = rgb(onPT, cp * 0.42, h);
+            secondaryContainer = rgb(pcT, cp * 0.42, h);
+            onSecondaryContainer = rgb(onPcT, cp * 0.42, h);
 
-            surface = rgb(6, cn, h);
-            surfaceDim = rgb(6, cn, h);
-            surfaceBright = rgb(24, cn, h);
-            surfaceContainerLowest = rgb(4, cn, h);
-            surfaceContainerLow = rgb(10, cn, h);
-            surfaceContainer = rgb(12, cn, h);
-            surfaceContainerHigh = rgb(17, cn, h);
-            surfaceContainerHighest = rgb(22, cn, h);
-            surfaceVariant = rgb(30, cv, h);
-            onSurface = rgb(90, cn, h);
-            onSurfaceVariant = rgb(80, cv, h);
-            outline = rgb(60, cv, h);
-            outlineVariant = rgb(30, cv, h);
+            tertiary = rgb(pT, cp * 0.75, h + 60);
+            onTertiary = rgb(onPT, cp * 0.75, h + 60);
+            tertiaryContainer = rgb(pcT, cp * 0.6, h + 60);
+            onTertiaryContainer = rgb(onPcT, cp * 0.75, h + 60);
 
-            error = rgb(80, 0.16, 25);
-            onError = rgb(20, 0.16, 25);
-            errorContainer = rgb(30, 0.16, 25);
-            scrim = 0xFF000000;
+            if (light) {
+                // creamy paper rather than white: warm neutrals, a touch of the accent mixed in
+                double ch = mixHue(h, CREAM_HUE, 0.75), cc = 0.024, cvv = 0.032;
+                surface = rgb(93.5, cc, ch);
+                surfaceDim = rgb(86, cc, ch);
+                surfaceBright = rgb(95.5, cc, ch);
+                surfaceContainerLowest = rgb(96.5, cc * 0.8, ch);
+                surfaceContainerLow = rgb(92.5, cc, ch);
+                surfaceContainer = rgb(91, cc, ch);
+                surfaceContainerHigh = rgb(89, cc, ch);
+                surfaceContainerHighest = rgb(87, cc, ch);
+                surfaceVariant = rgb(88, cvv, ch);
+                onSurface = rgb(24, 0.022, ch);
+                onSurfaceVariant = rgb(40, 0.03, ch);
+                outline = rgb(58, cvv, ch);
+                outlineVariant = rgb(80, cvv, ch);
 
-            inverseSurface = rgb(90, cn, h);
-            inverseOnSurface = rgb(20, cn, h);
+                error = rgb(50, 0.17, 25);
+                onError = rgb(100, 0, 25);
+                errorContainer = rgb(90, 0.06, 25);
+                scrim = 0xFF000000;
+
+                inverseSurface = rgb(26, 0.02, ch);
+                inverseOnSurface = rgb(93, cc, ch);
+            } else {
+                surface = rgb(6, cn, h);
+                surfaceDim = rgb(6, cn, h);
+                surfaceBright = rgb(24, cn, h);
+                surfaceContainerLowest = rgb(4, cn, h);
+                surfaceContainerLow = rgb(10, cn, h);
+                surfaceContainer = rgb(12, cn, h);
+                surfaceContainerHigh = rgb(17, cn, h);
+                surfaceContainerHighest = rgb(22, cn, h);
+                surfaceVariant = rgb(30, cv, h);
+                onSurface = rgb(90, cn, h);
+                onSurfaceVariant = rgb(80, cv, h);
+                outline = rgb(60, cv, h);
+                outlineVariant = rgb(30, cv, h);
+
+                error = rgb(80, 0.16, 25);
+                onError = rgb(20, 0.16, 25);
+                errorContainer = rgb(30, 0.16, 25);
+                scrim = 0xFF000000;
+
+                inverseSurface = rgb(90, cn, h);
+                inverseOnSurface = rgb(20, cn, h);
+            }
+        }
+
+        /** OKLCh hue of a warm cream (about #F1E8D8). */
+        private static final double CREAM_HUE = 80;
+
+        /** Shortest-way blend of two hues in degrees. */
+        private static double mixHue(double from, double to, double t) {
+            double d = ((to - from) % 360 + 540) % 360 - 180;
+            return from + d * t;
         }
 
         static Scheme of(int argb) {
+            return of(argb, false);
+        }
+
+        static Scheme of(int argb, boolean light) {
             double[] lab = srgbToOklab(
                     ((argb >> 16) & 0xFF) / 255.0,
                     ((argb >> 8) & 0xFF) / 255.0,
@@ -176,7 +233,7 @@ public final class M3 {
             double c = Math.sqrt(lab[1] * lab[1] + lab[2] * lab[2]);
             double h = Math.toDegrees(Math.atan2(lab[2], lab[1]));
             if (h < 0) h += 360;
-            return new Scheme(argb, h, c);
+            return new Scheme(argb, h, c, light);
         }
 
         private static int rgb(double tone, double chroma, double hue) {

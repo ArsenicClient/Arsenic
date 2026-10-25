@@ -34,12 +34,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float hoverPct = hoverTimer.getPercent();
-        ri.getFr().drawString(getName().toUpperCase(java.util.Locale.ROOT), x1 + 12f, midPointY,
-                M3.mix(M3.alpha(M3.onSurfaceVariant(), 185), M3.onSurfaceVariant(), hoverPct * 0.4f),
-                ri.getFr().CENTREY);
-        RenderUtils.resetColorText();
-
+        // no group heading ("COMBAT" above "Combat" said nothing new), and no gap: one continuous list
         PosInfo pi = new PosInfo(x1, y2);
         contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri)));
         expandY = pi.getY() - y2;
@@ -49,7 +44,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     public void mouseUpdate(int mouseX, int mouseY) {
-        hovered = isMouseInArea(mouseX, mouseY);
+        hovered = arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
     }
 
     @Override
@@ -60,7 +55,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     public int getHeight(int i) {
-        return 26;
+        return 0;
     }
 
     @Override

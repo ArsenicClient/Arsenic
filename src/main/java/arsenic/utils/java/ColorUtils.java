@@ -56,8 +56,8 @@ public class ColorUtils extends UtilityClass {
         delay *= -1;
         float percent = ((System.currentTimeMillis() + delay) % speed)/((float) speed);
         percent =TickMode.SINE.toSmoothPercent(2 * percent);
-        return RenderUtils.interpolateColoursInt(arsenic.gui.design.M3.primary(),
-                arsenic.gui.design.M3.tertiary(), percent);
+        Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
+        return RenderUtils.interpolateColoursInt(theme.getMainColor(), theme.getWhite(), percent);
     }
 
     public static int getRainbow(float speed, long delay) {

@@ -2,6 +2,9 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
+import arsenic.gui.design.Hover;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.property.Property;
 import arsenic.module.property.SerializableProperty;
@@ -87,22 +90,22 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
 
             float railW = Math.max(1f, height * 0.06f);
             DrawUtils.drawRoundedRect(wellX1, y1 + pad * 0.4f, wellX1 + railW, y2 + expandY - pad * 0.4f,
-                    railW / 2f, UITheme.alpha(UITheme.accent(), (int) (110 + 110 * openPct)));
+                    railW / 2f, M3.alpha(M3.primary(), (int) (110 + 110 * openPct)));
 
             UITheme.chevron(x2 - pad * 0.6f, midPointY, height * 0.28f, Math.max(1f, height * 0.06f),
                     UITheme.alpha(UITheme.textMuted(), (int) (160 + 95 * Math.max(hover, openPct))), openPct);
 
-            if (openPct < 0.9f)
-                ri.getFr().drawString(components.size() + " settings", x2 - pad * 1.6f, midPointY,
-                        UITheme.alpha(UITheme.textMuted(), (int) (170 * (1f - openPct))),
-                        ri.getFr().getScaleModifier(0.75f), ri.getFr().LEFTSHIFTX, ri.getFr().CENTREY);
-
             PosInfo pi = new PosInfo(x1 + pad, y2);
             if (openPct > 0.001f) {
                 ScissorUtils.subScissor((int) wellX1, (int) y2, (int) wellX2, (int) (y2 + expandY), 2);
+                Hover.pushClip(wellX1, y2, wellX2, y2 + expandY);
                 pi.moveY(pad * 0.4f);
+                float previousRow = PropertyComponent.rowWidth;
+                PropertyComponent.rowWidth = width - pad * 2f;
                 components.forEach(component -> pi.moveY(component.updateComponent(pi, ri) * 1.06f));
+                PropertyComponent.rowWidth = previousRow;
                 pi.moveY(pad * 0.5f);
+                Hover.popClip();
                 ScissorUtils.endSubScissor();
                 if (open)
                     lastHeight = pi.getY() - y2;
@@ -120,6 +123,14 @@ public class FolderProperty extends SerializableProperty<List<Property<?>>> {
                         ((IAlwaysClickable) component).setNotAlwaysClickable();
                 });
             }
+        }
+
+        private int countVisible() {
+            int n = 0;
+            for (Property<?> c : getValue())
+                if (c.isVisible())
+                    n++;
+            return n;
         }
 
         @Override

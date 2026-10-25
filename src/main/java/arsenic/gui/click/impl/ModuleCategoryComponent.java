@@ -46,6 +46,9 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 refreshListing();
     }
 
+    /** Set by the screen each frame: the width of the content area, for pages that fill it. */
+    public static float contentWidth = 700f;
+
     @Override
     public String getName() { return self.getName(); }
 
@@ -93,7 +96,7 @@ refreshListing();
 
     @Override
     public void mouseUpdate(int mouseX, int mouseY) {
-        isHovered = isMouseInArea(mouseX, mouseY);
+        isHovered = arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
@@ -154,6 +157,12 @@ refreshListing();
         maxHeight = maxHeight - f;
         maxHeight = Math.max(0, maxHeight);
     }
+
+    /** How much of the list is scrolled out above the view, in GUI units. */
+    public float hiddenAbove() { return Math.max(0f, -scroll); }
+
+    /** How much of the list is still below the view, in GUI units (valid after subtractFromMaxScrollHeight). */
+    public float hiddenBelow() { return Math.max(0f, maxHeight + scroll); }
 
     public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
         if (maxHeight <= 0) return;

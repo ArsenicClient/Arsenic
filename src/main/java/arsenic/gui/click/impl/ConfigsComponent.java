@@ -190,7 +190,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
 
         float x = pi.getX() + 2;
         float contentTop = pi.getY() + scroll + 12;
-        float maxX = ri.getGuiScreen().width - 62f;
+        float maxX = pi.getX() + ModuleCategoryComponent.contentWidth - 14f;
         float w = maxX - x - 4;
         float y = contentTop;
 
@@ -553,8 +553,7 @@ public class ConfigsComponent extends ModuleCategoryComponent implements IAlways
     }
 
     private static boolean hover(RenderInfo ri, float x1, float y1, float x2, float y2) {
-        float mx = ri.getMouseX(), my = ri.getMouseY();
-        return mx >= x1 && mx <= x2 && my >= y1 && my <= y2;
+        return arsenic.gui.design.Hover.testRect(x1, y1, x2, y2);
     }
 
     private static String modified(ModuleConfig config) {

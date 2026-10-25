@@ -111,6 +111,50 @@ public final class GuiStyle implements ISerializable {
     private Transition menuTransition;
     /** Extra zoom on the fixed GUI canvas: 1 is default, larger enlarges the whole menu. */
     private float clickGuiScale = 1f;
+    /** Light M3 scheme instead of the dark one. */
+    private boolean lightMode;
+    /** GUI-tab background override: null follows the theme/preset, NONE turns it off, else that shader. */
+    private BgChoice bgChoice;
+    /** Background shader opacity in percent (the Glass preset's default is 45). */
+    private int bgOpacity = 45;
+
+    /** The GUI tab's background picker: the theme's own shader, off, or a fixed one. */
+    public enum BgChoice {
+        THEME(null), NONE(null),
+        AURORA(BgShader.AURORA), STARFIELD(BgShader.STARFIELD), SYNTHWAVE(BgShader.SYNTHWAVE),
+        CHROME(BgShader.CHROME), FIRESTORM(BgShader.FIRESTORM), CAUSTICS(BgShader.CAUSTICS),
+        NEBULA(BgShader.NEBULA), ZIPPYZAPS(BgShader.ZIPPYZAPS);
+
+        public final BgShader shader;
+
+        BgChoice(BgShader shader) { this.shader = shader; }
+
+        public String label() {
+            if (this == THEME) return "Theme";
+            if (this == NONE) return "Off";
+            String n = name().toLowerCase(java.util.Locale.ROOT);
+            return Character.toUpperCase(n.charAt(0)) + n.substring(1);
+        }
+    }
+
+    public boolean isLightMode() { return lightMode; }
+
+    public void setLightMode(boolean lightMode) { this.lightMode = lightMode; }
+
+    public static boolean lightMode() { return INSTANCE.lightMode; }
+
+    public BgChoice getBgChoice() { return bgChoice == null ? BgChoice.THEME : bgChoice; }
+
+    public void cycleBgChoice() {
+        BgChoice[] all = BgChoice.values();
+        bgChoice = all[(getBgChoice().ordinal() + 1) % all.length];
+        if (bgChoice == BgChoice.THEME)
+            bgChoice = null;
+    }
+
+    public int getBgOpacity() { return bgOpacity; }
+
+    public void setBgOpacity(int pct) { bgOpacity = MathUtils.clamp(pct, 0, 100); }
 
     public int getClickGuiKey() { return clickGuiKey; }
 
@@ -138,7 +182,8 @@ public final class GuiStyle implements ISerializable {
         clickGuiScale = MathUtils.clamp(scale, 0.7f, 1.8f);
     }
 
-    public Transition getMenuTransition() {        if (menuTransition != null)
+    public Transition getMenuTransition() {
+        if (menuTransition != null)
             return menuTransition;
         return preset.transitionEnabled ? preset.transition : Transition.NONE;
     }
@@ -205,9 +250,15 @@ public final class GuiStyle implements ISerializable {
     }
     private static Preset p() { return INSTANCE.preset; }
 
-    public static boolean backgroundEnabled() { return p().background; }
+    public static boolean backgroundEnabled() {
+        if (INSTANCE.bgChoice == BgChoice.NONE)
+            return false;
+        return INSTANCE.bgChoice != null || p().background;
+    }
 
     public static String backgroundShader() {
+        if (INSTANCE.bgChoice != null && INSTANCE.bgChoice.shader != null)
+            return INSTANCE.bgChoice.shader.fsh;
         try {
             arsenic.gui.themes.Theme theme =
                     arsenic.main.Arsenic.getArsenic().getThemeManager().getCurrentTheme();
@@ -218,27 +269,24 @@ public final class GuiStyle implements ISerializable {
         return p().shader.fsh;
     }
 
-    public static float backgroundOpacity() { return p().backgroundOpacity / 100f; }
+    /** Shaders are tuned for dark menus, so light mode lets them through more softly. */
+    public static float backgroundOpacity() {
+        float base = INSTANCE.bgOpacity / 100f;
+        return INSTANCE.lightMode ? base * 0.7f : base;
+    }
 
     public static float backgroundSpeed() { return p().backgroundSpeed; }
 
     public static boolean scanlinesEnabled() { return p().scanlines; }
 
-    public static boolean transitionEnabled() {
-        return INSTANCE.menuTransition != null
-                ? INSTANCE.menuTransition != Transition.NONE
-                : p().transitionEnabled;
-    }
+    /** The ClickGUI always opens and closes with the burn dissolve. */
+    public static boolean transitionEnabled() { return true; }
 
     public static LogoMode logoMode() { return p().logo; }
 
-    public static Transition transition() {
-        if (INSTANCE.menuTransition != null && INSTANCE.menuTransition != Transition.NONE)
-            return INSTANCE.menuTransition;
-        return p().transition;
-    }
+    public static Transition transition() { return Transition.BURN; }
 
-    public static int transitionTimeMs() { return (int) (p().transitionTime * 1000f); }
+    public static int transitionTimeMs() { return 700; }
 
     public static boolean fontEnabled() { return INSTANCE.customFont; }
 
@@ -258,7 +306,22 @@ public final class GuiStyle implements ISerializable {
         return preset.depth ? (int) (base * (preset.edgeGlow / 100.0)) : 0;
     }
 
-    public static float scrollEase() { return 0.15f; }
+    private static long lastFrameNanos;
+    private static float frameDt = 1f / 60f;
+
+    /** Call once at the start of each GUI frame; it times the frame for {@link #scrollEase}. */
+    public static void tickFrame() {
+        long now = System.nanoTime();
+        frameDt = lastFrameNanos == 0L ? 1f / 60f : Math.max(0f, Math.min(0.1f, (now - lastFrameNanos) / 1e9f));
+        lastFrameNanos = now;
+    }
+
+    /**
+     * How far scrolling closes on its target this frame. It used to be a flat 0.15 per frame, which only
+     * glides at 60 FPS and all but snaps at high frame rates; this is the same feel at 60 FPS (about a
+     * 100 ms glide) at any frame rate.
+     */
+    public static float scrollEase() { return 1f - (float) Math.exp(-frameDt * 9.75f); }
 
     public static boolean glassEnabled() { return p().glass; }
 
@@ -288,6 +351,9 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("customMenus", customMenus);
         obj.addProperty("menuTransition", menuTransition == null ? "" : menuTransition.name());
         obj.addProperty("clickGuiScale", clickGuiScale);
+        obj.addProperty("lightMode", lightMode);
+        obj.addProperty("bgChoice", bgChoice == null ? "" : bgChoice.name());
+        obj.addProperty("bgOpacity", bgOpacity);
         return obj;
     }
 
@@ -320,6 +386,14 @@ public final class GuiStyle implements ISerializable {
             }
             if (obj.has("clickGuiScale"))
                 setClickGuiScale(obj.get("clickGuiScale").getAsFloat());
+            if (obj.has("lightMode"))
+                lightMode = obj.get("lightMode").getAsBoolean();
+            if (obj.has("bgChoice")) {
+                String name = obj.get("bgChoice").getAsString();
+                bgChoice = name.isEmpty() ? null : BgChoice.valueOf(name);
+            }
+            if (obj.has("bgOpacity"))
+                setBgOpacity(obj.get("bgOpacity").getAsInt());
         } catch (Exception e) {
             preset = Preset.GLASS;
         }

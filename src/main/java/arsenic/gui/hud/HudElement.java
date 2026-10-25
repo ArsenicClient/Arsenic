@@ -16,8 +16,6 @@ public final class HudElement {
     public final boolean rightAnchored;
     public int x, y;
     public int width, height;
-    /** HUD-editor scale; positions stay in unscaled pixels. */
-    public float scale = 1f;
     /** Whether the element is currently drawn; the HUD editor only lists elements that return true. */
     public BooleanSupplier active = () -> true;
 
@@ -37,25 +35,15 @@ public final class HudElement {
         this.height = height;
     }
 
-    public int scaledWidth() {
-        return Math.round(width * scale);
-    }
-
-    public int scaledHeight() {
-        return Math.round(height * scale);
-    }
-
     public void reset() {
         x = defaultX;
         y = defaultY;
-        scale = 1f;
     }
 
     public void save(JsonObject hud) {
         JsonObject pos = new JsonObject();
         pos.addProperty("x", x);
         pos.addProperty("y", y);
-        pos.addProperty("scale", scale);
         hud.add(label, pos);
     }
 
@@ -65,7 +53,5 @@ public final class HudElement {
             return;
         if (pos.has("x")) x = pos.get("x").getAsInt();
         if (pos.has("y")) y = pos.get("y").getAsInt();
-        if (pos.has("scale"))
-            scale = Math.max(0.5f, Math.min(2.5f, pos.get("scale").getAsFloat()));
     }
 }

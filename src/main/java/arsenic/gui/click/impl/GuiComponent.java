@@ -2,6 +2,7 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.GuiStyle;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.Hover;
 import arsenic.gui.design.M3;
 import arsenic.gui.design.M3Components;
 import arsenic.gui.design.M3Icons;
@@ -53,6 +54,13 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
     private float scaleTrackX1, scaleTrackX2, scaleTrackY, scaleRowY1, scaleRowY2;
 
     private static final float SCALE_MIN = 0.7f, SCALE_MAX = 1.8f;
+    private static final Object SCALE_KEY = new Object(), OPACITY_KEY = new Object();
+
+    /** The background shader opacity slider. */
+    private boolean opacityDragging;
+    private final AnimationTimer opacityGrabTimer =
+            new AnimationTimer(M3.DUR_FAST, () -> opacityDragging, TickMode.CUBIC);
+    private float opacityTrackX1, opacityTrackX2, opacityTrackY = -1000;
 
     private static final float BOTTOM_MARGIN = 28f;
 
@@ -70,7 +78,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
 
         float x = pi.getX() + 2;
         float contentTop = pi.getY() + scroll + 12;
-        float right = ri.getGuiScreen().width - 62f;
+        float right = pi.getX() + ModuleCategoryComponent.contentWidth - 14f;
         float rowW = right - x - 4;
         float y = contentTop;
         float mx = ri.getMouseX(), my = ri.getMouseY();
@@ -81,7 +89,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
         for (GuiStyle.Preset preset : GuiStyle.Preset.values()) {
             float h = 50;
             boolean active = GuiStyle.get().getPreset() == preset;
-            boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+            boolean hovered = Hover.test(preset, x, y, x + rowW, y + h);
 
             int fill = active ? M3.mix(M3.surfaceContainerHigh(), M3.secondaryContainer(), 0.58f)
                     : (hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh());
@@ -108,12 +116,20 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
         }
 
         y += 2;
-        y = drawChoice(ri, x, y, rowW, mx, my, "Menu animation",
-                "Flame burn, scale or fade when the GUI opens and closes",
-                transitionLabel(GuiStyle.transition()), false, () -> {
-                    GuiStyle.get().cycleMenuTransition();
+        y = drawSwitch(ri, x, y, rowW, mx, my, "Light mode", "Light Material surfaces with frosted glass",
+                GuiStyle.get().isLightMode(), () -> {
+                    GuiStyle.get().setLightMode(!GuiStyle.get().isLightMode());
                     Arsenic.getArsenic().getConfigManager().saveConfig();
                 });
+        y = drawChoice(ri, x, y, rowW, mx, my, "Background", "Animated shader behind the menu",
+                GuiStyle.get().getBgChoice().label(), false, () -> {
+                    GuiStyle.get().cycleBgChoice();
+                    Arsenic.getArsenic().getConfigManager().saveConfig();
+                });
+        if (GuiStyle.backgroundEnabled())
+            y = drawOpacitySlider(ri, x, y, rowW, mx);
+        else
+            opacityTrackY = -1000;
 
         y += 6;
         M3Components.divider(x, y, x + rowW);
@@ -135,7 +151,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
         float swatch = 24, gap = 7, sx = x + 16, sy = y + 44;
         for (Theme theme : Arsenic.getArsenic().getThemeManager().getContents()) {
             boolean active = current == theme;
-            boolean hovered = mx >= sx && mx <= sx + swatch && my >= sy && my <= sy + swatch;
+            boolean hovered = Hover.test(theme, sx, sy, sx + swatch, sy + swatch);
 
             DrawUtils.drawGradientRoundedRect(sx, sy, sx + swatch, sy + swatch, 8f,
                     theme.getMainColor(), theme.getMainColor(),
@@ -215,7 +231,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
 
         float value = style.getClickGuiScale();
         float pct = (value - SCALE_MIN) / (SCALE_MAX - SCALE_MIN);
-        boolean rowHover = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+        boolean rowHover = Hover.test(SCALE_KEY, x, y, x + rowW, y + h);
         scaleHover = rowHover;
         int fill = scaleDragging || rowHover ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh();
         DrawUtils.drawRoundedRect(x, y, x + rowW, y + h, 12f, fill);
@@ -229,14 +245,45 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
                 scaleDragging ? M3.primary() : M3.onSurfaceVariant(), ri.getFr().CENTREY);
 
         if (scaleDragging) {
+            Hover.suppress(true);
             pct = MathUtils.clamp((mx - trackX1) / (trackX2 - trackX1), 0f, 1f);
             style.setClickGuiScale(SCALE_MIN + pct * (SCALE_MAX - SCALE_MIN));
         }
         float grab = scaleGrabTimer.getPercent();
         float active = Math.max(grab, scaleHover ? 0.6f : 0f);
-        float handleX = M3Components.sliderControl(trackX1, trackMidY, trackX2 - trackX1, pct, active);
-        if (scaleDragging)
-            M3Components.sliderLabel(ri.getFr(), val, handleX, trackMidY - 38f);
+        M3Components.sliderControl(trackX1, trackMidY, trackX2 - trackX1, pct, active);
+        return y + h + 4;
+    }
+
+    /** Background shader opacity, 0-100 %. */
+    private float drawOpacitySlider(RenderInfo ri, float x, float y, float rowW, float mx) {
+        float h = 56;
+        GuiStyle style = GuiStyle.get();
+        float trackX1 = x + 16, trackX2 = x + rowW - 16, trackMidY = y + h - 15;
+        opacityTrackX1 = trackX1 - 8;
+        opacityTrackX2 = trackX2 + 8;
+        opacityTrackY = trackMidY;
+
+        if (opacityDragging) {
+            Hover.suppress(true);
+            float p = MathUtils.clamp((mx - trackX1) / (trackX2 - trackX1), 0f, 1f);
+            style.setBgOpacity(Math.round(p * 100f));
+        }
+        boolean rowHover = Hover.test(OPACITY_KEY, x, y, x + rowW, y + h);
+        int fill = opacityDragging || rowHover ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh();
+        DrawUtils.drawRoundedRect(x, y, x + rowW, y + h, 12f, fill);
+        DrawUtils.drawRoundedOutline(x, y, x + rowW, y + h, 12f, 1f, M3.alpha(M3.outlineVariant(), 120));
+
+        ri.getFr().drawString("Background opacity", x + 16, y + 16, M3.onSurface(), ri.getFr().CENTREY);
+        ri.getFr().drawString("How strongly the shader shows through", x + 16, y + 31,
+                M3.alpha(M3.onSurfaceVariant(), 205), ri.getFr().getScaleModifier(0.85f), ri.getFr().CENTREY);
+        String val = style.getBgOpacity() + " %";
+        ri.getFr().drawString(val, x + rowW - 16 - ri.getFr().getWidth(val), y + 16,
+                opacityDragging ? M3.primary() : M3.onSurfaceVariant(), ri.getFr().CENTREY);
+
+        float active = Math.max(opacityGrabTimer.getPercent(), rowHover ? 0.6f : 0f);
+        M3Components.sliderControl(trackX1, trackMidY, trackX2 - trackX1,
+                style.getBgOpacity() / 100f, active);
         return y + h + 4;
     }
 
@@ -273,7 +320,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
                              String label, String hint, String value, boolean binding,
                              Runnable cycle) {
         float h = 44;
-        boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+        boolean hovered = Hover.test(label, x, y, x + rowW, y + h);
 
         DrawUtils.drawRoundedRect(x, y, x + rowW, y + h, 12f,
                 hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh());
@@ -300,7 +347,7 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
     private float drawSwitch(RenderInfo ri, float x, float y, float rowW, float mx, float my,
                              String label, String hint, boolean on, Runnable toggle) {
         float h = 44;
-        boolean hovered = mx >= x && mx <= x + rowW && my >= y && my <= y + h;
+        boolean hovered = Hover.test(label, x, y, x + rowW, y + h);
 
         DrawUtils.drawRoundedRect(x, y, x + rowW, y + h, 12f,
                 hovered ? M3.surfaceContainerHighest() : M3.surfaceContainerHigh());
@@ -372,6 +419,12 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
             SoundUtils.chordSlider();
             return;
         }
+        if (mouseX >= opacityTrackX1 && mouseX <= opacityTrackX2
+                && mouseY >= opacityTrackY - 12 && mouseY <= opacityTrackY + 12) {
+            opacityDragging = true;
+            SoundUtils.chordSlider();
+            return;
+        }
         for (Hit hit : hits) {
             if (hit.contains(mouseX, mouseY)) {
                 hit.action.run();
@@ -383,6 +436,10 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
 
     @Override
     public void mouseReleased(int mouseX, int mouseY, int state) {
+        if (opacityDragging) {
+            opacityDragging = false;
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+        }
         if (scaleDragging) {
             scaleDragging = false;
             Arsenic.getArsenic().getConfigManager().saveConfig();

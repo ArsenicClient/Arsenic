@@ -55,7 +55,12 @@ public class KawaseBlur {
         renderBlur(stencilFrameBufferTexture, iterations, offset, true);
     }
 
+    /**
+     * Blurs the scene over the whole screen into whatever framebuffer is bound now, so a GUI that is being
+     * captured (the ClickGUI's burn transition) gets its backdrop in the capture instead of on the main one.
+     */
     public static void renderBlurFull(int iterations, int offset) {
+        targetFbo = GL11.glGetInteger(36006);                // GL_FRAMEBUFFER_BINDING
         GlStateManager.matrixMode(GL11.GL_PROJECTION);
         GlStateManager.pushMatrix();
         GlStateManager.loadIdentity();
@@ -67,12 +72,16 @@ public class KawaseBlur {
         try {
             renderBlur(0, iterations, offset, false, true);
         } finally {
+            targetFbo = -1;
             GlStateManager.matrixMode(GL11.GL_PROJECTION);
             GlStateManager.popMatrix();
             GlStateManager.matrixMode(GL11.GL_MODELVIEW);
             GlStateManager.popMatrix();
         }
     }
+
+    /** The framebuffer {@link #renderBlurFull} draws its result into; -1 means the main one. */
+    private static int targetFbo = -1;
 
     private static void renderBlur(int stencilFrameBufferTexture, int iterations, int offset, boolean mask) {
         renderBlur(stencilFrameBufferTexture, iterations, offset, mask, false);
@@ -116,7 +125,13 @@ public class KawaseBlur {
         kawaseUp.unload();
 
 
-        mc.getFramebuffer().bindFramebuffer(true);
+        if (targetFbo > 0 && targetFbo != mc.getFramebuffer().framebufferObject) {
+            net.minecraft.client.renderer.OpenGlHelper.glBindFramebuffer(
+                    net.minecraft.client.renderer.OpenGlHelper.GL_FRAMEBUFFER, targetFbo);
+            GlStateManager.viewport(0, 0, mc.displayWidth, mc.displayHeight);
+        } else {
+            mc.getFramebuffer().bindFramebuffer(true);
+        }
         RenderUtils.bindTexture(framebufferList.get(0).framebufferTexture);
         RenderUtils.setAlphaLimit(0);
         RenderUtils.startBlend();

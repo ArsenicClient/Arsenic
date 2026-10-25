@@ -2,7 +2,10 @@ package arsenic.module.property.impl;
 
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.gui.themes.ThemeManager;
+import arsenic.gui.design.Hover;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Controls;
+import arsenic.utils.java.SoundUtils;
 import arsenic.main.Arsenic;
 import arsenic.module.property.IReliable;
 import arsenic.module.property.SerializableProperty;
@@ -96,11 +99,15 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         private boolean open;
         private final AnimationTimer openTimer = new AnimationTimer(UITheme.DUR_EXPAND, () -> open, TickMode.CUBIC);
 
-        private float fieldX1, fieldY1, fieldY2, fieldHeight, rowHeight;
-        private int hoveredRow = -1;
+        private float fieldX1, fieldY1, fieldY2, fieldHeight, rowHeight, menuY1, menuY2;
+        private final Object menuKey = new Object();
+        private final Object[] optionKeys;
 
         public EnumComponent(EnumProperty<?> p) {
             super(p);
+            optionKeys = new Object[modes.length];
+            for (int i = 0; i < optionKeys.length; i++)
+                optionKeys[i] = new Object();
         }
 
         @Override
@@ -117,27 +124,29 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
             float radius = UITheme.radiusChip(fieldHeight);
             float pad = fieldHeight * 0.38f;
             float menuHeight = openPct * (modes.length * rowHeight + pad);
+            menuY1 = fieldY2 + pad * 0.35f;
+            menuY2 = menuY1 + menuHeight;
+            final boolean showMenu = openPct > 0.01f;
 
             Runnable render = () -> {
-                UITheme.surface(fieldX1, fieldY1, x2, fieldY2, radius, ThemeManager.getEnumBackground(),
-                        UITheme.Elevation.FLAT);
-                DrawUtils.drawRoundedOutline(fieldX1, fieldY1, x2, fieldY2, radius, 1f,
-                        UITheme.alpha(UITheme.accent(), (int) (40 + 90 * Math.max(hover, openPct))));
+                M3Controls.field(fieldX1, fieldY1, x2, fieldY2, radius, hover, openPct);
 
-                ri.getFr().drawString(getValue().name(), fieldX1 + pad, midPointY,
-                        UITheme.mix(UITheme.textSecondary(), UITheme.textPrimary(), Math.max(hover, openPct)),
+                String current = fit(ri, getValue().name(), x2 - fieldX1 - pad * 3f - fieldHeight * 0.3f);
+                ri.getFr().drawString(current, fieldX1 + pad, midPointY,
+                        M3.mix(M3.onSurfaceVariant(), M3.onSurface(), Math.max(hover, openPct)),
                         ri.getFr().CENTREY);
 
                 UITheme.chevron(x2 - pad, midPointY, fieldHeight * 0.3f, Math.max(1f, fieldHeight * 0.075f),
-                        UITheme.alpha(UITheme.textMuted(), (int) (170 + 85 * Math.max(hover, openPct))),
+                        M3.alpha(M3.onSurfaceVariant(), (int) (170 + 85 * Math.max(hover, openPct))),
                         openPct);
 
-                if (openPct > 0.01f) {
-                    float menuY1 = fieldY2 + pad * 0.35f;
-                    float menuY2 = menuY1 + menuHeight;
-                    UITheme.surface(fieldX1, menuY1, x2, menuY2, radius,
-                            UITheme.fade(ThemeManager.getEnumBackground(), 1f),
-                            UITheme.Elevation.FLOATING, openPct);
+                if (showMenu) {
+                    // the menu covers the rows below it, so it takes the cursor from them
+                    Hover.test(menuKey, fieldX1, menuY1, x2, menuY2);
+                    DrawUtils.drawRoundedRect(fieldX1, menuY1, x2, menuY2, radius,
+                            M3.alpha(M3.surfaceContainerHighest(), (int) (255 * Math.min(1f, openPct * 1.5f))));
+                    DrawUtils.drawRoundedOutline(fieldX1, menuY1, x2, menuY2, radius, 1f,
+                            M3.alpha(M3.outline(), (int) (150 * openPct)));
 
                     ScissorUtils.subScissor((int) fieldX1, (int) menuY1, (int) x2, (int) menuY2, 2);
                     for (int i = 0; i < modes.length; i++) {
@@ -145,30 +154,30 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
                         float rowY1 = menuY1 + pad * 0.5f + i * rowHeight;
                         float rowMid = rowY1 + rowHeight / 2f;
                         boolean selected = m == getValue();
+                        boolean over = open && Hover.test(optionKeys[i], fieldX1, rowY1, x2, rowY1 + rowHeight);
 
-                        if (i == hoveredRow)
-                            DrawUtils.drawRoundedRect(fieldX1 + pad * 0.35f, rowY1, x2 - pad * 0.35f,
-                                    rowY1 + rowHeight, radius * 0.8f,
-                                    UITheme.alpha(ThemeManager.getModuleHover(), (int) (40 * openPct)));
+                        float ix1 = fieldX1 + pad * 0.35f, ix2 = x2 - pad * 0.35f;
                         if (selected)
-                            DrawUtils.drawRoundedRect(fieldX1 + pad * 0.35f, rowY1, x2 - pad * 0.35f,
-                                    rowY1 + rowHeight, radius * 0.8f,
-                                    UITheme.alpha(UITheme.accent(), (int) (46 * openPct)));
+                            DrawUtils.drawRoundedRect(ix1, rowY1, ix2, rowY1 + rowHeight, radius * 0.8f,
+                                    M3.alpha(M3.secondaryContainer(), (int) (230 * openPct)));
+                        if (over)
+                            DrawUtils.drawRoundedRect(ix1, rowY1, ix2, rowY1 + rowHeight, radius * 0.8f,
+                                    M3.alpha(M3.onSurface(), (int) (22 * openPct)));
 
-                        ri.getFr().drawString(m.name(), fieldX1 + pad, rowMid,
-                                UITheme.fade(selected ? UITheme.textPrimary() : UITheme.textSecondary(), openPct),
+                        ri.getFr().drawString(fit(ri, m.name(), ix2 - fieldX1 - pad * 2.4f), fieldX1 + pad, rowMid,
+                                UITheme.fade(selected ? M3.onSecondaryContainer() : M3.onSurface(), openPct),
                                 ri.getFr().CENTREY);
 
                         if (selected)
                             UITheme.check(x2 - pad, rowMid, rowHeight * 0.34f,
                                     Math.max(1f, rowHeight * 0.09f),
-                                    UITheme.alpha(UITheme.accent(), openPct));
+                                    M3.alpha(M3.onSecondaryContainer(), (int) (255 * openPct)));
                     }
                     ScissorUtils.endSubScissor();
                 }
             };
 
-            if (openPct > 0.01f)
+            if (showMenu)
                 Arsenic.getArsenic().getClickGuiScreen().addToRenderLastList(render);
             else
                 render.run();
@@ -177,21 +186,10 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
         }
 
         @Override
-        public void mouseUpdate(int mouseX, int mouseY) {
-            super.mouseUpdate(mouseX, mouseY);
-            hoveredRow = -1;
-            if (!open || mouseX < fieldX1 || mouseX > x2)
-                return;
-            float offset = mouseY - (fieldY2 + rowHeight * 0.5f);
-            if (offset < 0)
-                return;
-            int row = (int) (offset / rowHeight);
-            if (row < modes.length)
-                hoveredRow = row;
-        }
-
-        @Override
         protected void click(int mouseX, int mouseY, int mouseButton) {
+            if (mouseButton != 0)
+                return;
+            // the field itself is handled by clickAlwaysClickable while open
             setOpen(!open);
         }
 
@@ -202,33 +200,35 @@ public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> imp
 
         @Override
         public boolean clickAlwaysClickable(int mouseX, int mouseY, int mouseButton) {
-            if (mouseX < fieldX1 || mouseX > x2)
-                return false;
-
-            if (mouseY >= fieldY1 && mouseY <= fieldY2) {
+            boolean inField = mouseX >= fieldX1 && mouseX <= x2 && mouseY >= fieldY1 && mouseY <= fieldY2;
+            if (inField) {
                 setOpen(false);
-                arsenic.utils.java.SoundUtils.chordEnum();
+                SoundUtils.chordEnum();
                 return true;
             }
 
-            float offset = mouseY - (fieldY2 + rowHeight * 0.5f);
-            if (offset < 0 || offset > modes.length * rowHeight)
-                return false;
+            boolean inMenu = mouseX >= fieldX1 && mouseX <= x2 && mouseY > fieldY2 && mouseY <= menuY2;
+            if (inMenu) {
+                if (mouseButton == 0) {
+                    float rowY1 = menuY1 + fieldHeight * 0.38f * 0.5f;
+                    int row = (int) Math.floor((mouseY - rowY1) / rowHeight);
+                    if (row >= 0 && row < modes.length) {
+                        setValue(modes[row]);
+                        setOpen(false);
+                        SoundUtils.chordEnum();
+                    }
+                }
+                return true; // never fall through to the rows underneath
+            }
 
-            int row = (int) (offset / rowHeight);
-            if (row < 0 || row >= modes.length)
-                return false;
-
-            setValue(modes[row]);
+            // a click anywhere else closes the menu; on this row's own label it just closes, otherwise it carries on
             setOpen(false);
-            arsenic.utils.java.SoundUtils.chordEnum();
-            return true;
+            return mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2;
         }
 
         @Override
         public void setNotAlwaysClickable() {
             open = false;
-            hoveredRow = -1;
         }
     }
 }

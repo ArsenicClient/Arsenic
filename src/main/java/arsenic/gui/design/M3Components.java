@@ -15,17 +15,46 @@ public final class M3Components {
     private M3Components() {}
 
     public static void card(float x1, float y1, float x2, float y2, float radius, int fill) {
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, fill);
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f, M3.alpha(M3.outlineVariant(), 105));
+        glass(x1, y1, x2, y2, radius, fill, 0f);
     }
 
     public static void elevated(float x1, float y1, float x2, float y2, float radius, int fill, float alpha) {
-        card(x1, y1, x2, y2, radius, fill);
+        glass(x1, y1, x2, y2, radius, fill, 0.5f * alpha);
     }
 
     public static void window(float x1, float y1, float x2, float y2, float radius) {
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, M3.alpha(M3.surfaceContainerLow(), 210));
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f, M3.alpha(M3.outlineVariant(), 120));
+        glass(x1, y1, x2, y2, radius, M3.alpha(M3.surfaceContainerLow(), 225), 1f);
+    }
+
+    /**
+     * An M3 surface in the glass material: soft drop shadow by elevation, a fill frosted by the
+     * preset, the liquid-glass sheen and rim, and an accent edge glow. With the Performance
+     * preset it falls back to a flat tonal surface.
+     *
+     * @param elevation 0 for a flat card, 1 for the floating window
+     */
+    public static void glass(float x1, float y1, float x2, float y2, float radius, int fill, float elevation) {
+        if (x2 <= x1 || y2 <= y1)
+            return;
+        boolean light = M3.isLight();
+        if (elevation > 0.01f) {
+            int shadow = GuiStyle.shadowAlpha((int) ((light ? 70 : 140) * elevation));
+            DrawUtils.drawShadow(x1, y1, x2, y2, radius, GuiStyle.shadowSpread(22f * elevation), shadow);
+        }
+
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, GuiStyle.glassify(fill));
+
+        if (GuiStyle.glassEnabled()) {
+            float strength = GuiStyle.glassStrength() * (0.55f + 0.45f * elevation) * (light ? 0.8f : 1f);
+            DrawUtils.drawGlassRect(x1, y1, x2, y2, radius,
+                    M3.alpha(M3.primary(), light ? 10 : 16), 0xFFFFFFFF, strength);
+        }
+
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f,
+                M3.alpha(light ? 0xFFFFFFFF : M3.outlineVariant(), light ? 190 : 120));
+        if (elevation > 0.01f)
+            DrawUtils.drawEdgeHighlight(x1, y1, x2, y2, radius, M3.primary(),
+                    GuiStyle.edgeAlpha((int) (26 * elevation)));
     }
 
     public static void divider(float x1, float y, float x2) {
@@ -35,7 +64,7 @@ public final class M3Components {
     public static void navItem(FontRendererExtension<?> fr, String label, String icon,
                                float x1, float y1, float x2, float y2,
                                float selected, float hover, boolean showIcon) {
-        float radius = (y2 - y1) / 2f;
+        float radius = Math.min(10f, (y2 - y1) / 2f);
         if (hover > 0.01f)
             DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius,
                     M3.alpha(M3.surfaceContainerHighest(), (int) (120 * hover)));
@@ -119,38 +148,32 @@ public final class M3Components {
      */
     public static float sliderControl(float x1, float cy, float trackLen, float percent, float active) {
         float p = Math.max(0f, Math.min(1f, percent));
-        float a = Math.max(0f, Math.min(1f, active));
-
-        int inactive = M3.surfaceContainerHighest();
-        float inactiveH = 4f;
-        float activeH = 6f;
-        float ty1 = cy - inactiveH / 2f;
-
-        DrawUtils.drawRoundedRect(x1, ty1, x1 + trackLen, ty1 + inactiveH, inactiveH / 2f, inactive);
-        if (p > 0.004f) {
-            float fillEnd = Math.max(x1 + activeH, x1 + trackLen * p);
-            DrawUtils.drawRoundedRect(x1, cy - activeH / 2f, fillEnd, cy + activeH / 2f,
-                    activeH / 2f, M3.primary());
-        }
-
-        float handleDot = 4f;
-        float handleExpanded = 20f;
-        float handleD = handleDot + (handleExpanded - handleDot) * a;
+        float h = TRACK_H;
         float hx = x1 + trackLen * p;
-        float cyHandle = cy;
 
-        // stop indicator at the track start, hidden under the expanded handle
-        if (a < 0.6f)
-            DrawUtils.drawCircle(x1 + 3f, cy, 2f,
-                    p <= 0.004f ? M3.onSurfaceVariant() : M3.onPrimary());
-
-        if (a > 0.02f) {
-            float gap = (handleExpanded - handleDot) / 2f * a;
-            DrawUtils.drawCircle(hx, cyHandle, handleD / 2f + gap + 1.6f, M3.surface());
-        }
-        DrawUtils.drawCircle(hx, cyHandle, handleD / 2f, M3.mix(M3.primary(), M3.onSurfaceVariant(), 0.35f * (1f - a)));
-        DrawUtils.drawCircle(hx, cyHandle, handleDot / 2f * a, M3.onPrimary());
+        DrawUtils.drawRoundedRect(x1, cy - h / 2f, x1 + trackLen, cy + h / 2f, h / 2f, inactiveTrack());
+        if (hx - x1 > 0.5f)
+            DrawUtils.drawRoundedRect(x1, cy - h / 2f, Math.max(hx, x1 + h), cy + h / 2f, h / 2f, M3.primary());
+        sliderHandle(hx, cy, active);
         return hx;
+    }
+
+    public static final float TRACK_H = 4f;
+    private static final float HANDLE_R = 6f;
+
+    public static int inactiveTrack() {
+        return M3.alpha(M3.onSurfaceVariant(), M3.isLight() ? 55 : 60);
+    }
+
+    /**
+     * A fixed-size handle: it never resizes under the cursor (which made drags feel unsteady);
+     * hover and drag show as a soft primary halo instead.
+     */
+    public static void sliderHandle(float hx, float cy, float active) {
+        float a = Math.max(0f, Math.min(1f, active));
+        if (a > 0.01f)
+            DrawUtils.drawCircle(hx, cy, HANDLE_R + 5f * a, M3.alpha(M3.primary(), (int) (46 * a)));
+        DrawUtils.drawCircle(hx, cy, HANDLE_R, M3.primary());
     }
 
     /**

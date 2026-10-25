@@ -169,6 +169,11 @@ public class TTFontRenderer implements IFontRenderer {
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        // while the GUI is captured to a texture (burn transition, list fade), keep alpha as true coverage
+        // so anti-aliased glyph edges don't punch see-through holes in what they're drawn on
+        if (arsenic.utils.render.RenderUtils.captureCoverage)
+            org.lwjgl.opengl.GL14.glBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
+                    GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
 
         if ((color & 0xFC000000) == 0) { color |= 0xFF000000; }

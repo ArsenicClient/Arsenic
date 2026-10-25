@@ -45,6 +45,13 @@ public abstract class ButtonComponent extends Component {
         return height;
     }
 
+    /** Only the switch itself takes the cursor; the component's box spans the whole parent row. */
+    @Override
+    public void mouseUpdate(int mouseX, int mouseY) {
+        hovered = trackX1 != Float.MAX_VALUE
+                && arsenic.gui.design.Hover.test(this, trackX1 - 4f, y1, x2, y2);
+    }
+
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
         boolean turningOn = !isEnabled();

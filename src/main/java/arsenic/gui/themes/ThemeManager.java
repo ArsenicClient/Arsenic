@@ -4,7 +4,6 @@ import arsenic.main.Arsenic;
 import arsenic.utils.interfaces.IConfig;
 import arsenic.utils.interfaces.ISerializable;
 import arsenic.utils.java.FileUtils;
-import arsenic.gui.design.M3;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -157,25 +156,25 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
     public static int getGradientColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getGradientColor(); }
     public static int getClickGuiBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getClickGuiBackground(); }
     public static int getClickGuiSeparator() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getClickGuiSeparator(); }
-    public static int getModuleBackground() { return M3.surfaceContainerLow(); }
+    public static int getModuleBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getModuleBackground(); }
     public static int getModuleHover() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getModuleHover(); }
     public static int getScrollbarTrack() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getScrollbarTrack(); }
     public static int getScrollbarThumb() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getScrollbarThumb(); }
-    public static int getButtonBackground() { return M3.surfaceContainerHighest(); }
+    public static int getButtonBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonBackground(); }
     public static int getButtonCircleShadow() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonCircleShadow(); }
     public static int getButtonCircleHighlight() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getButtonCircleHighlight(); }
-    public static int getConfigsBackground() { return M3.surfaceContainerLowest(); }
-    public static int getConfigsCard() { return M3.surfaceContainerLow(); }
-    public static int getConfigsCardBorder() { return M3.alpha(M3.outlineVariant(), 150); }
-    public static int getSeparator() { return M3.outlineVariant(); }
-    public static int getConfigsHoverBackground() { return M3.surfaceContainer(); }
-    public static int getConfigsHoverBorder() { return M3.outline(); }
-    public static int getEnumBackground() { return M3.surfaceContainerHigh(); }
-    public static int getFolderBackground() { return M3.surfaceContainer(); }
-    public static int getTextPrimary() { return M3.onSurface(); }
+    public static int getConfigsBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsBackground(); }
+    public static int getConfigsCard() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsCard(); }
+    public static int getConfigsCardBorder() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsCardBorder(); }
+    public static int getSeparator() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getSeparator(); }
+    public static int getConfigsHoverBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsHoverBackground(); }
+    public static int getConfigsHoverBorder() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getConfigsHoverBorder(); }
+    public static int getEnumBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getEnumBackground(); }
+    public static int getFolderBackground() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getFolderBackground(); }
+    public static int getTextPrimary() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getTextPrimary(); }
     // secondary/muted text used to be gray and hard to read; everything is primary text now
-    public static int getTextSecondary() { return M3.onSurfaceVariant(); }
-    public static int getTextMuted() { return M3.outline(); }
+    public static int getTextSecondary() { return getTextPrimary(); }
+    public static int getTextMuted() { return getTextPrimary(); }
     public static int getError() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getError(); }
     public static int getStatus() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getStatus(); }
 

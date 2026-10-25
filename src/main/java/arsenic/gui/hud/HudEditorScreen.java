@@ -7,9 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 
 import arsenic.gui.click.UITheme;
-import arsenic.gui.design.Backdrop;
-import arsenic.gui.design.M3;
-import arsenic.gui.design.M3Components;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -26,7 +23,6 @@ public class HudEditorScreen extends GuiScreen {
 
     private final List<Element> elements = new ArrayList<>();
     private Element dragging;
-    private Element resizing;
     private int dragOffsetX, dragOffsetY;
     private ScaledResolution sr;
 
@@ -45,18 +41,18 @@ public class HudEditorScreen extends GuiScreen {
             this.label = h.label;
         }
 
-        int width() { return h.scaledWidth(); }
+        int width() { return h.width; }
 
-        int height() { return h.scaledHeight(); }
+        int height() { return h.height; }
 
         float x1(ScaledResolution sr) {
-            return h.rightAnchored ? sr.getScaledWidth() + h.x - width() : h.x;
+            return h.rightAnchored ? sr.getScaledWidth() + h.x - h.width : h.x;
         }
 
         float y1() { return h.y; }
 
         void moveTo(ScaledResolution sr, float x, float y) {
-            h.x = Math.round(h.rightAnchored ? x + width() - sr.getScaledWidth() : x);
+            h.x = Math.round(h.rightAnchored ? x + h.width - sr.getScaledWidth() : x);
             h.y = Math.round(y);
         }
     }
@@ -90,10 +86,10 @@ public class HudEditorScreen extends GuiScreen {
         sr = new ScaledResolution(mc);
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
 
-        Backdrop.draw(width, height);
+        drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
 
-        DrawUtils.drawRect(0, height / 2f, width, height / 2f + 0.75f, M3.alpha(M3.outlineVariant(), 90));
-        DrawUtils.drawRect(width / 2f, 0, width / 2f + 0.75f, height, M3.alpha(M3.outlineVariant(), 90));
+        DrawUtils.drawRect(0, height / 2f, width, height / 2f + 0.75f, UITheme.alpha(ThemeManager.getWhite(), 26));
+        DrawUtils.drawRect(width / 2f, 0, width / 2f + 0.75f, height, UITheme.alpha(ThemeManager.getWhite(), 26));
 
         if (fr != null) {
             drawHeader(fr);
@@ -108,50 +104,44 @@ public class HudEditorScreen extends GuiScreen {
 
     private void drawHeader(FontRendererExtension<?> fr) {
         String title = "HUD Editor";
-        String hint = "Drag to move  ·  Corner to resize  ·  Esc to finish";
+        String hint = "Drag to move  ·  Esc to finish";
         float pad = 8f;
         float w = Math.max(fr.getWidth(title), fr.getWidth(hint)) + pad * 2f;
         float h = fr.getHeight(title) + fr.getHeight(hint) + pad * 1.6f;
         float x = width / 2f - w / 2f;
 
-        M3Components.card(x, 10, x + w, 10 + h, 16f, M3.alpha(M3.surfaceContainerHigh(), 245));
-        fr.drawString(title, width / 2f, 10 + pad * 0.6f, M3.onSurface(), fr.CENTREX);
+        UITheme.surface(x, 10, x + w, 10 + h, 6f, UITheme.alpha(0x000000, 170), UITheme.Elevation.FLOATING);
+        fr.drawString(title, width / 2f, 10 + pad * 0.6f, ThemeManager.getWhite(), fr.CENTREX);
         fr.drawString(hint, width / 2f, 10 + pad * 0.6f + fr.getHeight(title) + 2,
-                M3.onSurfaceVariant(), fr.CENTREX);
+                ThemeManager.getTextMuted(), fr.CENTREX);
     }
 
     private void drawElement(FontRendererExtension<?> fr, Element e, int mouseX, int mouseY) {
         float x1 = e.x1(sr), y1 = e.y1();
         float x2 = x1 + e.width(), y2 = y1 + e.height();
-        boolean active = dragging == e || resizing == e;
+        boolean active = dragging == e;
         boolean hovered = MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2);
 
-        int fill = active ? M3.alpha(M3.primaryContainer(), 220)
-                : M3.alpha(M3.surfaceContainerHigh(), hovered ? 210 : 165);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, 8f, fill);
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, 8f, active ? 1.4f : 1f,
-                M3.alpha(active ? M3.primary() : M3.outlineVariant(), active ? 240 : (hovered ? 170 : 100)));
+        int fill = UITheme.alpha(active ? UITheme.accent() : 0x000000, active ? 60 : (hovered ? 120 : 80));
+        UITheme.surface(x1, y1, x2, y2, 5f, fill,
+                active ? UITheme.Elevation.FLOATING : UITheme.Elevation.RAISED, active ? 1f : 0.5f);
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, 5f, active ? 1.6f : 1f,
+                UITheme.alpha(UITheme.accent(), active ? 255 : (hovered ? 200 : 110)));
 
         fr.drawString(e.label, (x1 + x2) / 2f, (y1 + y2) / 2f,
-                active ? M3.onPrimaryContainer() : M3.onSurface(),
+                active || hovered ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200),
                 fr.CENTREX, fr.CENTREY);
 
-        if (hovered || active) {
-            float hx = x2 - 5f, hy = y2 - 5f;
-            DrawUtils.drawCircle(hx, hy, 5f, M3.alpha(M3.primary(), 220));
-            DrawUtils.drawCircle(hx, hy, 2f, M3.onPrimary());
-        }
-
         if (active)
-            fr.drawString(Math.round(x1) + ", " + Math.round(y1) + "  " + Math.round(e.h.scale * 100) + "%",
-                    (x1 + x2) / 2f, y2 + 7, M3.primary(), fr.CENTREX);
+            fr.drawString(Math.round(x1) + ", " + Math.round(y1), (x1 + x2) / 2f, y2 + 7,
+                    UITheme.alpha(UITheme.accent(), 230), fr.CENTREX);
     }
 
     private void drawGuides() {
         for (float gx : activeGuidesX)
-            DrawUtils.drawRect(gx, 0, gx + 0.75f, height, M3.alpha(M3.primary(), 160));
+            DrawUtils.drawRect(gx, 0, gx + 0.75f, height, UITheme.alpha(UITheme.accent(), 190));
         for (float gy : activeGuidesY)
-            DrawUtils.drawRect(0, gy, width, gy + 0.75f, M3.alpha(M3.primary(), 160));
+            DrawUtils.drawRect(0, gy, width, gy + 0.75f, UITheme.alpha(UITheme.accent(), 190));
     }
 
     private void drawButtons(FontRendererExtension<?> fr, int mouseX, int mouseY) {
@@ -169,8 +159,20 @@ public class HudEditorScreen extends GuiScreen {
         boolean saveHover = inside(mouseX, mouseY, saveX1, saveY1, saveX2, saveY2);
         boolean resetHover = inside(mouseX, mouseY, resetX1, resetY1, resetX2, resetY2);
 
-        M3Components.button(fr, "Save & Close", saveX1, saveY1, saveX2, saveY2, saveHover ? 1f : 0f, true);
-        M3Components.button(fr, "Reset", resetX1, resetY1, resetX2, resetY2, resetHover ? 1f : 0f, false);
+        DrawUtils.drawGradientRoundedRect(saveX1, saveY1, saveX2, saveY2, bh / 2f,
+                UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
+        DrawUtils.drawRoundedOutline(saveX1, saveY1, saveX2, saveY2, bh / 2f, 1f,
+                UITheme.alpha(ThemeManager.getWhite(), saveHover ? 140 : 60));
+        fr.drawString("Save & Close", (saveX1 + saveX2) / 2f, (saveY1 + saveY2) / 2f,
+                ThemeManager.getWhite(), fr.CENTREX, fr.CENTREY);
+
+        UITheme.surface(resetX1, resetY1, resetX2, resetY2, bh / 2f,
+                UITheme.alpha(0x000000, resetHover ? 190 : 150), UITheme.Elevation.RAISED, 0.6f);
+        DrawUtils.drawRoundedOutline(resetX1, resetY1, resetX2, resetY2, bh / 2f, 1f,
+                UITheme.alpha(ThemeManager.getWhite(), resetHover ? 150 : 70));
+        fr.drawString("Reset", (resetX1 + resetX2) / 2f, (resetY1 + resetY2) / 2f,
+                resetHover ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200),
+                fr.CENTREX, fr.CENTREY);
     }
 
     private static boolean inside(float mx, float my, float x1, float y1, float x2, float y2) {
@@ -196,12 +198,7 @@ public class HudEditorScreen extends GuiScreen {
         for (int i = elements.size() - 1; i >= 0; i--) {
             Element e = elements.get(i);
             float x1 = e.x1(sr), y1 = e.y1();
-            float x2 = x1 + e.width(), y2 = y1 + e.height();
-            if (inside(mouseX, mouseY, x2 - 11f, y2 - 11f, x2 + 2f, y2 + 2f)) {
-                resizing = e;
-                return;
-            }
-            if (inside(mouseX, mouseY, x1, y1, x2, y2)) {
+            if (inside(mouseX, mouseY, x1, y1, x1 + e.width(), y1 + e.height())) {
                 dragging = e;
                 dragOffsetX = (int) (mouseX - x1);
                 dragOffsetY = (int) (mouseY - y1);
@@ -213,23 +210,7 @@ public class HudEditorScreen extends GuiScreen {
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
-        if (clickedMouseButton != 0)
-            return;
-        if (resizing != null) {
-            Element e = resizing;
-            float baseW = Math.max(1f, e.h.width);
-            float baseH = Math.max(1f, e.h.height);
-            float left = e.h.rightAnchored
-                    ? sr.getScaledWidth() + e.h.x - e.h.scaledWidth() : e.h.x;
-            float targetW = mouseX - left;
-            float targetH = mouseY - e.h.y;
-            float wanted = Math.max(targetW / baseW, targetH / baseH);
-            e.h.scale = MathUtils.clamp(wanted, 0.5f, 2.5f);
-            if (e.h.rightAnchored)
-                e.h.x = Math.round(left + e.h.scaledWidth() - sr.getScaledWidth());
-            return;
-        }
-        if (dragging == null)
+        if (dragging == null || clickedMouseButton != 0)
             return;
 
         float targetX = mouseX - dragOffsetX;
@@ -311,7 +292,6 @@ public class HudEditorScreen extends GuiScreen {
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
         dragging = null;
-        resizing = null;
         activeGuidesX.clear();
         activeGuidesY.clear();
     }
