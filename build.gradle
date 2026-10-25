@@ -468,7 +468,12 @@ afterEvaluate {
     // any one jar on its own (the IntelliJ injector run builds only devJar) always obfuscates it too
     ["jar", "qolJar", "visualJar", "legitJar", "devJar"].each { String jarTask ->
         String reobfTask = "reobf" + jarTask.capitalize()
-        tasks.getByName(reobfTask).doLast { restoreEmbeddedLibs(tasks.getByName(jarTask).archivePath) }
+        tasks.getByName(reobfTask).doLast {
+            File built = tasks.getByName(jarTask).archivePath
+            restoreEmbeddedLibs(built)
+            // reobf replaces the jar through a temporary file, which drops the mode; double-clicking needs it back
+            built.setExecutable(true, false)
+        }
         tasks.getByName(jarTask).finalizedBy tasks.getByName(reobfTask)
     }
 }

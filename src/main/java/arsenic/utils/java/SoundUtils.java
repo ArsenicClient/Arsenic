@@ -77,6 +77,7 @@ public class SoundUtils {
     public static void chordEnum()     { chord(CHORD_ENUM); }
     public static void chordKeybind()  { chord(CHORD_KEYBIND); }
     public static void chordClick()    { chord(CHORD_CLICK); }
+    public static void chordSlider()   { chordClick(); }
 
 
     private static volatile long lastHitConfirm = 0L;

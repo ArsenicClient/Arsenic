@@ -1,19 +1,25 @@
 #version 120
 
-uniform vec2 location, rectSize;
-uniform vec4 color, outlineColor;
+uniform vec2 quadSize, rectSize;
+uniform vec4 color;
 uniform float radius, outlineThickness;
 
-float roundedSDF(vec2 centerPos, vec2 size, float radius) {
-    return length(max(abs(centerPos) - size + radius, 0.0)) - radius;
+float sdRoundBox(vec2 p, vec2 b, float r) {
+    vec2 q = abs(p) - b + r;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
 void main() {
-    float distance = roundedSDF(gl_FragCoord.xy - location - (rectSize * .5), (rectSize * .5) + (outlineThickness *.5) - 1.0, radius);
+    vec2 p = (gl_TexCoord[0].st - 0.5) * quadSize;
+    vec2 hs = rectSize * 0.5;
+    float r = clamp(radius, 0.0, min(hs.x, hs.y));
 
-    float blendAmount = smoothstep(0., 2., abs(distance) - (outlineThickness * .5));
+    float d = sdRoundBox(p, hs, r);
+    float ring = abs(d) - outlineThickness * 0.5;
+    float aa = max(fwidth(d), 0.75);
+    float cov = 1.0 - smoothstep(-aa, aa, ring);
+    if (cov <= 0.001)
+        discard;
 
-    vec4 insideColor = (distance < 0.) ? color : vec4(outlineColor.rgb,  0.0);
-    gl_FragColor = mix(outlineColor, insideColor, blendAmount);
-
+    gl_FragColor = vec4(color.rgb, color.a * cov);
 }

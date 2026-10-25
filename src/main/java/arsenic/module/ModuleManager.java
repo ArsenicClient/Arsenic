@@ -75,7 +75,11 @@ public class ModuleManager {
     public final Listener<EventKey> onKeyPress = event -> {
         int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
         if (clickGuiKey != 0 && event.getKeycode() == clickGuiKey) {
-            Minecraft.getMinecraft().displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
+            if (Minecraft.getMinecraft().currentScreen instanceof arsenic.gui.click.ClickGuiScreen) {
+                ((arsenic.gui.click.ClickGuiScreen) Minecraft.getMinecraft().currentScreen).startClosing();
+            } else {
+                Minecraft.getMinecraft().displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
+            }
             return;
         }
 

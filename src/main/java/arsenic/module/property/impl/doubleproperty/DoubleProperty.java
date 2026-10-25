@@ -3,11 +3,12 @@ package arsenic.module.property.impl.doubleproperty;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
 import arsenic.gui.click.impl.PropertyComponent;
-import arsenic.gui.themes.ThemeManager;
+import arsenic.gui.design.Hover;
+import arsenic.gui.design.M3Controls;
+import arsenic.gui.design.M3Components;
 import arsenic.module.property.SerializableProperty;
 import arsenic.module.property.impl.DisplayMode;
 import arsenic.module.property.impl.SliderScale;
-import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderInfo;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
@@ -43,11 +44,13 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
     }
 
     public final @NotNull String getValueString() {
-        double v = value.getInput();
-        String num = (v == Math.rint(v) && !Double.isInfinite(v))
+        return format(value.getInput()) + getDisplayMode().getSuffix();
+    }
+
+    private static String format(double v) {
+        return (v == Math.rint(v) && !Double.isInfinite(v))
                 ? String.valueOf((long) v)
                 : String.valueOf(Math.round(v * 100.0) / 100.0);
-        return num + getDisplayMode().getSuffix();
     }
 
     public DisplayMode getDisplayMode() { return displayMode; }
@@ -57,48 +60,47 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
         return new PropertyComponent<DoubleProperty>(this) {
 
             private boolean dragging;
-            private float trackX1, trackX2, trackWidth;
-            private float dragX1, dragWidth;
+            private boolean handleHovered;
+            private float trackX1, trackX2, trackWidth, handleX;
+            private final Object handleKey = new Object();
 
             private final AnimationTimer grabTimer =
                     new AnimationTimer(UITheme.DUR_HOVER, () -> dragging, TickMode.CUBIC);
+            private final AnimationTimer handleTimer =
+                    new AnimationTimer(UITheme.DUR_HOVER, () -> handleHovered, TickMode.CUBIC);
 
             @Override
             protected float draw(RenderInfo ri) {
-                float percent = scale.toPercent(getValue().getInput(), getValue().getMinBound(), getValue().getMaxBound());
+                double min = getValue().getMinBound(), max = getValue().getMaxBound();
+                float percent = scale.toPercent(getValue().getInput(), min, max);
 
                 float grab = grabTimer.getPercent();
-
                 float chipHeight = height * 0.5f;
-                float chipWidth = UITheme.chip(ri.getFr(), self.getValueString(), x2, midPointY, chipHeight,
-                        UITheme.mix(UITheme.textSecondary(), UITheme.accent(), Math.max(percent * 0.35f, grab)),
-                        UITheme.alpha(ThemeManager.getBlack(), 70));
+                String text = self.getValueString();
+                String suffix = getDisplayMode().getSuffix();
+                float reserve = Math.max(ri.getFr().getWidth(format(min) + suffix), ri.getFr().getWidth(format(max) + suffix));
+                float chipWidth = M3Controls.valueChip(ri.getFr(), text, x2, midPointY, chipHeight, grab, reserve);
 
-                trackX1 = controlX1();
-                trackX2 = x2 - chipWidth - pad() * 0.7f;
-                trackWidth = Math.max(1f, trackX2 - trackX1);
-                float fillX = trackX1 + percent * trackWidth;
+                // the track is frozen while dragging so it can't shift under the cursor
+                if (!dragging) {
+                    trackX1 = controlX1();
+                    trackX2 = x2 - chipWidth - pad() * 0.7f;
+                    trackWidth = Math.max(1f, trackX2 - trackX1);
+                }
+                handleX = trackX1 + trackWidth * percent;
 
-                float trackH = Math.max(3f, height * 0.3f) + grab * height * 0.04f;
-                float trackY1 = midPointY - trackH / 2f, trackY2 = midPointY + trackH / 2f;
-                float trackRadius = trackH / 2f;
+                handleHovered = !dragging && Hover.test(handleKey, handleX - 10f, y1, handleX + 10f, y2);
+                float active = Math.max(grab, handleTimer.getPercent());
 
-                DrawUtils.drawRoundedRect(trackX1, trackY1, trackX2, trackY2, trackRadius,
-                        UITheme.alpha(ThemeManager.getButtonBackground(), 200));
-                float fillEnd = Math.max(fillX, trackX1 + trackH);
-                DrawUtils.drawGradientRoundedRect(trackX1, trackY1, fillEnd, trackY2, trackRadius,
-                        UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
-
+                M3Components.sliderControl(trackX1, midPointY, trackWidth, percent, active);
                 return height;
             }
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                if (mouseX < trackX1 || mouseX > trackX2)
+                if (mouseButton != 0 || mouseX < trackX1 - pad() || mouseX > trackX2 + pad())
                     return;
                 dragging = true;
-                dragX1 = trackX1;
-                dragWidth = trackWidth;
                 applyFromMouse(mouseX);
             }
 
@@ -112,16 +114,21 @@ public class DoubleProperty extends SerializableProperty<DoubleValue> {
                 super.mouseUpdate(mouseX, mouseY);
                 if (!Mouse.isButtonDown(0))
                     dragging = false;
-                if (dragging)
+                if (dragging) {
+                    hovered = M3Controls.dragHold(this);
                     applyFromMouse(mouseX);
+                }
             }
 
             private void applyFromMouse(int mouseX) {
-                float pct = MathUtils.clamp01((mouseX - dragX1) / dragWidth);
+                float pct = MathUtils.clamp01((mouseX - trackX1) / trackWidth);
                 double min = getValue().getMinBound(), max = getValue().getMaxBound();
+                double before = getValue().getInput();
                 getValue().setInput(scale.fromPercent(pct, min, max));
-                onValueUpdate();
-                arsenic.utils.java.SoundUtils.slide(scale.toPercent(getValue().getInput(), min, max));
+                if (getValue().getInput() != before) {
+                    onValueUpdate();
+                    arsenic.utils.java.SoundUtils.slide(scale.toPercent(getValue().getInput(), min, max));
+                }
             }
         };
     }

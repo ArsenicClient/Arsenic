@@ -4,7 +4,10 @@ import arsenic.addon.AddonManager;
 import arsenic.gui.click.Component;
 import arsenic.module.Module;
 import arsenic.gui.click.GuiStyle;
+import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.ColorUtils;
@@ -64,6 +67,7 @@ public class AddonPageComponent {
     private String laidOutFor;
     private String lastQuery;
     private boolean resetScroll = true;
+    private long switchTime = System.currentTimeMillis() - 1000L;
     private float scroll, targetScroll, maxHeight, lastMaxScroll;
 
     public AddonPageComponent(Supplier<String> query, Runnable clearQuery) {
@@ -74,6 +78,7 @@ public class AddonPageComponent {
     /** Scroll back to the top the next time the list is laid out (used when the page is opened). */
     public void reset() {
         resetScroll = true;
+        switchTime = System.currentTimeMillis();
     }
 
     /** Re-reads what is on disk (call when the page opens and after any change). */
@@ -135,6 +140,7 @@ public class AddonPageComponent {
         selected = key;
         resetScroll = true;
         laidOutFor = null;
+        switchTime = System.currentTimeMillis();
     }
 
     /** An addon as a module row: the same row a module gets, kept across layouts and reloads. */
@@ -260,7 +266,7 @@ public class AddonPageComponent {
             scroll = targetScroll;
 
         float gap = ri.getGuiScreen().width / 100f;
-        PosInfo pi = new PosInfo(leftX, top + scroll + gap);
+        PosInfo pi = new PosInfo(leftX, top + scroll + gap + contentReveal());
         for (AddonCardComponent block : blocks) {
             block.setPixelWidth(fullWidth);
             pi.moveY(block.updateComponent(pi, ri) + gap);
@@ -273,6 +279,14 @@ public class AddonPageComponent {
         for (Component r : right)
             rr.moveY(r.updateComponent(rr, ri) + gap);
         maxHeight = Math.max(l.getY(), rr.getY()) - (top + scroll);
+    }
+
+    private float contentReveal() {
+        if (!GuiStyle.transitionEnabled())
+            return 0f;
+        float p = MathUtils.clamp01((System.currentTimeMillis() - switchTime) / (float) M3.DUR_MEDIUM);
+        p = 1f - (1f - p) * (1f - p) * (1f - p);
+        return (1f - p) * 8f;
     }
 
     public void clickSidebar(int mouseX, int mouseY, int mouseButton) {
@@ -302,6 +316,12 @@ public class AddonPageComponent {
         lastMaxScroll = maxHeight;
     }
 
+    /** How much of the list is scrolled out above the view, in GUI units. */
+    public float hiddenAbove() { return Math.max(0f, -scroll); }
+
+    /** How much of the list is still below the view, in GUI units (valid after subtractFromMaxScrollHeight). */
+    public float hiddenBelow() { return Math.max(0f, maxHeight + scroll); }
+
     public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
         if (maxHeight <= 0)
             return;
@@ -329,40 +349,38 @@ public class AddonPageComponent {
         @Override
         protected float drawComponent(RenderInfo ri) {
             if (key == null) {
-                ri.getFr().drawString(label, x1, midPointY, getWhite(), ri.getFr().CENTREY);
+                ri.getFr().drawString(label.toUpperCase(java.util.Locale.ROOT), x1 + 12f, midPointY,
+                        M3.alpha(M3.onSurfaceVariant(), 185), ri.getFr().CENTREY);
                 RenderUtils.resetColorText();
                 return height;
             }
-            float anim = Math.max(activeTimer.getPercent(), hoverTimer.getPercent());
-            expandX = anim * (width / 40f);
-            int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
-            int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-            if (anim > 0.01f)
-                DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
-                        GuiStyle.shadowSpread(height * 0.18f), GuiStyle.shadowAlpha((int) (130 * anim)), 4);
-            DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
+            float selected = activeTimer.getPercent();
+            float hover = hoverTimer.getPercent();
+            expandX = 0;
+            float radius = (y2 - y1) / 2f;
+            if (hover > 0.01f)
+                DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius,
+                        M3.alpha(M3.surfaceContainerHighest(), (int) (120 * hover)));
+            if (selected > 0.01f)
+                DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius,
+                        M3.alpha(M3.secondaryContainer(), (int) (235 * selected)));
 
-            int onPanel = UITheme.readableOn(ThemeManager.getModuleBackground());
-            int onAccent = UITheme.readableOn(getEnabledColor());
-            int foreground = UITheme.mix(onPanel, onAccent, anim);
+            int foreground = M3.mix(M3.onSurfaceVariant(), M3.onSecondaryContainer(), selected);
             if (key.equals(ERRORS))
-                foreground = UITheme.mix(0xFFFF5555, onAccent, anim);
+                foreground = M3.mix(M3.error(), M3.onSecondaryContainer(), selected);
 
-            float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
-            float iconX = x1 + (width / 7f) + expandX - iconSize;
+            float iconSize = (y2 - y1) * 0.46f;
+            float iconX = x1 + (y2 - y1) * 0.34f;
             float iconY = midPointY - iconSize / 2f;
             if (packIcon) {
                 AddonCardComponent.drawIcon(icon, iconX, iconY, iconSize);
-            } else if (icon != null) {
-                Minecraft.getMinecraft().getTextureManager().bindTexture(new ResourceLocation("arsenic", "icons/" + icon + ".png"));
-                RenderUtils.color2(foreground, 1f);
-                Gui.drawModalRectWithCustomSizedTexture((int) iconX, (int) iconY, 0, 0, (int) iconSize, (int) iconSize, (int) iconSize, (int) iconSize);
-                GlStateManager.color(1f, 1f, 1f, 1f);
+            } else {
+                String glyph = key.equals(ERRORS) || "other".equals(icon) ? M3Icons.ERROR
+                        : "local".equals(icon) ? M3Icons.CONFIGS : M3Icons.APPS;
+                M3Icons.drawCentered(glyph, iconX + iconSize / 2f, midPointY, foreground);
             }
-            float textX = iconX + iconSize + 2;
-            ri.getFr().drawString(AddonCardComponent.fit(ri.getFr(), label, x2 + expandX - textX - width * 0.04f),
+            float textX = iconX + iconSize + (y2 - y1) * 0.22f;
+            ri.getFr().drawString(AddonCardComponent.fit(ri.getFr(), label, x2 - textX - 10f),
                     textX, midPointY, foreground, ri.getFr().CENTREY);
             RenderUtils.resetColorText();
             return height;
@@ -370,7 +388,8 @@ public class AddonPageComponent {
 
         @Override
         public void mouseUpdate(int mouseX, int mouseY) {
-            isHovered = key != null && isMouseInArea(mouseX, mouseY) && isOverSidebar(mouseX, mouseY);
+            isHovered = key != null && isOverSidebar(mouseX, mouseY)
+                    && arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
         }
 
         @Override
@@ -385,12 +404,12 @@ public class AddonPageComponent {
 
         @Override
         public int getWidth(int i) {
-            return key == null ? 9 * (i / 100) : 10 * (i / 100);
+            return 174;
         }
 
         @Override
         public int getHeight(int i) {
-            return 5 * (i / 100);
+            return key == null ? 26 : 36;
         }
     }
 }

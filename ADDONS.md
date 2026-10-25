@@ -2521,6 +2521,7 @@ public class SoundUtils {
     public static void chordEnum();
     public static void chordKeybind();
     public static void chordClick();
+    public static void chordSlider();
     public static void hitConfirm();
     public static void note(int degree);
     public static void cmajStep();

@@ -95,7 +95,8 @@ public class HUD extends Module {
     private static final float ROW_HEIGHT = 13f;
     private static final float PANEL_PAD_X = 6f;
     private static final float ACCENT_WIDTH = 1.6f;
-    private static final float RADIUS = 3.5f;
+    /** HUD backings (arraylist rows, watermark, key chips) are square. */
+    private static final float RADIUS = 0f;
 
     private static final float SORT_TOLERANCE = 2f;
     private static final long SORT_SETTLE_MS = 500L;
@@ -253,8 +254,10 @@ public class HUD extends Module {
 
         for (int i = 0; i < visible.size(); i++) {
             Entry entry = visible.get(i);
-            float rowY = top + entry.y;
-            float rowH = ROW_HEIGHT * entry.opacity;
+            // rows are snapped to whole screen pixels so neighbours meet exactly, with no seam between them
+            float sf = sr.getScaleFactor();
+            float rowY = Math.round((top + entry.y) * sf) / sf;
+            float rowH = Math.round((top + entry.y + ROW_HEIGHT * entry.opacity) * sf) / sf - rowY;
             float rowMid = rowY + ROW_HEIGHT / 2f;
             int color = colorMode.getValue().getColor(4, i * 20);
 
@@ -264,19 +267,19 @@ public class HUD extends Module {
             float alpha = pass == Pass.BLOOM ? 1f : entry.opacity;
 
             if (pass == Pass.BLUR) {
-                DrawUtils.drawRoundedRect(rowLeft, rowY, rowRight, rowY + rowH, RADIUS, 0xFFFFFFFF);
+                DrawUtils.drawRect(rowLeft, rowY, rowRight, rowY + rowH, 0xFFFFFFFF);
                 continue;
             }
 
             if (pass == Pass.NORMAL
                     && (bg == ArrayListBackground.PANEL || bg == ArrayListBackground.RECTANGLE)) {
-                DrawUtils.drawRoundedRect(rowLeft, rowY, rowRight, rowY + rowH, RADIUS,
+                DrawUtils.drawRect(rowLeft, rowY, rowRight, rowY + rowH,
                         UITheme.alpha(0x000000, (int) (panelAlpha * entry.opacity)));
             }
 
             if (bg != ArrayListBackground.NONE)
-                DrawUtils.drawRoundedRect(rowRight - ACCENT_WIDTH, rowY, rowRight, rowY + rowH,
-                        ACCENT_WIDTH / 2f, UITheme.alpha(color, alpha));
+                DrawUtils.drawRect(rowRight - ACCENT_WIDTH, rowY, rowRight, rowY + rowH,
+                        UITheme.alpha(color, alpha));
 
             float cursor = rowRight - PANEL_PAD_X;
             if (entry.info != null) {
@@ -319,7 +322,7 @@ public class HUD extends Module {
 
         chipBackground(watermark.x, watermark.y, watermark.x + w, watermark.y + h);
         DrawUtils.drawRoundedRect(watermark.x, watermark.y + pad * 0.6f,
-                watermark.x + 1.6f, watermark.y + h - pad * 0.6f, 0.8f, color);
+                watermark.x + 1.6f, watermark.y + h - pad * 0.6f, 0f, color);
 
         fr.drawStringWithShadow(title, watermark.x + pad, mid, color, fr.CENTREY);
         if (suffix != null)
@@ -548,15 +551,15 @@ public class HUD extends Module {
 
     private void chipBackground(float x1, float y1, float x2, float y2, boolean pressed, int color) {
         int a = (int) (255 * (backgroundOpacity.getValue().getInput() / 100.0));
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(0x000000, a));
+        DrawUtils.drawRect(x1, y1, x2, y2, UITheme.alpha(0x000000, a));
         if (pressed)
-            DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(color, 130));
+            DrawUtils.drawRect(x1, y1, x2, y2, UITheme.alpha(color, 130));
     }
 
     private void chipBackground(float x1, float y1, float x2, float y2) {
         int a = (int) (255 * (backgroundOpacity.getValue().getInput() / 100.0));
         DrawUtils.drawShadow(x1, y1, x2, y2, RADIUS, 3f, (int) (70 * (a / 255f)), 3);
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, RADIUS, UITheme.alpha(0x000000, a));
+        DrawUtils.drawRect(x1, y1, x2, y2, UITheme.alpha(0x000000, a));
     }
 
 

@@ -12,6 +12,16 @@ public class StringProperty extends Property<String> {
     public PropertyComponent<StringProperty> createComponent() {
         return new PropertyComponent<StringProperty>(this) {
             @Override
+            protected boolean interactive() {
+                return false;
+            }
+
+            @Override
+            protected float labelRight() {
+                return x2;
+            }
+
+            @Override
             protected float draw(RenderInfo ri) {
                 return height;
             }

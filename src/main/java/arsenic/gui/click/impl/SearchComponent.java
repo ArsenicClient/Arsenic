@@ -16,12 +16,15 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.gui.click.GuiStyle;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.PosInfo;
 import arsenic.utils.render.RenderInfo;
+import arsenic.utils.render.RenderUtils;
 import arsenic.utils.render.ScissorUtils;
 import arsenic.utils.timer.AnimationTimer;
 import arsenic.utils.timer.TickMode;
@@ -55,54 +58,64 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
         super(category);
     }
     public void setupGlowAndBlur(int alpha){
-        DrawUtils.drawGradientRoundedRect(x, y - 10, x1, y + 10, 8,
-                ColorUtils.setColor(getEnabledColor(), 0, alpha),
-                ColorUtils.setColor(getEnabledColor(), 0, alpha),
-                ColorUtils.setColor(getGradientColor(), 0, alpha),
-                ColorUtils.setColor(getGradientColor(), 0, alpha));
+        DrawUtils.drawGradientRoundedRect(x1, y1, x2, y2, (y2 - y1) / 2f,
+                M3.alpha(M3.primary(), alpha), M3.alpha(M3.primary(), alpha),
+                M3.alpha(M3.primaryContainer(), alpha), M3.alpha(M3.primaryContainer(), alpha));
     }
+
     @Override
     public boolean handleClick(int mouseX, int mouseY, int mouseButton) {
-        boolean isMouseOver = MathUtils.inside(mouseX, mouseY, x, y - 10, x1, y + 10);
-        if (isMouseOver && mouseButton == 0){
-            toggleSearch();
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2)) {
+            if (!gui.isAddonMode() && gui.getCmcc() != this)
+                gui.setCmcc(this);
+            return true;
         }
-        return super.handleClick(mouseX,mouseY,mouseButton);
+        return false;
     }
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        x = (int) (ri.getGuiScreen().width / (3 + (1 * activateTimer.getPercent())));
-        x1 = ri.getGuiScreen().width - x;
-        y = ri.getGuiScreen().height / 10;
-        y1 = ri.getGuiScreen().height - y;
+        boolean active = gui.isSearchActive();
+        float hover = hoverPct();
+        float radius = (y2 - y1) / 2f;
 
-        String imlosingmymind = inp.length() == 0 ? gui.isSearchActive() ? "Search" : "Press \"/\" to toggle search" : inp.toString();
-        int centerX = (int) getCentre(imlosingmymind,x+x1, ri.getFr());
+        int fill = active ? M3.surfaceContainerHigh() : M3.alpha(M3.surfaceContainerHighest(), 210);
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, fill);
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, radius, 1f,
+                active ? M3.alpha(M3.primary(), 210)
+                        : M3.alpha(M3.outlineVariant(), (int) (130 + 50 * hover)));
 
-        DrawUtils.drawRoundedRect(x, y - 10, x1, y + 10,8, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
-        if (GuiStyle.glassEnabled())
-            DrawUtils.drawGlassRect(x, y - 10, x1, y + 10, 8,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
+        float pad = (y2 - y1) * 0.34f;
+        float iconSize = (y2 - y1) * 0.38f;
+        M3Icons.drawLeft(M3Icons.SEARCH, x1 + pad * 0.85f, (y1 + y2) / 2f,
+                active ? M3.primary() : M3.onSurfaceVariant());
 
-        if (GuiStyle.fontEnabled()) {
-            Arsenic.getInstance().getFonts().Icon.drawString("B", x + 3, y - 3, ThemeManager.getWhite());
-        }
-        ScissorUtils.subScissor(x, y - 10, (int) x1, y + 10);
-        if (selected) {
-            DrawUtils.drawRect(centerX, y - 4, centerX + ri.getFr().getWidth(inp.toString()) + 2, y + 6, ThemeManager.getGradientColor());
+        String text = inp.length() == 0
+                ? (active ? "Search modules and addons" : "Press / to search")
+                : inp.toString();
+        int textColor = inp.length() == 0 ? M3.alpha(M3.onSurfaceVariant(), 190) : M3.onSurface();
+        float textX = x1 + pad * 0.85f + M3Icons.font().getWidth(M3Icons.SEARCH) + pad * 0.45f;
+        float textY = (y1 + y2) / 2f;
+
+        ScissorUtils.subScissor((int) x1, (int) y1, (int) x2, (int) y2);
+        ri.getFr().drawString(text, textX, textY, textColor, ri.getFr().CENTREY);
+        if (active && (System.currentTimeMillis() / 530L) % 2L == 0L) {
+            float caretX = textX + ri.getFr().getWidth(inp.toString()) + 1.5f;
+            DrawUtils.drawRect(caretX, textY - 6f, caretX + 1.2f, textY + 7f, M3.primary());
         }
         ScissorUtils.endSubScissor();
-        ri.getFr().drawString(imlosingmymind, centerX, y, getEnabledColor(), ri.getFr().CENTREY);
-
+        RenderUtils.resetColorText();
         return height;
     }
-    public float getCentre(String s, float width, FontRendererExtension<?> fr) {
-        return width / 2f - (fr.getWidth(s) / 2f);
-    }
-    @Override
-    public void setNotAlwaysRecieveInput() {
 
+    @Override
+    public int getWidth(int i) {
+        return 258;
+    }
+
+    @Override
+    public int getHeight(int i) {
+        return 38;
     }
 
     public boolean recieveInput(int key) {
@@ -145,12 +158,9 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     }
 
     @Override
-    public void setCurrentCategory(boolean currentCategory) {
-        super.setCurrentCategory(currentCategory);
-        inp.setLength(0);
+    public void setNotAlwaysRecieveInput() {
     }
 
-    /** The modules and addons for the query, dealt into the two columns. Rebuilt on the next draw after a change. */
     private void refreshResults() {
         String q = inp.toString().trim().toLowerCase(Locale.ROOT);
         if (q.equals(builtFor))
@@ -177,7 +187,6 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
     private ModuleComponent moduleRow(Module module) {
         return moduleRows.computeIfAbsent(module, ModuleComponent::new);
     }
-
 
     @Override
     public void drawLeft(PosInfo pi, RenderInfo ri) {
