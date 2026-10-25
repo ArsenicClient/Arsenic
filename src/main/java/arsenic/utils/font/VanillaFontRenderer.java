@@ -46,6 +46,6 @@ public final class VanillaFontRenderer implements IFontRenderer {
 
     @Override
     public float getHeight(String text) {
-        return font.FONT_HEIGHT;
+        return font.FONT_HEIGHT - 0.4f;
     }
 }

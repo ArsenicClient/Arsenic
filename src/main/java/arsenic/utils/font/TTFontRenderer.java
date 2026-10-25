@@ -58,6 +58,7 @@ public class TTFontRenderer implements IFontRenderer {
     private FontMetrics baseMetrics;
     private float height;
     private float baseline;
+    private float capHeight;
     private float cellHeight;
 
     private final Map<Integer, Atlas> atlases = new HashMap<>();
@@ -93,7 +94,10 @@ public class TTFontRenderer implements IFontRenderer {
         cellHeight = (float) Math.ceil(bounds.getHeight());
         height = (cellHeight - MARGIN) / 2f;
         // glyphs were drawn 2 units above y, with the baseline at the ascent in base pixels
-        baseline = -2 + baseMetrics.getAscent() / 2f;
+        FontRenderContext frc = new FontRenderContext(null, antiAlias, fracMetrics);
+        Rectangle2D hBounds = font.createGlyphVector(frc, "H").getVisualBounds();
+        capHeight = hBounds.getHeight() > 0 ? (float) (-hBounds.getMinY() / 2.0) : (baseMetrics.getAscent() * 0.72f / 2f);
+        baseline = height / 2f - 0.8f + capHeight / 2f;
     }
 
     @Override
@@ -257,8 +261,9 @@ public class TTFontRenderer implements IFontRenderer {
                     GL11.glBegin(GL11.GL_QUADS);
                     drawing = true;
                 }
-                float gx = transform.snapX(x + glyph.offsetX * unit);
-                float gy = baseY + glyph.offsetY * unit;
+                boolean pua = character >= '\uE000' && character <= '\uF8FF';
+                float gx = transform.snapX(pua ? x + (advance - glyph.width * unit) / 2f : x + glyph.offsetX * unit);
+                float gy = pua ? transform.snapY(y + baseline - capHeight / 2f - glyph.height * unit / 2f) : baseY + glyph.offsetY * unit;
                 float gw = glyph.width * unit, gh = glyph.height * unit;
                 GL11.glTexCoord2f(glyph.u0, glyph.v0);
                 GL11.glVertex2f(gx, gy);

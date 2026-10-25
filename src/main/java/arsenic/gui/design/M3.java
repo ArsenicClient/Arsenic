@@ -80,6 +80,7 @@ public final class M3 {
     public static int error() { return colors().error; }
     public static int onError() { return colors().onError; }
     public static int errorContainer() { return colors().errorContainer; }
+    public static int onErrorContainer() { return colors().onErrorContainer; }
     public static int scrim() { return colors().scrim; }
     public static int inverseSurface() { return colors().inverseSurface; }
     public static int inverseOnSurface() { return colors().inverseOnSurface; }
@@ -133,7 +134,7 @@ public final class M3 {
         public final int surfaceContainerLowest, surfaceContainerLow, surfaceContainer;
         public final int surfaceContainerHigh, surfaceContainerHighest, surfaceVariant;
         public final int onSurface, onSurfaceVariant, outline, outlineVariant;
-        public final int error, onError, errorContainer, scrim;
+        public final int error, onError, errorContainer, onErrorContainer, scrim;
         public final int inverseSurface, inverseOnSurface;
 
         public final boolean light;
@@ -148,8 +149,8 @@ public final class M3 {
             // tones follow the M3 baseline schemes: dark uses 80/20/30/90, light 40/100/90/10
             double pT = light ? 50 : 80, onPT = light ? 100 : 20, pcT = light ? 90 : 30, onPcT = light ? 22 : 90;
 
-            primary = rgb(pT, cp, h);
-            onPrimary = rgb(onPT, cp, h);
+            primary = seed;
+            onPrimary = readableOn(seed);
             primaryContainer = rgb(pcT, cp * (light ? 0.6 : 1), h);
             onPrimaryContainer = rgb(onPcT, cp, h);
 
@@ -183,6 +184,7 @@ public final class M3 {
                 error = rgb(50, 0.17, 25);
                 onError = rgb(100, 0, 25);
                 errorContainer = rgb(90, 0.06, 25);
+                onErrorContainer = rgb(22, 0.12, 25);
                 scrim = 0xFF000000;
 
                 inverseSurface = rgb(26, 0.02, ch);
@@ -205,6 +207,7 @@ public final class M3 {
                 error = rgb(80, 0.16, 25);
                 onError = rgb(20, 0.16, 25);
                 errorContainer = rgb(30, 0.16, 25);
+                onErrorContainer = rgb(90, 0.12, 25);
                 scrim = 0xFF000000;
 
                 inverseSurface = rgb(90, cn, h);

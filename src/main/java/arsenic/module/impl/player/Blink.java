@@ -11,6 +11,7 @@ import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.gui.design.M3;
 import arsenic.utils.lag.LagManager;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.util.Vec3;
@@ -64,7 +65,7 @@ public class Blink extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
         if (startPos == null) return;
-        RenderUtils.drawBoundingBox(startPos, new Color(255, 255, 255));
+        RenderUtils.drawBoundingBox(startPos, new Color(M3.primary()));
     };
 
     @Override

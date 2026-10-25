@@ -15,7 +15,7 @@ public final class M3Icons {
     public static final String CLIENT = "\uE8B8";
     public static final String GUI = "\uE429";
     public static final String SETTINGS = "\uE8B8";
-    public static final String VISUAL = "\uE40A";
+    public static final String VISUAL = "\uE8F4";
     public static final String ADVANCED = "\uE429";
     public static final String CONFIGS = "\uE2C7";
     public static final String ADDONS = "\uE87B";
@@ -120,6 +120,8 @@ public final class M3Icons {
             case "PLAYER":
                 return PLAYER;
             case "RENDER":
+            case "VISUAL":
+            case "VISUALS":
                 return RENDER;
             case "CLIENT":
                 return CLIENT;

@@ -1,259 +1,311 @@
 package arsenic.module.impl.visual;
 
-import arsenic.module.ModuleTier;
-import arsenic.utils.java.MathUtils;
-import arsenic.gui.themes.ThemeManager;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.gui.design.M3;
+import arsenic.gui.hud.HudStyle;
+import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.resources.model.IBakedModel;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemArmor;
+import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.item.ItemSword;
+import net.minecraft.item.ItemTool;
 import net.minecraft.util.StringUtils;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @ModuleInfo(name = "Nametags", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Nametags extends Module {
 
-    public final DoubleProperty tagScale = new DoubleProperty("Scale", new DoubleValue(0.5, 3, 1, 0.05));
-    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(8, 128, 64, 1));
-
-    private static final float BASE_SCALE = 0.02666667F;
-    private static final int PAD = 2;
-    private static final float ICON_SIZE = 12f;
-    private static final float ICON_SPACING = 14f;
+    public final DoubleProperty scaleProperty = new DoubleProperty("Scale", new DoubleValue(0.5, 3.0, 1.0, 0.1));
+    public final BooleanProperty showHealth = new BooleanProperty("Show Health", true);
+    public final BooleanProperty showDistance = new BooleanProperty("Show Distance", true);
+    public final BooleanProperty showArmor = new BooleanProperty("Show Armor", true);
+    public final BooleanProperty showEnchants = new BooleanProperty("Show Enchants", true);
+    public final BooleanProperty showInvisibles = new BooleanProperty("Show Invisibles", true);
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null) return;
+        IMixinRenderManager renderManager = (IMixinRenderManager) mc.getRenderManager();
+        double renderPosX = renderManager.getRenderPosX();
+        double renderPosY = renderManager.getRenderPosY();
+        double renderPosZ = renderManager.getRenderPosZ();
 
-        for (EntityPlayer player : Minecraft.getMinecraft().theWorld.playerEntities) {
-            if (player == mc.thePlayer) continue;
-            if (AntiBot.isBot(player)) continue;
-            if (player.isDead) continue;
-            if (mc.thePlayer.getDistanceToEntity(player) > range.getValue().getInput()) continue;
+        for (EntityPlayer player : mc.theWorld.playerEntities) {
+            if (!shouldRenderNametag(player)) {
+                continue;
+            }
 
-            double x = (player.lastTickPosX + (player.posX - player.lastTickPosX) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosX;
-            double y = (player.lastTickPosY + (player.posY - player.lastTickPosY) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosY;
-            double z = (player.lastTickPosZ + (player.posZ - player.lastTickPosZ) * event.partialTicks)
-                    - mc.getRenderManager().viewerPosZ;
+            double x = interpolate(player.lastTickPosX, player.posX, event.partialTicks) - renderPosX;
+            double y = interpolate(player.lastTickPosY, player.posY, event.partialTicks) - renderPosY;
+            double z = interpolate(player.lastTickPosZ, player.posZ, event.partialTicks) - renderPosZ;
 
-            String name = StringUtils.stripControlCodes(player.getName());
-            String healthText = true
-                    ? String.format(" §7%.1f", player.getHealth())
-                    : "";
-            String distText = false
-                    ? String.format(" §7[%.0f]", mc.thePlayer.getDistanceToEntity(player))
-                    : "";
-            String text = name + healthText + distText;
-
-            float scale = BASE_SCALE * (float) tagScale.getValue().getInput();
-
-            int textWidth = (int) Math.ceil(fr.getWidth(text));
-            int textHeight = (int) Math.ceil(fr.getHeight(text));
-            int left = -(textWidth / 2);
-            int right = left + textWidth;
-
-            float healthPercent = MathUtils.clamp01(player.getHealth() / player.getMaxHealth());
-            int healthColor = healthPercent > 0.5f ? 0xFF2ECC71
-                    : healthPercent > 0.25f ? 0xFFFFFF00
-                    : 0xFFFF0000;
-
-            GlStateManager.pushMatrix();
-            GL11.glTranslated(x, y + player.height + 0.6, z);
-            GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate((mc.gameSettings.thirdPersonView == 2 ? -1 : 1)
-                    * mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-            GlStateManager.scale(-scale, -scale, scale);
-            GlStateManager.disableLighting();
-            GlStateManager.disableDepth();
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-
-            drawGear(fr, collectGear(player));
-
-            Gui.drawRect(left - PAD, -PAD, right + PAD, textHeight + PAD, new Color(0, 0, 0, 110).getRGB());
-            int barRight = left - PAD + Math.round((textWidth + PAD * 2) * healthPercent);
-            Gui.drawRect(left - PAD, textHeight + PAD, barRight, textHeight + PAD + 1, healthColor);
-
-            GlStateManager.enableTexture2D();
-            fr.drawString(text, left, textHeight / 2f, 0xFFFFFFFF, fr.CENTREY);
-
-            GlStateManager.color(1f, 1f, 1f, 1f);
-            GlStateManager.disableBlend();
-            GlStateManager.enableDepth();
-            GlStateManager.popMatrix();
+            renderNametag(player, x, y, z);
         }
     };
 
-    private List<ItemStack> collectGear(EntityPlayer player) {
-        List<ItemStack> gear = new ArrayList<>();
-        ItemStack held = player.getHeldItem();
-        if (held != null) gear.add(held);
-        for (int i = 3; i >= 0; i--) {
-            ItemStack armor = player.getCurrentArmor(i);
-            if (armor != null) gear.add(armor);
-        }
-        return gear;
+    private boolean shouldRenderNametag(EntityPlayer player) {
+        if (player == mc.thePlayer || player.isDead)
+            return false;
+        if (AntiBot.isBot(player))
+            return false;
+        if (player.isInvisible() && !showInvisibles.getValue())
+            return false;
+        return mc.thePlayer.getDistanceToEntity(player) <= 250.0f;
     }
 
-    private void drawGear(FontRendererExtension<?> fr, List<ItemStack> gear) {
-        if (gear.isEmpty()) return;
+    private double interpolate(double prev, double current, float partialTicks) {
+        return prev + (current - prev) * partialTicks;
+    }
 
-        int count = gear.size();
-        float totalW = count * ICON_SPACING;
-        float startX = -totalW / 2f;
+    private void renderNametag(EntityPlayer player, double x, double y, double z) {
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        if (labelFr == null || bodyFr == null)
+            return;
 
-        float enchScale = 0.55f;
-        int enchLineH = (int) (fr.getHeight("A") * enchScale) + 1;
-        int maxEnchLines = 0;
-        List<List<String>> enchLists = new ArrayList<>();
-        for (ItemStack stack : gear) {
-            List<String> lines = true ? enchantLines(stack) : new ArrayList<>();
-            enchLists.add(lines);
-            maxEnchLines = Math.max(maxEnchLines, lines.size());
+        float distance = mc.thePlayer.getDistanceToEntity(player);
+        float scale = (float) (Math.max(1.25, distance * 0.14) * scaleProperty.getValue().getInput() * 0.024);
+
+        boolean isFriend = Arsenic.getArsenic().getFriendManager().isFriend(player);
+        String name = player.getDisplayName().getFormattedText();
+        if (name == null || name.trim().isEmpty()) {
+            name = StringUtils.stripControlCodes(player.getName());
         }
 
-        float enchBlockH = maxEnchLines * enchLineH;
-        float iconBottom = -6 - enchBlockH;
-        float iconTop = iconBottom - ICON_SIZE;
+        float health = Math.max(0f, player.getHealth());
+        float maxHealth = Math.max(1f, player.getMaxHealth());
+        float healthRatio = MathUtils.clamp01(health / maxHealth);
+
+        String distStr = showDistance.getValue() ? Math.round(distance) + "m" : null;
+        String hpStr = showHealth.getValue() ? String.format("%.1f", health) : null;
+
+        float padX = 6f;
+        float gap = 5f;
+        float cardH = 20f;
+        float barH = 2f;
+
+        float distW = distStr == null ? 0f : bodyFr.getWidth(distStr);
+
+        float nameW = labelFr.getWidth(name);
+        float hpChipPadX = 4f;
+        float hpChipW = hpStr == null ? 0f : (labelFr.getWidth(hpStr) + hpChipPadX * 2f);
+
+        float contentW = (distW > 0f ? distW + gap : 0f) + nameW + (hpChipW > 0f ? gap + hpChipW : 0f);
+        float cardW = Math.max(44f, contentW + padX * 2f);
+
+        float x1 = -cardW / 2f;
+        float x2 = cardW / 2f;
+        float y1 = -cardH;
+        float y2 = 0f;
+        float rowCy = y1 + (cardH - barH) / 2f;
 
         GlStateManager.pushMatrix();
-        mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
-        GlStateManager.enableTexture2D();
-        GlStateManager.enableAlpha();
-        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.01f);
-        GlStateManager.color(1, 1, 1, 1);
+        double yOffset = player.isSneaking() ? 0.55 : 0.72;
+        GlStateManager.translate(x, y + player.height + yOffset, z);
+        GL11.glNormal3f(0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0f, 1.0f, 0.0f);
+        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0f, 0.0f, 0.0f);
+        GlStateManager.scale(-scale, -scale, scale);
 
-        for (int i = 0; i < count; i++) {
-            TextureAtlasSprite sprite = resolveSprite(gear.get(i));
-            if (sprite == null) continue;
-            float left = startX + i * ICON_SPACING + (ICON_SPACING - ICON_SIZE) / 2f;
-            drawSprite(sprite, left, iconTop, ICON_SIZE);
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableCull();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+
+        // Card surface & outline
+        int bgCol = M3.alpha(M3.surfaceContainerLow(), 220);
+        int borderCol = isFriend
+                ? M3.alpha(M3.tertiary(), 210)
+                : M3.alpha(M3.outlineVariant(), 145);
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, 4.5f, bgCol);
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, 4.5f, 1f, borderCol);
+
+        // Bottom M3 health bar
+        int hpBarCol = healthBarColor(healthRatio);
+        int trackCol = M3.alpha(M3.surfaceContainerHighest(), 190);
+        DrawUtils.drawRoundedRect(x1 + 3f, y2 - barH - 1.5f, x2 - 3f, y2 - 1.5f, 1f, trackCol);
+        float fillW = (cardW - 6f) * healthRatio;
+        if (fillW > 0.5f) {
+            DrawUtils.drawRoundedRect(x1 + 3f, y2 - barH - 1.5f, x1 + 3f + fillW, y2 - 1.5f, 1f, hpBarCol);
         }
-        GlStateManager.disableAlpha();
-        GlStateManager.color(1, 1, 1, 1);
+
+        // Row elements: Distance -> Name -> Health Chip
+        float cursor = x1 + padX;
+        if (distStr != null) {
+            bodyFr.drawStringWithShadow(distStr, cursor, rowCy, 0xFFAAAAAA, bodyFr.CENTREY);
+            cursor += distW + gap;
+        }
+
+        int nameColor = isFriend ? 0xFF55FFFF : 0xFFFFFFFF;
+        labelFr.drawStringWithShadow(name, cursor, rowCy, nameColor, labelFr.CENTREY);
+
+        if (hpStr != null) {
+            int chipBg = healthRatio < 0.3f
+                    ? M3.alpha(M3.errorContainer(), 235)
+                    : M3.alpha(M3.primaryContainer(), 235);
+            int chipFg = healthRatio < 0.3f
+                    ? 0xFFFF6B6B
+                    : 0xFFFFFFFF;
+            float chipX2 = x2 - padX;
+            float chipX1 = chipX2 - hpChipW;
+            float chipH = 13f;
+            DrawUtils.drawRoundedRect(chipX1, rowCy - chipH / 2f, chipX2, rowCy + chipH / 2f, 3.5f, chipBg);
+            labelFr.drawStringWithShadow(hpStr, (chipX1 + chipX2) / 2f, rowCy, chipFg, labelFr.CENTREX, labelFr.CENTREY);
+        }
+
+        if (showArmor.getValue()) {
+            renderEquipment(player, y1 - 3f, bodyFr);
+        }
+
+        GlStateManager.enableCull();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         GlStateManager.popMatrix();
+    }
 
-        if (maxEnchLines > 0) {
-            for (int i = 0; i < count; i++) {
-                List<String> lines = enchLists.get(i);
-                float colCenter = startX + i * ICON_SPACING + ICON_SPACING / 2f;
-                for (int l = 0; l < lines.size(); l++) {
-                    String line = lines.get(l);
-                    GlStateManager.pushMatrix();
-                    float ty = iconBottom + l * enchLineH;
-                    GlStateManager.translate(colCenter, ty, 0);
-                    GlStateManager.scale(enchScale, enchScale, 1f);
-                    fr.drawString(line, (int) (-fr.getWidth(line) / 2f), 0, 0xFFFFFFFF);
-                    GlStateManager.popMatrix();
-                }
+    private void renderEquipment(EntityPlayer player, float bottomY, FontRendererExtension<?> bodyFr) {
+        List<ItemStack> items = new ArrayList<>(5);
+        if (player.getCurrentEquippedItem() != null) {
+            items.add(player.getCurrentEquippedItem());
+        }
+        for (int i = 3; i >= 0; i--) {
+            ItemStack stack = player.inventory.armorInventory[i];
+            if (stack != null) {
+                items.add(stack);
+            }
+        }
+        if (items.isEmpty())
+            return;
+
+        float slotSize = 18f;
+        float slotGap = 2.5f;
+        float totalW = items.size() * slotSize + (items.size() - 1) * slotGap;
+        float startX = -totalW / 2f;
+        float slotY = bottomY - slotSize;
+
+        // Draw tonal M3 item slots first while 2D blend state is clean
+        for (int i = 0; i < items.size(); i++) {
+            float sx = startX + i * (slotSize + slotGap);
+            DrawUtils.drawRoundedRect(sx, slotY, sx + slotSize, slotY + slotSize, 4f,
+                    M3.alpha(M3.surfaceContainerLow(), 205));
+            DrawUtils.drawRoundedOutline(sx, slotY, sx + slotSize, slotY + slotSize, 4f, 0.8f,
+                    M3.alpha(M3.outlineVariant(), 130));
+        }
+
+        // Render 16x16 item icons centered inside each 18x18 slot
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            int ix = Math.round(startX + i * (slotSize + slotGap) + 1f);
+            int iy = Math.round(slotY + 1f);
+            GlStateManager.pushMatrix();
+            RenderHelper.enableGUIStandardItemLighting();
+            mc.getRenderItem().zLevel = -100.0f;
+            mc.getRenderItem().renderItemAndEffectIntoGUI(stack, ix, iy);
+            mc.getRenderItem().renderItemOverlayIntoGUI(mc.fontRendererObj, stack, ix, iy, null);
+            mc.getRenderItem().zLevel = 0.0f;
+            RenderHelper.disableStandardItemLighting();
+            GlStateManager.popMatrix();
+        }
+
+        // Restore clean 2D billboard state after RenderItem before drawing enchantment tags
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableCull();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+
+        if (showEnchants.getValue()) {
+            for (int i = 0; i < items.size(); i++) {
+                float slotCx = startX + i * (slotSize + slotGap) + slotSize / 2f;
+                drawEnchantments(items.get(i), slotCx, slotY - 2f, bodyFr);
             }
         }
     }
 
-    private List<String> enchantLines(ItemStack stack) {
-        List<String> out = new ArrayList<>();
-        if (stack == null || !stack.isItemEnchanted()) return out;
-        NBTTagList list = stack.getEnchantmentTagList();
-        if (list == null) return out;
-        for (int i = 0; i < list.tagCount(); i++) {
-            int id = list.getCompoundTagAt(i).getShort("id");
-            int lvl = list.getCompoundTagAt(i).getShort("lvl");
-            out.add(abbreviate(id) + lvl);
+    private void drawEnchantments(ItemStack stack, float cx, float bottomY, FontRendererExtension<?> bodyFr) {
+        List<String> tags = collectEnchantTags(stack);
+        if (tags.isEmpty())
+            return;
+
+        float lineH = 7.5f;
+        float y = bottomY - lineH / 2f;
+        bodyFr.setScale(0.68f);
+        for (String tag : tags) {
+            float tw = bodyFr.getWidth(tag) + 3.5f;
+            DrawUtils.drawRoundedRect(cx - tw / 2f, y - 3.5f, cx + tw / 2f, y + 3.5f, 2f,
+                    M3.alpha(M3.surfaceContainerLowest(), 200));
+            int col = tag.equals("God") ? 0xFFFFD700 : 0xFFFFFFFF;
+            bodyFr.drawStringWithShadow(tag, cx, y, col, bodyFr.CENTREX, bodyFr.CENTREY);
+            y -= lineH;
         }
-        return out;
+        bodyFr.resetScale();
     }
 
-    private String abbreviate(int id) {
-        switch (id) {
-            case 0:  return "§bProt";
-            case 1:  return "§6FP";
-            case 2:  return "§fFF";
-            case 3:  return "§8BP";
-            case 4:  return "§ePP";
-            case 5:  return "§3Resp";
-            case 6:  return "§3AA";
-            case 7:  return "§2Thn";
-            case 8:  return "§3DS";
-            case 16: return "§cSharp";
-            case 17: return "§cSmite";
-            case 18: return "§cBane";
-            case 19: return "§7KB";
-            case 20: return "§6Fire";
-            case 21: return "§aLoot";
-            case 32: return "§aEff";
-            case 33: return "§7Silk";
-            case 34: return "§7Unb";
-            case 35: return "§aFort";
-            case 48: return "§cPow";
-            case 49: return "§7Pun";
-            case 50: return "§6Flame";
-            case 51: return "§eInf";
-            default:
-                Enchantment ench = Enchantment.getEnchantmentById(id);
-                if (ench != null) {
-                    String n = StringUtils.stripControlCodes(net.minecraft.client.resources.I18n.format(ench.getName()));
-                    return n.length() > 3 ? n.substring(0, 3) : n;
-                }
-                return "?";
+    private List<String> collectEnchantTags(ItemStack stack) {
+        List<String> list = new ArrayList<>(4);
+        if (stack.getItem() instanceof ItemArmor) {
+            addEnchant(list, "P", EnchantmentHelper.getEnchantmentLevel(Enchantment.protection.effectId, stack));
+            addEnchant(list, "Th", EnchantmentHelper.getEnchantmentLevel(Enchantment.thorns.effectId, stack));
+            addEnchant(list, "U", EnchantmentHelper.getEnchantmentLevel(Enchantment.unbreaking.effectId, stack));
+        } else if (stack.getItem() instanceof ItemSword) {
+            addEnchant(list, "S", EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack));
+            addEnchant(list, "KB", EnchantmentHelper.getEnchantmentLevel(Enchantment.knockback.effectId, stack));
+            addEnchant(list, "F", EnchantmentHelper.getEnchantmentLevel(Enchantment.fireAspect.effectId, stack));
+            addEnchant(list, "U", EnchantmentHelper.getEnchantmentLevel(Enchantment.unbreaking.effectId, stack));
+        } else if (stack.getItem() instanceof ItemBow) {
+            addEnchant(list, "Pw", EnchantmentHelper.getEnchantmentLevel(Enchantment.power.effectId, stack));
+            addEnchant(list, "Pn", EnchantmentHelper.getEnchantmentLevel(Enchantment.punch.effectId, stack));
+            addEnchant(list, "Fl", EnchantmentHelper.getEnchantmentLevel(Enchantment.flame.effectId, stack));
+        } else if (stack.getItem() instanceof ItemTool) {
+            addEnchant(list, "E", EnchantmentHelper.getEnchantmentLevel(Enchantment.efficiency.effectId, stack));
+            addEnchant(list, "S", EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack));
+        } else if (stack.getItem() == Items.golden_apple && stack.hasEffect()) {
+            list.add("God");
+        }
+        return list;
+    }
+
+    private static void addEnchant(List<String> list, String prefix, int level) {
+        if (level > 0) {
+            list.add(prefix + level);
         }
     }
 
-    private TextureAtlasSprite resolveSprite(ItemStack stack) {
-        try {
-            IBakedModel model = mc.getRenderItem().getItemModelMesher().getItemModel(stack);
-            if (model != null) {
-                TextureAtlasSprite sprite = model.getParticleTexture();
-                if (sprite != null) return sprite;
-            }
-        } catch (Exception ignored) {}
-        return null;
-    }
-
-    private void drawSprite(TextureAtlasSprite sprite, float left, float top, float size) {
-        float minU = sprite.getMinU();
-        float maxU = sprite.getMaxU();
-        float minV = sprite.getMinV();
-        float maxV = sprite.getMaxV();
-        float right = left + size;
-        float bottom = top + size;
-
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        wr.pos(left, bottom, 0).tex(minU, maxV).endVertex();
-        wr.pos(right, bottom, 0).tex(maxU, maxV).endVertex();
-        wr.pos(right, top, 0).tex(maxU, minV).endVertex();
-        wr.pos(left, top, 0).tex(minU, minV).endVertex();
-        tess.draw();
+    private static int healthBarColor(float ratio) {
+        if (ratio >= 0.5f) {
+            return M3.primary();
+        } else if (ratio >= 0.25f) {
+            return M3.mix(M3.error(), M3.primary(), (ratio - 0.25f) / 0.25f);
+        }
+        return M3.error();
     }
 }

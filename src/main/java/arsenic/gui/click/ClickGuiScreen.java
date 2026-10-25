@@ -342,13 +342,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float mascotTop = railY2 - 10f - MASCOT_H;
         if (addonMode) {
             // the addon list scrolls in the space above the mascot's slot
-            addonPage.drawSidebar(railX1 + 9f, railY1 + 60f,
-                    railX1 + 8f, railX2 - 8f, mascotTop - 6f, ri);
+            float sideX1 = railX1 + 8f, sideX2 = railX2 - 8f, sideY1 = railY1 + 60f, sideY2 = mascotTop - 6f;
+            boolean sideCaptured = beginListCapture();
+            addonPage.drawSidebar(railX1 + 9f, sideY1, sideX1, sideX2, sideY2, ri);
+            if (sideCaptured)
+                endListCapture(sideX1, sideY1, sideX2, sideY2, addonPage.sideHiddenAbove(), addonPage.sideHiddenBelow());
+
             drawMascot(mascotTop - 6f, mouseX, mouseY);
         } else {
             PosInfo pi = new PosInfo(railX1 + 9f, railY1 + 60f);
             components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
-            drawMascot(pi.getY(), mouseX, mouseY);
+            drawMascot(mascotTop - 6f, mouseX, mouseY);
         }
 
         searchComponent.updateComponent(new PosInfo(searchX1, searchY1), ri);
@@ -370,12 +374,29 @@ public class ClickGuiScreen extends CustomGuiScreen {
         ModuleCategoryComponent.contentWidth = contentX2 - contentX1;
         float top = contentY1 + 2f;
         if (addonMode) {
-            addonPage.drawContent(colX, colX + colW + colGap, contentY1, contentX2 - colX - 4f, ri);
+            float slide = slideProgress();
+            float span = contentX2 - contentX1;
+            if (slide < 1f && slideFrom != null) {
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                slideFrom.drawLeft(new PosInfo(colX + off, top), ri);
+                slideFrom.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
+                Hover.suppress(wasSuppressed);
+            }
+            float off = slide < 1f && slideFrom != null ? slideDir * span * (1f - slide) : 0f;
+            addonPage.drawContent(colX + off, colX + colW + colGap + off, contentY1, contentX2 - colX - 4f, ri);
             addonPage.subtractFromMaxScrollHeight(contentY2 - contentY1);
         } else {
             float slide = slideProgress();
             float span = contentX2 - contentX1;
-            if (slide < 1f && slideFrom != null && slideFrom != cmcc) {
+            if (slide < 1f && slideFromAddon) {
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                addonPage.drawContent(colX + off, colX + colW + colGap + off, contentY1, contentX2 - colX - 4f, ri);
+                Hover.suppress(wasSuppressed);
+            } else if (slide < 1f && slideFrom != null && slideFrom != cmcc) {
                 // the old category leaves; it can't take the cursor on its way out
                 float off = -slideDir * span * slide;
                 boolean wasSuppressed = Hover.isSuppressed();
@@ -510,7 +531,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private float reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2;
     private static final Object LOGO_KEY = new Object(), MASCOT_KEY = new Object();
     /** In the addon manager the scene keeps this much of the rail; the addon list scrolls above it. */
-    private static final float MASCOT_H = 120f;
+    private static final float MASCOT_H = 151f;
     private static final Object RELOAD_KEY = new Object(), BLATANT_KEY = new Object(),
             ADDON_KEY = new Object(), HUD_KEY = new Object();
 
@@ -638,8 +659,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
      * units of scrolling, so an unscrolled list starts crisp.
      */
     private void endListCapture(float hiddenAbove, float hiddenBelow) {
+        endListCapture(contentX1, contentY1, contentX2, contentY2, hiddenAbove, hiddenBelow);
+    }
+
+    private void endListCapture(float x1, float y1, float x2, float y2, float hiddenAbove, float hiddenBelow) {
         restoreListTarget();
-        float x1 = contentX1, x2 = contentX2, y1 = contentY1, y2 = contentY2;
+
         float f = Math.min(LIST_FADE, (y2 - y1) / 4f);
         float u1 = GuiCanvas.pixelX(x1) / mc.displayWidth, u2 = GuiCanvas.pixelX(x2) / mc.displayWidth;
 
@@ -752,6 +777,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (addonMode == on)
             return;
         addonMode = on;
+        slideFrom = on ? cmcc : null;
+        slideFromAddon = !on;
+        slideDir = on ? 1f : -1f;
+        slideStart = System.currentTimeMillis();
+        Hover.reset();
         contentSwitchTime = System.currentTimeMillis();
         if (searchComponent != null)
             ((SearchComponent) searchComponent).setQuery("");
@@ -797,6 +827,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
             int from = navIndex(cmcc), to = navIndex(mcc);
             slideDir = to >= from ? 1f : -1f;
             slideFrom = cmcc;
+            slideFromAddon = false;
             slideStart = System.currentTimeMillis();
             Hover.reset();
             cmcc.setCurrentCategory(false);
@@ -806,6 +837,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         }
     }
     private ModuleCategoryComponent slideFrom;
+    private boolean slideFromAddon;
     private float slideDir = 1f;
     private long slideStart;
     private static final int SLIDE_MS = 280;

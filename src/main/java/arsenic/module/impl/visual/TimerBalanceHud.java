@@ -3,8 +3,12 @@ package arsenic.module.impl.visual;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.event.impl.EventShader;
+import arsenic.gui.design.M3;
+import arsenic.gui.hud.HudEditorScreen;
 import arsenic.gui.hud.HudElement;
-import arsenic.main.Arsenic;
+import arsenic.gui.hud.HudStyle;
+import arsenic.utils.render.DrawUtils;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
@@ -17,12 +21,12 @@ import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.lag.PingTracker;
 import arsenic.utils.lag.TimerBalance;
-import arsenic.utils.render.DrawUtils;
+import net.minecraft.client.gui.GuiChat;
 
 /**
  * Shows the timer balance {@link TimerBalance} estimates Grim has for us: how far movement packets can run ahead of
  * real time, out of the most that can be banked at the current transaction ping. The numbers are sampled every Update
- * Rate so they stay readable; the bar eases toward each new sample. Drawn like TargetHUD's simple mode.
+ * Rate so they stay readable; the bar eases toward each new sample.
  */
 @ModuleInfo(name = "TimerBalance", category = ModuleCategory.RENDER, description = "Shows how many ticks Grim's timer would let you send ahead", tier = ModuleTier.QOL)
 public class TimerBalanceHud extends Module {
@@ -32,11 +36,12 @@ public class TimerBalanceHud extends Module {
     @PropertyGroup(Group.ADVANCED)
     public final BooleanProperty showFlags = new BooleanProperty("Show Predicted Flags", false);
 
-    private static final int WIDTH = 130, HEIGHT = 40, PAD = 5, RADIUS = 8, BAR_HEIGHT = 6;
+    private static final int WIDTH = 136, HEIGHT = 42;
+    private static final float PAD = 7f, BAR_HEIGHT = 4.5f;
     /** Fraction of the remaining distance the bar closes per 1/60 s. */
     private static final float BAR_EASE = 0.15f;
 
-    private final HudElement hud = hudElement("Timer Balance", 4, 240, WIDTH, HEIGHT);
+    private final HudElement hud = hudElement("Timer Balance", 6, 240, WIDTH, HEIGHT);
 
     // last sample
     private long sampledAt;
@@ -51,37 +56,62 @@ public class TimerBalanceHud extends Module {
         lastFrame = 0;
     }
 
+    private boolean shouldRender() {
+        return mc.currentScreen == null
+                || mc.currentScreen instanceof GuiChat
+                || mc.currentScreen instanceof HudEditorScreen;
+    }
+
     @EventLink
     public final Listener<EventRender2D> onRender2D = event -> {
-        if (mc.thePlayer == null)
+        if (mc.thePlayer == null || !shouldRender())
             return;
         sample();
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
-        if (fr == null)
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        if (bodyFr == null || labelFr == null)
             return;
 
-        int x = hud.x, y = hud.y;
-        int theme = 0xFF000000 | Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        DrawUtils.drawRoundedRect(x, y, x + WIDTH, y + HEIGHT, RADIUS, 0x801A1A1A);
-        DrawUtils.drawBorderedRoundedRect(x, y, x + WIDTH, y + HEIGHT, RADIUS, 2, theme, 0x00000000);
-
-        float row = y + 9.5f;
-        fr.drawStringWithShadow("Timer", x + PAD, row, 0xFFFFFFFF, fr.CENTREY);
-        String tickText = ticks + (ticks == 1 ? " tick" : " ticks");
-        fr.drawStringWithShadow(tickText, x + WIDTH - PAD - fr.getWidth(tickText), row, theme, fr.CENTREY);
-
-        int barY = y + 18, barWidth = WIDTH - PAD * 2;
-        DrawUtils.drawRoundedRect(x + PAD, barY, x + PAD + barWidth, barY + BAR_HEIGHT, BAR_HEIGHT / 2f, 0x40404040);
-        float fillWidth = barWidth * easeFill(maxMs <= 0 ? 0 : Math.min(1f, (float) balanceMs / maxMs));
-        if (fillWidth >= 1)
-            DrawUtils.drawRoundedRect(x + PAD, barY, x + PAD + Math.max(BAR_HEIGHT, fillWidth), barY + BAR_HEIGHT, BAR_HEIGHT / 2f, theme);
-
-        float detail = y + 31.5f;
-        String left = balanceMs + " / " + maxMs + " ms";
-        fr.drawString(left, x + PAD, detail, 0xFFCCCCCC, fr.CENTREY);
-        String right = showFlags.getValue() ? flags + " flags" : ping + " ping";
-        fr.drawString(right, x + WIDTH - PAD - fr.getWidth(right), detail, 0xFFCCCCCC, fr.CENTREY);
         hud.setSize(WIDTH, HEIGHT);
+        float x = HudStyle.snap(hud.x);
+        float y = HudStyle.snap(hud.y);
+
+        HudStyle.card(x, y, x + WIDTH, y + HEIGHT, HudStyle.RADIUS_CARD, 195);
+
+        // Row 1: "Timer" on left, spare ticks pill chip on right
+        float row1Cy = y + PAD + 5.5f;
+        labelFr.drawString("Timer", x + PAD, row1Cy, M3.onSurface(), labelFr.CENTREY);
+
+        String tickText = ticks + (ticks == 1 ? " tick" : " ticks");
+        HudStyle.rightChip(labelFr, tickText, x + WIDTH - PAD, row1Cy, 11.5f, 4.5f,
+                M3.primaryContainer(), M3.onPrimaryContainer());
+
+        // Row 2: M3 linear progress bar
+        float barY1 = y + 21f;
+        float barY2 = barY1 + BAR_HEIGHT;
+        float fillPct = easeFill(maxMs <= 0 ? 0f : Math.min(1f, (float) balanceMs / maxMs));
+        HudStyle.progressBar(x + PAD, barY1, x + WIDTH - PAD, barY2,
+                fillPct, 0f, M3.primary(), 0, M3.alpha(M3.surfaceContainerHighest(), 220));
+
+        // Row 3: ms balance on left, ping / flags on right
+        float row2Cy = y + HEIGHT - PAD - 3.5f;
+        String left = balanceMs + " / " + maxMs + " ms";
+        String right = showFlags.getValue() ? flags + " flags" : ping + " ms";
+        bodyFr.setScale(0.88f);
+        bodyFr.drawString(left, x + PAD, row2Cy, M3.onSurfaceVariant(), bodyFr.CENTREY);
+        bodyFr.drawString(right, x + WIDTH - PAD - bodyFr.getWidth(right), row2Cy, M3.onSurfaceVariant(), bodyFr.CENTREY);
+        bodyFr.resetScale();
+
+        HudStyle.resetGl();
+    };
+
+    @EventLink
+    public final Listener<EventShader.Blur> blurListener = event -> {
+        if (mc.thePlayer == null || !shouldRender())
+            return;
+        float x = HudStyle.snap(hud.x);
+        float y = HudStyle.snap(hud.y);
+        DrawUtils.drawRoundedRect(x, y, x + WIDTH, y + HEIGHT, HudStyle.RADIUS_CARD, 0xFFFFFFFF);
     };
 
     /** Takes new numbers once every Update Rate. */

@@ -29,7 +29,10 @@ Write Minecraft code with the usual MCP names (`mc.thePlayer`, `mc.theWorld.play
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventTick;
-import arsenic.module.*;
+import arsenic.module.Module;
+import arsenic.module.ModuleCategory;
+import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 
 @ModuleInfo(name = "Example", category = ModuleCategory.PLAYER)
 public class Example extends Module {
@@ -1201,6 +1204,7 @@ public class BedCover extends Module {
 
 ## Pitfalls
 
+- **Always use explicit imports for `arsenic.module` classes** (`import arsenic.module.Module;`, `import arsenic.module.ModuleCategory;`, `import arsenic.module.ModuleInfo;`, `import arsenic.module.ModuleTier;`). Do **not** write `import arsenic.module.*;` (on Java 9+ runtimes `java.lang.Module` from the implicit `java.lang.*` package collides with wildcard imports).
 - **Act from the right event.** Place from `EventSilentRotation.Post` using `event.getRayTrace()`; break/attack by deciding
   in `Post` and acting on the next `EventTick`. Never act from `EventTick` in the tick you asked for the rotation. See
   [Legit actions](#legit-actions-rotate-then-act).
@@ -1261,7 +1265,81 @@ public final Listener<EventRender2D> onRender = event -> {
 ```
 
 `hud.x` / `hud.y` are the saved, draggable position. Pass `true` as a last argument for an element anchored to the
-right screen edge (`x` is then an offset from the right). Positions are saved in the module's config entry.
+`hud.x` / `hud.y` are the saved, draggable position. Pass `true` as a last argument for an element anchored to the right screen edge (`x` is then an offset from the right). Positions are saved in the module's config entry.
+
+### HUD Design System (Material Design 3 + Glass/Tonal Style)
+
+All built-in HUD elements and addon HUD panels share the ClickGUI's **Material Design 3 (`M3`) + Glass/Tonal** design system (`arsenic.gui.design.M3`, `arsenic.gui.design.M3Icons`, and `arsenic.gui.hud.HudStyle`). Follow these rules so addon HUDs look native and stay pixel-centered on every Minecraft GUI scale (`1`, `2`, `3`, `4`):
+
+1. **Color Roles (`M3`) — Never Hardcode Hex Backgrounds or Accents:**
+   - **Card & Pill Surfaces:** Use `HudStyle.card(x1, y1, x2, y2, radius)` (which automatically draws soft elevation shadows, `M3.surfaceContainerLow()`/`M3.surfaceContainer()` tonal fill, subtle liquid-glass specular film, and a `1px` `M3.outlineVariant()` hairline border).
+   - **Tonal Containers & Chips:**
+     - Primary emphasis (active state, main counter badge): `M3.primaryContainer()` fill with `M3.onPrimaryContainer()` text/icon.
+     - Secondary emphasis (neutral icon badge, secondary tag): `M3.secondaryContainer()` fill with `M3.onSecondaryContainer()` text/icon.
+     - Warning / Caution: `M3.tertiaryContainer()` fill with `M3.onTertiaryContainer()` text/icon, or `M3.tertiary()` accent.
+     - Danger / Error / Expiring: `M3.errorContainer()` fill with `M3.onErrorContainer()` text/icon, or `M3.error()` accent.
+     - Neutral pill / track: `M3.alpha(M3.surfaceContainerHigh(), 220)` or `M3.alpha(M3.surfaceContainerHighest(), 215)`.
+   - **Typography Colors:** Primary text in `M3.onSurface()`, secondary/muted labels in `M3.onSurfaceVariant()`, accent highlights in `M3.primary()`.
+
+2. **Typography (`HudStyle`) & Icons (`M3Icons`):**
+   - Use `HudStyle.label()` (medium weight `Inter`) for titles, headers, module names, and pill chip values.
+   - Use `HudStyle.body()` (regular weight `Inter`) for body text, telemetry, and secondary values.
+   - Use `M3Icons` glyphs (`M3Icons.BRAND`, `M3Icons.CUBE`, `M3Icons.TIMER`, `M3Icons.SHIELD`, `M3Icons.HEART`, `M3Icons.SPEED`, `M3Icons.CHECK`, `M3Icons.WARNING`, `M3Icons.ERROR`, etc.) via `HudStyle.iconBadge(...)`, `M3Icons.drawCentered(...)`, or `M3Icons.drawLeft(...)`.
+
+3. **Pixel-Perfect Centring Across All GUI Scales (Zero 1px Offsets):**
+   - **Snap coordinates to physical pixels:** Always pass box origins and sizes through `HudStyle.snap(v)` so cards and pills land on exact device pixel boundaries on GUI scales 1, 2, 3, and 4.
+   - **Equal Outer Margins:** If an inner badge or avatar has height `innerH` inside a card of height `cardH`, its top, bottom, and side margins must be equal: `margin = (cardH - innerH) / 2f` (e.g., a `14f` badge inside a `20f` compact card has `margin = 3f` on top, bottom, left, and right; a `32f` avatar inside a `46f` card has `margin = 7f` on top, bottom, left, and right).
+   - **Always Center Text & Icons on `cy`:** Never guess top-left `y` offsets like `y + 4` or `y + 5`. Compute the exact vertical center of the row or card (`float cy = y + h / 2f;`) and pass `fr.CENTREY` (and `fr.CENTREX` for horizontal centring):
+     - `TTFontRenderer` measures the true visual cap-height of `'H'` and centers capital letters and digits mathematically on `cy`, while centering `M3Icons` PUA glyphs on `(cx, cy)`.
+
+4. **Complete M3 Addon HUD Template:**
+
+```java
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
+import arsenic.gui.hud.HudElement;
+import arsenic.gui.hud.HudStyle;
+import arsenic.utils.font.FontRendererExtension;
+
+private final HudElement hudPanel = hudElement("My Addon", 6, 120, 136, 42);
+
+@EventLink
+public final Listener<EventRender2D> onRender2D = event -> {
+    if (!hud.getValue() || mc.thePlayer == null) return;
+    FontRendererExtension<?> bodyFr = HudStyle.body();
+    FontRendererExtension<?> labelFr = HudStyle.label();
+    if (bodyFr == null || labelFr == null) return;
+
+    float w = 136f, h = 42f, pad = 7f;
+    hudPanel.setSize((int) w, (int) h);
+    float x = HudStyle.snap(hudPanel.x);
+    float y = HudStyle.snap(hudPanel.y);
+
+    // 1. M3 Card surface (shadow + tonal fill + glass film + hairline outline)
+    HudStyle.card(x, y, x + w, y + h, HudStyle.RADIUS_CARD);
+
+    // 2. Top row: icon + title on left, tonal pill chip on right (both centered on row1Cy)
+    float row1Cy = y + pad + 5.5f;
+    M3Icons.drawLeft(M3Icons.CUBE, x + pad, row1Cy, M3.primary(), 0.85f);
+    labelFr.drawString("My Addon", x + pad + 12.5f, row1Cy, M3.onSurface(), labelFr.CENTREY);
+    HudStyle.rightChip(labelFr, placed + " placed", x + w - pad, row1Cy, 11.5f, 4.5f,
+            M3.primaryContainer(), M3.onPrimaryContainer());
+
+    // 3. Middle row: M3 linear progress bar
+    float barY1 = y + 21f, barY2 = barY1 + 4.5f;
+    HudStyle.progressBar(x + pad, barY1, x + w - pad, barY2,
+            progress, 0f, M3.primary(), 0, M3.alpha(M3.surfaceContainerHighest(), 220));
+
+    // 4. Bottom row: secondary telemetry centered on row2Cy
+    float row2Cy = y + h - pad - 3.5f;
+    bodyFr.setScale(0.88f);
+    bodyFr.drawString(target != null ? "Active" : "Idle", x + pad, row2Cy, M3.onSurfaceVariant(), bodyFr.CENTREY);
+    String rightStat = String.format("%.1f/s", rate);
+    bodyFr.drawString(rightStat, x + w - pad - bodyFr.getWidth(rightStat), row2Cy, M3.onSurfaceVariant(), bodyFr.CENTREY);
+    bodyFr.resetScale();
+    HudStyle.resetGl();
+};
+```
 
 ## Addon packs
 
@@ -2451,7 +2529,8 @@ public class ColorUtils extends UtilityClass {
     public static int setColor(int value, int i, int newValue);
     public static int withAlpha(int rgb, int alpha);
     /** Keeps the colour and scales its alpha to 0..1 of full. */ public static int withAlpha(int rgb, float alpha);
-    /** Blends the rgb channels only; the result has no alpha. */ public static int mixRgb(int a, int b, float t);
+    /** Blends the rgb channels only; the result has no alpha. */ public static int intMixRgb(int a, int b, float t);
+    public static int mixRgb(int a, int b, float t);
     /** Blends two argb colours channel by channel, alpha included. */ public static int mixArgb(int a, int b, float t);
     public static float luminance(int rgb);
     public static int getColor(int value, int i);

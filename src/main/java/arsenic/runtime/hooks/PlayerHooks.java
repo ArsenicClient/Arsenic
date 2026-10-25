@@ -9,7 +9,7 @@ import arsenic.module.impl.client.Cape;
 import arsenic.module.impl.client.CapeHandler;
 import arsenic.module.impl.ghost.HitSelect;
 import arsenic.module.impl.movement.NoJumpDelay;
-import arsenic.module.impl.visual.SwingAnimation;
+import arsenic.utils.render.FirstPersonRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -50,7 +50,7 @@ public final class PlayerHooks {
 
     /** EntityLivingBase.getArmSwingAnimationEnd HEAD_RETURN; -1 keeps vanilla. */
     public static int swingDuration(EntityLivingBase self) {
-        return SwingAnimation.swingDuration(self);
+        return FirstPersonRender.swingDuration(self);
     }
 
     /** EntityPlayerSP.onUpdateWalkingPlayer HEAD. @return true to cancel */

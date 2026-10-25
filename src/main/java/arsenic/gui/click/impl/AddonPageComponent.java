@@ -6,6 +6,7 @@ import arsenic.module.Module;
 import arsenic.gui.click.GuiStyle;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.Hover;
 import arsenic.gui.design.M3;
 import arsenic.gui.design.M3Icons;
 import arsenic.gui.themes.ThemeManager;
@@ -36,7 +37,7 @@ import java.util.function.Supplier;
 
 /**
  * What the ClickGUI shows while the Addon Manager is open, laid out like the module view. The category column becomes
- * a list of "All addons", every pack, "Loose addons" and (when something failed to load) "Errors", grouped and drawn
+ * a list of "All addons", "Loose addons", (when something failed to load) "Errors", and every pack, grouped and drawn
  * like the module categories, and scrollable when it does not fit. The main area shows the selected pack's header
  * (icon, description and how many of its addons are on) and then its addons in two columns, each drawn like a module: a switch
  * on the right, and a dropdown (chevron or right click) with the description and what it needs. Typing in the search
@@ -45,6 +46,7 @@ import java.util.function.Supplier;
 public class AddonPageComponent {
 
     private static final String ALL = "\u0000all", LOOSE = "\u0000loose", ERRORS = "\u0000errors";
+    private static final int SLIDE_MS = 280;
 
     private final Supplier<String> query;
     private final Runnable clearQuery;
@@ -64,10 +66,17 @@ public class AddonPageComponent {
     private final Map<Module, ModuleComponent> moduleRows = new HashMap<>();
     private List<AddonCardComponent> blocks = new ArrayList<>();
     private List<Component> left = new ArrayList<>(), right = new ArrayList<>();
+
+    /** Snapshot of the outgoing page during a 280ms horizontal slide between packs/tabs. */
+    private List<AddonCardComponent> slideFromBlocks = new ArrayList<>();
+    private List<Component> slideFromLeft = new ArrayList<>(), slideFromRight = new ArrayList<>();
+    private float slideFromScroll;
+    private float slideDir = 1f;
+    private long slideStart;
+
     private String laidOutFor;
     private String lastQuery;
     private boolean resetScroll = true;
-    private long switchTime = System.currentTimeMillis() - 1000L;
     private float scroll, targetScroll, maxHeight, lastMaxScroll;
 
     public AddonPageComponent(Supplier<String> query, Runnable clearQuery) {
@@ -78,7 +87,10 @@ public class AddonPageComponent {
     /** Scroll back to the top the next time the list is laid out (used when the page is opened). */
     public void reset() {
         resetScroll = true;
-        switchTime = System.currentTimeMillis();
+        slideFromBlocks.clear();
+        slideFromLeft.clear();
+        slideFromRight.clear();
+        slideStart = 0L;
     }
 
     /** Re-reads what is on disk (call when the page opens and after any change). */
@@ -94,7 +106,7 @@ public class AddonPageComponent {
 
         if (!selected.equals(ALL) && !selected.equals(LOOSE) && !selected.equals(ERRORS) && findPack(selected) == null)
             selected = ALL;
-        if ((selected.equals(LOOSE) && loose.isEmpty()) || (selected.equals(ERRORS) && errors.isEmpty()))
+        if (selected.equals(ERRORS) && errors.isEmpty())
             selected = ALL;
 
         Map<String, SidebarEntry> previous = new HashMap<>();
@@ -103,15 +115,12 @@ public class AddonPageComponent {
         sidebar.clear();
         addEntry(previous, null, "Addons", null, false);
         addEntry(previous, ALL, "All addons", "presets", false);
+        addEntry(previous, LOOSE, "Loose addons", "local", false);
+        if (!errors.isEmpty())
+            addEntry(previous, ERRORS, "Errors (" + errors.size() + ")", "other", false);
         addEntry(previous, null, "Packs", null, false);
         for (AddonManager.PackInfo pack : packs)
             addEntry(previous, pack.meta.id, pack.meta.name, pack.meta.icon, true);
-        if (!loose.isEmpty() || !errors.isEmpty())
-            addEntry(previous, null, "Other", null, false);
-        if (!loose.isEmpty())
-            addEntry(previous, LOOSE, "Loose addons", "local", false);
-        if (!errors.isEmpty())
-            addEntry(previous, ERRORS, "Errors (" + errors.size() + ")", "other", false);
         laidOutFor = null;
     }
 
@@ -133,14 +142,43 @@ public class AddonPageComponent {
         return null;
     }
 
+    private int navIndex(String key) {
+        int i = 0;
+        for (SidebarEntry entry : sidebar) {
+            if (entry.key == null)
+                continue;
+            if (entry.key.equals(key))
+                return i;
+            i++;
+        }
+        return i;
+    }
+
+    private float slideProgress() {
+        if (!GuiStyle.transitionEnabled())
+            return 1f;
+        float t = MathUtils.clamp01((System.currentTimeMillis() - slideStart) / (float) SLIDE_MS);
+        float u = 1f - t;
+        return 1f - u * u * u;
+    }
+
     private void select(String key) {
         if (key.equals(selected) && query.get().trim().isEmpty())
             return;
+        relayoutIfNeeded();
+        int from = navIndex(selected), to = navIndex(key);
+        slideDir = to >= from ? 1f : -1f;
+        slideFromBlocks = new ArrayList<>(blocks);
+        slideFromLeft = new ArrayList<>(left);
+        slideFromRight = new ArrayList<>(right);
+        slideFromScroll = scroll;
+        slideStart = System.currentTimeMillis();
+        Hover.reset();
+
         clearQuery.run();
         selected = key;
         resetScroll = true;
         laidOutFor = null;
-        switchTime = System.currentTimeMillis();
     }
 
     /** An addon as a module row: the same row a module gets, kept across layouts and reloads. */
@@ -179,8 +217,9 @@ public class AddonPageComponent {
             for (AddonManager.Info info : addons)
                 list.add(row(info));
         } else if (selected.equals(LOOSE)) {
-            top.add(AddonCardComponent.section("Loose addons", "Single .java files in the Arsenic/addons folder that are "
-                    + "not part of a pack."));
+            top.add(AddonCardComponent.section("Loose addons", loose.isEmpty()
+                    ? "No loose addons installed. Drop single .java files into the Arsenic/addons folder to load standalone addons here."
+                    : "Single .java files in the Arsenic/addons folder that are not part of a pack."));
             for (AddonManager.Info info : loose)
                 list.add(row(info));
         } else if (selected.equals(ERRORS)) {
@@ -238,9 +277,21 @@ public class AddonPageComponent {
             entry.active = entry.key != null && q.isEmpty() && entry.key.equals(selected);
             pi.moveY(entry.updateComponent(pi, ri) * 1.1f);
         }
-        ScissorUtils.endSubScissor();
         sideMaxScroll = Math.max(0, (pi.getY() - start) - (bottom - top));
         sideTargetScroll = Math.max(sideTargetScroll, -sideMaxScroll);
+        ScissorUtils.endSubScissor();
+
+        if (sideMaxScroll > 0) {
+            float viewH = bottom - top;
+            float barH = Math.max(12f, viewH - 8f);
+            float barY = top + 4f;
+            float barX = panelX2 - 3.5f;
+            float thumbH = Math.max(16f, barH * (viewH / (viewH + sideMaxScroll)));
+            float ratio = MathUtils.clamp01(-sideScroll / sideMaxScroll);
+            float thumbY = barY + ratio * (barH - thumbH);
+            DrawUtils.drawRoundedRect(barX, barY, barX + 2f, barY + barH, 1f, ThemeManager.getScrollbarTrack());
+            DrawUtils.drawRoundedRect(barX, thumbY, barX + 2f, thumbY + thumbH, 1f, ThemeManager.getScrollbarThumb());
+        }
     }
 
     /** True when the pointer is over the left column (the mouse wheel scrolls it instead of the list). */
@@ -266,27 +317,39 @@ public class AddonPageComponent {
             scroll = targetScroll;
 
         float gap = ri.getGuiScreen().width / 100f;
-        PosInfo pi = new PosInfo(leftX, top + scroll + gap + contentReveal());
-        for (AddonCardComponent block : blocks) {
+        float slide = slideProgress();
+        float span = fullWidth + 8f;
+
+        if (slide < 1f && (!slideFromBlocks.isEmpty() || !slideFromLeft.isEmpty() || !slideFromRight.isEmpty())) {
+            float off = -slideDir * span * slide;
+            boolean wasSuppressed = Hover.isSuppressed();
+            Hover.suppress(true);
+            drawPage(slideFromBlocks, slideFromLeft, slideFromRight,
+                    leftX + off, rightX + off, top + slideFromScroll + gap, fullWidth, gap, ri);
+            Hover.suppress(wasSuppressed);
+        }
+
+        float off = slide < 1f ? slideDir * span * (1f - slide) : 0f;
+        float bottomY = drawPage(blocks, left, right,
+                leftX + off, rightX + off, top + scroll + gap, fullWidth, gap, ri);
+        maxHeight = bottomY - (top + scroll);
+    }
+
+    private float drawPage(List<AddonCardComponent> pageBlocks, List<Component> pageLeft, List<Component> pageRight,
+                           float leftX, float rightX, float startY, float fullWidth, float gap, RenderInfo ri) {
+        PosInfo pi = new PosInfo(leftX, startY);
+        for (AddonCardComponent block : pageBlocks) {
             block.setPixelWidth(fullWidth);
             pi.moveY(block.updateComponent(pi, ri) + gap);
         }
         float columnsTop = pi.getY();
         PosInfo l = new PosInfo(leftX, columnsTop);
-        for (Component r : left)
+        for (Component r : pageLeft)
             l.moveY(r.updateComponent(l, ri) + gap);
         PosInfo rr = new PosInfo(rightX, columnsTop);
-        for (Component r : right)
+        for (Component r : pageRight)
             rr.moveY(r.updateComponent(rr, ri) + gap);
-        maxHeight = Math.max(l.getY(), rr.getY()) - (top + scroll);
-    }
-
-    private float contentReveal() {
-        if (!GuiStyle.transitionEnabled())
-            return 0f;
-        float p = MathUtils.clamp01((System.currentTimeMillis() - switchTime) / (float) M3.DUR_MEDIUM);
-        p = 1f - (1f - p) * (1f - p) * (1f - p);
-        return (1f - p) * 8f;
+        return Math.max(l.getY(), rr.getY());
     }
 
     public void clickSidebar(int mouseX, int mouseY, int mouseButton) {
@@ -321,6 +384,9 @@ public class AddonPageComponent {
 
     /** How much of the list is still below the view, in GUI units (valid after subtractFromMaxScrollHeight). */
     public float hiddenBelow() { return Math.max(0f, maxHeight + scroll); }
+
+    public float sideHiddenAbove() { return Math.max(0f, -sideScroll); }
+    public float sideHiddenBelow() { return Math.max(0f, sideMaxScroll + sideScroll); }
 
     public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
         if (maxHeight <= 0)
@@ -389,7 +455,7 @@ public class AddonPageComponent {
         @Override
         public void mouseUpdate(int mouseX, int mouseY) {
             isHovered = key != null && isOverSidebar(mouseX, mouseY)
-                    && arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
+                    && Hover.test(this, x1, y1, x2, y2);
         }
 
         @Override

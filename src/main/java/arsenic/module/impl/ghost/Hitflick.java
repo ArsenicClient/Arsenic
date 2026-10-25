@@ -8,6 +8,7 @@ import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventSilentRotation;
+import arsenic.gui.design.M3;
 import arsenic.main.Arsenic;
 import arsenic.injection.accessor.IMixinEntity;
 import arsenic.module.Module;
@@ -225,28 +226,40 @@ public class Hitflick extends Module {
         double vz = mc.getRenderManager().viewerPosZ;
 
         for (VoidArrow arrow : voidArrows) {
-            float alpha = 1f - (now - arrow.spawnTime) / (float) ARROW_LIFETIME_MS;
+            float raw = 1f - (now - arrow.spawnTime) / (float) ARROW_LIFETIME_MS;
+            float alpha = raw * raw * (3f - 2f * raw);
             double baseX = arrow.x, baseY = arrow.y + 1.2, baseZ = arrow.z;
 
-            wr.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_COLOR);
-            addArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, OUTLINE_THICKNESS,
-                    0f, 0f, 0f, alpha, vx, vy, vz);
-            tessellator.draw();
+            int glowCol = M3.primary();
+            int outlineCol = M3.surfaceContainerLowest();
+            int tailCol = M3.primaryContainer();
+            int tipCol = M3.primary();
 
             wr.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_COLOR);
-            addArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, 0,
-                    1f, 1f, 1f, alpha, vx, vy, vz);
+            addM3ArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, OUTLINE_THICKNESS * 2.1,
+                    glowCol, glowCol, alpha * 0.24f, vx, vy, vz);
+            addM3ArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, OUTLINE_THICKNESS,
+                    outlineCol, outlineCol, alpha * 0.88f, vx, vy, vz);
+            addM3ArrowTriangles(wr, baseX, baseY, baseZ, arrow.dirX, arrow.dirZ, 0,
+                    tailCol, tipCol, alpha * 0.96f, vx, vy, vz);
             tessellator.draw();
         }
 
         RenderUtils.endWorldOverlay();
     };
 
-    /** An upright arrow: it points along the push direction and its width runs vertically. */
-    private static void addArrowTriangles(WorldRenderer wr, double baseX, double baseY, double baseZ,
-                                           double dirX, double dirZ, double expand,
-                                           float r, float g, float b, float a,
-                                           double vx, double vy, double vz) {
+    /** An upright M3 arrow: it points along the push direction and its width runs vertically. */
+    private static void addM3ArrowTriangles(WorldRenderer wr, double baseX, double baseY, double baseZ,
+                                            double dirX, double dirZ, double expand,
+                                            int tailRgb, int tipRgb, float a,
+                                            double vx, double vy, double vz) {
+        float tr = ((tailRgb >> 16) & 0xFF) / 255f;
+        float tg = ((tailRgb >> 8) & 0xFF) / 255f;
+        float tb = (tailRgb & 0xFF) / 255f;
+        float hr = ((tipRgb >> 16) & 0xFF) / 255f;
+        float hg = ((tipRgb >> 8) & 0xFF) / 255f;
+        float hb = (tipRgb & 0xFF) / 255f;
+
         double tailX = baseX - dirX * expand;
         double tailZ = baseZ - dirZ * expand;
         double tipX = baseX + dirX * (ARROW_LENGTH + expand);
@@ -257,17 +270,17 @@ public class Hitflick extends Module {
         double shaftHalf = SHAFT_HALF_WIDTH + expand;
         double headHalf = HEAD_HALF_WIDTH + expand;
 
-        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftEndX, baseY + shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, tr, tg, tb, a);
+        vertex(wr, shaftEndX, baseY + shaftHalf, shaftEndZ, vx, vy, vz, hr, hg, hb, a);
+        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, hr, hg, hb, a);
 
-        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, tailX, baseY - shaftHalf, tailZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, tailX, baseY + shaftHalf, tailZ, vx, vy, vz, tr, tg, tb, a);
+        vertex(wr, shaftEndX, baseY - shaftHalf, shaftEndZ, vx, vy, vz, hr, hg, hb, a);
+        vertex(wr, tailX, baseY - shaftHalf, tailZ, vx, vy, vz, tr, tg, tb, a);
 
-        vertex(wr, shaftEndX, baseY + headHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, tipX, baseY, tipZ, vx, vy, vz, r, g, b, a);
-        vertex(wr, shaftEndX, baseY - headHalf, shaftEndZ, vx, vy, vz, r, g, b, a);
+        vertex(wr, shaftEndX, baseY + headHalf, shaftEndZ, vx, vy, vz, hr, hg, hb, a);
+        vertex(wr, tipX, baseY, tipZ, vx, vy, vz, hr, hg, hb, a);
+        vertex(wr, shaftEndX, baseY - headHalf, shaftEndZ, vx, vy, vz, hr, hg, hb, a);
     }
 
     private static void vertex(WorldRenderer wr, double x, double y, double z,

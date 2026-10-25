@@ -1,7 +1,7 @@
 {
   "id": "movement",
   "name": "Movement",
-  "description": "Key-press helpers only: edge jumps, auto walk, keyboard-style tap resolution and an opt-in stasis freeze (flag-prone).",
+  "description": "Key-press helpers only: edge jumps, auto walk, and keyboard-style tap resolution.",
   "icon": "textures/items/leather_boots.png",
   "autoInstall": false,
   "addons": {

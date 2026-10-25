@@ -98,7 +98,7 @@ public final class Backdrop {
             GlStateManager.disableTexture2D();
             GlStateManager.disableAlpha();
             GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GlStateManager.shadeModel(GL11.GL_SMOOTH);
             GL11.glBegin(GL11.GL_QUADS);
             GL11.glColor4f(r, g, b, top);

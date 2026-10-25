@@ -30,7 +30,7 @@ public class DrawUtils extends UtilityClass {
      * everything else keeps main's look.
      */
     private static boolean legacy() {
-        return !GuiCanvas.isActive();
+        return false;
     }
 
     public static float overrideScaleFactor = -1f;
@@ -54,7 +54,8 @@ public class DrawUtils extends UtilityClass {
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 771);
+        RenderUtils.applyGuiBlend();
         GlStateManager.shadeModel(7425);
         Tessellator tess = Tessellator.getInstance();
         WorldRenderer wr = tess.getWorldRenderer();
@@ -201,7 +202,7 @@ public class DrawUtils extends UtilityClass {
         shadowShader.init();
         shadowShader.setUniformf("quadSize", qw * sf, qh * sf);
         shadowShader.setUniformf("rectSize", w * sf, h * sf);
-        shadowShader.setUniformf("radius", Math.max(0f, radius));
+        shadowShader.setUniformf("radius", Math.max(0f, radius * sf));
         shadowShader.setUniformf("spread", spread * sf);
         shadowShader.setUniformf("color", 0f, 0f, 0f, Math.min(255, alpha) / 255f);
         ShaderUtil.drawQuads(qx, qy, qw, qh);
@@ -357,6 +358,7 @@ public class DrawUtils extends UtilityClass {
         glEnable(GL_BLEND);
         glEnable(GL_LINE_SMOOTH);
         RenderUtils.setColor(color);
+        RenderUtils.applyGuiBlend();
     }
 
     private static void finish() {

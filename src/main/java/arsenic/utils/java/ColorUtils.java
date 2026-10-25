@@ -1,5 +1,6 @@
 package arsenic.utils.java;
 
+import arsenic.gui.design.M3;
 import arsenic.gui.themes.Theme;
 import arsenic.main.Arsenic;
 import arsenic.utils.render.RenderUtils;
@@ -28,6 +29,10 @@ public class ColorUtils extends UtilityClass {
     }
 
     /** Blends the rgb channels only; the result has no alpha. */
+    public static int intMixRgb(int a, int b, float t) {
+        return mixRgb(a, b, t);
+    }
+
     public static int mixRgb(int a, int b, float t) {
         int r = (int) ((a >> 16 & 0xFF) + ((b >> 16 & 0xFF) - (a >> 16 & 0xFF)) * t);
         int g = (int) ((a >> 8 & 0xFF) + ((b >> 8 & 0xFF) - (a >> 8 & 0xFF)) * t);
@@ -52,16 +57,18 @@ public class ColorUtils extends UtilityClass {
     }
 
     public static int getThemeRainbowColor(long speed, long delay) {
-        speed *= 1000;
-        delay *= -1;
-        float percent = ((System.currentTimeMillis() + delay) % speed)/((float) speed);
-        percent =TickMode.SINE.toSmoothPercent(2 * percent);
+        long period = Math.max(1L, speed * 1000L);
+        float percent = Math.floorMod(System.currentTimeMillis() - delay, period) / (float) period;
+        percent = TickMode.SINE.toSmoothPercent(2f * percent);
         Theme theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme();
-        return RenderUtils.interpolateColoursInt(theme.getMainColor(), theme.getWhite(), percent);
+        int secondary = theme.isGradientEnabled() ? theme.getGradientColor() : theme.getWhite();
+        return RenderUtils.interpolateColoursInt(theme.getMainColor(), secondary, percent);
     }
 
     public static int getRainbow(float speed, long delay) {
-        return Color.HSBtoRGB(((System.currentTimeMillis() + delay) % (int)(speed * 1000)) / (speed * 1000), 0.6f, 0.86f);
+        long period = Math.max(1L, (long) (speed * 1000f));
+        float hue = Math.floorMod(System.currentTimeMillis() - delay, period) / (float) period;
+        return Color.HSBtoRGB(hue, 0.6f, 0.88f);
     }
 
 }

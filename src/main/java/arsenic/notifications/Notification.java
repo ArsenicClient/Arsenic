@@ -1,11 +1,17 @@
 package arsenic.notifications;
 
-import arsenic.utils.timer.MSTimer;
-import arsenic.main.Arsenic;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
+import arsenic.gui.hud.HudStyle;
+import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.java.MathUtils;
 import arsenic.utils.render.DrawUtils;
+import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.Minecraft;
 
 public class Notification {
+    public static final int HEIGHT = 34;
+
     protected static final Minecraft mc = Minecraft.getMinecraft();
     private final NotificationType type;
     private final String title;
@@ -14,7 +20,7 @@ public class Notification {
     public final long fadedIn;
     public final long fadeOut;
     public final long end;
-    public float currentY;
+    public float currentY = -1f;
     public float targetY;
 
     public Notification(NotificationType type, String title, String message, int length) {
@@ -23,7 +29,7 @@ public class Notification {
         this.message = message;
         fadedIn = 200L * length;
         fadeOut = fadedIn + 1500L * length;
-        end = fadeOut + 300L * length;
+        end = fadeOut + 300L * length;
     }
 
     public boolean isShown() {
@@ -34,48 +40,78 @@ public class Notification {
         return timer.getTime();
     }
 
-    public void render(int x, float y, float alpha) {
+    public void render(float x, float y, float alpha) {
+        alpha = MathUtils.clamp01(alpha);
         if (alpha <= 0.01f) return;
 
-        int width = getWidth();
-        int height = 30;
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        if (bodyFr == null || labelFr == null) return;
 
-        int bgColor = ((int) (0x90 * alpha) << 24) | 0x101010;
-        int borderColor = getBorderColor(alpha);
+        float width = getWidth();
+        float height = HEIGHT;
+        float sx = HudStyle.snap(x);
+        float sy = HudStyle.snap(y);
+        float cy = sy + height / 2f;
+        float pad = 7f;
+        float badgeSize = 20f;
 
-        DrawUtils.drawRoundedRect(x, y, x + width, y + height, 4, bgColor);
-        DrawUtils.drawRoundedOutline(x, y, x + width, y + height, 4, 1, borderColor);
+        HudStyle.card(sx, sy, sx + width, sy + height, HudStyle.RADIUS_CARD, (int) (235 * alpha));
 
-        int textColor = ((int) (0xFF * alpha) << 24) | 0xFFFFFF;
-        int subColor = ((int) (0xCC * alpha) << 24) | 0xCCCCCC;
-
-        mc.fontRendererObj.drawString(title, x + 8, (int) y + 5, textColor);
-        mc.fontRendererObj.drawString(message, x + 8, (int) y + 17, subColor);
-    }
-
-    private int getBorderColor(float alpha) {
-        int alphaMask = (int) (0xFF * alpha) << 24;
-        int themeColor = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        int r = (themeColor >> 16) & 0xFF;
-        int g = (themeColor >> 8) & 0xFF;
-        int b = themeColor & 0xFF;
+        int badgeBg, badgeFg, barColor;
+        String glyph;
         switch (type) {
-            case INFO:
-                return alphaMask | ((r) << 16) | ((g) << 8) | b;
             case WARNING:
-                return alphaMask | 0xFFD600;
+                badgeBg = M3.alpha(M3.tertiaryContainer(), (int) (235 * alpha));
+                badgeFg = M3.alpha(M3.onTertiaryContainer(), (int) (255 * alpha));
+                barColor = M3.alpha(M3.tertiary(), (int) (220 * alpha));
+                glyph = M3Icons.WARNING;
+                break;
+            case ERROR:
+                badgeBg = M3.alpha(M3.errorContainer(), (int) (235 * alpha));
+                badgeFg = M3.alpha(M3.onErrorContainer(), (int) (255 * alpha));
+                barColor = M3.alpha(M3.error(), (int) (220 * alpha));
+                glyph = M3Icons.ERROR;
+                break;
+            case INFO:
             default:
-                return alphaMask | 0xFF1744;
+                badgeBg = M3.alpha(M3.primaryContainer(), (int) (235 * alpha));
+                badgeFg = M3.alpha(M3.onPrimaryContainer(), (int) (255 * alpha));
+                barColor = M3.alpha(M3.primary(), (int) (220 * alpha));
+                glyph = M3Icons.CHECK;
+                break;
         }
+
+        HudStyle.iconBadge(sx + pad, cy, badgeSize, 6f, glyph, badgeBg, badgeFg);
+
+        float textX = HudStyle.snap(sx + pad + badgeSize + 7f);
+        float row1Cy = sy + 11.5f;
+        float row2Cy = sy + 22.5f;
+
+        labelFr.drawString(title, textX, row1Cy, M3.alpha(M3.onSurface(), (int) (255 * alpha)), labelFr.CENTREY);
+        bodyFr.drawString(message, textX, row2Cy, M3.alpha(M3.onSurfaceVariant(), (int) (235 * alpha)), bodyFr.CENTREY);
+
+        // Subtle remaining-time progress line along the bottom inset
+        float progress = 1f - MathUtils.clamp01((float) getTime() / (float) Math.max(1L, end));
+        if (progress > 0.01f) {
+            float barX1 = sx + pad;
+            float barMaxW = width - pad * 2f;
+            float barY2 = sy + height - 2f;
+            float barY1 = barY2 - 1.5f;
+            DrawUtils.drawRoundedRect(barX1, barY1, barX1 + barMaxW * progress, barY2, 0.75f, barColor);
+        }
+        HudStyle.resetGl();
     }
 
     public int getWidth() {
-        int titleW = mc.fontRendererObj.getStringWidth(title);
-        int msgW = mc.fontRendererObj.getStringWidth(message);
-        return Math.max(Math.max(titleW, msgW) + 24, 120);
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        float titleW = labelFr != null ? labelFr.getWidth(title) : mc.fontRendererObj.getStringWidth(title);
+        float msgW = bodyFr != null ? bodyFr.getWidth(message) : mc.fontRendererObj.getStringWidth(message);
+        return Math.max((int) Math.ceil(Math.max(titleW, msgW) + 44f), 132);
     }
 
-    private int getHeight() {
-        return 30;
+    public int getHeight() {
+        return HEIGHT;
     }
 }

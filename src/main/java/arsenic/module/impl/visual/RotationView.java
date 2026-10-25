@@ -1,17 +1,20 @@
 package arsenic.module.impl.visual;
 
-import arsenic.module.ModuleTier;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.gui.design.M3;
 import arsenic.gui.hud.HudElement;
+import arsenic.gui.hud.HudStyle;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.font.FontRendererExtension;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.capture.RenderTargets;
 import arsenic.utils.render.capture.SilentView;
@@ -21,8 +24,6 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.MathHelper;
 import org.lwjgl.opengl.GL11;
-
-import java.awt.*;
 
 /**
  * Debug picture-in-picture of the world from the silent (server-side) rotation, for tuning Scaffold / KillAura
@@ -35,7 +36,7 @@ public class RotationView extends Module {
     public final BooleanProperty onlyWhenRotating = new BooleanProperty("Only When Rotating", false);
     public final BooleanProperty crosshair = new BooleanProperty("Crosshair", true);
 
-    private final HudElement hud = hudElement("Rotation View", 4, 140, 160, 90);
+    private final HudElement hud = hudElement("Rotation View", 6, 140, 160, 108);
 
     /** Whether the silent pass should run this frame for the picture-in-picture. */
     public boolean wantsFrame() {
@@ -53,10 +54,26 @@ public class RotationView extends Module {
     public final Listener<EventRender2D> onRender2D = event -> {
         if (!wantsFrame() || !SilentView.hasFrame())
             return;
-        int w = (int) (event.getSr().getScaledWidth() * size.getValue().getInput() / 100);
-        int h = w * mc.displayHeight / mc.displayWidth;
-        hud.setSize(w, h);
-        int x = hud.x, y = hud.y;
+
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        if (labelFr == null || bodyFr == null)
+            return;
+
+        int viewW = (int) (event.getSr().getScaledWidth() * size.getValue().getInput() / 100);
+        int viewH = viewW * mc.displayHeight / mc.displayWidth;
+        float pad = 3.5f;
+        float footerH = 16f;
+        int totalW = Math.round(viewW + pad * 2f);
+        int totalH = Math.round(viewH + pad * 2f + footerH);
+        hud.setSize(totalW, totalH);
+
+        float x = HudStyle.snap(hud.x);
+        float y = HudStyle.snap(hud.y);
+        HudStyle.card(x, y, x + totalW, y + totalH, HudStyle.RADIUS_CARD, 225);
+
+        float vx = HudStyle.snap(x + pad);
+        float vy = HudStyle.snap(y + pad);
 
         boolean blend = GL11.glIsEnabled(GL11.GL_BLEND);
         GlStateManager.disableBlend();
@@ -66,27 +83,42 @@ public class RotationView extends Module {
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer wr = tessellator.getWorldRenderer();
         wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        wr.pos(x, y + h, 0).tex(0, 0).endVertex();
-        wr.pos(x + w, y + h, 0).tex(1, 0).endVertex();
-        wr.pos(x + w, y, 0).tex(1, 1).endVertex();
-        wr.pos(x, y, 0).tex(0, 1).endVertex();
+        wr.pos(vx, vy + viewH, 0).tex(0, 0).endVertex();
+        wr.pos(vx + viewW, vy + viewH, 0).tex(1, 0).endVertex();
+        wr.pos(vx + viewW, vy, 0).tex(1, 1).endVertex();
+        wr.pos(vx, vy, 0).tex(0, 1).endVertex();
         tessellator.draw();
         GlStateManager.bindTexture(0);
         if (blend)
             GlStateManager.enableBlend();
 
-        if (crosshair.getValue()) {
-            float cx = x + w / 2f, cy = y + h / 2f;
-            int c = new Color(255, 255, 255, 200).getRGB();
-            DrawUtils.drawRect(cx - 3, cy - 0.5f, cx + 3, cy + 0.5f, c);
-            DrawUtils.drawRect(cx - 0.5f, cy - 3, cx + 0.5f, cy + 3, c);
-        }
-        int theme = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        DrawUtils.drawRoundedOutline(x, y, x + w, y + h, 2f, 1f, theme);
+        DrawUtils.drawRoundedOutline(vx, vy, vx + viewW, vy + viewH, 3.5f, 1f, M3.alpha(M3.outlineVariant(), 150));
 
-        String info = String.format("%s %.1f / %.1f  cam %.1f / %.1f", SilentView.isSilent() ? "silent" : "camera",
-                MathHelper.wrapAngleTo180_float(SilentView.getViewYaw()), SilentView.getViewPitch(),
-                MathHelper.wrapAngleTo180_float(mc.thePlayer.rotationYaw), mc.thePlayer.rotationPitch);
-        mc.fontRendererObj.drawStringWithShadow(info, x + 2, y + h + 2, -1);
+        if (crosshair.getValue()) {
+            float cx = vx + viewW / 2f;
+            float cy = vy + viewH / 2f;
+            int shadow = M3.alpha(M3.surfaceContainerLowest(), 190);
+            int arm = M3.alpha(M3.onSurface(), 220);
+            DrawUtils.drawRect(cx - 4.5f, cy - 1f, cx + 4.5f, cy + 1f, shadow);
+            DrawUtils.drawRect(cx - 1f, cy - 4.5f, cx + 1f, cy + 4.5f, shadow);
+            DrawUtils.drawRect(cx - 3.5f, cy - 0.5f, cx + 3.5f, cy + 0.5f, arm);
+            DrawUtils.drawRect(cx - 0.5f, cy - 3.5f, cx + 0.5f, cy + 3.5f, arm);
+            DrawUtils.drawCircle(cx, cy, 1.0f, M3.primary());
+        }
+
+        float footerCy = vy + viewH + (footerH + pad) / 2f;
+        boolean silent = SilentView.isSilent();
+        String modeTag = silent ? "SILENT" : "CAMERA";
+        int chipBg = silent ? M3.primaryContainer() : M3.alpha(M3.surfaceContainerHigh(), 215);
+        int chipFg = silent ? M3.onPrimaryContainer() : M3.onSurfaceVariant();
+        float chipW = HudStyle.chip(labelFr, modeTag, vx + 1f, footerCy, 11f, 4f, chipBg, chipFg);
+
+        String angles = String.format("%.1f° / %.1f°",
+                MathHelper.wrapAngleTo180_float(SilentView.getViewYaw()), SilentView.getViewPitch());
+        bodyFr.setScale(0.86f);
+        bodyFr.drawString(angles, vx + viewW - 1f - bodyFr.getWidth(angles), footerCy, M3.onSurfaceVariant(), bodyFr.CENTREY);
+        bodyFr.resetScale();
+
+        HudStyle.resetGl();
     };
 }

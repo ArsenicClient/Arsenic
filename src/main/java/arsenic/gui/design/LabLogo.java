@@ -58,7 +58,8 @@ public final class LabLogo {
         Minecraft.getMinecraft().getTextureManager().bindTexture(logo);
         GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 771);
+        RenderUtils.applyGuiBlend();
         RenderUtils.color2(M3.onSurface(), 0.93f + 0.07f * hover);
         Tessellator tess = Tessellator.getInstance();
         WorldRenderer wr = tess.getWorldRenderer();

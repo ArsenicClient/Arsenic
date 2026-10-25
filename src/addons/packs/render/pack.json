@@ -1,10 +1,12 @@
 {
   "id": "render",
   "name": "Render",
-  "description": "Client-side visuals only: highlights for blocks, items, projectiles, TNT and the block you aim at, trails, jump and kill effects, waypoints and light levels, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
+  "description": "Client-side visuals only: highlights for blocks, items, projectiles, TNT and the block you aim at, trails, jump and kill effects, waypoints, light levels, first-person view model and swing animations, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
   "icon": "textures/items/ender_eye.png",
   "autoInstall": false,
   "addons": {
+    "ViewModel": "Offsets, scales and adds glow or chams to the held item in first person.",
+    "SwingAnimation": "Custom first-person swing animation styles and swing speed.",
     "NoBob": "Turns off view bobbing while enabled and gives the setting back when disabled.",
     "ItemESP": "Highlights dropped items through walls within a chosen range, in the theme colour.",
     "ProjectileESP": "Highlights arrows, fireballs, ender pearls and other thrown items through walls, each in its own colour.",

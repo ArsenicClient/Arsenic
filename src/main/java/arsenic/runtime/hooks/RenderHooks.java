@@ -17,8 +17,9 @@ import arsenic.module.impl.visual.Nametags;
 import arsenic.module.impl.visual.NoHurtCam;
 import arsenic.module.impl.visual.PostProcessing;
 import arsenic.module.impl.visual.RotationView;
-import arsenic.module.impl.visual.SwingAnimation;
-import arsenic.module.impl.visual.ViewModel;
+import arsenic.utils.render.FirstPersonRender;
+
+
 import arsenic.module.impl.visual.custommainmenu.ScreenTransition;
 import arsenic.utils.render.ChamsRenderer;
 import arsenic.utils.render.capture.RenderTargets;
@@ -254,8 +255,8 @@ public final class RenderHooks {
             GlStateManager.enableRescaleNormal();
             GlStateManager.pushMatrix();
 
-            ViewModel viewModel = Arsenic.getArsenic().getModuleManager().getModuleByClass(ViewModel.class);
-            boolean viewModelActive = viewModel != null && viewModel.isEnabled();
+            FirstPersonRender.ViewModelHandler viewModel = FirstPersonRender.getViewModelHandler();
+            boolean viewModelActive = viewModel != null && viewModel.isActive();
             if (viewModelActive)
                 viewModel.applyPosition();
 
@@ -285,9 +286,9 @@ public final class RenderHooks {
                     }
                 } else {
                     DO_ITEM_USED_TRANSFORMATIONS.invoke(self, swingProgress);
-                    SwingAnimation swing = Arsenic.getArsenic().getModuleManager()
-                            .getModuleByClass(SwingAnimation.class);
-                    if (swing != null && swing.isEnabled())
+                    FirstPersonRender.SwingHandler swing = FirstPersonRender.getSwingHandler();
+
+                    if (swing != null && swing.isActive())
                         swing.applyTransform(f, swingProgress);
                     else
                         TRANSFORM_FIRST_PERSON_ITEM.invoke(self, f, swingProgress);
@@ -298,10 +299,10 @@ public final class RenderHooks {
 
                 Runnable drawHeldItem = () -> self.renderItem(player, itemToRender,
                         ItemCameraTransforms.TransformType.FIRST_PERSON);
-                if (viewModelActive && viewModel.glowMode() == ViewModel.GlowMode.Glow)
+                if (viewModelActive && viewModel.glowPass() == FirstPersonRender.GlowPass.BEFORE)
                     viewModel.renderHeldGlow(drawHeldItem);
                 drawHeldItem.run();
-                if (viewModelActive && viewModel.glowMode() == ViewModel.GlowMode.Cham)
+                if (viewModelActive && viewModel.glowPass() == FirstPersonRender.GlowPass.AFTER)
                     viewModel.renderHeldGlow(drawHeldItem);
             }
 

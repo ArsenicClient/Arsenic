@@ -75,7 +75,8 @@ final class PixelArt {
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 771);
+        arsenic.utils.render.RenderUtils.applyGuiBlend();
         wr = Tessellator.getInstance().getWorldRenderer();
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
     }
