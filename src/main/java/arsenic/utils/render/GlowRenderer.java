@@ -323,7 +323,7 @@ public final class GlowRenderer {
             return buffer;
         if (buffer != null)
             buffer.deleteFramebuffer();
-        return new Framebuffer(width, height, depth);
+        return ShaderUtil.clearedFramebuffer(new Framebuffer(width, height, depth));
     }
 
     private void restoreViewport() {
