@@ -35,10 +35,23 @@ public class BlockHit extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRunTick> eventTickListener = event -> {
-        if(!isPlayerHoldingSword())
+        // a stale target (killed, left the world, or ran away) must not keep blocking on every
+        // fall/mob hit far away from any fight
+        if (target != null && (target.isDead || target.worldObj != mc.theWorld
+                || target.getDistanceToEntity(mc.thePlayer) > 8f)) {
+            target = null;
+            if (down)
+                release();
+        }
+        if (!isPlayerHoldingSword()) {
+            // the key stays down otherwise: un-equipping the sword would leave the block stuck
+            if (down)
+                release();
             return;
-        if(target == null) {
-            if(down) release();
+        }
+        if (target == null) {
+            if (down)
+                release();
             return;
         }
         if(!down && target.hurtTime > hurtime.getValue().getInput()) {

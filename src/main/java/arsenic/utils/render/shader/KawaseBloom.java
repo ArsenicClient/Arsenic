@@ -19,7 +19,7 @@ public class KawaseBloom {
     public static ShaderUtil kawaseDown = new ShaderUtil("kawaseDownBloom");
     public static ShaderUtil kawaseUp = new ShaderUtil("kawaseUpBloom");
 
-    public static Framebuffer framebuffer = new Framebuffer(1, 1, true);
+    public static Framebuffer framebuffer = ShaderUtil.clearedFramebuffer(new Framebuffer(1, 1, true));
 
 
     private static int currentIterations;
@@ -36,7 +36,7 @@ public class KawaseBloom {
 
 
         for (int i = 1; i <= iterations; i++) {
-            Framebuffer currentBuffer = new Framebuffer((int) (mc.displayWidth / Math.pow(2, i)), (int) (mc.displayHeight / Math.pow(2, i)), true);
+            Framebuffer currentBuffer = ShaderUtil.clearedFramebuffer(new Framebuffer((int) (mc.displayWidth / Math.pow(2, i)), (int) (mc.displayHeight / Math.pow(2, i)), true));
             currentBuffer.setFramebufferFilter(GL_LINEAR);
 
             GlStateManager.bindTexture(currentBuffer.framebufferTexture);

@@ -18,7 +18,7 @@ public class KawaseBlur {
     public static ShaderUtil kawaseDown = new ShaderUtil("kawaseDown");
     public static ShaderUtil kawaseUp = new ShaderUtil("kawaseUp");
 
-    public static Framebuffer framebuffer = new Framebuffer(1, 1, false);
+    public static Framebuffer framebuffer = ShaderUtil.clearedFramebuffer(new Framebuffer(1, 1, false));
 
     public static void setupUniforms(float offset) {
         kawaseDown.setUniformf("offset", offset, offset);
@@ -39,7 +39,7 @@ public class KawaseBlur {
 
 
         for (int i = 1; i <= iterations; i++) {
-            Framebuffer currentBuffer = new Framebuffer((int) (mc.displayWidth / Math.pow(2, i)), (int) (mc.displayHeight / Math.pow(2, i)), false);
+            Framebuffer currentBuffer = ShaderUtil.clearedFramebuffer(new Framebuffer((int) (mc.displayWidth / Math.pow(2, i)), (int) (mc.displayHeight / Math.pow(2, i)), false));
             currentBuffer.setFramebufferFilter(GL_LINEAR);
             GlStateManager.bindTexture(currentBuffer.framebufferTexture);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL14.GL_MIRRORED_REPEAT);
