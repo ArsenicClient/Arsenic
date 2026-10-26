@@ -314,7 +314,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private long hoverSince;
     private boolean hintDismissed;
     private static final long HINT_DELAY_MS = 900;
-    private static final String HINT = "Click to configure. Toggle the switch. Middle-click to bind.";
+    private static final String HINT = "Click to configure. Toggle the switch. Click the key box to bind.";
 
     /** The usage hint, once the header has been hovered a while without being clicked. */
     private void queueHint(RenderInfo ri) {

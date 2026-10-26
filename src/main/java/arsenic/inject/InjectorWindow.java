@@ -49,6 +49,7 @@ final class InjectorWindow {
     private final ActionButton removeLunarButton = new ActionButton("Remove");
     private final IconButton refreshButton = new IconButton(IconButton.REFRESH, "Refresh");
     private final Toggle showAll = new Toggle("Show every Java process");
+    private final Toggle autoUpdate = new Toggle("Auto-update");
     private final ProgressBar progress = new ProgressBar();
     private final JLabel statusLabel = new JLabel(" ");
     private final JTextArea log = new JTextArea();
@@ -203,6 +204,10 @@ final class InjectorWindow {
         logToggle.addActionListener(this::toggleLog);
         JPanel linkRow = transparent(new FlowLayout(FlowLayout.LEFT, 0, 0));
         linkRow.add(logToggle);
+        autoUpdate.setSelected(Updater.isEnabled());
+        autoUpdate.onChange(() -> Updater.setEnabled(autoUpdate.isSelected()));
+        linkRow.add(Box.createHorizontalStrut(16));
+        linkRow.add(autoUpdate);
         statusColumn.add(linkRow);
         row.add(statusColumn, BorderLayout.CENTER);
         injectButton.addActionListener(this::injectSelected);
@@ -976,6 +981,11 @@ final class InjectorWindow {
 
         boolean isSelected() {
             return selected;
+        }
+
+        void setSelected(boolean selected) {
+            this.selected = selected;
+            repaint();
         }
 
         void onChange(Runnable onChange) {

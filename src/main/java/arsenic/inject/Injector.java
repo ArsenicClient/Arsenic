@@ -147,6 +147,9 @@ public final class Injector {
             System.exit(result.startsWith("OK") ? 0 : 1);
         }
 
+        if (!headless && !argList.contains(RELAUNCHED) && Updater.updateAndRestart())
+            return;
+
         if (headless) {
             System.err.println("No display is available. Use --list to see running games, or --pid <id> to inject.");
             System.exit(2);

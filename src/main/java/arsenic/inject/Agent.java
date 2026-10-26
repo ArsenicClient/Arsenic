@@ -289,7 +289,6 @@ public final class Agent {
         addToLoader(inst, game.loader, jarUrl);
         // launchwrapper remembers classes it failed to find (netty probes for slf4j at startup, which the jar bundles)
         clearLoaderCaches(game.loader);
-        checkClientNames(game);
         // the client's classes are prepared as they load, so this must be in place before the first one does
         // Forge's LaunchClassLoader takes the accessor transformer; a launcher's own loader (Lunar's Forge) does not, so
         // the client's classes are rewritten by the ClientTransformer as they load instead
@@ -298,6 +297,8 @@ public final class Agent {
             register.invoke(game.loader, "arsenic.runtime.AccessorTransformer");
         else
             inst.addTransformer(new ClientTransformer(game.loader, runtimeNames, line -> status.accept("LOG " + line)));
+        // loads a client class, so it has to come after the transformer that renames its Minecraft members (Lunar: MCP)
+        checkClientNames(game);
 
         Class<?> launch = Class.forName("arsenic.runtime.InjectedLaunch", false, game.loader);
         if (launch.getClassLoader() != game.loader)
