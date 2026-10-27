@@ -2549,6 +2549,16 @@ public class FileUtils extends UtilityClass {
 }
 ```
 
+### arsenic.utils.java.HitchWatchdog
+
+```java
+public final class HitchWatchdog {
+    /** Render thread, once per frame. */ public static void beat();
+    public static synchronized void start();
+    public static void stop();
+}
+```
+
 ### arsenic.utils.java.JavaUtils
 
 ```java

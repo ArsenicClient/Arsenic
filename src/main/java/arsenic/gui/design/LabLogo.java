@@ -42,7 +42,6 @@ public final class LabLogo {
     /** Briefly bursts bubbles (e.g. on module toggle). */
     public static void pulse() {
         PIXEL_FLASK.pulse();
-        arsenic.gui.design.DistilleryScene.pulse();
     }
 
     public static void draw(float x, float y, float height, boolean hovered) {
