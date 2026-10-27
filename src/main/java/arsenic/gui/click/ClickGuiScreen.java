@@ -725,8 +725,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
         if (closing || shellPhase() > 0.02f)
             return;
-        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
-                && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY))
+        if (MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
+                && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY, mouseButton))
             return;
         if (addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
@@ -900,6 +900,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         i = Integer.compare(i, 0);
         int mouseX = (int) GuiCanvas.unitX(Mouse.getEventX());
         int mouseY = (int) GuiCanvas.unitY(mc.displayHeight - Mouse.getEventY());
+        if (MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)) {
+            if (arsenic.gui.design.DistilleryScene.scroll(mouseX, mouseY, i))
+                return;
+        }
         if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
             addonPage.scrollSidebar(i * 30);
         else if (addonMode)
@@ -938,6 +942,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
     @Override
     public void mouseRelease(int mouseX, int mouseY, int state) {
+        arsenic.gui.design.DistilleryScene.release(mouseX, mouseY, state);
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
         if (cmcc != null) cmcc.handleRelease(mouseX, mouseY, state);
         if (searchComponent != null) searchComponent.handleRelease(mouseX, mouseY, state);

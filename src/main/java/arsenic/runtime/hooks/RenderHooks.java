@@ -97,6 +97,7 @@ public final class RenderHooks {
 
     /** updateCameraAndRender HEAD. */
     public static void updateCameraAndRenderHead(EntityRenderer self, float partialTicks, long nanoTime) {
+        arsenic.utils.java.HitchWatchdog.beat();
         RenderTargets.onFrameStart();
     }
 

@@ -72,6 +72,8 @@ public class Arsenic {
         CapeHandler.getInstance().init();
         logger.info("Loaded cape handler.");
 
+        arsenic.utils.java.HitchWatchdog.start();
+
         logger.info("Loaded {}.", clientName);
     }
 

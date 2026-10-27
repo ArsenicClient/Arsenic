@@ -3,6 +3,7 @@ package arsenic.module.impl.visual;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
 import arsenic.gui.design.M3;
@@ -29,15 +30,21 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.model.IBakedModel;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S21PacketChunkData;
+import net.minecraft.network.play.server.S22PacketMultiBlockChange;
+import net.minecraft.network.play.server.S23PacketBlockChange;
+import net.minecraft.network.play.server.S26PacketMapChunkBulk;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +58,11 @@ public class BedPlates extends Module {
     public final DoubleProperty scale = new DoubleProperty("Scale", new DoubleValue(0.5, 3.0, 1.0, 0.1));
 
     private final Map<BlockPos, List<ItemStack>> bedCache = new HashMap<>();
-    private int ticks = 0;
+    private final java.util.ArrayDeque<int[]> pending = new java.util.ArrayDeque<>();
+    private final java.util.concurrent.ConcurrentLinkedQueue<Long> changedBlocks = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private final java.util.concurrent.ConcurrentLinkedQueue<int[]> chunkEvents = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private static final int CHUNKS_PER_TICK = 3;
+    private net.minecraft.world.World scanWorld;
 
     private static final Set<Block> WHITELIST = new HashSet<>(Arrays.asList(
             Blocks.wool,
@@ -71,39 +82,110 @@ public class BedPlates extends Module {
 
     @Override
     protected void onEnable() {
-        bedCache.clear();
-        ticks = 0;
+        reset();
     }
+
+    private void reset() {
+        bedCache.clear();
+        pending.clear();
+        changedBlocks.clear();
+        chunkEvents.clear();
+        scanWorld = null;
+    }
+
+    /** Netty thread: only note what changed; the world isn't updated yet, so the tick does the reading. */
+    @EventLink
+    public final Listener<EventPacket.Incoming.Post> onPacket = event -> {
+        Packet<?> p = event.getPacket();
+        if (p instanceof S23PacketBlockChange) {
+            changedBlocks.add(((S23PacketBlockChange) p).getBlockPosition().toLong());
+        } else if (p instanceof S22PacketMultiBlockChange) {
+            for (S22PacketMultiBlockChange.BlockUpdateData d : ((S22PacketMultiBlockChange) p).getChangedBlocks())
+                changedBlocks.add(d.getPos().toLong());
+        } else if (p instanceof S21PacketChunkData) {
+            S21PacketChunkData c = (S21PacketChunkData) p;
+            chunkEvents.add(new int[]{c.getChunkX(), c.getChunkZ(), c.getExtractedSize() == 0 ? 1 : 0});
+        } else if (p instanceof S26PacketMapChunkBulk) {
+            S26PacketMapChunkBulk c = (S26PacketMapChunkBulk) p;
+            for (int i = 0; i < c.getChunkCount(); i++)
+                chunkEvents.add(new int[]{c.getChunkX(i), c.getChunkZ(i), 0});
+        }
+    };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        ticks++;
-        if (ticks % 20 != 0) return;
-
-        int r = (int) range.getValue().getInput();
-        BlockPos playerPos = mc.thePlayer.getPosition();
-
-        Iterator<Map.Entry<BlockPos, List<ItemStack>>> it = bedCache.entrySet().iterator();
-        while (it.hasNext()) {
-            BlockPos pos = it.next().getKey();
-            if (pos.distanceSq(playerPos) > r * r || mc.theWorld.getBlockState(pos).getBlock() != Blocks.bed) {
-                it.remove();
-            }
+        if (scanWorld != mc.theWorld) {
+            reset();
+            scanWorld = mc.theWorld;
+            int cx = mc.thePlayer.chunkCoordX, cz = mc.thePlayer.chunkCoordZ;
+            int d = mc.gameSettings.renderDistanceChunks + 1;
+            for (int x = cx - d; x <= cx + d; x++)
+                for (int z = cz - d; z <= cz + d; z++)
+                    pending.add(new int[]{x, z});
+            return;
         }
 
-        for (int x = -r; x <= r; x++) {
-            for (int y = -r; y <= r; y++) {
-                for (int z = -r; z <= r; z++) {
-                    BlockPos pos = playerPos.add(x, y, z);
-                    IBlockState state = mc.theWorld.getBlockState(pos);
-                    if (state.getBlock() == Blocks.bed && state.getValue(BlockBed.PART) == BlockBed.EnumPartType.HEAD) {
-                        bedCache.put(pos, getBedDefense(pos));
-                    }
-                }
-            }
+        int[] ev;
+        while ((ev = chunkEvents.poll()) != null) {
+            if (ev[2] == 1)
+                dropChunk(ev[0], ev[1]);
+            else
+                pending.add(new int[]{ev[0], ev[1]});
         }
+
+        Long packed;
+        int maxLayers = (int) layers.getValue().getInput();
+        while ((packed = changedBlocks.poll()) != null)
+            blockChanged(BlockPos.fromLong(packed), maxLayers);
+
+        for (int i = 0; i < CHUNKS_PER_TICK && !pending.isEmpty(); i++)
+            scanChunk(pending.poll());
     };
+
+    private void dropChunk(int cx, int cz) {
+        bedCache.keySet().removeIf(pos -> (pos.getX() >> 4) == cx && (pos.getZ() >> 4) == cz);
+    }
+
+    /** A bed appeared or vanished, or something above it (its defense) changed. */
+    private void blockChanged(BlockPos pos, int maxLayers) {
+        IBlockState state = mc.theWorld.getBlockState(pos);
+        if (state.getBlock() == Blocks.bed) {
+            if (state.getValue(BlockBed.PART) == BlockBed.EnumPartType.HEAD)
+                bedCache.put(pos, getBedDefense(pos));
+        } else {
+            bedCache.remove(pos);
+        }
+        for (int l = 1; l <= maxLayers; l++) {
+            BlockPos head = pos.down(l);
+            if (bedCache.containsKey(head))
+                bedCache.put(head, getBedDefense(head));
+        }
+    }
+
+    private void scanChunk(int[] coords) {
+        Chunk chunk = mc.theWorld.getChunkFromChunkCoords(coords[0], coords[1]);
+        if (chunk == null || chunk.isEmpty())
+            return;
+        ExtendedBlockStorage[] sections = chunk.getBlockStorageArray();
+        for (ExtendedBlockStorage section : sections) {
+            if (section == null || section.isEmpty())
+                continue;
+            int baseY = section.getYLocation();
+            for (int y = 0; y < 16; y++)
+                for (int z = 0; z < 16; z++)
+                    for (int x = 0; x < 16; x++) {
+                        if (section.getBlockByExtId(x, y, z) != Blocks.bed)
+                            continue;
+                        BlockPos pos = new BlockPos((coords[0] << 4) + x, baseY + y, (coords[1] << 4) + z);
+                        if (bedCache.containsKey(pos))
+                            continue;
+                        IBlockState state = mc.theWorld.getBlockState(pos);
+                        if (state.getValue(BlockBed.PART) == BlockBed.EnumPartType.HEAD)
+                            bedCache.put(pos, getBedDefense(pos));
+                    }
+        }
+    }
 
     @RequiresPlayer
     @EventLink
@@ -114,9 +196,12 @@ public class BedPlates extends Module {
         double rx = rm.getRenderPosX();
         double ry = rm.getRenderPosY();
         double rz = rm.getRenderPosZ();
+        double maxSq = range.getValue().getInput() * range.getValue().getInput();
 
         for (Map.Entry<BlockPos, List<ItemStack>> entry : bedCache.entrySet()) {
             BlockPos pos = entry.getKey();
+            if (pos.distanceSq(mc.thePlayer.getPosition()) > maxSq)
+                continue;
             List<ItemStack> blocks = entry.getValue();
 
             IBlockState state = mc.theWorld.getBlockState(pos);
