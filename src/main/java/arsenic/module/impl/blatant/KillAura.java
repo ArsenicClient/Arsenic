@@ -70,6 +70,7 @@ public class KillAura extends Module {
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    @PropertyGroup(Group.ADVANCED)
     public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
