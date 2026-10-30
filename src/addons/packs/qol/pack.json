@@ -16,6 +16,7 @@
     "RotationRecorder": "Developer tool: records your real camera turns to a CSV file, for tuning silent rotation.",
     "BackgroundFps": "Lowers the frame limit while the game window is not focused.",
     "AutoScreenshot": "Takes a screenshot on a kill or on your death.",
-    "AntiCrash": "Drops incoming packets known to crash clients: oversized payloads and particle floods."
+    "AntiCrash": "Drops incoming packets known to crash clients: oversized payloads and particle floods.",
+    "FreeLook": "Free camera: your body keeps facing the same way (held as a silent rotation) while you look around."
   }
 }

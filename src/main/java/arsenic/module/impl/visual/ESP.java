@@ -12,6 +12,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
@@ -52,6 +53,7 @@ public class ESP extends Module {
     }
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
+    public final BooleanProperty healthBar = new BooleanProperty("Health Bar", true);
 
     private static final int GLOW_RADIUS = 8;
     private static final float GLOW_STRENGTH = 3f;
@@ -106,7 +108,8 @@ public class ESP extends Module {
                 GL11.glLineWidth(1.0F);
                 RenderUtils.endWorldOverlay();
             }
-            queueHealthBar(entity, x, y, z);
+            if (healthBar.getValue())
+                queueHealthBar(entity, x, y, z);
         }
 
         if (mode.getValue() == Mode.Glow && !glowTargets.isEmpty()) {
