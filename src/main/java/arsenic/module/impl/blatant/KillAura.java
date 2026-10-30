@@ -146,6 +146,9 @@ public class KillAura extends Module {
         aim.setPitchBand(pitchBandActive(), (float) pitchRange.getValue().getMin(), (float) pitchRange.getValue().getMax());
         target = pickTarget();
         autoBlockTick();
+        // the packet block is ours: a real click alongside it is a second action in the tick (Grim MultiActions)
+        if (target != null && AutoBlocker.isPacketMode(autoBlock.getValue()))
+            event.setBlockUserInput(true);
         aim.updateDrift();
         if (target != null && (hitflick().ownsRotation() || autoProjectile().ownsRotation())) {
             hadTarget = true;
@@ -205,7 +208,8 @@ public class KillAura extends Module {
                 // the server's view of item use, whatever the client's says (Grim MultiActions)
                 && !BadPacketsManager.serverUsingItem()
                 && !autoProjectile().isBusy()
-                && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
+                && !((autoBlock.getValue() == AutoBlocker.Mode.Legit || packetBlock)
+                && BadPacketsManager.bad(false, false, false, true, false))
                 && !(packetBlock && !blocker.canAttack())) {
             if (hitPlayer != null) {
                 // Hypixel waits for a hit that would do damage
