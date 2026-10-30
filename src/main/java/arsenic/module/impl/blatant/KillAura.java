@@ -68,6 +68,8 @@ public class KillAura extends Module {
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    @PropertyGroup(Group.ADVANCED)
+    public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
@@ -138,6 +140,9 @@ public class KillAura extends Module {
         aim.setPitchBand(pitchBandActive(), (float) pitchRange.getValue().getMin(), (float) pitchRange.getValue().getMax());
         target = pickTarget();
         autoBlockTick();
+        // the packet block is ours: a real click alongside it is a second action in the tick (Grim MultiActions)
+        if (target != null && AutoBlocker.isPacketMode(autoBlock.getValue()))
+            event.setBlockUserInput(true);
         aim.updateDrift();
         if (target != null && (hitflick().ownsRotation() || autoProjectile().ownsRotation())) {
             hadTarget = true;
@@ -189,6 +194,7 @@ public class KillAura extends Module {
                     && ClickManager.get().remainingMs(ClickManager.Client.KILLAURA) <= 50
                     && blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.getLocation(), 1));
         if ((target != null || hitPlayer != null)
+                && !(weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
@@ -196,7 +202,8 @@ public class KillAura extends Module {
                 // the server's view of item use, whatever the client's says (Grim MultiActions)
                 && !BadPacketsManager.serverUsingItem()
                 && !autoProjectile().isBusy()
-                && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
+                && !((autoBlock.getValue() == AutoBlocker.Mode.Legit || packetBlock)
+                && BadPacketsManager.bad(false, false, false, true, false))
                 && !(packetBlock && !blocker.canAttack())) {
             if (hitPlayer != null) {
                 // Hypixel waits for a hit that would do damage
@@ -266,7 +273,8 @@ public class KillAura extends Module {
     }
 
     private Player pickTarget() {
-        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
+        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
+                || weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return null;
         List<Player> candidates = TargetManager.getTargets();
         if (pitchBandActive()) {

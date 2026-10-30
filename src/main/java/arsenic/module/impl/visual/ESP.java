@@ -11,6 +11,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
 import arsenic.utils.render.RenderUtils;
@@ -37,6 +38,7 @@ public class ESP extends Module {
     }
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
+    public final BooleanProperty healthBar = new BooleanProperty("Health Bar", true);
 
     private static final float CHAMS_ALPHA = 0.6f;
 
@@ -48,7 +50,8 @@ public class ESP extends Module {
             AABB box = RenderUtils.interpolatedBox(entity);
             if (mode.getValue() == Mode.Box)
                 RenderUtils.renderBox(box, 0xC0000000 | resolveColour(entity), true, true);
-            drawHealthEsp(entity, box);
+            if (healthBar.getValue())
+                drawHealthEsp(entity, box);
         }
     };
 
