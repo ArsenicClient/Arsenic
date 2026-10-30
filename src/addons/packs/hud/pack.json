@@ -22,6 +22,7 @@
     "NearbyCount": "Counts players nearby, split into teammates and enemies.",
     "AfkDetector": "Lists players who have stood still for a long time.",
     "ReachDisplay": "Shows the distance to the last entity you attacked.",
-    "MemoryUsage": "Shows the memory the game is using, in megabytes."
+    "MemoryUsage": "Shows the memory the game is using, in megabytes.",
+    "ComboCounter": "Counts your confirmed hits in a row on an animated panel, with a best score and a ring around the target."
   }
 }
