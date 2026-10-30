@@ -58,6 +58,7 @@ public class TargetHUD extends Module {
     private float animatedScale;
     private long damageFlashTime;
     private float lastHealth = -1f;
+    private AbstractClientPlayer renderedTarget;
 
     @RequiresPlayer
     @EventLink
@@ -168,11 +169,14 @@ public class TargetHUD extends Module {
 
     private void updateHealthState(AbstractClientPlayer target) {
         float health = Math.max(0f, target.getHealth());
-        float maxHealth = Math.max(1f, target.getMaxHealth());
-        if (lastHealth < 0f || target == mc.thePlayer && Math.abs(animatedHealth - health) > maxHealth) {
+        int armor = target.getTotalArmorValue();
+        if (renderedTarget != target || lastHealth < 0f) {
+            renderedTarget = target;
             animatedHealth = health;
             trailHealth = health;
+            animatedArmor = armor;
             lastHealth = health;
+            damageFlashTime = 0L;
         }
         if (health < lastHealth - 0.1f || target.hurtTime >= 8) {
             damageFlashTime = System.currentTimeMillis();
@@ -184,7 +188,6 @@ public class TargetHUD extends Module {
         else
             trailHealth = interpolate(trailHealth, animatedHealth, 0.055f);
 
-        int armor = target.getTotalArmorValue();
         animatedArmor = interpolate(animatedArmor, armor, 0.15f);
     }
 
@@ -444,6 +447,7 @@ public class TargetHUD extends Module {
     @Override
     protected void onEnable() {
         target = null;
+        renderedTarget = null;
         animatedScale = 0f;
         lastHealth = -1f;
         recentTargets.clear();
@@ -452,6 +456,7 @@ public class TargetHUD extends Module {
     @Override
     protected void onDisable() {
         target = null;
+        renderedTarget = null;
         animatedScale = 0f;
         lastHealth = -1f;
         recentTargets.clear();

@@ -227,7 +227,7 @@ public class Nametags extends Module {
             int iy = Math.round(slotY + 1f);
             GlStateManager.pushMatrix();
             RenderHelper.enableGUIStandardItemLighting();
-            mc.getRenderItem().zLevel = -100.0f;
+            mc.getRenderItem().zLevel = -150.0f;
             mc.getRenderItem().renderItemAndEffectIntoGUI(stack, ix, iy);
             mc.getRenderItem().renderItemOverlayIntoGUI(mc.fontRendererObj, stack, ix, iy, null);
             mc.getRenderItem().zLevel = 0.0f;
