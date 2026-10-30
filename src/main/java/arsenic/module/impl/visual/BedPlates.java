@@ -321,7 +321,7 @@ public class BedPlates extends Module {
                 } else {
                     GlStateManager.pushMatrix();
                     RenderHelper.enableGUIStandardItemLighting();
-                    mc.getRenderItem().zLevel = -100.0F;
+                    mc.getRenderItem().zLevel = -150.0F;
                     mc.getRenderItem().renderItemAndEffectIntoGUI(stack, Math.round(sx), Math.round(sy));
                     mc.getRenderItem().zLevel = 0.0F;
                     RenderHelper.disableStandardItemLighting();

@@ -47,7 +47,7 @@ public final class AnnotationTransformer {
                         if (descriptor.equals(REQUIRES_PLAYER)) {
                             this.visitMethodInsn(INVOKESTATIC, "arsenic/utils/minecraft/PlayerUtils", "isPlayerNotLoaded", "()Z", false);
                             Label l0 = new Label();
-                            this.visitJumpInsn(IFEQ, l0);
+                            this.visitJumpInsn(IFNE, l0);
                             this.visitInsn(RETURN);
                             this.visitLabel(l0);
                             this.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
