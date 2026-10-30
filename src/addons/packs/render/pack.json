@@ -1,7 +1,7 @@
 {
   "id": "render",
   "name": "Render",
-  "description": "Client-side visuals only: highlights for blocks, items, projectiles, TNT and the block you aim at, trails, jump and kill effects, waypoints, light levels, first-person view model and swing animations, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
+  "description": "Client-side visuals only: highlights for blocks, items, projectiles, TNT and the block you aim at, trails, jump and kill effects, cosmetic wings and hats, waypoints, light levels, first-person view model and swing animations, plus a setting toggle that turns view bobbing off. Nothing here sends packets.",
   "icon": "textures/items/ender_eye.png",
   "autoInstall": false,
   "addons": {
@@ -24,6 +24,8 @@
     "Zoom": "Hold a key to narrow the camera field of view.",
     "AntiBlind": "Removes the blindness and nausea effects on your client.",
     "Ambience": "Sets a client-side time of day and clear weather.",
-    "Breadcrumbs": "A fading line through your last few seconds of movement."
+    "Breadcrumbs": "A fading line through your last few seconds of movement.",
+    "Wings": "Cosmetic animated wings on your back: bat, dragon, angel, phoenix, butterfly or fairy. Only you see them.",
+    "Hats": "Cosmetic animated hats: crown, top hat, witch hat, halo, mushroom or propeller cap. Only you see them."
   }
 }
