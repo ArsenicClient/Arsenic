@@ -13,8 +13,8 @@ public class NotificationManager {
 
     private static final LinkedBlockingQueue<Notification> pendingNotifications = new LinkedBlockingQueue<>();
     private static final List<Notification> activeNotifications = new ArrayList<>();
-    private static final int MAX_VISIBLE = 3;
-    private static final int GAP = 4;
+    private static final int MAX_VISIBLE = 4;
+    private static final int GAP = 5;
 
     public static void show(Notification notification) {
         pendingNotifications.add(notification);
@@ -34,32 +34,35 @@ public class NotificationManager {
             activeNotifications.add(n);
         }
 
-        int height = 30;
-        int baseY = sr.getScaledHeight() - 15 - height;
+        int height = Notification.HEIGHT;
+        int baseY = sr.getScaledHeight() - 12 - height;
 
         for (int i = 0; i < activeNotifications.size(); i++) {
             Notification n = activeNotifications.get(i);
             n.targetY = baseY - i * (height + GAP);
 
-            n.currentY += (n.targetY - n.currentY) * 0.15f;
-            if (Math.abs(n.currentY - n.targetY) < 0.5f) n.currentY = n.targetY;
+            if (n.currentY < 0f)
+                n.currentY = n.targetY;
+            n.currentY += (n.targetY - n.currentY) * 0.18f;
+            if (Math.abs(n.currentY - n.targetY) < 0.35f)
+                n.currentY = n.targetY;
 
             long time = n.getTime();
             float alpha = 1f;
-            int slideOffset = 0;
+            float slideOffset = 0f;
 
             if (time < n.fadedIn) {
                 float progress = (float) time / n.fadedIn;
-                float eased = 1 - (1 - progress) * (1 - progress);
-                slideOffset = (int) (n.getWidth() * (1 - eased));
-                alpha = Math.min(1f, progress * 2f);
+                float eased = 1f - (1f - progress) * (1f - progress);
+                slideOffset = (n.getWidth() + 12f) * (1f - eased);
+                alpha = Math.min(1f, progress * 1.8f);
             } else if (time > n.fadeOut) {
                 float progress = (float) (time - n.fadeOut) / (n.end - n.fadeOut);
                 alpha = 1f - progress;
-                slideOffset = (int) (n.getWidth() * progress * progress);
+                slideOffset = (n.getWidth() + 12f) * progress * progress;
             }
 
-            int x = sr.getScaledWidth() - n.getWidth() - 5 + slideOffset;
+            float x = sr.getScaledWidth() - n.getWidth() - 8f + slideOffset;
             n.render(x, n.currentY, alpha);
         }
     }

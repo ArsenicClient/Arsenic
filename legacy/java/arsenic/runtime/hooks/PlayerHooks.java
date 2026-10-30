@@ -9,6 +9,7 @@ import arsenic.module.impl.client.Cape;
 import arsenic.module.impl.client.CapeHandler;
 import arsenic.module.impl.ghost.HitSelect;
 import arsenic.module.impl.movement.NoJumpDelay;
+import arsenic.utils.render.FirstPersonRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -46,6 +47,11 @@ public final class PlayerHooks {
     private static float cachedRotationPitch, cachedRotationYaw;
 
     private PlayerHooks() {}
+
+    /** EntityLivingBase.getArmSwingAnimationEnd HEAD_RETURN; -1 keeps vanilla. */
+    public static int swingDuration(EntityLivingBase self) {
+        return FirstPersonRender.swingDuration(self);
+    }
 
     /** EntityPlayerSP.onUpdateWalkingPlayer HEAD. @return true to cancel */
     public static boolean onUpdateWalkingPlayerHead(EntityPlayerSP self) {
@@ -89,8 +95,8 @@ public final class PlayerHooks {
                 .post(new EventUpdate.Post(self.posX, self.posY, self.posZ, self.rotationYaw, self.rotationPitch, self.onGround));
     }
 
-    /** EntityPlayerSP.onUpdate HEAD. */
-    public static void onUpdateHead(EntityPlayerSP self) {
+    /** EntityPlayerSP.onUpdate HEAD. @return true to drop the tick */
+    public static boolean onUpdateHead(EntityPlayerSP self) {
         Arsenic.getInstance().getEventManager().post(new EventTick());
         for (int i = 0; i < 3; i++) {
             if (Mouse.isButtonDown(i) && !mouseDownLastTick[i]) {
@@ -101,6 +107,13 @@ public final class PlayerHooks {
                 Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
             }
         }
+        EventDropTick drop = new EventDropTick();
+        Arsenic.getInstance().getEventManager().post(drop);
+        if (!drop.isCancelled())
+            return false;
+        // the RETURN hook is not reached from here
+        Arsenic.getInstance().getEventManager().post(new EventTick.Post());
+        return true;
     }
 
     /** EntityPlayerSP.onUpdate RETURN. */

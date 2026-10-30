@@ -45,6 +45,8 @@ public class TTFontRenderer implements IFontRenderer {
     private static final int MARGIN = 6;
     private static final long ATLAS_IDLE_MS = 5000;
     private static final int MAX_ATLASES = 12;
+    /** Ratio between two neighbouring raster sizes for text that can't be pixel-snapped. */
+    private static final double SIZE_STEP_RATIO = 1.2;
 
     private final Font font;
     private final boolean antiAlias;
@@ -58,6 +60,7 @@ public class TTFontRenderer implements IFontRenderer {
     private FontMetrics baseMetrics;
     private float height;
     private float baseline;
+    private float capHeight;
     private float cellHeight;
 
     private final Map<Integer, Atlas> atlases = new HashMap<>();
@@ -93,7 +96,10 @@ public class TTFontRenderer implements IFontRenderer {
         cellHeight = (float) Math.ceil(bounds.getHeight());
         height = (cellHeight - MARGIN) / 2f;
         // glyphs were drawn 2 units above y, with the baseline at the ascent in base pixels
-        baseline = -2 + baseMetrics.getAscent() / 2f;
+        FontRenderContext frc = new FontRenderContext(null, antiAlias, fracMetrics);
+        Rectangle2D hBounds = font.createGlyphVector(frc, "H").getVisualBounds();
+        capHeight = hBounds.getHeight() > 0 ? (float) (-hBounds.getMinY() / 2.0) : (baseMetrics.getAscent() * 0.72f / 2f);
+        baseline = height / 2f - 0.8f + capHeight / 2f;
     }
 
     @Override
@@ -148,7 +154,12 @@ public class TTFontRenderer implements IFontRenderer {
             return;
 
         Transform transform = currentTransform();
-        Atlas atlas = atlas(Math.round(emSize * transform.pixelsPerUnit));
+        int rasterSize = Math.round(emSize * transform.pixelsPerUnit);
+        // World-space text (rotated or in perspective) can't be pixel-snapped, and its size on screen
+        // changes with every camera move: give it a few shared size steps instead of an atlas per size.
+        if (!transform.snap)
+            rasterSize = sizeStep(rasterSize);
+        Atlas atlas = atlas(rasterSize);
         float unit = emSize / atlas.pixelSize;
 
         // rasterise everything first so all uploads happen before drawing starts
@@ -169,6 +180,11 @@ public class TTFontRenderer implements IFontRenderer {
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        // while the GUI is captured to a texture (burn transition, list fade), keep alpha as true coverage
+        // so anti-aliased glyph edges don't punch see-through holes in what they're drawn on
+        if (arsenic.utils.render.RenderUtils.captureCoverage)
+            org.lwjgl.opengl.GL14.glBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
+                    GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
 
         if ((color & 0xFC000000) == 0) { color |= 0xFF000000; }
@@ -252,8 +268,9 @@ public class TTFontRenderer implements IFontRenderer {
                     GL11.glBegin(GL11.GL_QUADS);
                     drawing = true;
                 }
-                float gx = transform.snapX(x + glyph.offsetX * unit);
-                float gy = baseY + glyph.offsetY * unit;
+                boolean pua = character >= '\uE000' && character <= '\uF8FF';
+                float gx = transform.snapX(pua ? x + (advance - glyph.width * unit) / 2f : x + glyph.offsetX * unit);
+                float gy = pua ? transform.snapY(y + baseline - capHeight / 2f - glyph.height * unit / 2f) : baseY + glyph.offsetY * unit;
                 float gw = glyph.width * unit, gh = glyph.height * unit;
                 GL11.glTexCoord2f(glyph.u0, glyph.v0);
                 GL11.glVertex2f(gx, gy);
@@ -284,7 +301,7 @@ public class TTFontRenderer implements IFontRenderer {
     }
 
     private boolean isValid(char c) {
-        return c > 10 && c < 256 && c != 127;
+        return c >= 32 && c != 127 && (c < '\uD800' || c > '\uDFFF');
     }
 
     private void drawLine(float x, float y, float x2, float y2, float width) {
@@ -380,6 +397,13 @@ public class TTFontRenderer implements IFontRenderer {
 
     // ---- glyph atlases ---------------------------------------------------------------------------
 
+    /** Snaps a raster size to a geometric ladder (about 20% apart), so nearby sizes share one atlas. */
+    private static int sizeStep(int pixelSize) {
+        int size = Math.max(4, Math.min(256, pixelSize));
+        double step = Math.round(Math.log(size) / Math.log(SIZE_STEP_RATIO));
+        return Math.max(4, Math.min(256, (int) Math.round(Math.pow(SIZE_STEP_RATIO, step))));
+    }
+
     private Atlas atlas(int pixelSize) {
         pixelSize = Math.max(4, Math.min(256, pixelSize));
         long now = System.currentTimeMillis();
@@ -392,6 +416,21 @@ public class TTFontRenderer implements IFontRenderer {
                     if (now - old.lastUsed > ATLAS_IDLE_MS) {
                         old.delete();
                         it.remove();
+                    }
+                }
+                // still full of recently used atlases: drop the least recently used one so the
+                // texture pages can't pile up without bound
+                if (atlases.size() >= MAX_ATLASES) {
+                    Iterator<Atlas> lru = atlases.values().iterator();
+                    Atlas oldest = null;
+                    while (lru.hasNext()) {
+                        Atlas candidate = lru.next();
+                        if (oldest == null || candidate.lastUsed < oldest.lastUsed)
+                            oldest = candidate;
+                    }
+                    if (oldest != null) {
+                        oldest.delete();
+                        atlases.values().remove(oldest);
                     }
                 }
             }

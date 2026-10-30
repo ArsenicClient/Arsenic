@@ -1,20 +1,21 @@
 package arsenic.gui.hud;
 
-import arsenic.utils.java.MathUtils;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-import arsenic.gui.click.UITheme;
-import arsenic.gui.themes.ThemeManager;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Icons;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import org.lwjgl.input.Keyboard;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class HudEditorScreen extends GuiScreen {
 
@@ -31,6 +32,7 @@ public class HudEditorScreen extends GuiScreen {
 
     private float saveX1, saveY1, saveX2, saveY2;
     private float resetX1, resetY1, resetX2, resetY2;
+    private float backX1, backY1, backX2, backY2;
 
     private static final class Element {
         final HudElement h;
@@ -70,7 +72,6 @@ public class HudEditorScreen extends GuiScreen {
         snapOnScreenElements();
     }
 
-
     private void snapOnScreenElements() {
         for (Element e : elements) {
             float x1 = e.x1(sr), y1 = e.y1();
@@ -84,95 +85,162 @@ public class HudEditorScreen extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         sr = new ScaledResolution(mc);
-        FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
+        FontRendererExtension<?> bodyFr = HudStyle.body();
+        FontRendererExtension<?> labelFr = HudStyle.label();
 
-        drawRect(0, 0, width, height, UITheme.alpha(0x000000, 130));
+        DrawUtils.drawRect(0, 0, width, height, M3.alpha(M3.scrim(), 115));
 
-        DrawUtils.drawRect(0, height / 2f, width, height / 2f + 0.75f, UITheme.alpha(ThemeManager.getWhite(), 26));
-        DrawUtils.drawRect(width / 2f, 0, width / 2f + 0.75f, height, UITheme.alpha(ThemeManager.getWhite(), 26));
+        float onePx = 1f / Math.max(1f, HudStyle.scaleFactor());
+        int centerGridCol = M3.alpha(M3.outlineVariant(), 55);
+        DrawUtils.drawRect(0, HudStyle.snap(height / 2f - onePx * 0.5f), width, HudStyle.snap(height / 2f + onePx * 0.5f), centerGridCol);
+        DrawUtils.drawRect(HudStyle.snap(width / 2f - onePx * 0.5f), 0, HudStyle.snap(width / 2f + onePx * 0.5f), height, centerGridCol);
 
-        if (fr != null) {
-            drawHeader(fr);
+        if (bodyFr != null && labelFr != null) {
             for (Element e : elements)
-                drawElement(fr, e, mouseX, mouseY);
+                drawElement(bodyFr, labelFr, e, mouseX, mouseY);
             drawGuides();
-            drawButtons(fr, mouseX, mouseY);
+            drawHeader(bodyFr, labelFr);
+            drawButtons(labelFr, mouseX, mouseY);
         }
 
+        HudStyle.resetGl();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
-    private void drawHeader(FontRendererExtension<?> fr) {
+    private void drawHeader(FontRendererExtension<?> bodyFr, FontRendererExtension<?> labelFr) {
         String title = "HUD Editor";
-        String hint = "Drag to move  ·  Esc to finish";
-        float pad = 8f;
-        float w = Math.max(fr.getWidth(title), fr.getWidth(hint)) + pad * 2f;
-        float h = fr.getHeight(title) + fr.getHeight(hint) + pad * 1.6f;
-        float x = width / 2f - w / 2f;
+        String hint = "Drag elements to align  ·  Esc to save";
+        float padX = 12f;
+        float w = HudStyle.snap(Math.max(labelFr.getWidth(title) + 20f, bodyFr.getWidth(hint)) + padX * 2f);
+        float h = 34f;
+        float x = HudStyle.snap(width / 2f - w / 2f);
+        float y = 10f;
 
-        UITheme.surface(x, 10, x + w, 10 + h, 6f, UITheme.alpha(0x000000, 170), UITheme.Elevation.FLOATING);
-        fr.drawString(title, width / 2f, 10 + pad * 0.6f, ThemeManager.getWhite(), fr.CENTREX);
-        fr.drawString(hint, width / 2f, 10 + pad * 0.6f + fr.getHeight(title) + 2,
-                ThemeManager.getTextMuted(), fr.CENTREX);
+        HudStyle.card(x, y, x + w, y + h, HudStyle.RADIUS_CARD, 240);
+        float row1Cy = y + 11.5f;
+        float row2Cy = y + 22.5f;
+
+        float titleW = labelFr.getWidth(title);
+        float iconW = M3Icons.font().getWidth(M3Icons.HUD) * 0.85f;
+        float groupW = iconW + 5f + titleW;
+        float startX = x + (w - groupW) / 2f;
+        M3Icons.drawCentered(M3Icons.HUD, startX + iconW / 2f, row1Cy, M3.primary(), 0.85f);
+        labelFr.drawString(title, startX + iconW + 5f, row1Cy, M3.onSurface(), labelFr.CENTREY);
+
+        bodyFr.drawString(hint, x + w / 2f, row2Cy, M3.onSurfaceVariant(), bodyFr.CENTREX, bodyFr.CENTREY);
+        HudStyle.resetGl();
     }
 
-    private void drawElement(FontRendererExtension<?> fr, Element e, int mouseX, int mouseY) {
-        float x1 = e.x1(sr), y1 = e.y1();
-        float x2 = x1 + e.width(), y2 = y1 + e.height();
+    private void drawElement(FontRendererExtension<?> bodyFr, FontRendererExtension<?> labelFr,
+                             Element e, int mouseX, int mouseY) {
+        float x1 = HudStyle.snap(e.x1(sr));
+        float y1 = HudStyle.snap(e.y1());
+        float x2 = HudStyle.snap(x1 + e.width());
+        float y2 = HudStyle.snap(y1 + e.height());
         boolean active = dragging == e;
         boolean hovered = MathUtils.inside(mouseX, mouseY, x1, y1, x2, y2);
 
-        int fill = UITheme.alpha(active ? UITheme.accent() : 0x000000, active ? 60 : (hovered ? 120 : 80));
-        UITheme.surface(x1, y1, x2, y2, 5f, fill,
-                active ? UITheme.Elevation.FLOATING : UITheme.Elevation.RAISED, active ? 1f : 0.5f);
-        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, 5f, active ? 1.6f : 1f,
-                UITheme.alpha(UITheme.accent(), active ? 255 : (hovered ? 200 : 110)));
+        float r = HudStyle.RADIUS_COMPACT;
+        if (active || hovered) {
+            int tint = active
+                    ? M3.alpha(M3.primaryContainer(), 75)
+                    : M3.alpha(M3.surfaceContainerHighest(), 55);
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2, r, tint);
+        }
 
-        fr.drawString(e.label, (x1 + x2) / 2f, (y1 + y2) / 2f,
-                active || hovered ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200),
-                fr.CENTREX, fr.CENTREY);
+        int outlineCol = active
+                ? M3.primary()
+                : (hovered ? M3.alpha(M3.primary(), 185) : M3.alpha(M3.outlineVariant(), 130));
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, r, active ? 1.5f : 1f, outlineCol);
 
-        if (active)
-            fr.drawString(Math.round(x1) + ", " + Math.round(y1), (x1 + x2) / 2f, y2 + 7,
-                    UITheme.alpha(UITheme.accent(), 230), fr.CENTREX);
+        float cx = (x1 + x2) / 2f;
+        float cy = (y1 + y2) / 2f;
+        if (active || hovered) {
+            float pillW = HudStyle.snap(labelFr.getWidth(e.label) + 10f);
+            float pillH = 13f;
+            int pillBg = active ? M3.primaryContainer() : M3.alpha(M3.surfaceContainerHigh(), 235);
+            int pillFg = active ? M3.onPrimaryContainer() : M3.onSurface();
+            DrawUtils.drawRoundedRect(cx - pillW / 2f, cy - pillH / 2f, cx + pillW / 2f, cy + pillH / 2f, pillH / 2f, pillBg);
+            DrawUtils.drawRoundedOutline(cx - pillW / 2f, cy - pillH / 2f, cx + pillW / 2f, cy + pillH / 2f, pillH / 2f, 1f,
+                    M3.alpha(M3.primary(), active ? 180 : 90));
+            labelFr.drawString(e.label, cx, cy, pillFg, labelFr.CENTREX, labelFr.CENTREY);
+        }
+
+        if (active) {
+            String coords = Math.round(x1) + ", " + Math.round(y1);
+            float cw = HudStyle.snap(bodyFr.getWidth(coords) + 8f);
+            float ch = 12f;
+            float chipY = y2 + 4f + ch / 2f;
+            DrawUtils.drawRoundedRect(cx - cw / 2f, chipY - ch / 2f, cx + cw / 2f, chipY + ch / 2f, ch / 2f,
+                    M3.alpha(M3.surfaceContainerHigh(), 235));
+            bodyFr.drawString(coords, cx, chipY, M3.primary(), bodyFr.CENTREX, bodyFr.CENTREY);
+        }
+        HudStyle.resetGl();
     }
 
     private void drawGuides() {
+        float onePx = 1f / Math.max(1f, HudStyle.scaleFactor());
+        int guideCol = M3.alpha(M3.primary(), 210);
         for (float gx : activeGuidesX)
-            DrawUtils.drawRect(gx, 0, gx + 0.75f, height, UITheme.alpha(UITheme.accent(), 190));
+            DrawUtils.drawRect(HudStyle.snap(gx - onePx * 0.5f), 0, HudStyle.snap(gx + onePx * 0.5f), height, guideCol);
         for (float gy : activeGuidesY)
-            DrawUtils.drawRect(0, gy, width, gy + 0.75f, UITheme.alpha(UITheme.accent(), 190));
+            DrawUtils.drawRect(0, HudStyle.snap(gy - onePx * 0.5f), width, HudStyle.snap(gy + onePx * 0.5f), guideCol);
     }
 
-    private void drawButtons(FontRendererExtension<?> fr, int mouseX, int mouseY) {
-        float bw = 96, bh = 22, gap = 8;
-        float y = height - bh - 14;
-        saveX1 = width / 2f - bw - gap / 2f;
+    private void drawButtons(FontRendererExtension<?> labelFr, int mouseX, int mouseY) {
+        float bw = 96f, bh = 22f, gap = 8f;
+        float totalW = bw * 3f + gap * 2f;
+        float startX = HudStyle.snap(width / 2f - totalW / 2f);
+        float y = HudStyle.snap(height - bh - 12f);
+
+        backX1 = startX;
+        backX2 = backX1 + bw;
+        backY1 = y;
+        backY2 = y + bh;
+
+        saveX1 = backX2 + gap;
         saveX2 = saveX1 + bw;
         saveY1 = y;
         saveY2 = y + bh;
-        resetX1 = width / 2f + gap / 2f;
+
+        resetX1 = saveX2 + gap;
         resetX2 = resetX1 + bw;
         resetY1 = y;
         resetY2 = y + bh;
 
+        boolean backHover = inside(mouseX, mouseY, backX1, backY1, backX2, backY2);
         boolean saveHover = inside(mouseX, mouseY, saveX1, saveY1, saveX2, saveY2);
         boolean resetHover = inside(mouseX, mouseY, resetX1, resetY1, resetX2, resetY2);
 
-        DrawUtils.drawGradientRoundedRect(saveX1, saveY1, saveX2, saveY2, bh / 2f,
-                UITheme.accent(), UITheme.accent(), UITheme.accentAlt(), UITheme.accentAlt());
-        DrawUtils.drawRoundedOutline(saveX1, saveY1, saveX2, saveY2, bh / 2f, 1f,
-                UITheme.alpha(ThemeManager.getWhite(), saveHover ? 140 : 60));
-        fr.drawString("Save & Close", (saveX1 + saveX2) / 2f, (saveY1 + saveY2) / 2f,
-                ThemeManager.getWhite(), fr.CENTREX, fr.CENTREY);
+        drawPillButton(labelFr, M3Icons.ARROW_BACK, "ClickGUI", backX1, backY1, backX2, backY2, backHover, false);
+        drawPillButton(labelFr, M3Icons.CHECK, "Save & Close", saveX1, saveY1, saveX2, saveY2, saveHover, true);
+        drawPillButton(labelFr, M3Icons.RELOAD, "Reset All", resetX1, resetY1, resetX2, resetY2, resetHover, false);
+    }
 
-        UITheme.surface(resetX1, resetY1, resetX2, resetY2, bh / 2f,
-                UITheme.alpha(0x000000, resetHover ? 190 : 150), UITheme.Elevation.RAISED, 0.6f);
-        DrawUtils.drawRoundedOutline(resetX1, resetY1, resetX2, resetY2, bh / 2f, 1f,
-                UITheme.alpha(ThemeManager.getWhite(), resetHover ? 150 : 70));
-        fr.drawString("Reset", (resetX1 + resetX2) / 2f, (resetY1 + resetY2) / 2f,
-                resetHover ? ThemeManager.getWhite() : UITheme.alpha(ThemeManager.getWhite(), 200),
-                fr.CENTREX, fr.CENTREY);
+    private void drawPillButton(FontRendererExtension<?> labelFr, String glyph, String text,
+                                float x1, float y1, float x2, float y2, boolean hovered, boolean primary) {
+        float r = (y2 - y1) / 2f;
+        int fill, fg, outline;
+        if (primary) {
+            fill = hovered ? M3.mix(M3.primary(), 0xFFFFFFFF, 0.12f) : M3.primary();
+            fg = M3.onPrimary();
+            outline = M3.alpha(M3.primary(), 220);
+        } else {
+            fill = hovered ? M3.surfaceContainerHighest() : M3.alpha(M3.surfaceContainerHigh(), 235);
+            fg = hovered ? M3.onSurface() : M3.onSurfaceVariant();
+            outline = M3.alpha(M3.outlineVariant(), hovered ? 180 : 120);
+        }
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, r, fill);
+        DrawUtils.drawRoundedOutline(x1, y1, x2, y2, r, 1f, outline);
+
+        float cy = (y1 + y2) / 2f;
+        float iconW = M3Icons.font().getWidth(glyph) * 0.85f;
+        float textW = labelFr.getWidth(text);
+        float groupW = iconW + 5f + textW;
+        float start = x1 + (x2 - x1 - groupW) / 2f;
+        M3Icons.drawCentered(glyph, start + iconW / 2f, cy, fg, 0.85f);
+        labelFr.drawString(text, start + iconW + 5f, cy, fg, labelFr.CENTREY);
+        HudStyle.resetGl();
     }
 
     private static boolean inside(float mx, float my, float x1, float y1, float x2, float y2) {
@@ -185,12 +253,20 @@ public class HudEditorScreen extends GuiScreen {
         if (mouseButton != 0)
             return;
 
+        if (inside(mouseX, mouseY, backX1, backY1, backX2, backY2)) {
+            SoundUtils.chordOpen();
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+            mc.displayGuiScreen(Arsenic.getArsenic().getClickGuiScreen());
+            return;
+        }
         if (inside(mouseX, mouseY, saveX1, saveY1, saveX2, saveY2)) {
+            SoundUtils.chordOpen();
             Arsenic.getArsenic().getConfigManager().saveConfig();
             mc.displayGuiScreen(null);
             return;
         }
         if (inside(mouseX, mouseY, resetX1, resetY1, resetX2, resetY2)) {
+            SoundUtils.chordEnum();
             elements.forEach(e -> e.h.reset());
             return;
         }

@@ -1,7 +1,11 @@
 package arsenic.module.property.impl;
 
-import arsenic.gui.click.impl.ButtonComponent;
-import arsenic.utils.render.PosInfo;
+import arsenic.gui.click.UITheme;
+import arsenic.gui.design.M3Components;
+import arsenic.main.Arsenic;
+import arsenic.utils.java.SoundUtils;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
@@ -48,33 +52,36 @@ public class BooleanProperty extends SerializableProperty<Boolean> implements IR
     @Override
     public PropertyComponent<BooleanProperty> createComponent() {
         return new PropertyComponent<BooleanProperty>(this) {
-            private final ButtonComponent buttonComponent = new ButtonComponent(this) {
-                @Override
-                protected boolean isEnabled() {
-                    return getValue();
-                }
-
-                @Override
-                protected void setEnabled(boolean enabled) {
-                    setValueSilently(enabled);
-                }
-            };
+            private final AnimationTimer toggleTimer =
+                    new AnimationTimer(UITheme.DUR_TOGGLE, BooleanProperty.this::getValue, TickMode.CUBIC);
 
             @Override
-            public float updateComponent(PosInfo pi, RenderInfo ri) {
-                if(isVisible())
-                    buttonComponent.updateComponent(pi, ri);
-                return super.updateComponent(pi, ri);
+            protected float labelRight() {
+                return x2 - height * 0.56f * 1.625f - pad();
             }
 
             @Override
             protected float draw(RenderInfo ri) {
+                float trackW = height * 0.56f * 1.625f;
+                M3Components.switchControl(x2 - trackW, y1, height, toggleTimer.getPercent(), hoverPct());
                 return height;
             }
 
             @Override
             protected void click(int mouseX, int mouseY, int mouseButton) {
-                buttonComponent.handleClick(mouseX, mouseY, mouseButton);
+                if (mouseButton != 0)
+                    return;
+                boolean on = !getValue();
+                setValue(on);
+                if (on)
+                    SoundUtils.chordEnable();
+                else
+                    SoundUtils.chordDisable();
+                Arsenic.getArsenic().getConfigManager().saveConfig();
+            }
+
+            @Override
+            protected void playClickSound() {
             }
         };
     }

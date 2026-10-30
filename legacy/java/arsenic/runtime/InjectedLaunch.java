@@ -163,6 +163,7 @@ public final class InjectedLaunch {
                 SilentView.unregister();
                 status.accept("Removing hooks");
                 restoreClasses.run();
+                arsenic.utils.java.HitchWatchdog.stop();
                 injected = false;
                 System.setProperty("arsenic.loaded", "uninjected");
                 status.accept("OK");

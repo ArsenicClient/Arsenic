@@ -8,6 +8,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.gui.design.M3;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
@@ -1249,9 +1250,11 @@ public class AutoBlockIn extends Module {
     @EventLink
     public final Listener<EventRenderWorldLast> renderListener = event -> {
         if (!true || plan == null || planIndex >= plan.size()) return;
-        int main = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
-        int darker = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getDarkerColor();
-        int support = Arsenic.getArsenic().getThemeManager().getCurrentTheme().getWhite();
+
+
+        int main = M3.primary();
+        int darker = M3.secondary();
+        int support = M3.tertiary();
         for (int i = planIndex; i < plan.size(); i++) {
             PlanStep step = plan.get(i);
             boolean current = i == planIndex;

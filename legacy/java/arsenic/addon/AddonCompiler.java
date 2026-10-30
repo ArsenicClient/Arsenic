@@ -162,6 +162,8 @@ public final class AddonCompiler {
 
         @Override
         public boolean isPackage(char[][] parentPackageName, char[] packageName) {
+            if (packageName == null || packageName.length == 0 || Character.isUpperCase(packageName[0]))
+                return false;
             String parent = parentPackageName == null ? "" : join(parentPackageName, '/');
             String name = parent.isEmpty() ? String.valueOf(packageName) : parent + '/' + String.valueOf(packageName);
             return !sourceTypes.contains(name) && bytes(name) == null;
@@ -182,6 +184,8 @@ public final class AddonCompiler {
         }
 
         private byte[] bytes(String internal) {
+            if ("java/lang/Module".equals(internal) || "java/lang/ModuleDescriptor".equals(internal))
+                return null;
             byte[] cached = cache.get(internal);
             if (cached == null) {
                 byte[] loaded = source.getBytes(internal);

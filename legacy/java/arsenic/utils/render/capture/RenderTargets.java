@@ -5,6 +5,7 @@ import arsenic.injection.accessor.IMixinMinecraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
+import arsenic.utils.render.shader.ShaderUtil;
 import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -136,7 +137,7 @@ public final class RenderTargets {
         if (overlay == null || overlay.framebufferWidth != scene.framebufferWidth || overlay.framebufferHeight != scene.framebufferHeight) {
             if (overlay != null)
                 overlay.deleteFramebuffer();
-            overlay = new Framebuffer(scene.framebufferWidth, scene.framebufferHeight, true);
+            overlay = ShaderUtil.clearedFramebuffer(new Framebuffer(scene.framebufferWidth, scene.framebufferHeight, true));
             overlay.setFramebufferColor(0, 0, 0, 0);
             overlayFresh = false;
         }

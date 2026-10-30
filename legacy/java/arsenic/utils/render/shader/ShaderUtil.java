@@ -339,8 +339,19 @@ public class ShaderUtil {
             if (framebuffer != null) {
                 framebuffer.deleteFramebuffer();
             }
-            return new Framebuffer(mc.displayWidth, mc.displayHeight, depth);
+            return clearedFramebuffer(new Framebuffer(mc.displayWidth, mc.displayHeight, depth));
         }
+        return framebuffer;
+    }
+
+    /**
+     * Vanilla framebuffers default to a white clear colour (1,1,1,0) and {@code framebufferClear()}
+     * clears to it. Anything cleared white then blurred spreads white into the blur chain, and the
+     * additive composite pours it over the whole screen (the alpha mask gates alpha, not colour).
+     * Everything we clear must be transparent black instead.
+     */
+    public static Framebuffer clearedFramebuffer(Framebuffer framebuffer) {
+        framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
         return framebuffer;
     }
 }

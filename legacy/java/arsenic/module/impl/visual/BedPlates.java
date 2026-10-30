@@ -1,20 +1,27 @@
 package arsenic.module.impl.visual;
 
-import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventRenderWorldLast;
 import arsenic.event.impl.EventTick;
+import arsenic.gui.design.M3;
+import arsenic.gui.hud.HudStyle;
+import arsenic.injection.accessor.IMixinRenderManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.render.DrawUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBed;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -22,340 +29,313 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.model.IBakedModel;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S21PacketChunkData;
+import net.minecraft.network.play.server.S22PacketMultiBlockChange;
+import net.minecraft.network.play.server.S23PacketBlockChange;
+import net.minecraft.network.play.server.S26PacketMapChunkBulk;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import org.lwjgl.opengl.GL11;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @ModuleInfo(name = "BedPlates", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class BedPlates extends Module {
 
+    public final DoubleProperty range = new DoubleProperty("Range", new DoubleValue(10, 100, 50, 5));
+    public final DoubleProperty layers = new DoubleProperty("Max Layers", new DoubleValue(1, 5, 3, 1));
+    public final DoubleProperty scale = new DoubleProperty("Scale", new DoubleValue(0.5, 3.0, 1.0, 0.1));
 
-    private static final int FALLBACK_INTERVAL = 240;
-    private static final int CHUNKS_PER_TICK = 2;
-    private static final float BASE_SCALE = 0.026F;
-    private static final float MAX_SCALE = 0.30F;
+    private final Map<BlockPos, List<ItemStack>> bedCache = new HashMap<>();
+    private final java.util.ArrayDeque<int[]> pending = new java.util.ArrayDeque<>();
+    private final java.util.concurrent.ConcurrentLinkedQueue<Long> changedBlocks = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private final java.util.concurrent.ConcurrentLinkedQueue<int[]> chunkEvents = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private static final int CHUNKS_PER_TICK = 3;
+    private net.minecraft.world.World scanWorld;
 
-    private final Map<String, CachedBed> bedCache = new HashMap<>();
-    private final Map<Long, Set<String>> chunkBeds = new HashMap<>();
-    private final Set<Long> scannedChunks = new HashSet<>();
-    private final Deque<Long> rescanQueue = new ArrayDeque<>();
-    private final Set<Long> queuedChunks = new HashSet<>();
-
-    private int ticksSinceFallback;
+    private static final Set<Block> WHITELIST = new HashSet<>(Arrays.asList(
+            Blocks.wool,
+            Blocks.planks,
+            Blocks.log,
+            Blocks.log2,
+            Blocks.end_stone,
+            Blocks.obsidian,
+            Blocks.stained_hardened_clay,
+            Blocks.hardened_clay,
+            Blocks.stained_glass,
+            Blocks.glass,
+            Blocks.ladder,
+            Blocks.water,
+            Blocks.flowing_water
+    ));
 
     @Override
     protected void onEnable() {
-        resetCache();
+        reset();
     }
 
-    @Override
-    protected void onDisable() {
-        resetCache();
+    private void reset() {
+        bedCache.clear();
+        pending.clear();
+        changedBlocks.clear();
+        chunkEvents.clear();
+        scanWorld = null;
     }
+
+    /** Netty thread: only note what changed; the world isn't updated yet, so the tick does the reading. */
+    @EventLink
+    public final Listener<EventPacket.Incoming.Post> onPacket = event -> {
+        Packet<?> p = event.getPacket();
+        if (p instanceof S23PacketBlockChange) {
+            changedBlocks.add(((S23PacketBlockChange) p).getBlockPosition().toLong());
+        } else if (p instanceof S22PacketMultiBlockChange) {
+            for (S22PacketMultiBlockChange.BlockUpdateData d : ((S22PacketMultiBlockChange) p).getChangedBlocks())
+                changedBlocks.add(d.getPos().toLong());
+        } else if (p instanceof S21PacketChunkData) {
+            S21PacketChunkData c = (S21PacketChunkData) p;
+            chunkEvents.add(new int[]{c.getChunkX(), c.getChunkZ(), c.getExtractedSize() == 0 ? 1 : 0});
+        } else if (p instanceof S26PacketMapChunkBulk) {
+            S26PacketMapChunkBulk c = (S26PacketMapChunkBulk) p;
+            for (int i = 0; i < c.getChunkCount(); i++)
+                chunkEvents.add(new int[]{c.getChunkX(i), c.getChunkZ(i), 0});
+        }
+    };
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        if (mc.theWorld == null || mc.thePlayer == null) {
-            resetCache();
+        if (scanWorld != mc.theWorld) {
+            reset();
+            scanWorld = mc.theWorld;
+            int cx = mc.thePlayer.chunkCoordX, cz = mc.thePlayer.chunkCoordZ;
+            int d = mc.gameSettings.renderDistanceChunks + 1;
+            for (int x = cx - d; x <= cx + d; x++)
+                for (int z = cz - d; z <= cz + d; z++)
+                    pending.add(new int[]{x, z});
             return;
         }
 
-        removeBrokenBeds();
-        pruneFarChunks();
-
-        int chunkRadius = getChunkRadius();
-        int playerCX = mc.thePlayer.getPosition().getX() >> 4;
-        int playerCZ = mc.thePlayer.getPosition().getZ() >> 4;
-
-        for (int cx = playerCX - chunkRadius; cx <= playerCX + chunkRadius; cx++) {
-            for (int cz = playerCZ - chunkRadius; cz <= playerCZ + chunkRadius; cz++) {
-                long ck = chunkKey(cx, cz);
-                if (scannedChunks.contains(ck)) continue;
-                if (!mc.theWorld.getChunkProvider().chunkExists(cx, cz)) continue;
-                scanChunk(cx, cz);
-            }
+        int[] ev;
+        while ((ev = chunkEvents.poll()) != null) {
+            if (ev[2] == 1)
+                dropChunk(ev[0], ev[1]);
+            else
+                pending.add(new int[]{ev[0], ev[1]});
         }
 
-        ticksSinceFallback++;
-        if (ticksSinceFallback >= FALLBACK_INTERVAL) {
-            ticksSinceFallback = 0;
-            queueNearbyChunks(true);
-        }
+        Long packed;
+        int maxLayers = (int) layers.getValue().getInput();
+        while ((packed = changedBlocks.poll()) != null)
+            blockChanged(BlockPos.fromLong(packed), maxLayers);
 
-        processQueue();
+        for (int i = 0; i < CHUNKS_PER_TICK && !pending.isEmpty(); i++)
+            scanChunk(pending.poll());
     };
+
+    private void dropChunk(int cx, int cz) {
+        bedCache.keySet().removeIf(pos -> (pos.getX() >> 4) == cx && (pos.getZ() >> 4) == cz);
+    }
+
+    /** A bed appeared or vanished, or something above it (its defense) changed. */
+    private void blockChanged(BlockPos pos, int maxLayers) {
+        IBlockState state = mc.theWorld.getBlockState(pos);
+        if (state.getBlock() == Blocks.bed) {
+            if (state.getValue(BlockBed.PART) == BlockBed.EnumPartType.HEAD)
+                bedCache.put(pos, getBedDefense(pos));
+        } else {
+            bedCache.remove(pos);
+        }
+        for (int l = 1; l <= maxLayers; l++) {
+            BlockPos head = pos.down(l);
+            if (bedCache.containsKey(head))
+                bedCache.put(head, getBedDefense(head));
+        }
+    }
+
+    private void scanChunk(int[] coords) {
+        Chunk chunk = mc.theWorld.getChunkFromChunkCoords(coords[0], coords[1]);
+        if (chunk == null || chunk.isEmpty())
+            return;
+        ExtendedBlockStorage[] sections = chunk.getBlockStorageArray();
+        for (ExtendedBlockStorage section : sections) {
+            if (section == null || section.isEmpty())
+                continue;
+            int baseY = section.getYLocation();
+            for (int y = 0; y < 16; y++)
+                for (int z = 0; z < 16; z++)
+                    for (int x = 0; x < 16; x++) {
+                        if (section.getBlockByExtId(x, y, z) != Blocks.bed)
+                            continue;
+                        BlockPos pos = new BlockPos((coords[0] << 4) + x, baseY + y, (coords[1] << 4) + z);
+                        if (bedCache.containsKey(pos))
+                            continue;
+                        IBlockState state = mc.theWorld.getBlockState(pos);
+                        if (state.getValue(BlockBed.PART) == BlockBed.EnumPartType.HEAD)
+                            bedCache.put(pos, getBedDefense(pos));
+                    }
+        }
+    }
 
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
         if (bedCache.isEmpty()) return;
 
-        double maxDistSq = 64 * 64;
-        List<BedRender> list = new ArrayList<>();
+        IMixinRenderManager rm = (IMixinRenderManager) mc.getRenderManager();
+        double rx = rm.getRenderPosX();
+        double ry = rm.getRenderPosY();
+        double rz = rm.getRenderPosZ();
+        double maxSq = range.getValue().getInput() * range.getValue().getInput();
 
-        for (CachedBed cb : bedCache.values()) {
-            double dsq = distSq(cb.first, cb.second);
-            if (dsq <= maxDistSq) {
-                list.add(new BedRender(cb.first, cb.second, cb.defenses, dsq));
+        for (Map.Entry<BlockPos, List<ItemStack>> entry : bedCache.entrySet()) {
+            BlockPos pos = entry.getKey();
+            if (pos.distanceSq(mc.thePlayer.getPosition()) > maxSq)
+                continue;
+            List<ItemStack> blocks = entry.getValue();
+
+            IBlockState state = mc.theWorld.getBlockState(pos);
+            double x = pos.getX() + 0.5 - rx;
+            double y = pos.getY() + 1.5 - ry;
+            double z = pos.getZ() + 0.5 - rz;
+
+            if (state.getBlock() == Blocks.bed && state.getProperties().containsKey(BlockBed.FACING)) {
+                EnumFacing facing = state.getValue(BlockBed.FACING);
+                EnumFacing footDir = facing.getOpposite();
+                x += footDir.getFrontOffsetX() * 0.5;
+                z += footDir.getFrontOffsetZ() * 0.5;
             }
-        }
 
-        list.sort(Comparator.comparingDouble(a -> a.distanceSq));
-
-        for (BedRender br : list) {
-            renderLabel(br);
+            renderPlate(blocks, x, y, z);
         }
     };
 
+    private List<ItemStack> getBedDefense(BlockPos headPos) {
+        Set<String> seenTypes = new LinkedHashSet<>();
+        List<ItemStack> defense = new ArrayList<>();
+        int maxLayers = (int) layers.getValue().getInput();
 
-    /** Forget chunks the player has left behind so the scan bookkeeping does not grow forever. */
-    private void pruneFarChunks() {
-        int r = getChunkRadius() + 2;
-        int pcx = mc.thePlayer.getPosition().getX() >> 4;
-        int pcz = mc.thePlayer.getPosition().getZ() >> 4;
-        java.util.function.LongPredicate far = ck ->
-                Math.abs((int) (ck >> 32) - pcx) > r || Math.abs((int) (long) ck - pcz) > r;
-        scannedChunks.removeIf(far::test);
-        chunkBeds.keySet().removeIf(far::test);
-        queuedChunks.removeIf(far::test);
-        rescanQueue.removeIf(far::test);
-    }
+        for (int l = 1; l <= maxLayers; l++) {
+            BlockPos checkPos = headPos.up(l);
+            IBlockState state = mc.theWorld.getBlockState(checkPos);
+            Block block = state.getBlock();
 
-    private void removeBrokenBeds() {
-        List<String> stale = new ArrayList<>();
-        for (Map.Entry<String, CachedBed> e : bedCache.entrySet()) {
-            CachedBed cb = e.getValue();
-            if (!isBed(cb.first) || !isBed(cb.second)) {
-                stale.add(e.getKey());
-            }
-        }
-        for (String k : stale) {
-            CachedBed removed = bedCache.remove(k);
-            if (removed == null) continue;
-            long ck = chunkKey(removed.first.getX() >> 4, removed.first.getZ() >> 4);
-            Set<String> s = chunkBeds.get(ck);
-            if (s != null) {
-                s.remove(k);
-                if (s.isEmpty()) chunkBeds.remove(ck);
-            }
-        }
-    }
-
-    private void queueNearbyChunks(boolean resetScanned) {
-        int r = getChunkRadius();
-        int pcx = mc.thePlayer.getPosition().getX() >> 4;
-        int pcz = mc.thePlayer.getPosition().getZ() >> 4;
-        for (int cx = pcx - r; cx <= pcx + r; cx++) {
-            for (int cz = pcz - r; cz <= pcz + r; cz++) {
-                long ck = chunkKey(cx, cz);
-                if (resetScanned) scannedChunks.remove(ck);
-                if (queuedChunks.add(ck)) {
-                    rescanQueue.addLast(ck);
+            if (WHITELIST.contains(block)) {
+                int meta = block.getDamageValue(mc.theWorld, checkPos);
+                String key = Block.getIdFromBlock(block) + ":" + meta;
+                if (!seenTypes.contains(key)) {
+                    seenTypes.add(key);
+                    defense.add(new ItemStack(block, 1, meta));
                 }
             }
         }
+        return defense;
     }
 
-    private void processQueue() {
-        int done = 0;
-        while (!rescanQueue.isEmpty() && done < CHUNKS_PER_TICK) {
-            long ck = rescanQueue.removeFirst();
-            queuedChunks.remove(ck);
-            int cx = (int) (ck >> 32);
-            int cz = (int) (long) ck;
-            if (mc.theWorld.getChunkProvider().chunkExists(cx, cz)) {
-                scanChunk(cx, cz);
-            } else {
-                scannedChunks.remove(ck);
-                chunkBeds.remove(ck);
-            }
-            done++;
-        }
-    }
+    private void renderPlate(List<ItemStack> blocks, double x, double y, double z) {
+        FontRendererExtension<?> labelFr = HudStyle.label();
+        if (labelFr == null) return;
 
-    private void scanChunk(int chunkX, int chunkZ) {
-        if (!mc.theWorld.getChunkProvider().chunkExists(chunkX, chunkZ)) return;
-
-        Chunk chunk = mc.theWorld.getChunkFromChunkCoords(chunkX, chunkZ);
-        long ck = chunkKey(chunkX, chunkZ);
-        Set<String> found = new HashSet<>();
-
-        int sx = chunkX << 4;
-        int sz = chunkZ << 4;
-
-        for (int lx = 0; lx < 16; lx++) {
-            for (int lz = 0; lz < 16; lz++) {
-                for (int y = 0; y < 256; y++) {
-                    BlockPos pos = new BlockPos(sx + lx, y, sz + lz);
-                    if (!(chunk.getBlock(pos) instanceof BlockBed)) continue;
-
-                    BlockPos[] pair = resolveBedPair(pos);
-                    if (pair == null) continue;
-                    if (chunkKey(pair[0].getX() >> 4, pair[0].getZ() >> 4) != ck) continue;
-
-                    String key = bedKey(pair[0], pair[1]);
-                    if (!found.add(key)) continue;
-
-                    bedCache.put(key, new CachedBed(pair[0], pair[1], collectBlocks(pair[0], pair[1])));
-                }
-            }
-        }
-
-        Set<String> prev = chunkBeds.put(ck, found);
-        if (prev != null) {
-            for (String pk : prev) {
-                if (!found.contains(pk)) bedCache.remove(pk);
-            }
-        }
-        if (found.isEmpty()) chunkBeds.remove(ck);
-        scannedChunks.add(ck);
-    }
-
-    private BlockPos[] resolveBedPair(BlockPos pos) {
-        BlockPos other = null;
-        for (BlockPos n : new BlockPos[]{pos.north(), pos.south(), pos.east(), pos.west()}) {
-            if (isBed(n)) { other = n; break; }
-        }
-        if (other == null) return null;
-        if (comparePos(pos, other) <= 0) {
-            return new BlockPos[]{pos, other};
-        }
-        return new BlockPos[]{other, pos};
-    }
-
-    private List<ItemStack> collectBlocks(BlockPos first, BlockPos second) {
-        Set<String> seen = new LinkedHashSet<>();
-        List<ItemStack> stacks = new ArrayList<>();
-        int r = (int) 2;
-
-        for (int dx = -r; dx <= r; dx++) {
-            for (int dy = 0; dy <= r; dy++) {
-                for (int dz = -r; dz <= r; dz++) {
-                    addBlock(first.add(dx, dy, dz), seen, stacks);
-                    addBlock(second.add(dx, dy, dz), seen, stacks);
-                }
-            }
-        }
-        return stacks;
-    }
-
-    private void addBlock(BlockPos pos, Set<String> seen, List<ItemStack> stacks) {
-        IBlockState state = mc.theWorld.getBlockState(pos);
-        Block block = state.getBlock();
-        if (block == null || block == Blocks.air || block instanceof BlockBed || block.getMaterial() == Material.air) return;
-
-        Item item = Item.getItemFromBlock(block);
-        if (item == null) return;
-
-        int meta = block.damageDropped(state);
-        String key = Item.itemRegistry.getNameForObject(item) + ":" + meta;
-        if (seen.add(key)) {
-            stacks.add(new ItemStack(item, 1, meta));
-        }
-    }
-
-    private boolean isBed(BlockPos pos) {
-        return mc.theWorld.getBlockState(pos).getBlock() instanceof BlockBed;
-    }
-
-    private int getChunkRadius() {
-        return Math.max(1, ((int) 64 + 15) >> 4);
-    }
-
-
-    private void renderLabel(BedRender br) {
-        FontRenderer fr = mc.fontRendererObj;
-        if (fr == null) return;
-
-        double vx = mc.getRenderManager().viewerPosX;
-        double vy = mc.getRenderManager().viewerPosY;
-        double vz = mc.getRenderManager().viewerPosZ;
-
-        double x = (br.first.getX() + br.second.getX()) / 2.0 + 0.5 - vx;
-        double y = Math.max(br.first.getY(), br.second.getY()) + 1.35 - vy;
-        double z = (br.first.getZ() + br.second.getZ()) / 2.0 + 0.5 - vz;
-
-        float scale = labelScale(br.distanceSq);
+        double dist = mc.thePlayer.getDistance(
+                x + mc.getRenderManager().viewerPosX,
+                y + mc.getRenderManager().viewerPosY,
+                z + mc.getRenderManager().viewerPosZ);
+        float s = (float) (Math.max(1.25, dist * 0.14) * scale.getValue().getInput() * 0.025);
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(x, y, z);
-        GL11.glNormal3f(0, 1, 0);
-        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0, 1, 0);
-        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1, 0, 0);
-        GlStateManager.scale(-scale, -scale, scale);
-
-        if (br.defenses.isEmpty()) {
-            GlStateManager.disableLighting();
-            GlStateManager.depthMask(false);
-            GlStateManager.disableDepth();
-            GlStateManager.enableBlend();
-            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-            String text = "Uncovered";
-            int w = fr.getStringWidth(text) / 2;
-            drawBackground(w, fr.FONT_HEIGHT);
-            GlStateManager.enableDepth();
-            GlStateManager.depthMask(true);
-            GlStateManager.enableTexture2D();
-            fr.drawString(text, -w, 1, 0xFFFFFFFF);
-        } else {
-            drawIcons(br.defenses);
-        }
-
-        GlStateManager.disableBlend();
-        GlStateManager.enableDepth();
-        GlStateManager.depthMask(true);
-        GlStateManager.disableLighting();
-        GlStateManager.enableTexture2D();
-        GlStateManager.color(1, 1, 1, 1);
-        GL11.glColor4f(1, 1, 1, 1);
-        GlStateManager.popMatrix();
-    }
-
-    private void drawIcons(List<ItemStack> stacks) {
-        float iconSize = 16;
-        float spacing = 18;
-        int count = stacks.size();
-        float totalW = count * spacing;
-        float startX = -totalW / 2;
+        GL11.glNormal3f(0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        GlStateManager.scale(-s, -s, s);
 
         GlStateManager.disableLighting();
-        GlStateManager.depthMask(false);
         GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableCull();
         GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.color(1, 1, 1, 1);
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
-        drawBackground(startX - 2, -iconSize - 2, startX + totalW + 2, 2);
+        if (blocks.isEmpty()) {
+            String text = "Uncovered";
+            float padX = 7f;
+            float dotGap = 6.5f;
+            float textW = labelFr.getWidth(text);
+            float cardW = padX + dotGap + textW + padX;
+            float cardH = 18f;
+            float x1 = -cardW / 2f;
+            float y1 = -cardH / 2f;
 
-        if (count > 0) {
+            DrawUtils.drawRoundedRect(x1, y1, x1 + cardW, y1 + cardH, 5.5f,
+                    M3.alpha(M3.surfaceContainerLow(), 220));
+            DrawUtils.drawRoundedOutline(x1, y1, x1 + cardW, y1 + cardH, 5.5f, 1f,
+                    M3.alpha(M3.error(), 175));
+            DrawUtils.drawCircle(x1 + padX + 1.5f, 0f, 2f, M3.error());
+            labelFr.drawString(text, x1 + padX + dotGap, 0f, M3.error(), labelFr.CENTREY);
+        } else {
+            float slotSize = 18f;
+            float slotGap = 3f;
+            float pad = 4f;
+            float totalSlotsW = blocks.size() * slotSize + (blocks.size() - 1) * slotGap;
+            float cardW = totalSlotsW + pad * 2f;
+            float cardH = slotSize + pad * 2f;
+            float x1 = -cardW / 2f;
+            float y1 = -cardH / 2f;
+
+            DrawUtils.drawRoundedRect(x1, y1, x1 + cardW, y1 + cardH, 6f,
+                    M3.alpha(M3.surfaceContainerLow(), 225));
+            DrawUtils.drawRoundedOutline(x1, y1, x1 + cardW, y1 + cardH, 6f, 1f,
+                    M3.alpha(M3.outlineVariant(), 145));
+
+            float startX = -totalSlotsW / 2f;
+            float slotY = -slotSize / 2f;
+            for (int i = 0; i < blocks.size(); i++) {
+                float sx = startX + i * (slotSize + slotGap);
+                DrawUtils.drawRoundedRect(sx, slotY, sx + slotSize, slotY + slotSize, 4f,
+                        M3.alpha(M3.surfaceContainerHigh(), 205));
+            }
+
+            mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
             GlStateManager.enableTexture2D();
+            GlStateManager.enableAlpha();
+            GlStateManager.alphaFunc(GL11.GL_GREATER, 0.01f);
+            GlStateManager.color(1f, 1f, 1f, 1f);
+
+            for (int i = 0; i < blocks.size(); i++) {
+                ItemStack stack = blocks.get(i);
+                TextureAtlasSprite sprite = resolveSprite(stack);
+                float sx = startX + i * (slotSize + slotGap) + (slotSize - 14f) / 2f;
+                float sy = slotY + (slotSize - 14f) / 2f;
+                if (sprite != null) {
+                    drawSprite(sprite, sx, sy, 14f);
+                } else {
+                    GlStateManager.pushMatrix();
+                    RenderHelper.enableGUIStandardItemLighting();
+                    mc.getRenderItem().zLevel = -150.0F;
+                    mc.getRenderItem().renderItemAndEffectIntoGUI(stack, Math.round(sx), Math.round(sy));
+                    mc.getRenderItem().zLevel = 0.0F;
+                    RenderHelper.disableStandardItemLighting();
+                    GlStateManager.popMatrix();
+                }
+            }
         }
 
-        mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
-        GlStateManager.enableTexture2D();
-        GlStateManager.enableAlpha();
-        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.01f);
-
-        for (int i = 0; i < count; i++) {
-            ItemStack stack = stacks.get(i);
-            TextureAtlasSprite sprite = resolveSprite(stack);
-            if (sprite == null) continue;
-
-            float left = startX + i * spacing + (spacing - iconSize) / 2;
-            float top = -iconSize;
-            drawSprite(sprite, left, top, iconSize);
-        }
-
-        // vanilla default (the hand and held items render right after this event and rely on it)
-        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1f);
-        GlStateManager.enableAlpha();
-        GlStateManager.color(1, 1, 1, 1);
+        GlStateManager.enableCull();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.popMatrix();
     }
 
     private TextureAtlasSprite resolveSprite(ItemStack stack) {
@@ -385,96 +365,5 @@ public class BedPlates extends Module {
         wr.pos(right, top, 0).tex(maxU, minV).endVertex();
         wr.pos(left, top, 0).tex(minU, minV).endVertex();
         tess.draw();
-    }
-
-    private void drawBackground(int halfW, int textH) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        GlStateManager.disableTexture2D();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(-halfW - 2, -2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(-halfW - 2, textH + 2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(halfW + 2, textH + 2, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(halfW + 2, -2, 0).color(0, 0, 0, 0.45f).endVertex();
-        tess.draw();
-        GlStateManager.enableTexture2D();
-    }
-
-    private void drawBackground(float minX, float minY, float maxX, float maxY) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        GlStateManager.disableTexture2D();
-        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(minX, minY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(minX, maxY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(maxX, maxY, 0).color(0, 0, 0, 0.45f).endVertex();
-        wr.pos(maxX, minY, 0).color(0, 0, 0, 0.45f).endVertex();
-        tess.draw();
-        GlStateManager.enableTexture2D();
-    }
-
-    private float labelScale(double distSq) {
-        float dist = (float) Math.sqrt(distSq);
-        float s = BASE_SCALE * Math.max(1, (dist / 32) * 6);
-        return Math.min(MAX_SCALE, s);
-    }
-
-
-    private double distSq(BlockPos a, BlockPos b) {
-        double cx = (a.getX() + b.getX()) / 2.0 + 0.5;
-        double cy = Math.max(a.getY(), b.getY()) + 0.5;
-        double cz = (a.getZ() + b.getZ()) / 2.0 + 0.5;
-        double dx = mc.thePlayer.posX - cx;
-        double dy = mc.thePlayer.posY - cy;
-        double dz = mc.thePlayer.posZ - cz;
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    private long chunkKey(int cx, int cz) {
-        return ((long) cx << 32) ^ (cz & 0xFFFFFFFFL);
-    }
-
-    private String bedKey(BlockPos a, BlockPos b) {
-        return a.getX() + ":" + a.getY() + ":" + a.getZ() + "|" + b.getX() + ":" + b.getY() + ":" + b.getZ();
-    }
-
-    private int comparePos(BlockPos a, BlockPos b) {
-        if (a.getY() != b.getY()) return a.getY() - b.getY();
-        if (a.getX() != b.getX()) return a.getX() - b.getX();
-        return a.getZ() - b.getZ();
-    }
-
-    private void resetCache() {
-        ticksSinceFallback = 0;
-        bedCache.clear();
-        chunkBeds.clear();
-        scannedChunks.clear();
-        rescanQueue.clear();
-        queuedChunks.clear();
-    }
-
-
-    private static class CachedBed {
-        final BlockPos first, second;
-        final List<ItemStack> defenses;
-
-        CachedBed(BlockPos first, BlockPos second, List<ItemStack> defenses) {
-            this.first = first;
-            this.second = second;
-            this.defenses = defenses;
-        }
-    }
-
-    private static class BedRender {
-        final BlockPos first, second;
-        final List<ItemStack> defenses;
-        final double distanceSq;
-
-        BedRender(BlockPos first, BlockPos second, List<ItemStack> defenses, double distanceSq) {
-            this.first = first;
-            this.second = second;
-            this.defenses = defenses;
-            this.distanceSq = distanceSq;
-        }
     }
 }

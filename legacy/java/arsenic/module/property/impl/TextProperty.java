@@ -3,6 +3,10 @@ package arsenic.module.property.impl;
 import arsenic.utils.timer.MSTimer;
 import arsenic.utils.timer.TimeUtils;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
+import arsenic.utils.timer.AnimationTimer;
+import arsenic.utils.timer.TickMode;
 import arsenic.gui.click.impl.PropertyComponent;
 import arsenic.main.Arsenic;
 import arsenic.module.property.SerializableProperty;
@@ -69,6 +73,7 @@ public class TextProperty extends SerializableProperty<String> {
         private boolean focused, selectAll;
         private float boxX1, boxY1, boxY2;
         private final MSTimer lastDraw = MSTimer.expired();
+        private final AnimationTimer focusTimer = new AnimationTimer(UITheme.DUR_HOVER, () -> focused, TickMode.CUBIC);
 
         TextComponent(TextProperty p) {
             super(p);
@@ -82,35 +87,29 @@ public class TextProperty extends SerializableProperty<String> {
             boxX1 = controlX1();
             boxY1 = midPointY - bh / 2f;
             boxY2 = midPointY + bh / 2f;
-            float radius = UITheme.radiusChip(bh);
-            float pad = bh * 0.35f;
 
             if (focused && Mouse.isButtonDown(0) && !insideBox(ri.getMouseX(), ri.getMouseY()))
                 blur();
 
-            UITheme.surface(boxX1, boxY1, x2, boxY2, radius,
-                    UITheme.alpha(0x000000, focused ? 120 : 80), UITheme.Elevation.FLAT, 0.4f);
-            DrawUtils.drawRoundedOutline(boxX1, boxY1, x2, boxY2, radius, 1f,
-                    focused ? UITheme.alpha(UITheme.accent(), 230)
-                            : UITheme.alpha(UITheme.accent(), (int) (60 + 90 * hoverPct())));
+            float focus = focusTimer.getPercent();
+            float textX = M3Components.textFieldBg(boxX1, boxY1, x2, boxY2, hoverPct(), focus);
+            float room = x2 - textX - 8f;
 
             String text = self.getValue();
-            float room = x2 - boxX1 - pad * 2f - 2f;
             String shown = text;
             while (shown.length() > 0 && ri.getFr().getWidth(shown) > room)
                 shown = shown.substring(1);
 
-            float textX = boxX1 + pad;
             if (focused && selectAll && !shown.isEmpty())
                 DrawUtils.drawRoundedRect(textX - 1, boxY1 + bh * 0.16f, textX + ri.getFr().getWidth(shown) + 1,
-                        boxY2 - bh * 0.16f, 1.5f, UITheme.alpha(UITheme.accent(), 110));
+                        boxY2 - bh * 0.16f - 1f, 1.5f, M3.alpha(M3.primary(), 90));
 
-            ri.getFr().drawString(shown, textX, midPointY,
-                    focused ? UITheme.textPrimary() : UITheme.textSecondary(), ri.getFr().CENTREY);
+            ri.getFr().drawString(shown, textX, midPointY - 0.5f,
+                    focused ? M3.onSurface() : M3.onSurfaceVariant(), ri.getFr().CENTREY);
 
             if (focused && !selectAll && TimeUtils.blink(500)) {
                 float cx = textX + ri.getFr().getWidth(shown) + 1;
-                DrawUtils.drawRect(cx, boxY1 + bh * 0.2f, cx + 1, boxY2 - bh * 0.2f, UITheme.textPrimary());
+                DrawUtils.drawRect(cx, boxY1 + bh * 0.22f, cx + 1, boxY2 - bh * 0.22f - 1f, M3.primary());
             }
             return height;
         }
@@ -170,6 +169,21 @@ public class TextProperty extends SerializableProperty<String> {
                     : Keyboard.isKeyDown(29) || Keyboard.isKeyDown(157);
             if (key == Keyboard.KEY_A && ctrl) {
                 selectAll = true;
+                return false;
+            }
+
+            if (key == Keyboard.KEY_V && ctrl) {
+                String clip = net.minecraft.client.gui.GuiScreen.getClipboardString();
+                StringBuilder sb = new StringBuilder(selectAll ? "" : text);
+                for (char ch : clip.toCharArray())
+                    if (ChatAllowedCharacters.isAllowedCharacter(ch))
+                        sb.append(ch);
+                self.setValue(sb.toString());
+                selectAll = false;
+                return false;
+            }
+            if (key == Keyboard.KEY_C && ctrl) {
+                net.minecraft.client.gui.GuiScreen.setClipboardString(text);
                 return false;
             }
 

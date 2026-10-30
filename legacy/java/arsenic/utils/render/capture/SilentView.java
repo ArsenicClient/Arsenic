@@ -11,6 +11,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiIngame;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
+import arsenic.utils.render.shader.ShaderUtil;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.entity.boss.BossStatus;
 import net.minecraft.util.MathHelper;
@@ -150,7 +151,7 @@ public final class SilentView {
         if (framebuffer == null || framebuffer.framebufferWidth != scene.framebufferWidth || framebuffer.framebufferHeight != scene.framebufferHeight) {
             if (framebuffer != null)
                 framebuffer.deleteFramebuffer();
-            framebuffer = new Framebuffer(scene.framebufferWidth, scene.framebufferHeight, true);
+            framebuffer = ShaderUtil.clearedFramebuffer(new Framebuffer(scene.framebufferWidth, scene.framebufferHeight, true));
             framebuffer.setFramebufferFilter(GL11.GL_LINEAR);
         }
 

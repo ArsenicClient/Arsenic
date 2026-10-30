@@ -108,8 +108,9 @@ public abstract class Component implements IContainable {
         arsenic.utils.java.SoundUtils.cmajStep();
     }
 
+    /** Hover goes through {@link arsenic.gui.design.Hover} so only the topmost component lights up. */
     public void mouseUpdate(int mouseX, int mouseY) {
-        hovered = isMouseInArea(mouseX, mouseY);
+        hovered = width > 0 && height > 0 && arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
     }
 
     public void mouseReleased(int mouseX, int mouseY, int state) {}

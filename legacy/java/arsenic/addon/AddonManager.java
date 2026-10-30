@@ -246,6 +246,14 @@ public final class AddonManager {
                     refresh(existing, source, "java:" + entry.file, hashes);
                 }
             }
+            migrateLegacyPack("player", "qol");
+            migrateLegacyPack("movement-legit", "movement");
+            removeRetiredAddon(directory, "AutoBow", seen, hashes);
+            removeRetiredAddon(directory, "AutoPearl", seen, hashes);
+            removeRetiredAddon(implDirectory("movement"), "Stasis", seen, hashes);
+            removeRetiredAddon(implDirectory("combat"), "AutoBow", seen, hashes);
+            removeRetiredAddon(implDirectory("combat"), "AutoPearl", seen, hashes);
+            removeRetiredAddon(new File(packsDirectory(), "combat"), null, seen, hashes);
             for (AddonCatalog.PackMeta meta : catalog.bundledPacks()) {
                 boolean firstSeen = seen.add("pack:" + meta.id);
                 if (firstSeen && !new File(packsDirectory(), meta.id).exists())
@@ -260,6 +268,84 @@ public final class AddonManager {
                         .map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.toList()), StandardCharsets.UTF_8);
         } catch (Exception e) {
             Arsenic.getArsenic().getLogger().error("Could not install the default addons", e);
+        }
+    }
+
+    /** Migrates a renamed bundled pack folder (e.g. player -> qol, movement-legit -> movement) and removes the duplicate. */
+    private void migrateLegacyPack(String oldId, String newId) {
+        File oldDir = new File(packsDirectory(), oldId);
+        if (!oldDir.isDirectory())
+            return;
+        File newDir = new File(packsDirectory(), newId);
+        try {
+            File oldImpl = new File(oldDir, "impl");
+            File newImpl = implDirectory(newId);
+            if (oldImpl.isDirectory()) {
+                newImpl.mkdirs();
+                File[] files = oldImpl.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        String name = f.getName();
+                        boolean wasOn = name.endsWith(".java");
+                        boolean wasOff = name.endsWith(".java.disabled");
+                        if (!wasOn && !wasOff)
+                            continue;
+                        String addon = name.substring(0, name.indexOf(".java"));
+                        File newOn = on(newImpl, addon);
+                        File newOff = off(newImpl, addon);
+                        if (!newOn.exists() && !newOff.exists()) {
+                            Files.move(f.toPath(), new File(newImpl, name).toPath());
+                        } else if (wasOn && newOff.exists() && !newOn.exists()) {
+                            Files.move(newOff.toPath(), newOn.toPath());
+                        }
+                    }
+                }
+            }
+            String metaSource = catalog.packMetaSource(newId);
+            if (metaSource != null)
+                write(new File(newDir, "pack.json"), metaSource);
+            try (Stream<Path> walk = Files.walk(oldDir.toPath())) {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (java.io.IOException ignored) {
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Arsenic.getArsenic().getLogger().warn("Could not migrate legacy pack " + oldId + " -> " + newId, e);
+        }
+    }
+
+    private void removeRetiredAddon(File dir, String name, Set<String> seen, Map<String, String> hashes) {
+        if (dir == null || !dir.isDirectory())
+            return;
+        if (name == null) {
+            try (Stream<Path> walk = Files.walk(dir.toPath())) {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (java.io.IOException ignored) {
+                    }
+                });
+            } catch (Exception ignored) {
+            }
+            return;
+        }
+        File f1 = on(dir, name);
+        File f2 = off(dir, name);
+        if (f1.exists()) {
+            f1.delete();
+        }
+        if (f2.exists()) {
+            f2.delete();
+        }
+        if (seen != null) {
+            seen.remove(name);
+            seen.remove("pack:" + name);
+        }
+        if (hashes != null) {
+            hashes.remove("java:" + name);
         }
     }
 

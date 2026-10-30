@@ -2,6 +2,7 @@ package arsenic.module.impl.visual;
 
 import arsenic.module.ModuleTier;
 import arsenic.utils.minecraft.PlayerUtils;
+import arsenic.gui.design.M3;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
@@ -66,7 +67,7 @@ public class Trajectories extends Module {
         if (f10 > 1.0f) {
             f10 = 1.0f;
         }
-        RenderUtils.setColor(ThemeManager.getMainColor());
+        RenderUtils.setColor(M3.primary());
         GL11.glPushMatrix();
         boolean bl3 = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
         boolean bl4 = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
@@ -128,7 +129,7 @@ public class Trajectories extends Module {
                 }
             }
             if (highlight) {
-                RenderUtils.setColor(ThemeManager.getError());
+                RenderUtils.setColor(M3.error());
             }
 
             float f14 = 0.99f;

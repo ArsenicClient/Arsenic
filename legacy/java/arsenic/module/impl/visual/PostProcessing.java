@@ -20,7 +20,7 @@ public class PostProcessing extends Module {
     private static final int BLUR_OFFSET = 1;
     private static final int BLOOM_ITERATIONS = 2;
     private static final int BLOOM_OFFSET = 1;
-    private Framebuffer stencilFramebuffer = new Framebuffer(1, 1, false);
+    private Framebuffer stencilFramebuffer = ShaderUtil.clearedFramebuffer(new Framebuffer(1, 1, false));
 
     public void blurElements() {
         if (mc.currentScreen == Arsenic.getArsenic().getClickGuiScreen()) {

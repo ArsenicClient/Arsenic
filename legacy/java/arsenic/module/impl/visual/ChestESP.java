@@ -5,6 +5,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.gui.design.M3;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -24,8 +25,9 @@ public class ChestESP extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRenderWorldLast> onRender = event -> {
-        int mainColor = ThemeManager.getMainColor();
-        int darkerColor = ThemeManager.getDarkerColor();
+
+        int mainColor = M3.primary();
+        int darkerColor = M3.tertiary();
 
         for (TileEntity te : mc.theWorld.loadedTileEntityList) {
             if (te instanceof TileEntityChest && chests.getValue()) {

@@ -74,6 +74,59 @@ public final class GlowRenderer {
         }
     }
 
+    /**
+     * Renders a caller-supplied 3D draw (a held item) through the same silhouette and glow pipeline. The draw runs
+     * with the current model-view matrix, so the caller applies its first-person transforms first.
+     */
+    public void renderSilhouette(Runnable silhouette, int colour, int radius, float strength,
+                                 boolean outlineOnly, float fillAlpha) {
+        if (silhouette == null || !OpenGlHelper.isFramebufferEnabled() || !ensureShaders())
+            return;
+
+        int previousBuffer = GL11.glGetInteger(FRAMEBUFFER_BINDING);
+        viewport.clear();
+        GL11.glGetInteger(GL11.GL_VIEWPORT, viewport);
+        int width = viewport.get(2);
+        int height = viewport.get(3);
+        if (width <= 0 || height <= 0)
+            return;
+
+        previousProgram = GL11.glGetInteger(CURRENT_PROGRAM);
+        entityBuffer = ensureBuffer(entityBuffer, width, height, true);
+        maskBuffer = ensureBuffer(maskBuffer, width, height, false);
+        blurBuffer = ensureBuffer(blurBuffer, width, height, false);
+
+        try {
+            entityBuffer.framebufferClear();
+            entityBuffer.bindFramebuffer(false);
+            GL11.glViewport(0, 0, width, height);
+            GL20.glUseProgram(0);
+            GlStateManager.enableTexture2D();
+            GlStateManager.disableLighting();
+            GlStateManager.disableBlend();
+            GlStateManager.color(1f, 1f, 1f, 1f);
+            GlStateManager.enableDepth();
+            GlStateManager.depthMask(true);
+            RenderUtils.setAlphaLimit(0f);
+
+            silhouette.run();
+
+            OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, previousBuffer);
+            restoreViewport();
+            GL20.glUseProgram(previousProgram);
+            composite(colour, radius, strength, outlineOnly, fillAlpha, previousBuffer, width, height);
+        } catch (Throwable ignored) {
+        } finally {
+            GlStateManager.enableTexture2D();
+            GlStateManager.enableLighting();
+            GlStateManager.disableBlend();
+            RenderUtils.setAlphaLimit(0.1f);
+            GL20.glUseProgram(previousProgram);
+            OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, previousBuffer);
+            restoreViewport();
+        }
+    }
+
     public void release() {
         entityBuffer = deleteBuffer(entityBuffer);
         maskBuffer = deleteBuffer(maskBuffer);
@@ -270,7 +323,7 @@ public final class GlowRenderer {
             return buffer;
         if (buffer != null)
             buffer.deleteFramebuffer();
-        return new Framebuffer(width, height, depth);
+        return ShaderUtil.clearedFramebuffer(new Framebuffer(width, height, depth));
     }
 
     private void restoreViewport() {

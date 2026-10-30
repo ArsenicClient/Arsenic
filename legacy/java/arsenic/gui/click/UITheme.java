@@ -5,6 +5,7 @@ import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
+import arsenic.gui.design.M3;
 import org.lwjgl.opengl.GL11;
 
 public final class UITheme {
@@ -47,11 +48,11 @@ public final class UITheme {
         return alpha(argb, (int) (a * MathUtils.clamp01(pct)));
     }
 
-    public static int accent() { return ThemeManager.getMainColor(); }
-    public static int accentAlt() { return ThemeManager.getGradientColor(); }
-    public static int textPrimary() { return ThemeManager.getTextPrimary(); }
-    public static int textSecondary() { return ThemeManager.getTextSecondary(); }
-    public static int textMuted() { return ThemeManager.getTextMuted(); }
+    public static int accent() { return M3.primary(); }
+    public static int accentAlt() { return M3.primaryContainer(); }
+    public static int textPrimary() { return M3.onSurface(); }
+    public static int textSecondary() { return M3.onSurfaceVariant(); }
+    public static int textMuted() { return M3.outline(); }
 
     public static float luminance(int argb) {
         float r = ((argb >> 16) & 0xFF) / 255f;
@@ -91,26 +92,8 @@ public final class UITheme {
             return;
 
         intensity = MathUtils.clamp01(intensity);
-        float h = y2 - y1;
-
         GL11.glEnable(GL11.GL_BLEND);
-
-        if (elevation != Elevation.FLAT && intensity > 0.01f) {
-            DrawUtils.drawShadow(x1, y1, x2, y2, radius,
-                    GuiStyle.shadowSpread(h * elevation.spread),
-                    GuiStyle.shadowAlpha((int) (elevation.shadow * intensity)), 6);
-        }
-
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, GuiStyle.glassify(fill));
-
-        if (GuiStyle.glassEnabled())
-            DrawUtils.drawGlassRect(x1, y1, x2, y2, radius,
-                    alpha(accent(), 14), ThemeManager.getWhite(),
-                    GuiStyle.glassStrength() * (0.6f + 0.4f * intensity));
-
-        if (elevation != Elevation.FLAT && intensity > 0.01f)
-            DrawUtils.drawEdgeHighlight(x1, y1, x2, y2, radius, accent(),
-                    GuiStyle.edgeAlpha((int) (elevation.edge * intensity)));
+        arsenic.gui.design.M3Components.glass(x1, y1, x2, y2, radius, fill, elevation.spread * intensity);
     }
 
     public static void surface(float x1, float y1, float x2, float y2, float radius, int fill, Elevation elevation) {
@@ -121,21 +104,19 @@ public final class UITheme {
         if (pct <= 0.01f)
             return;
         DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius,
-                alpha(ThemeManager.getModuleHover(), (int) (26 * pct)));
+                alpha(M3.onSurface(), (int) (16 * pct)));
     }
 
     public static void accentBar(float x1, float y1, float x2, float y2, float radius, float pct) {
         if (pct <= 0.01f)
             return;
-        DrawUtils.drawGradientRoundedRect(x1, y1, x2, y2, radius,
-                alpha(accent(), (int) (220 * pct)), alpha(accent(), (int) (220 * pct)),
-                alpha(accentAlt(), (int) (220 * pct)), alpha(accentAlt(), (int) (220 * pct)));
+        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, alpha(accent(), (int) (230 * pct)));
     }
 
     public static void divider(float x1, float y, float x2, float pct) {
         if (pct <= 0.01f)
             return;
-        DrawUtils.drawRect(x1, y, x2, y + 0.75f, fade(ThemeManager.getSeparator(), pct));
+        DrawUtils.drawRect(x1, y, x2, y + 0.75f, fade(M3.outlineVariant(), pct));
     }
 
     public static void chevron(float cx, float cy, float size, float thickness, int color, float openPct) {
@@ -148,6 +129,7 @@ public final class UITheme {
 
         line(cx + ax, cy + ay, cx + bx, cy + by, thickness, color);
         line(cx + bx, cy + by, cx + ccx, cy + ccy, thickness, color);
+        DrawUtils.drawCircle(cx + bx, cy + by, thickness * 0.6f, color);
     }
 
     public static void line(float x1, float y1, float x2, float y2, float thickness, int color) {
@@ -185,10 +167,9 @@ public final class UITheme {
         float thumbY = y + (scroll / -contentOverflow) * (trackHeight - thumbHeight);
         float w = 2.5f;
         DrawUtils.drawRoundedRect(x - w, y, x, y + trackHeight, w / 2f,
-                fade(ThemeManager.getScrollbarTrack(), pct * 0.7f));
-        DrawUtils.drawGradientRoundedRect(x - w, thumbY, x, thumbY + thumbHeight, w / 2f,
-                alpha(accent(), pct), alpha(accent(), pct),
-                alpha(accentAlt(), pct), alpha(accentAlt(), pct));
+                fade(M3.surfaceContainerHighest(), pct * 0.55f));
+        DrawUtils.drawRoundedRect(x - w, thumbY, x, thumbY + thumbHeight, w / 2f,
+                alpha(accent(), (int) (230 * pct)));
     }
 
     public static float chip(arsenic.utils.font.FontRendererExtension<?> fr, String text,

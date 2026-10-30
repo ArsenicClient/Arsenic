@@ -4,6 +4,7 @@ import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventPacket;
+import arsenic.event.impl.EventRunTick;
 import arsenic.event.impl.EventTick;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.EnumConnectionState;
@@ -90,11 +91,22 @@ public final class LagManager {
             event.cancel();
     };
 
+    /**
+     * Delayed incoming packets are handled at the start of the game tick, where vanilla handles the ones it received
+     * since the last tick. Handled mid tick (between the click and the movement packet), a transaction answer would
+     * land between a swing and its movement packet, which Grim's Post check flags.
+     */
+    @EventLink
+    public final Listener<EventRunTick> onRunTick = event -> {
+        if (mc.getNetHandler() == null)
+            return;
+        incomingDelay.releaseFinished(LagManager::receivePacket);
+        incomingDelay.processChunkedReleases(LagManager::receivePacket);
+    };
+
     @EventLink
     public final Listener<EventTick> onTick = event -> {
-        incomingDelay.releaseFinished(LagManager::receivePacket);
         outgoingDelay.releaseFinished(LagManager::sendPacket);
-        incomingDelay.processChunkedReleases(LagManager::receivePacket);
         outgoingDelay.processChunkedReleases(LagManager::sendPacket);
     };
 

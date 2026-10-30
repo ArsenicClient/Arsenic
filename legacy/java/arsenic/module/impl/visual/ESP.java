@@ -12,6 +12,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.utils.java.JavaUtils;
 import net.minecraft.client.Minecraft;
@@ -29,6 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import org.lwjgl.opengl.GL11;
+import arsenic.gui.design.M3;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.render.GlowRenderer;
 import arsenic.utils.render.RenderUtils;
@@ -51,6 +53,7 @@ public class ESP extends Module {
     }
 
     public final EnumProperty<Mode> mode = new EnumProperty<>("Mode", Mode.Box);
+    public final BooleanProperty healthBar = new BooleanProperty("Health Bar", true);
 
     private static final int GLOW_RADIUS = 8;
     private static final float GLOW_STRENGTH = 3f;
@@ -105,7 +108,8 @@ public class ESP extends Module {
                 GL11.glLineWidth(1.0F);
                 RenderUtils.endWorldOverlay();
             }
-            queueHealthBar(entity, x, y, z);
+            if (healthBar.getValue())
+                queueHealthBar(entity, x, y, z);
         }
 
         if (mode.getValue() == Mode.Glow && !glowTargets.isEmpty()) {
@@ -185,10 +189,11 @@ public class ESP extends Module {
             if (height < 2)
                 continue;
             double w = Math.max(1.5D, height * 4.0D / 76.0D), in = w / 4.0D;
-            int hc = r < 0.3D ? Color.red.getRGB() : (r < 0.5D ? Color.orange.getRGB() : (r < 0.7D ? Color.yellow.getRGB() : Color.green.getRGB()));
+            float rf = (float) r;
+            int hc = rf >= 0.5f ? M3.primary() : (rf >= 0.25f ? M3.mix(M3.error(), M3.primary(), (rf - 0.25f) / 0.25f) : M3.error());
             double fillTop = bottom - in - (height - in * 2) * r;
-            rect(cx - w / 2, top, cx + w / 2, bottom, Color.black.getRGB());
-            rect(cx - w / 2 + in, top + in, cx + w / 2 - in, fillTop, Color.darkGray.getRGB());
+            rect(cx - w / 2, top, cx + w / 2, bottom, M3.alpha(M3.surfaceContainerLowest(), 220));
+            rect(cx - w / 2 + in, top + in, cx + w / 2 - in, fillTop, M3.alpha(M3.surfaceContainerHighest(), 210));
             rect(cx - w / 2 + in, fillTop, cx + w / 2 - in, bottom - in, hc);
         }
         GlStateManager.enableTexture2D();

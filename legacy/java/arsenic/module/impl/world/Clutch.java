@@ -8,6 +8,7 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventMovementInput;
 import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventRenderWorldLast;
+import arsenic.gui.design.M3;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
@@ -120,7 +121,7 @@ public class Clutch extends Module {
         BlockPos pos = new BlockPos(target.x, target.y, target.z);
         RenderUtils.renderBlock(pos, Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(), true, false);
         RenderUtils.renderBlockFace(pos, EnumFacing.getFront(target.face),
-                Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack(), true, true);
+                M3.alpha(M3.primaryContainer(), 160), true, true);
     };
 
     private boolean isScaffoldActive() {

@@ -1,144 +1,121 @@
 package arsenic.module.impl.visual;
 
-import arsenic.module.ModuleTier;
-import arsenic.gui.themes.ThemeManager;
+import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.EventRender2D;
+import arsenic.gui.design.M3;
+import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.ModuleTier;
 import arsenic.module.impl.client.AntiBot;
+import arsenic.utils.java.MathUtils;
+import arsenic.utils.render.RenderUtils;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
 
 @ModuleInfo(name = "Pointers", category = ModuleCategory.RENDER, hidden = true, tier = ModuleTier.VISUAL)
 public class Arrows extends Module {
 
-
+    @RequiresPlayer
     @EventLink
     public final Listener<EventRender2D> renderListener = event -> {
-        if (mc.thePlayer == null || mc.theWorld == null) return;
-
-        float partial = event.getPartialTicks();
-
-        double yaw = Math.toRadians(interp(mc.thePlayer.prevRotationYaw, mc.thePlayer.rotationYaw, partial));
-        double pitch = Math.toRadians(interp(mc.thePlayer.prevRotationPitch, mc.thePlayer.rotationPitch, partial));
-
-        double fx = -Math.sin(yaw) * Math.cos(pitch);
-        double fy = -Math.sin(pitch);
-        double fz = Math.cos(yaw) * Math.cos(pitch);
-        double rx = -fz, rz = fx;
-        double rLen = Math.sqrt(rx * rx + rz * rz);
-        if (rLen < 1e-6) { rx = 1; rz = 0; rLen = 1; }
-        rx /= rLen; rz /= rLen;
-        double ux = -rz * fy;
-        double uy = rz * fx - rx * fz;
-        double uz = rx * fy;
-
-        double eyeX = interp(mc.thePlayer.prevPosX, mc.thePlayer.posX, partial);
-        double eyeY = interp(mc.thePlayer.prevPosY, mc.thePlayer.posY, partial) + mc.thePlayer.getEyeHeight();
-        double eyeZ = interp(mc.thePlayer.prevPosZ, mc.thePlayer.posZ, partial);
-
-        double vfov = Math.toRadians(mc.gameSettings.fovSetting);
-        double tanV = Math.tan(vfov / 2.0);
-        double aspect = mc.displayHeight == 0 ? 1.0 : (double) mc.displayWidth / mc.displayHeight;
-        double tanH = tanV * aspect;
-
+        float partialTicks = event.getPartialTicks();
         ScaledResolution sr = event.getSr();
-        float cx = sr.getScaledWidth() / 2f;
-        float cy = sr.getScaledHeight() / 2f;
+        float radius = 38.0f;
+        float centerX = sr.getScaledWidth() / 2.0f;
+        float centerY = sr.getScaledHeight() / 2.0f;
 
-        GlStateManager.pushMatrix();
-        GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableCull();
+        double playerX = mc.thePlayer.prevPosX + (mc.thePlayer.posX - mc.thePlayer.prevPosX) * partialTicks;
+        double playerZ = mc.thePlayer.prevPosZ + (mc.thePlayer.posZ - mc.thePlayer.prevPosZ) * partialTicks;
+        float playerYaw = mc.thePlayer.prevRotationYaw + (mc.thePlayer.rotationYaw - mc.thePlayer.prevRotationYaw) * partialTicks;
 
-        for (EntityPlayer player : mc.theWorld.playerEntities) {
-            if (player == mc.thePlayer) continue;
-            if (player.isDead || player.isInvisible()) continue;
-            if (AntiBot.isBot(player)) continue;
-            float dist = mc.thePlayer.getDistanceToEntity(player);
-            if (dist > 64) continue;
-
-            double tx = interp(player.prevPosX, player.posX, partial) - eyeX;
-            double ty = interp(player.prevPosY, player.posY, partial) + player.height * 0.5 - eyeY;
-            double tz = interp(player.prevPosZ, player.posZ, partial) - eyeZ;
-            double len = Math.sqrt(tx * tx + ty * ty + tz * tz);
-            if (len < 1e-6) continue;
-            tx /= len; ty /= len; tz /= len;
-
-            double fwd = tx * fx + ty * fy + tz * fz;
-            double right = tx * rx + tz * rz;
-            double up = tx * ux + ty * uy + tz * uz;
-
-            if (fwd > 0.0) {
-                double ndcX = (right / fwd) / tanH;
-                double ndcY = (up / fwd) / tanV;
-                if (Math.abs(ndcX) <= 1.1 && Math.abs(ndcY) <= 1.1) continue;
+        for (EntityPlayer target : mc.theWorld.playerEntities) {
+            if (!isValidTarget(target)) {
+                continue;
             }
 
-            double angle = (fwd < 0.0 && Math.abs(right) < 1e-4 && Math.abs(up) < 1e-4)
-                    ? Math.PI / 2.0
-                    : Math.atan2(-up, right);
-            float t = Math.min(1f, dist / (float) 64);
-            int color = lerpColor(ThemeManager.getMainColor(), ThemeManager.getGradientColor(), t);
+            double targetX = target.prevPosX + (target.posX - target.prevPosX) * partialTicks;
+            double targetZ = target.prevPosZ + (target.posZ - target.prevPosZ) * partialTicks;
 
-            drawArrow(cx, cy, (float) 34, (float) 11, angle, color);
+            float angle = (float) Math.toDegrees(Math.atan2(targetZ - playerZ, targetX - playerX)) - playerYaw - 90.0f;
+            double distance = Math.hypot(targetX - playerX, targetZ - playerZ);
+
+            float t = MathUtils.clamp01(1.0f - (float) (distance / 48.0));
+            int alpha = Math.max(55, (int) (240 * t));
+
+            boolean isFriend = Arsenic.getArsenic().getFriendManager().isFriend(target);
+            float hpPct = MathUtils.clamp01(target.getHealth() / Math.max(1f, target.getMaxHealth()));
+            int baseCol = isFriend
+                    ? M3.tertiary()
+                    : (hpPct < 0.3f ? M3.error() : M3.primary());
+            int wingCol = isFriend
+                    ? M3.tertiaryContainer()
+                    : (hpPct < 0.3f ? M3.errorContainer() : M3.primaryContainer());
+
+            drawM3Pointer(centerX, centerY, angle, radius, baseCol, wingCol, alpha);
         }
-
-        GlStateManager.enableCull();
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
-        GL11.glColor4f(1, 1, 1, 1);
-        GlStateManager.popMatrix();
     };
 
-    private void drawArrow(float cx, float cy, float radius, float len, double angle, int color) {
-        double c = Math.cos(angle), s = Math.sin(angle);
-        float baseX = cx + (float) (c * radius);
-        float baseY = cy + (float) (s * radius);
-        float tipX = baseX + (float) (c * len);
-        float tipY = baseY + (float) (s * len);
-        float backX = baseX - (float) (c * len * 0.5);
-        float backY = baseY - (float) (s * len * 0.5);
-        float wid = len * 0.55f;
-        float leftX = backX + (float) (-s * wid);
-        float leftY = backY + (float) (c * wid);
-        float rightX = backX - (float) (-s * wid);
-        float rightY = backY - (float) (c * wid);
+    private boolean isValidTarget(EntityPlayer target) {
+        if (target == mc.thePlayer || target.isInvisible())
+            return false;
+        return !AntiBot.isBot(target);
+    }
 
-        float a = ((color >> 24) & 0xFF) / 255f;
-        float r = ((color >> 16) & 0xFF) / 255f;
-        float g = ((color >> 8) & 0xFF) / 255f;
-        float b = (color & 0xFF) / 255f;
-        GL11.glColor4f(r, g, b, a);
+    private void drawM3Pointer(float centerX, float centerY, float angle, float radius, int tipRgb, int wingRgb, int alpha) {
+        GL11.glPushMatrix();
+        GL11.glTranslatef(centerX, centerY, 0.0f);
+        GL11.glRotatef(angle, 0.0f, 0.0f, 1.0f);
+        GL11.glTranslatef(0.0f, -radius, 0.0f);
 
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_POLYGON_SMOOTH);
+        GL11.glHint(GL11.GL_POLYGON_SMOOTH_HINT, GL11.GL_NICEST);
+
+        // Subtle M3 dark container backing so the pointer chevron pops cleanly on bright skies
+        int backCol = M3.alpha(M3.surfaceContainerLowest(), (int) (alpha * 0.78f));
+        RenderUtils.setColor(backCol);
         GL11.glBegin(GL11.GL_TRIANGLES);
-        GL11.glVertex2f(tipX, tipY);
-        GL11.glVertex2f(leftX, leftY);
-        GL11.glVertex2f(rightX, rightY);
+        GL11.glVertex2f(0.0f, -6.2f);
+        GL11.glVertex2f(-4.8f, 4.6f);
+        GL11.glVertex2f(0.0f, 1.8f);
+
+        GL11.glVertex2f(0.0f, -6.2f);
+        GL11.glVertex2f(0.0f, 1.8f);
+        GL11.glVertex2f(4.8f, 4.6f);
         GL11.glEnd();
-    }
 
-    private static double interp(double prev, double now, float partial) {
-        return prev + (now - prev) * partial;
-    }
+        // Left & right chevron wings with M3 primary -> container tonal shading
+        int tipCol = M3.alpha(tipRgb, alpha);
+        int sideCol = M3.alpha(M3.mix(wingRgb, tipRgb, 0.65f), alpha);
+        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        RenderUtils.setColor(tipCol);
+        GL11.glVertex2f(0.0f, -5.0f);
+        RenderUtils.setColor(sideCol);
+        GL11.glVertex2f(-3.8f, 3.6f);
+        RenderUtils.setColor(tipCol);
+        GL11.glVertex2f(0.0f, 1.0f);
 
-    private static float interp(float prev, float now, float partial) {
-        return prev + (now - prev) * partial;
-    }
+        RenderUtils.setColor(tipCol);
+        GL11.glVertex2f(0.0f, -5.0f);
+        RenderUtils.setColor(tipCol);
+        GL11.glVertex2f(0.0f, 1.0f);
+        RenderUtils.setColor(sideCol);
+        GL11.glVertex2f(3.8f, 3.6f);
+        GL11.glEnd();
+        GL11.glShadeModel(GL11.GL_FLAT);
 
-    private static int lerpColor(int a, int b, float t) {
-        int aa = (a >> 24) & 0xFF, ar = (a >> 16) & 0xFF, ag = (a >> 8) & 0xFF, ab = a & 0xFF;
-        int ba = (b >> 24) & 0xFF, br = (b >> 16) & 0xFF, bg = (b >> 8) & 0xFF, bb = b & 0xFF;
-        int oa = (int) (aa + (ba - aa) * t);
-        int or = (int) (ar + (br - ar) * t);
-        int og = (int) (ag + (bg - ag) * t);
-        int ob = (int) (ab + (bb - ab) * t);
-        return (oa << 24) | (or << 16) | (og << 8) | ob;
+        GL11.glDisable(GL11.GL_POLYGON_SMOOTH);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glPopMatrix();
     }
 }

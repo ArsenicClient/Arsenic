@@ -119,7 +119,6 @@ public class CustomGuiScreen extends GuiScreen {
     }
 
     private void rescaleBounds(double left, double right, double bottom, double top) {
-        GlStateManager.clear(256);
         GlStateManager.matrixMode(5889);
         GlStateManager.loadIdentity();
         GlStateManager.ortho(left, right, bottom, top, 1000.0D, 3000.0D);

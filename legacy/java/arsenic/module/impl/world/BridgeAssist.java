@@ -10,6 +10,8 @@ import arsenic.event.bus.Priorities;
 import arsenic.event.impl.EventSilentRotation;
 import arsenic.event.impl.EventMovementInput;
 import arsenic.event.impl.EventRender2D;
+import arsenic.gui.design.M3;
+import arsenic.utils.render.RenderUtils;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
@@ -195,7 +197,8 @@ public class BridgeAssist extends Module {
         long left = ARROW_MS - arrow.getTime();
         if (left <= 0 || mc.thePlayer == null || !isEnabled())
             return;
-        float alpha = Math.min(1f, left / (float) ARROW_MS);
+        float raw = Math.min(1f, left / (float) ARROW_MS);
+        float alpha = raw * raw * (3f - 2f * raw);
         ScaledResolution sr = event.getSr() != null ? event.getSr() : new ScaledResolution(mc);
         float cx = sr.getScaledWidth() / 2f, cy = sr.getScaledHeight() / 2f + 34f;
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
@@ -205,13 +208,43 @@ public class BridgeAssist extends Module {
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, alpha);
+        if (arrowStrafe > 0) drawM3Arrow(cx - 18, cy, -1, 0, alpha);
+        if (arrowStrafe < 0) drawM3Arrow(cx + 18, cy, 1, 0, alpha);
+        if (arrowForward > 0) drawM3Arrow(cx, cy - 14, 0, -1, alpha);
+        if (arrowForward < 0) drawM3Arrow(cx, cy + 14, 0, 1, alpha);
+        if (Boolean.FALSE) {
         if (arrowStrafe > 0) drawArrow(cx - 18, cy, -1, 0);
         if (arrowStrafe < 0) drawArrow(cx + 18, cy, 1, 0);
         if (arrowForward > 0) drawArrow(cx, cy - 14, 0, -1);
         if (arrowForward < 0) drawArrow(cx, cy + 14, 0, 1);
+        }
         GL11.glPopAttrib();
     };
+
+    private static void drawM3Arrow(float cx, float cy, float dx, float dy, float alpha) {
+        int aBack = (int) (210 * alpha);
+        int aFill = (int) (245 * alpha);
+        RenderUtils.setColor(M3.alpha(M3.surfaceContainerLowest(), aBack));
+        drawArrowGeom(cx, cy, dx, dy, 1.0f);
+        RenderUtils.setColor(M3.alpha(M3.primary(), aFill));
+        drawArrowGeom(cx, cy, dx, dy, 0.0f);
+    }
+
+    private static void drawArrowGeom(float cx, float cy, float dx, float dy, float expand) {
+        float px = -dy, py = dx;
+        float len = 8.5f + expand, half = 6.2f + expand, shaft = 2.0f + expand * 0.8f;
+        GL11.glBegin(GL11.GL_TRIANGLES);
+        GL11.glVertex2f(cx + dx * len, cy + dy * len);
+        GL11.glVertex2f(cx + dx * 0.8f + px * half, cy + dy * 0.8f + py * half);
+        GL11.glVertex2f(cx + dx * 0.8f - px * half, cy + dy * 0.8f - py * half);
+        GL11.glEnd();
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(cx + dx * 1.0f + px * shaft, cy + dy * 1.0f + py * shaft);
+        GL11.glVertex2f(cx + dx * 1.0f - px * shaft, cy + dy * 1.0f - py * shaft);
+        GL11.glVertex2f(cx - dx * (len - 1.5f) - px * shaft, cy - dy * (len - 1.5f) - py * shaft);
+        GL11.glVertex2f(cx - dx * (len - 1.5f) + px * shaft, cy - dy * (len - 1.5f) + py * shaft);
+        GL11.glEnd();
+    }
 
     private static void drawArrow(float cx, float cy, float dx, float dy) {
         float px = -dy, py = dx;

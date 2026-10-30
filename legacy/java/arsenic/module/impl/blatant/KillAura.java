@@ -42,6 +42,7 @@ import arsenic.utils.timer.MSTimer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
+import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
@@ -69,9 +70,14 @@ public class KillAura extends Module {
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    @PropertyGroup(Group.ADVANCED)
+    public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
+    @PropertyGroup(Group.VISUAL)
+    public final BooleanProperty blockTracker = new BooleanProperty("Block Tracker", false);
+    private int hitsTaken, hitsBlocked;
     public EntityPlayer target = null;
     private boolean hadTarget = false;
     private boolean wasUsingItem;
@@ -102,6 +108,7 @@ public class KillAura extends Module {
         target = null;
         hadTarget = false;
         everOnTarget = false;
+        hitsTaken = hitsBlocked = 0;
         aim.reset();
         ClickManager.get().reset(ClickManager.Client.KILLAURA);
     }
@@ -139,6 +146,9 @@ public class KillAura extends Module {
         aim.setPitchBand(pitchBandActive(), (float) pitchRange.getValue().getMin(), (float) pitchRange.getValue().getMax());
         target = pickTarget();
         autoBlockTick();
+        // the packet block is ours: a real click alongside it is a second action in the tick (Grim MultiActions)
+        if (target != null && AutoBlocker.isPacketMode(autoBlock.getValue()))
+            event.setBlockUserInput(true);
         aim.updateDrift();
         if (target != null && (hitflick().ownsRotation() || autoProjectile().ownsRotation())) {
             hadTarget = true;
@@ -190,6 +200,7 @@ public class KillAura extends Module {
                     && ClickManager.get().remainingMs(ClickManager.Client.KILLAURA) <= 50
                     && blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.hitVec, 1));
         if ((target != null || hitPlayer != null)
+                && !(weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
@@ -197,7 +208,8 @@ public class KillAura extends Module {
                 // the server's view of item use, whatever the client's says (Grim MultiActions)
                 && !BadPacketsManager.serverUsingItem()
                 && !autoProjectile().isBusy()
-                && !(autoBlock.getValue() == AutoBlocker.Mode.Legit && BadPacketsManager.bad(false, false, false, true, false))
+                && !((autoBlock.getValue() == AutoBlocker.Mode.Legit || packetBlock)
+                && BadPacketsManager.bad(false, false, false, true, false))
                 && !(packetBlock && !blocker.canAttack())) {
             if (hitPlayer != null) {
                 // Hypixel waits for a hit that would do damage
@@ -230,6 +242,7 @@ public class KillAura extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventUpdate.Post> onPostMotion = event -> {
+        blocker.recordSent(blocker.isBlocking() || autoBlock.getValue() == AutoBlocker.Mode.Legit && mc.thePlayer.isBlocking());
         if (AutoBlocker.isPacketMode(autoBlock.getValue()))
             blocker.afterMovement();
     };
@@ -247,7 +260,29 @@ public class KillAura extends Module {
     public final Listener<EventPacket.Incoming.Pre> onServerMove = event -> {
         if (disableOnFlag.getValue() && event.getPacket() instanceof S08PacketPlayerPosLook)
             setEnabled(false);
+        // packets arrive on the network thread; the vanilla handler runs it on the main thread too
+        if (blockTracker.getValue() && event.getPacket() instanceof S19PacketEntityStatus) {
+            S19PacketEntityStatus status = (S19PacketEntityStatus) event.getPacket();
+            mc.addScheduledTask(() -> trackBlock(status));
+        }
     };
+
+    /**
+     * Block Tracker: on each hit we take while fighting with an autoblock, says in chat whether the sword was up when
+     * the server took the hit. That was a ping ago: the hurt comes back half a ping late, and what we sent then reached
+     * the server half a ping later. The client cannot tell a hit from other damage, so a fall in a fight counts too.
+     */
+    private void trackBlock(S19PacketEntityStatus status) {
+        if (mc.thePlayer == null || status.getOpCode() != 2 || status.getEntity(mc.theWorld) != mc.thePlayer
+                || target == null || autoBlock.getValue() == AutoBlocker.Mode.None)
+            return;
+        boolean blocked = blocker.wasBlocking(LagManager.getPingAsTicks());
+        hitsTaken++;
+        if (blocked)
+            hitsBlocked++;
+        PlayerUtils.addMessageToChat((blocked ? "§aBlocked" : "§cNot blocked") + " §7("
+                + hitsBlocked + "/" + hitsTaken + ")");
+    }
 
     @RequiresPlayer
     @EventLink
@@ -267,7 +302,8 @@ public class KillAura extends Module {
     }
 
     private EntityPlayer pickTarget() {
-        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
+        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
+                || weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return null;
         List<EntityPlayer> candidates = TargetManager.getTargets();
         if (pitchBandActive()) {
