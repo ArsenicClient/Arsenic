@@ -28,6 +28,10 @@
     {
       "file": "BowAimbot",
       "description": "Turns your camera onto the nearest enemy while a bow is drawn, leading the shot (camera aim, not silent)."
+    },
+    {
+      "file": "AntiVoid",
+      "description": "Keeps you out of the void: Sneak mode holds sneak at void edges, Blink mode holds your movement packets while you fall over the void and puts you back on the last safe ground."
     }
   ]
 }
