@@ -70,6 +70,7 @@ public class KillAura extends Module {
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
@@ -195,6 +196,7 @@ public class KillAura extends Module {
                     && ClickManager.get().remainingMs(ClickManager.Client.KILLAURA) <= 50
                     && blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.hitVec, 1));
         if ((target != null || hitPlayer != null)
+                && !(weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
@@ -295,7 +297,8 @@ public class KillAura extends Module {
     }
 
     private EntityPlayer pickTarget() {
-        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide())
+        if (Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
+                || weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return null;
         List<EntityPlayer> candidates = TargetManager.getTargets();
         if (pitchBandActive()) {
