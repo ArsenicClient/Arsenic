@@ -38,3 +38,6 @@ builder.bat
 Arsenic.lnk
 CLAUDE.md
 test-server/
+
+# reference client, not part of this repo
+/openprestige/
