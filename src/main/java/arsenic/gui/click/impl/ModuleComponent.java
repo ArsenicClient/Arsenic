@@ -155,14 +155,10 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         float cardY2 = y2 + expandY;
 
         float elevation = Math.max(hover * 0.7f, Math.max(openPct * 0.5f, enabledPct * 0.35f)) + 0.3f;
-        UITheme.surface(x1, y1, x2, cardY2, radius, ThemeManager.getModuleBackground(),
-                UITheme.Elevation.RAISED, Math.min(1f, elevation));
+        // Material card: tonal surface, and the primary container colour once the module is on
+        int cardFill = UITheme.mix(ThemeManager.getModuleBackground(), arsenic.gui.design.M3.primaryContainer(), enabledPct);
+        UITheme.surface(x1, y1, x2, cardY2, radius, cardFill, UITheme.Elevation.FLAT, Math.min(1f, elevation));
         UITheme.hoverWash(x1, y1, x2, cardY2, radius, hover);
-
-        if (enabledPct > 0.01f) {
-            float barW = Math.max(1.5f, height * 0.07f);
-            UITheme.accentBar(x1, y1, x1 + barW, cardY2, radius, enabledPct);
-        }
 
         float chevronCx = x1 + pad * 1.25f;
         chevronZoneX2 = chevronCx + pad;
@@ -205,7 +201,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         }
 
         float textX = chevronZoneX2 + pad * 0.35f;
-        int titleColor = UITheme.mix(UITheme.textSecondary(), UITheme.textPrimary(), enabledPct);
+        int titleColor = UITheme.mix(UITheme.textSecondary(), arsenic.gui.design.M3.onPrimaryContainer(), enabledPct);
         ri.getFr().drawString(name, textX, midPointY, titleColor, ri.getFr().CENTREY);
 
         PosInfo pi = new PosInfo(x1 + pad * 1.1f, y2);

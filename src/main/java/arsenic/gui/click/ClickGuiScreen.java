@@ -131,8 +131,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
         int glowAlpha = (int) (glowFactor * 255);
 
-        int mainC = ColorUtils.setColor(ThemeManager.getMainColor(), 0, glowAlpha);
-        int gradientC = ColorUtils.setColor(ThemeManager.getGradientColor(), 0, glowAlpha);
+        int mainC = ColorUtils.setColor(arsenic.gui.design.M3.primary(), 0, glowAlpha);
+        int gradientC = ColorUtils.setColor(arsenic.gui.design.M3.primaryContainer(), 0, glowAlpha);
         ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
         DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC, mainC, gradientC, gradientC);
     }
@@ -197,11 +197,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         // main container - base layer, lifted off the backdrop
         DrawUtils.drawShadow(x, y, x1, y1, 30f, GuiStyle.shadowSpread(10f), GuiStyle.shadowAlpha(190), 7);
-        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
-        DrawUtils.drawEdgeHighlight(x, y, x1, y1, 30f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(28));
-        if (GuiStyle.glassEnabled())
-            DrawUtils.drawGlassRect(x, y, x1, y1, 30f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 18), ThemeManager.getWhite(), GuiStyle.glassStrength());
+        // Material window: one flat surface, the rail and cards sit on it as tonal containers
+        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ThemeManager.getClickGuiBackground());
 
         vLineX = 2 * x;
         hLineY = (int) (1.5 * y);
@@ -214,15 +211,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
         float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
         float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
         // The addon manager keeps the same frame: its packs are listed where the module categories are.
-        DrawUtils.drawShadow(sx1, sy1, sx2, sy2, 12f, GuiStyle.shadowSpread(6f), GuiStyle.shadowAlpha(150), 6);
-        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 12f, GuiStyle.glassify(ThemeManager.getModuleBackground()));
-        DrawUtils.drawEdgeHighlight(sx1, sy1, sx2, sy2, 12f, ThemeManager.getMainColor(), GuiStyle.edgeAlpha(22));
-        if (GuiStyle.glassEnabled())
-            DrawUtils.drawGlassRect(sx1, sy1, sx2, sy2, 12f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, 14), ThemeManager.getWhite(), GuiStyle.glassStrength());
-
-        DrawUtils.drawRect(vLineX, y, vLineX + 1.0f, y1, ThemeManager.getClickGuiSeparator());
-        DrawUtils.drawRect(x, hLineY, x1, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
+        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 22f, arsenic.gui.design.M3.surfaceContainer());
+        DrawUtils.drawRect(vLineX + 5, hLineY, x1 - 18, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
 
         //logo, tinted with the theme colour
         int tempExpand = (int) (x * 0.1f);
@@ -266,15 +256,14 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private void drawPill(String label, float bx1, float by1, float bx2, float by2, float hover) {
         float h = by2 - by1;
         float radius = h / 2f;
-        DrawUtils.drawShadow(bx1, by1, bx2, by2, radius,
-                GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
-        DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, radius,
-                GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
-        DrawUtils.drawRoundedOutline(bx1, by1, bx2, by2, radius, 1f,
-                ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+        // Material tonal button: a container fill with a state layer on hover, no outline
+        DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, radius, arsenic.gui.design.M3.secondaryContainer());
+        if (hover > 0.01f)
+            DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, radius,
+                    UITheme.alpha(arsenic.gui.design.M3.onSecondaryContainer(), (int) (26 * hover)));
 
         getFontRenderer().drawString(label, (bx1 + bx2) / 2f, (by1 + by2) / 2f,
-                RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(), hover),
+                arsenic.gui.design.M3.onSecondaryContainer(),
                 getFontRenderer().CENTREX, getFontRenderer().CENTREY);
     }
 
@@ -374,11 +363,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
             float hover = tierHoverTimers[i].getPercent();
             float tick = tierTickTimers[i].getPercent();
 
-            DrawUtils.drawShadow(tx1, ty1, tx2, ty2, radius,
-                    GuiStyle.shadowSpread(h * 0.35f), GuiStyle.shadowAlpha((int) (110 + 60 * hover)), 5);
-            DrawUtils.drawRoundedRect(tx1, ty1, tx2, ty2, radius, GuiStyle.glassify(ThemeManager.getClickGuiBackground()));
-            DrawUtils.drawRoundedOutline(tx1, ty1, tx2, ty2, radius, 1f,
-                    ColorUtils.setColor(ThemeManager.getMainColor(), 0, (int) (70 + 150 * hover)));
+            DrawUtils.drawRoundedRect(tx1, ty1, tx2, ty2, radius, arsenic.gui.design.M3.surfaceContainerHigh());
+            if (hover > 0.01f)
+                DrawUtils.drawRoundedRect(tx1, ty1, tx2, ty2, radius, UITheme.alpha(arsenic.gui.design.M3.onSurface(), (int) (20 * hover)));
 
             float midY = (ty1 + ty2) / 2f;
             float bx1 = tx1 + pad * 1.4f, bx2 = bx1 + box;
@@ -393,8 +380,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
                         UITheme.alpha(UITheme.readableOn(UITheme.accent()), (int) (255 * tick)));
 
             getFontRenderer().drawString(tier.getDisplayName(), bx2 + pad, midY,
-                    RenderUtils.interpolateColoursInt(ThemeManager.getTextSecondary(), ThemeManager.getWhite(),
-                            Math.max(hover, tick)),
+                    arsenic.gui.design.M3.onSurface(),
                     getFontRenderer().CENTREY);
         }
     }

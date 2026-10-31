@@ -24,6 +24,9 @@ public final class M3 {
 
     public static int primary() { return colors().primary; }
     public static int primaryContainer() { return colors().primaryContainer; }
+    public static int onPrimaryContainer() { return colors().onPrimaryContainer; }
+    public static int secondaryContainer() { return colors().secondaryContainer; }
+    public static int onSecondaryContainer() { return colors().onSecondaryContainer; }
     public static int surface() { return colors().surface; }
     public static int surfaceContainerLowest() { return colors().surfaceContainerLowest; }
     public static int surfaceContainerLow() { return colors().surfaceContainerLow; }

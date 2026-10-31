@@ -42,36 +42,23 @@ public abstract class ButtonComponent extends Component {
         float trackY2 = midPointY + trackHeight / 2f;
         float radius = UITheme.radiusPill(trackHeight);
 
-        int offTrack = ThemeManager.getButtonBackground();
-        int onLeft = UITheme.mix(offTrack, UITheme.accent(), pct);
-        int onRight = UITheme.mix(offTrack, UITheme.accentAlt(), pct);
+        // Material switch: primary track with a small light knob when on, outlined track with a dark knob when off
+        int track = UITheme.mix(arsenic.gui.design.M3.surfaceContainerHighest(), UITheme.accent(), pct);
+        DrawUtils.drawRoundedRect(trackX1, trackY1, trackX2, trackY2, radius, track);
+        if (pct < 0.98f)
+            DrawUtils.drawRoundedOutline(trackX1, trackY1, trackX2, trackY2, radius, 1f,
+                    UITheme.alpha(arsenic.gui.design.M3.outline(), (int) (255 * (1f - pct))));
 
-        if (pct > 0.02f)
-            DrawUtils.drawShadow(trackX1, trackY1, trackX2, trackY2, radius,
-                    arsenic.gui.click.GuiStyle.shadowSpread(trackHeight * 0.5f),
-                    arsenic.gui.click.GuiStyle.shadowAlpha((int) (110 * pct)), 5);
-
-        DrawUtils.drawGradientRoundedRect(trackX1, trackY1, trackX2, trackY2, radius,
-                onLeft, onLeft, onRight, onRight);
-
-        DrawUtils.drawRoundedOutline(trackX1, trackY1, trackX2, trackY2, radius, 0.8f,
-                UITheme.alpha(pct > 0.5f ? ThemeManager.getWhite() : ThemeManager.getBlack(),
-                        (int) (30 + 40 * pct)));
-
-        float knobRadius = trackHeight * 0.36f;
-        float travel = trackWidth - (knobRadius * 2f) - trackHeight * 0.14f;
-        float knobX = trackX1 + trackHeight * 0.07f + knobRadius + travel * pct;
+        float knobRadius = trackHeight * (0.26f + 0.12f * pct);
+        float travel = trackWidth - trackHeight;
+        float knobX = trackX1 + trackHeight / 2f + travel * pct;
 
         if (hover > 0.02f)
-            DrawUtils.drawCircle(knobX, midPointY, knobRadius * (1.35f + 0.25f * hover),
-                    UITheme.alpha(UITheme.accent(), (int) (55 * hover)));
+            DrawUtils.drawCircle(knobX, midPointY, knobRadius * 1.7f,
+                    UITheme.alpha(UITheme.mix(arsenic.gui.design.M3.onSurface(), UITheme.accent(), pct), (int) (28 * hover)));
 
-        DrawUtils.drawCircle(knobX, midPointY + knobRadius * 0.12f, knobRadius * 1.05f,
-                ThemeManager.getButtonCircleShadow());
-        DrawUtils.drawCircle(knobX, midPointY, knobRadius * (1f - 0.08f * pressPct()),
-                UITheme.mix(ThemeManager.getWhite(), 0xFFFFFFFF, pct));
-        DrawUtils.drawCircle(knobX - knobRadius * 0.28f, midPointY - knobRadius * 0.28f,
-                knobRadius * 0.3f, ThemeManager.getButtonCircleHighlight());
+        int knob = UITheme.mix(arsenic.gui.design.M3.outline(), UITheme.readableOn(UITheme.accent()), pct);
+        DrawUtils.drawCircle(knobX, midPointY, knobRadius * (1f - 0.1f * pressPct()), knob);
 
         return height;
     }

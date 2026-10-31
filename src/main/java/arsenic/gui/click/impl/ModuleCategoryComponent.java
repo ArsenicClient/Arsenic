@@ -83,20 +83,16 @@ refreshListing();
     protected float drawComponent(RenderInfo ri) {
         float anim = Math.max(enabledTimer.getPercent(), hoverTimer.getPercent());
         expandX = anim * (width / 40f);
-        int mainC = ColorUtils.setColor(getEnabledColor(), 0, (int) (anim * 255));
-        int gradientC = ColorUtils.setColor(getGradientColor(), 0, (int) (anim * 255));
+        // Material navigation item: a pill in the secondary container colour behind the selected category
+        int pill = enabledTimer.getPercent() > 0.001f || hoverTimer.getPercent() > 0.001f
+                ? arsenic.gui.click.UITheme.alpha(arsenic.gui.design.M3.secondaryContainer(),
+                        (int) (255 * Math.max(enabledTimer.getPercent(), hoverTimer.getPercent() * 0.55f)))
+                : 0;
+        if ((pill >>> 24) != 0)
+            DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 2f, pill);
 
-
-        if (anim > 0.01f)
-            DrawUtils.drawShadow(x1 + expandX, y1, x2 + expandX, y2, height / 4f,
-                    arsenic.gui.click.GuiStyle.shadowSpread(height * 0.18f),
-                    arsenic.gui.click.GuiStyle.shadowAlpha((int) (130 * anim)), 4);
-
-        DrawUtils.drawGradientRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 4f, mainC, mainC, gradientC, gradientC);
-
-        int onPanel = arsenic.gui.click.UITheme.readableOn(ThemeManager.getModuleBackground());
-        int onAccent = arsenic.gui.click.UITheme.readableOn(getEnabledColor());
-        int foreground = arsenic.gui.click.UITheme.mix(onPanel, onAccent, anim);
+        int foreground = arsenic.gui.click.UITheme.mix(arsenic.gui.design.M3.onSurfaceVariant(),
+                arsenic.gui.design.M3.onSecondaryContainer(), anim);
 
         float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
         float iconX = x1 + (width / 7f) + expandX - iconSize;
