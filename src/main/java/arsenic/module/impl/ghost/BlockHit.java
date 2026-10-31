@@ -35,7 +35,7 @@ public class BlockHit extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventRunTick> eventTickListener = event -> {
-        if(!isPlayerHoldingSword())
+        if(!isPlayerHoldingBlocker())
             return;
         if(target == null) {
             if(down) release();
@@ -56,8 +56,8 @@ public class BlockHit extends Module {
         super.onDisable();
     }
 
-    public boolean isPlayerHoldingSword() {
-        return PlayerUtils.isPlayerHoldingSword();
+    public boolean isPlayerHoldingBlocker() {
+        return PlayerUtils.isPlayerHoldingBlocker();
     }
 
     private void release() {

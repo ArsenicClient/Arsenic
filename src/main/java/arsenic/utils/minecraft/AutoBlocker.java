@@ -11,13 +11,12 @@ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The block KillAura uses while it fights: the held item that blocks (a shield, or a sword where the server makes
- * swords block), main hand first.
+ * The block KillAura uses while it fights: the held item that blocks (a shield on latest-version servers, a sword on
+ * 1.8 ones), main hand first.
  *
  * The packet blocks (Hypixel and Hypixel Hold) keep to one rule that Grim's PacketOrderI checks: an attack and a sword
  * release never go out in the same tick (the movement packet ends a tick), in either order. So the release is only
@@ -200,13 +199,9 @@ public final class AutoBlocker {
         return hitVec != null && mc.player.getEyePosition(1f).distanceTo(hitVec) <= HYPIXEL_RANGE;
     }
 
-    /** The hand holding an item that blocks, main hand first, or null. */
+    /** The hand holding an item that blocks (a shield, or a sword), main hand first, or null. */
     private static InteractionHand blockingHand() {
-        if (mc.player.getMainHandItem().getUseAnimation() == ItemUseAnimation.BLOCK)
-            return InteractionHand.MAIN_HAND;
-        if (mc.player.getOffhandItem().getUseAnimation() == ItemUseAnimation.BLOCK)
-            return InteractionHand.OFF_HAND;
-        return null;
+        return PlayerUtils.blockingHand();
     }
 
     /** Keeps the client using the blocking item for this tick's movement, as a held right click does; afterMovement clears it. */

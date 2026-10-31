@@ -118,7 +118,7 @@ public class ServerInfo {
                 sprinting = false;
             }
         }
-        if (e.getPacket() instanceof ServerboundUseItemPacket && mc.player != null && PlayerUtils.isPlayerHoldingSword()) {
+        if (e.getPacket() instanceof ServerboundUseItemPacket && mc.player != null && PlayerUtils.isPlayerHoldingBlocker()) {
             blocking = true;
         }
         if (e.getPacket() instanceof ServerboundPlayerActionPacket action

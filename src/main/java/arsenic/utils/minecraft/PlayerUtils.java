@@ -19,6 +19,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemUseAnimation;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +40,25 @@ public class PlayerUtils extends UtilityClass {
 
     public static boolean isPlayerHoldingWeapon() {
         return ItemUtils.isWeapon(mc.player.getMainHandItem());
+    }
+
+    /**
+     * The hand that blocks, main hand first, or null. Latest-version servers block with a shield, and 1.8 servers (also
+     * through a protocol translator) with a right click on a sword, so a hand counts when its item has the blocking
+     * use animation, and a held sword counts even when the client gives it none.
+     */
+    public static InteractionHand blockingHand() {
+        if (mc.player == null)
+            return null;
+        if (mc.player.getMainHandItem().getUseAnimation() == ItemUseAnimation.BLOCK)
+            return InteractionHand.MAIN_HAND;
+        if (mc.player.getOffhandItem().getUseAnimation() == ItemUseAnimation.BLOCK)
+            return InteractionHand.OFF_HAND;
+        return isPlayerHoldingSword() ? InteractionHand.MAIN_HAND : null;
+    }
+
+    public static boolean isPlayerHoldingBlocker() {
+        return blockingHand() != null;
     }
 
     public static boolean isPlayerHoldingBlocks() {

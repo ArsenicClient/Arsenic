@@ -125,7 +125,7 @@ public class KillAura extends Module {
             blocker.stopPacket();
         lastBlockMode = mode;
 
-        blockActive = target != null && PlayerUtils.isPlayerHoldingSword() && !autoProjectile().isBusy();
+        blockActive = target != null && PlayerUtils.isPlayerHoldingBlocker() && !autoProjectile().isBusy();
         AutoBlocker.setRenderBlocking(AutoBlocker.isPacketMode(mode) && blockActive
                 && mc.player.distanceTo(target) <= ATTACK_RANGE + 1);
         if (mode == AutoBlocker.Mode.Legit)
