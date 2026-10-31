@@ -114,8 +114,8 @@ public class AutoCrystal extends Module {
                 || Math.abs(event.getPitch() - want[1]) > AIM_TOLERANCE)
             return;
         if (breakTarget != null) {
-            PlayerUtils.swingItem();
             mc.gameMode.attack(mc.player, breakTarget);
+            PlayerUtils.swingItem();
         } else if (placeHit != null) {
             placeCrystal();
         }

@@ -213,14 +213,14 @@ public class KillAura extends Module {
                 } else if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
                 } else {
-                    PlayerUtils.swingItem();
                     mc.gameMode.attack(mc.player, hit);
+                    PlayerUtils.swingItem();
                     resetAttackCycle();
                     // KillAura attacks once per tick, so the second click of a double goes out right away
                     // (not with a packet block, whose cycle leaves no room for it)
                     if (!packetBlock && ClickManager.get().doubleClickPending(ClickManager.Client.KILLAURA)) {
-                        PlayerUtils.swingItem();
                         mc.gameMode.attack(mc.player, hit);
+                        PlayerUtils.swingItem();
                         resetAttackCycle();
                     }
                     if (packetBlock)

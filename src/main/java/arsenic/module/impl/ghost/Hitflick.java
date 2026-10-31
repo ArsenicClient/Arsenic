@@ -187,8 +187,8 @@ public class Hitflick extends Module {
                 // a block went up since the flick (the server sees an item in use): no swing or attack now
                 if (pendingTarget != null && !BadPacketsManager.serverUsingItem()) {
                     attackTick = mc.player.tickCount;
-                    PlayerUtils.swingItem();
                     mc.gameMode.attack(mc.player, pendingTarget);
+                    PlayerUtils.swingItem();
                     if (pendingVoidHit)
                         spawnVoidArrow(pendingTarget, flickYaw);
                 }

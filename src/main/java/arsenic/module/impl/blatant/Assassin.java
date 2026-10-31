@@ -372,8 +372,8 @@ public class Assassin extends Module {
      * client re-sprints in the same tick while sprint is held), and Grim expects that slowdown from a sprinting 1.8 hit.
      */
     private void hit() {
-        PlayerUtils.swingItem();
         send(new ServerboundAttackPacket(target.getId()));
+        PlayerUtils.swingItem();
         holdLook = true;
         if (hitSlowdown.getValue()) {
             motionX *= 0.6D;

@@ -121,9 +121,9 @@ public class PlayerUtils extends UtilityClass {
 
     /** A vanilla left click on whatever the crosshair is on. */
     public static void click() {
-        swingItem();
         if (mc.hitResult instanceof EntityHitResult entityHit) {
             mc.gameMode.attack(mc.player, entityHit.getEntity());
+            swingItem();
         } else if (mc.hitResult instanceof BlockHitResult blockHit && mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
             BlockPos pos = blockHit.getBlockPos();
             if (!mc.level.getBlockState(pos).isAir())

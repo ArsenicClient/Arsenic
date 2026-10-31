@@ -33,7 +33,7 @@ public class TriggerBot extends Module {
         if (!(mc.hitResult instanceof EntityHitResult hit) || !(hit.getEntity() instanceof Player target)
                 || !TargetManager.isValidTarget(target))
             return;
-        PlayerUtils.swingItem();
         mc.gameMode.attack(mc.player, target);
+        PlayerUtils.swingItem();
     };
 }

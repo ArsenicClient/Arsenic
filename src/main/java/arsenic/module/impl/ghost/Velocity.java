@@ -123,8 +123,8 @@ public class Velocity extends Module {
         if (!(hit instanceof Player) || !TargetManager.isValidTarget((Player) hit)
                 || mc.player.getEyePosition(1f).distanceTo(ray.getLocation()) > RANGE)
             return;
-        PlayerUtils.swingItem();
         mc.gameMode.attack(mc.player, hit);
+        PlayerUtils.swingItem();
     };
 
     private boolean killAuraAiming() {

@@ -65,8 +65,8 @@ public class AntiFireball extends Module {
         if (!attackTimer.hasTimeElapsed(150))
             return;
 
-        PlayerUtils.swingItem();
         mc.gameMode.attack(mc.player, target);
+        PlayerUtils.swingItem();
         attackTimer.reset();
     };
 
