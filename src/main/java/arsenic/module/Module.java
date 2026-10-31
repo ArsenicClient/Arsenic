@@ -35,6 +35,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     private boolean hidden;
     private String displayName;
     private int keybind;
+    private KeybindMode keybindMode = KeybindMode.TOGGLE;
     /** Set for modules that came from an addon. They stay out of the category lists and appear in search and the Addon Manager. */
     private boolean addon;
 
@@ -209,6 +210,17 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         }
     }
 
+    /** Switches the module with the ordinary hooks but without the notification; hold binds use this per key edge. */
+    final void setEnabledQuietly(boolean enabled) {
+        boolean wasHidden = hidden;
+        hidden = true;
+        try {
+            setEnabled(enabled);
+        } finally {
+            hidden = wasHidden;
+        }
+    }
+
     public boolean isHidden() {
         return hidden;
     }
@@ -241,6 +253,17 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         this.keybind = keybind;
     }
 
+    /** Toggle (press to switch) or hold (on while the key is down); see {@link ModuleManager}'s key loop. */
+    public final KeybindMode getKeybindMode() {
+        return keybindMode;
+    }
+
+    public final void setKeybindMode(KeybindMode keybindMode) {
+        this.keybindMode = keybindMode == null ? KeybindMode.TOGGLE : keybindMode;
+        if (this.keybindMode == KeybindMode.HOLD && enabled)
+            setEnabled(false);
+    }
+
     @Override
     public final Collection<Property<?>> getContents() {
         return properties;
@@ -260,6 +283,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
                 keybind = obj.get("bind").getAsInt();
             if (obj.has("hidden"))
                 hidden = obj.get("hidden").getAsBoolean();
+            if (obj.has("bindMode") && obj.get("bindMode").isJsonPrimitive())
+                keybindMode = KeybindMode.byName(obj.get("bindMode").getAsString());
         } catch (RuntimeException e) {
             Arsenic.getArsenic().getLogger().info("Bad bind/hidden value in {}'s config", getName());
         }
@@ -278,6 +303,8 @@ public class Module implements IContainer<Property<?>>, ISerializable {
         try {
             if (obj.has("enabled"))
                 setEnabledFromConfig(obj.get("enabled").getAsBoolean());
+            if (keybindMode == KeybindMode.HOLD && enabled)
+                setEnabledFromConfig(false);
         } catch (RuntimeException e) {
             Arsenic.getArsenic().getLogger().info("Could not apply {}'s enabled state: {}", getName(), e);
         }
@@ -306,6 +333,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     public JsonObject saveInfoToJson(JsonObject obj) {
 
         obj.addProperty("bind", keybind);
+        obj.addProperty("bindMode", keybindMode.name());
         obj.addProperty("enabled", enabled);
         obj.addProperty("hidden", hidden);
 

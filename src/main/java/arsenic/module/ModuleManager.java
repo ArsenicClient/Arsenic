@@ -2,6 +2,7 @@ package arsenic.module;
 
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventGameLoop;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.PostProcessing;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 import static org.reflections.scanners.Scanners.SubTypes;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.Display;
 
 public class ModuleManager {
 
@@ -23,6 +25,8 @@ public class ModuleManager {
      * them by class (getModuleByClass), so they still exist and stay disabled.
      */
     private final Map<Class<? extends Module>, Module> unavailable = new HashMap<>();
+    /** Modules a held key switched on, so its release can switch them off again. */
+    private final Set<Module> heldModules = new HashSet<>();
 
     public final int initialize() {
         if(modules.size() != 0)
@@ -85,13 +89,39 @@ public class ModuleManager {
 
         AtomicBoolean saveConfig = new AtomicBoolean(false);
 
-        getModules().stream().filter(m -> m.getKeybind() == event.getKeycode())
+        getModules().stream()
+                .filter(m -> m.getKeybind() == event.getKeycode() && m.getKeybindMode() == KeybindMode.TOGGLE)
                 .forEach(m -> {
                     m.setEnabled(!m.isEnabled());
                     saveConfig.set(true);
                 });
 
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
+    };
+
+    /**
+     * Hold binds are polled instead of read from presses: the module is on exactly while its key is down. They stay
+     * silent, and they let go when the window loses focus or a screen opens, so a key cannot stick.
+     */
+    @EventLink
+    public final Listener<EventGameLoop> onGameLoop = event -> {
+        if (modules.isEmpty())
+            return;
+        boolean windowActive = Display.isActive();
+        for (Module module : getModules()) {
+            if (module.getKeybindMode() != KeybindMode.HOLD || module.getKeybind() == 0)
+                continue;
+            boolean down = windowActive && Minecraft.getMinecraft().currentScreen == null
+                    && Keyboard.isKeyDown(module.getKeybind());
+            if (down) {
+                if (!module.isEnabled()) {
+                    module.setEnabledQuietly(true);
+                    heldModules.add(module);
+                }
+            } else if (heldModules.remove(module) && module.isEnabled()) {
+                module.setEnabledQuietly(false);
+            }
+        }
     };
 
     /** Registers a module that did not come from the client jar (an addon). @return why it was rejected, or null. */
