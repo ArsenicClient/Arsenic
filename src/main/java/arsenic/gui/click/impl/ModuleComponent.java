@@ -19,6 +19,7 @@ import arsenic.module.Module;
 import arsenic.module.property.Group;
 import arsenic.module.property.Property;
 import arsenic.utils.interfaces.IAlwaysKeyboardInput;
+import arsenic.utils.java.BindUtils;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.java.SoundUtils;
 import arsenic.utils.render.DrawUtils;
@@ -172,7 +173,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         toggleZoneX1 = Math.min(x2, buttonComponent.getTrackX1()) - pad * 0.5f;
         RenderUtils.resetColorText();
 
-        String bindName = binding ? "..." : Keyboard.getKeyName(self.getKeybind());
+        String bindName = binding ? "..." : BindUtils.getKeyName(self.getKeybind());
         boolean hasBind = self.getKeybind() != 0 || binding;
         float chipHeight = height * 0.46f;
         float chipRight = toggleZoneX1 - pad * 0.6f;
@@ -439,6 +440,11 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     public void setNotAlwaysRecieveInput() {
         binding = false;
+    }
+
+    @Override
+    public boolean acceptsMouseButtons() {
+        return binding;
     }
 
     @Override

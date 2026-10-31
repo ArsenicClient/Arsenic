@@ -725,6 +725,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
         if (closing || shellPhase() > 0.02f)
             return;
+        // a bind being picked takes the middle and side mouse buttons, wherever they are pressed
+        if (alwaysKeyboardInput != null && alwaysKeyboardInput.acceptsMouseButtons()
+                && arsenic.utils.java.BindUtils.isBindableButton(mouseButton)) {
+            arsenic.utils.java.SoundUtils.tick();
+            alwaysKeyboardInput.recieveInput(arsenic.utils.java.BindUtils.mouseKey(mouseButton));
+            return;
+        }
         if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
                 && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY))
             return;
