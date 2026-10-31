@@ -244,7 +244,8 @@ public final class AutoBlocker {
             mc.thePlayer.clearItemInUse();
     }
 
+    /** The block cycle is our own timing, so these packets do not count as another action in the tick. */
     private static void send(Packet<?> packet) {
-        mc.getNetHandler().addToSendQueue(packet);
+        BadPacketsManager.sendSilently(packet);
     }
 }

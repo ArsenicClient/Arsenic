@@ -21,11 +21,17 @@ public class ScissorUtils extends UtilityClass {
     /** While a {@link GuiCanvas} screen is drawing, the coordinates are canvas units and {@code scale} is ignored. */
     public static void subScissor(int x1, int y1, int x2, int y2, int scale) {
         GL11.glPushAttrib(GL11.GL_SCISSOR_BIT);
-        int[] rahhhh = rahhh.get(rahhh.size() - 1);
-        x1 = Math.max(x1, rahhhh[0]);
-        y1 = Math.max(y1, rahhhh[1]);
-        x2 = Math.min(x2, rahhhh[2]);
-        y2 = Math.min(y2, rahhhh[3]);
+        int[] parent = rahhh.get(rahhh.size() - 1);
+        x1 = Math.max(x1, parent[0]);
+        y1 = Math.max(y1, parent[1]);
+        x2 = Math.min(x2, parent[2]);
+        y2 = Math.min(y2, parent[3]);
+        if (x2 <= x1 || y2 <= y1) {
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            GL11.glScissor(0, 0, 0, 0);
+            rahhh.add(new int[] {x1, y1, x1, y1});
+            return;
+        }
         float s = GuiCanvas.isActive() ? GuiCanvas.scale() : scale;
         float ox = GuiCanvas.isActive() ? GuiCanvas.offsetX() : 0f;
         float oy = GuiCanvas.isActive() ? GuiCanvas.offsetY() : 0f;
@@ -39,6 +45,8 @@ public class ScissorUtils extends UtilityClass {
     }
 
     public static void endSubScissor() {
+        if (rahhh.size() <= 1)
+            return;
         rahhh.remove(rahhh.size() - 1);
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GL11.glPopAttrib();
