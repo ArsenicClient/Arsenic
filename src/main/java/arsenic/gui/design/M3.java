@@ -1,46 +1,120 @@
 package arsenic.gui.design;
 
 import arsenic.gui.themes.ThemeManager;
+import arsenic.main.Arsenic;
+import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.render.RenderUtils;
 
 /**
- * Material You 3 colours: a tonal dark scheme generated from the active theme's accent colour. The ClickGUI's
- * surfaces and text come from here, so every theme gets a matching, readable palette.
+ * Material You 3 design tokens: a tonal colour scheme generated from the active theme's
+ * accent colour, plus the shape, type and motion scales the UI is built from.
  */
 public final class M3 {
 
+    public static final float SHAPE_XS = 4f;
+    public static final float SHAPE_S = 8f;
+    public static final float SHAPE_M = 12f;
+    public static final float SHAPE_L = 16f;
+    public static final float SHAPE_XL = 24f;
+    public static final float SHAPE_FULL = 999f;
+
+    public static final int DUR_FAST = 120;
+    public static final int DUR_SHORT = 180;
+    public static final int DUR_MEDIUM = 240;
+    public static final int DUR_LONG = 360;
+
     private static int cachedSeed;
+    private static boolean cachedLight;
     private static Scheme cachedScheme;
 
     private M3() {}
 
+    /** The generated dark scheme for a seed colour, without needing the client booted. */
+    public static Scheme schemeFor(int seed) {
+        return Scheme.of(seed, false);
+    }
+
+    public static Scheme schemeFor(int seed, boolean light) {
+        return Scheme.of(seed, light);
+    }
+
+    /** Whether the light scheme is active (GUI tab, "Light mode"). */
+    public static boolean isLight() {
+        return false;
+    }
+
     public static Scheme colors() {
         int seed = ThemeManager.getMainColor();
-        if (cachedScheme == null || cachedSeed != seed) {
+        boolean light = isLight();
+        if (cachedScheme == null || cachedSeed != seed || cachedLight != light) {
             cachedSeed = seed;
-            cachedScheme = Scheme.of(seed);
+            cachedLight = light;
+            cachedScheme = Scheme.of(seed, light);
         }
         return cachedScheme;
     }
 
     public static int primary() { return colors().primary; }
+    public static int onPrimary() { return colors().onPrimary; }
     public static int primaryContainer() { return colors().primaryContainer; }
     public static int onPrimaryContainer() { return colors().onPrimaryContainer; }
+    public static int secondary() { return colors().secondary; }
+    public static int onSecondary() { return colors().onSecondary; }
     public static int secondaryContainer() { return colors().secondaryContainer; }
     public static int onSecondaryContainer() { return colors().onSecondaryContainer; }
+    public static int tertiary() { return colors().tertiary; }
+    public static int onTertiary() { return colors().onTertiary; }
+    public static int tertiaryContainer() { return colors().tertiaryContainer; }
+    public static int onTertiaryContainer() { return colors().onTertiaryContainer; }
     public static int surface() { return colors().surface; }
     public static int surfaceContainerLowest() { return colors().surfaceContainerLowest; }
     public static int surfaceContainerLow() { return colors().surfaceContainerLow; }
     public static int surfaceContainer() { return colors().surfaceContainer; }
     public static int surfaceContainerHigh() { return colors().surfaceContainerHigh; }
+    public static int surfaceVariant() { return colors().surfaceVariant; }
     public static int surfaceContainerHighest() { return colors().surfaceContainerHighest; }
     public static int onSurface() { return colors().onSurface; }
     public static int onSurfaceVariant() { return colors().onSurfaceVariant; }
     public static int outline() { return colors().outline; }
     public static int outlineVariant() { return colors().outlineVariant; }
     public static int error() { return colors().error; }
+    public static int onError() { return colors().onError; }
+    public static int errorContainer() { return colors().errorContainer; }
+    public static int onErrorContainer() { return colors().onErrorContainer; }
+    public static int scrim() { return colors().scrim; }
+    public static int inverseSurface() { return colors().inverseSurface; }
+    public static int inverseOnSurface() { return colors().inverseOnSurface; }
+
+    public static FontRendererExtension<?> body() {
+        return Arsenic.getArsenic().getFonts().Inter.getFontRendererExtension();
+    }
+
+    public static FontRendererExtension<?> label() {
+        return Arsenic.getArsenic().getFonts().InterMedium.getFontRendererExtension();
+    }
+
+    public static FontRendererExtension<?> title() {
+        return Arsenic.getArsenic().getFonts().InterSemiBold.getFontRendererExtension();
+    }
+
+    public static FontRendererExtension<?> headline() {
+        return Arsenic.getArsenic().getFonts().InterBold.getFontRendererExtension();
+    }
 
     public static int alpha(int argb, int a) {
         return (Math.max(0, Math.min(255, a)) << 24) | (argb & 0x00FFFFFF);
+    }
+
+    public static int alpha(int argb, float pct) {
+        return alpha(argb, Math.round(255f * Math.max(0f, Math.min(1f, pct))));
+    }
+
+    public static int withAlphaOf(int argb, int alphaSource) {
+        return (alphaSource & 0xFF000000) | (argb & 0x00FFFFFF);
+    }
+
+    public static int mix(int from, int to, float pct) {
+        return RenderUtils.interpolateColoursInt(from, to, Math.max(0f, Math.min(1f, pct)));
     }
 
     public static int readableOn(int background) {
@@ -50,7 +124,7 @@ public final class M3 {
         return lum > 145f ? 0xFF15161A : 0xFFF4F5F7;
     }
 
-    /** The generated scheme roles (dark) for one seed colour. */
+    /** The generated scheme roles (dark or light) for one seed colour. */
     public static final class Scheme {
         public final int seed;
         public final int primary, onPrimary, primaryContainer, onPrimaryContainer;
@@ -63,18 +137,21 @@ public final class M3 {
         public final int error, onError, errorContainer, onErrorContainer, scrim;
         public final int inverseSurface, inverseOnSurface;
 
-        private Scheme(int seed, double h, double c) {
+        public final boolean light;
+
+        private Scheme(int seed, double h, double c, boolean light) {
             this.seed = seed;
+            this.light = light;
             double cp = Math.max(0.055, Math.min(0.19, c));
             double cn = Math.min(0.016, Math.max(0.006, c * 0.12));
             double cv = Math.min(0.045, Math.max(0.012, c * 0.3));
 
-            // tones follow the M3 baseline dark scheme: 80/20/30/90
-            double pT = 80, onPT = 20, pcT = 30, onPcT = 90;
+            // tones follow the M3 baseline schemes: dark uses 80/20/30/90, light 40/100/90/10
+            double pT = light ? 50 : 80, onPT = light ? 100 : 20, pcT = light ? 90 : 30, onPcT = light ? 22 : 90;
 
             primary = seed;
             onPrimary = readableOn(seed);
-            primaryContainer = rgb(pcT, cp, h);
+            primaryContainer = rgb(pcT, cp * (light ? 0.6 : 1), h);
             onPrimaryContainer = rgb(onPcT, cp, h);
 
             secondary = rgb(pT, cp * 0.42, h);
@@ -87,31 +164,71 @@ public final class M3 {
             tertiaryContainer = rgb(pcT, cp * 0.6, h + 60);
             onTertiaryContainer = rgb(onPcT, cp * 0.75, h + 60);
 
-            surface = rgb(6, cn, h);
-            surfaceDim = rgb(6, cn, h);
-            surfaceBright = rgb(24, cn, h);
-            surfaceContainerLowest = rgb(4, cn, h);
-            surfaceContainerLow = rgb(10, cn, h);
-            surfaceContainer = rgb(12, cn, h);
-            surfaceContainerHigh = rgb(17, cn, h);
-            surfaceContainerHighest = rgb(22, cn, h);
-            surfaceVariant = rgb(30, cv, h);
-            onSurface = rgb(90, cn, h);
-            onSurfaceVariant = rgb(80, cv, h);
-            outline = rgb(60, cv, h);
-            outlineVariant = rgb(30, cv, h);
+            if (light) {
+                // creamy paper rather than white: warm neutrals, a touch of the accent mixed in
+                double ch = mixHue(h, CREAM_HUE, 0.75), cc = 0.024, cvv = 0.032;
+                surface = rgb(93.5, cc, ch);
+                surfaceDim = rgb(86, cc, ch);
+                surfaceBright = rgb(95.5, cc, ch);
+                surfaceContainerLowest = rgb(96.5, cc * 0.8, ch);
+                surfaceContainerLow = rgb(92.5, cc, ch);
+                surfaceContainer = rgb(91, cc, ch);
+                surfaceContainerHigh = rgb(89, cc, ch);
+                surfaceContainerHighest = rgb(87, cc, ch);
+                surfaceVariant = rgb(88, cvv, ch);
+                onSurface = rgb(24, 0.022, ch);
+                onSurfaceVariant = rgb(40, 0.03, ch);
+                outline = rgb(58, cvv, ch);
+                outlineVariant = rgb(80, cvv, ch);
 
-            error = rgb(80, 0.16, 25);
-            onError = rgb(20, 0.16, 25);
-            errorContainer = rgb(30, 0.16, 25);
-            onErrorContainer = rgb(90, 0.12, 25);
-            scrim = 0xFF000000;
+                error = rgb(50, 0.17, 25);
+                onError = rgb(100, 0, 25);
+                errorContainer = rgb(90, 0.06, 25);
+                onErrorContainer = rgb(22, 0.12, 25);
+                scrim = 0xFF000000;
 
-            inverseSurface = rgb(90, cn, h);
-            inverseOnSurface = rgb(20, cn, h);
+                inverseSurface = rgb(26, 0.02, ch);
+                inverseOnSurface = rgb(93, cc, ch);
+            } else {
+                surface = rgb(6, cn, h);
+                surfaceDim = rgb(6, cn, h);
+                surfaceBright = rgb(24, cn, h);
+                surfaceContainerLowest = rgb(4, cn, h);
+                surfaceContainerLow = rgb(10, cn, h);
+                surfaceContainer = rgb(12, cn, h);
+                surfaceContainerHigh = rgb(17, cn, h);
+                surfaceContainerHighest = rgb(22, cn, h);
+                surfaceVariant = rgb(30, cv, h);
+                onSurface = rgb(90, cn, h);
+                onSurfaceVariant = rgb(80, cv, h);
+                outline = rgb(60, cv, h);
+                outlineVariant = rgb(30, cv, h);
+
+                error = rgb(80, 0.16, 25);
+                onError = rgb(20, 0.16, 25);
+                errorContainer = rgb(30, 0.16, 25);
+                onErrorContainer = rgb(90, 0.12, 25);
+                scrim = 0xFF000000;
+
+                inverseSurface = rgb(90, cn, h);
+                inverseOnSurface = rgb(20, cn, h);
+            }
+        }
+
+        /** OKLCh hue of a warm cream (about #F1E8D8). */
+        private static final double CREAM_HUE = 80;
+
+        /** Shortest-way blend of two hues in degrees. */
+        private static double mixHue(double from, double to, double t) {
+            double d = ((to - from) % 360 + 540) % 360 - 180;
+            return from + d * t;
         }
 
         static Scheme of(int argb) {
+            return of(argb, false);
+        }
+
+        static Scheme of(int argb, boolean light) {
             double[] lab = srgbToOklab(
                     ((argb >> 16) & 0xFF) / 255.0,
                     ((argb >> 8) & 0xFF) / 255.0,
@@ -119,7 +236,7 @@ public final class M3 {
             double c = Math.sqrt(lab[1] * lab[1] + lab[2] * lab[2]);
             double h = Math.toDegrees(Math.atan2(lab[2], lab[1]));
             if (h < 0) h += 360;
-            return new Scheme(argb, h, c);
+            return new Scheme(argb, h, c, light);
         }
 
         private static int rgb(double tone, double chroma, double hue) {

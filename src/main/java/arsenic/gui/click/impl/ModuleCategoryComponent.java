@@ -2,6 +2,9 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.GuiStyle;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
+import arsenic.gui.design.M3Icons;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.module.ModuleCategory;
@@ -42,6 +45,9 @@ public class ModuleCategoryComponent extends Component implements IContainer<Mod
 refreshListing();
     }
 
+    /** Set by the screen each frame: the width of the content area, for pages that fill it. */
+    public static float contentWidth = 700f;
+
     @Override
     public String getName() { return self.getName(); }
 
@@ -81,31 +87,15 @@ refreshListing();
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float anim = Math.max(enabledTimer.getPercent(), hoverTimer.getPercent());
-        expandX = anim * (width / 40f);
-        // Material navigation item: a pill in the secondary container colour behind the selected category
-        int pill = enabledTimer.getPercent() > 0.001f || hoverTimer.getPercent() > 0.001f
-                ? arsenic.gui.click.UITheme.alpha(arsenic.gui.design.M3.secondaryContainer(),
-                        (int) (255 * Math.max(enabledTimer.getPercent(), hoverTimer.getPercent() * 0.55f)))
-                : 0;
-        if ((pill >>> 24) != 0)
-            DrawUtils.drawRoundedRect(x1 + expandX, y1, x2 + expandX, y2, height / 2f, pill);
-
-        int foreground = arsenic.gui.click.UITheme.mix(arsenic.gui.design.M3.onSurfaceVariant(),
-                arsenic.gui.design.M3.onSecondaryContainer(), anim);
-
-        float iconSize = ri.getFr().getHeight("|") * (ri.getGuiScreen().height / 300f);
-        float iconX = x1 + (width / 7f) + expandX - iconSize;
-        float iconY = midPointY - iconSize / 2f;
-        DrawUtils.drawTexture(icon, iconX, iconY, iconSize, iconSize, 0xFF000000 | foreground);
-
-        ri.getFr().drawString(getName(), iconX + iconSize + 2, midPointY, foreground, ri.getFr().CENTREY);
+        expandX = 0;
+        M3Components.navItem(ri.getFr(), getName(), M3Icons.category(getName()), x1, y1, x2, y2,
+                enabledTimer.getPercent(), hoverTimer.getPercent(), true);
         return height;
     }
 
     @Override
     public void mouseUpdate(int mouseX, int mouseY) {
-        isHovered = isMouseInArea(mouseX, mouseY);
+        isHovered = arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
     }
 
     public void drawLeft(PosInfo pi, RenderInfo ri) {
@@ -125,9 +115,8 @@ refreshListing();
     protected void drawSection(List<? extends Component> l, PosInfo pi, RenderInfo ri) {
         pi.moveY(scroll);
         float temp = pi.getY();
-        float expand = width/10f;
-        pi.moveY(expand);
-        l.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri) + expand));
+        float gap = 5f;
+        l.forEach(moduleComponent -> pi.moveY(moduleComponent.updateComponent(pi, ri) + gap));
         temp = pi.getY() - temp;
         if(temp > maxHeight)
             maxHeight = temp;
@@ -168,21 +157,24 @@ refreshListing();
         maxHeight = Math.max(0, maxHeight);
     }
 
+    /** How much of the list is scrolled out above the view, in GUI units. */
+    public float hiddenAbove() { return Math.max(0f, -scroll); }
+
+    /** How much of the list is still below the view, in GUI units (valid after subtractFromMaxScrollHeight). */
+    public float hiddenBelow() { return Math.max(0f, maxHeight + scroll); }
+
     public void drawScrollbar(float x, float y, float barHeight, RenderInfo ri) {
         if (maxHeight <= 0) return;
-        float scrollbarHeight = barHeight * (barHeight / (barHeight + maxHeight));
-        float scrollbarY = y + (this.scroll / -maxHeight) * (barHeight - scrollbarHeight);
-        DrawUtils.drawRoundedRect(x - 3, y, x - 1, y + barHeight, 1f, ThemeManager.getScrollbarTrack());
-        DrawUtils.drawRoundedRect(x - 3, scrollbarY, x - 1, scrollbarY + scrollbarHeight, 1f, ThemeManager.getScrollbarThumb());
+        M3Components.scrollbar(x, y, barHeight, maxHeight, scroll);
     }
 
     @Override
     public int getWidth(int i) {
-        return 10 * (i / 100);
+        return 174;
     }
 
     @Override
     public int getHeight(int i) {
-        return 5 * (i / 100);
+        return 36;
     }
 }

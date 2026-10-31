@@ -1,6 +1,6 @@
 package arsenic.utils.minecraft;
 
-import arsenic.utils.java.UtilityClass;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
@@ -10,7 +10,9 @@ import java.util.function.Predicate;
  * Switching the hotbar to an item for a moment, then back. A module owns one and calls {@link #tick()} every tick, which
  * puts the slot back the tick after {@link #use} or when {@link #release()} is called.
  */
-public final class HotbarUse extends UtilityClass {
+public final class HotbarUse {
+
+    private static final Minecraft mc = Minecraft.getInstance();
 
     private int restore = -1;
     private boolean oneShot;

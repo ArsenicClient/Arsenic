@@ -1,9 +1,14 @@
 package arsenic.gui.click;
 
+import arsenic.gui.design.Hover;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
+import arsenic.gui.design.M3Icons;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.gui.click.impl.AddonPageComponent;
 import arsenic.gui.click.impl.ModuleCategoryComponent;
+import arsenic.gui.click.impl.ModuleComponent;
 import arsenic.gui.click.impl.SearchComponent;
 import arsenic.gui.click.impl.UICategoryComponent;
 import arsenic.gui.themes.ThemeManager;
@@ -36,7 +41,24 @@ public class ClickGuiScreen extends CustomGuiScreen {
     private ModuleCategoryComponent cmcc,prevCmcc;
     private IAlwaysClickable alwaysClickedComponent;
     private IAlwaysKeyboardInput alwaysKeyboardInput;
-    private int vLineX, hLineY, x1, y1;
+    private float winX1, winY1, winX2, winY2;
+    private float railX1, railY1, railX2, railY2;
+    private float contentX1, contentY1, contentX2, contentY2;
+    private float searchX1, searchY1, searchX2, searchY2;
+    private float footerX1, footerY1, footerX2, footerY2;
+    /** The bottom bar holding the footer buttons; the module list scrolls under its top edge. */
+    private float trayX1, trayY1, trayX2, trayY2;
+    private float sceneX1, sceneY1, sceneX2, sceneY2;
+    private static final Object LOGO_KEY = new Object(), MASCOT_KEY = new Object(), RELOAD_KEY = new Object(),
+            BLATANT_KEY = new Object(), ADDON_KEY = new Object(), HUD_KEY = new Object();
+    /** In the addon manager the scene keeps this much of the rail; the addon list scrolls above it. */
+    private static final float MASCOT_H = 151f;
+
+    private ModuleCategoryComponent slideFrom;
+    private boolean slideFromAddon;
+    private float slideDir = 1f;
+    private long slideStart;
+    private static final int SLIDE_MS = 280;
 
     private float hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2;
     /** While true the main card shows the addon manager instead of the selected module category. */
@@ -97,10 +119,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         return true;
     }
 
-    /** Main box rect + corner radius in design units: {x1, y1, x2, y2, radius}. */
+    /** The window's rect and corner radius in design units: {x1, y1, x2, y2, radius}. */
     public float[] getBurnBoxPx() {
-        int bx = width / 8, by = height / 6;
-        return new float[]{bx, by, width - bx, height - by, 30f};
+        layout();
+        return new float[]{winX1, winY1, winX2, winY2, 28f};
     }
 
     public void buildComponents() {
@@ -116,25 +138,49 @@ public class ClickGuiScreen extends CustomGuiScreen {
         super.doInit();
         openTime = System.currentTimeMillis();
         closing = false;
+        Hover.reset();
+    }
+
+    private void layout() {
+        winX1 = 44f;
+        winY1 = 30f;
+        winX2 = width - 44f;
+        winY2 = height - 30f;
+        railX1 = winX1 + 14f;
+        railY1 = winY1 + 14f;
+        railX2 = winX1 + 206f;
+        railY2 = winY2 - 14f;
+        contentX1 = railX2 + 16f;
+        contentY1 = winY1 + 66f;
+        contentX2 = winX2 - 14f;
+        footerX1 = contentX1;
+        footerX2 = contentX2;
+        footerY2 = winY2 - 18f;
+        footerY1 = footerY2 - 36f;
+        trayX1 = railX2 + 10f;
+        trayX2 = winX2 - 10f;
+        trayY1 = footerY1 - 10f;
+        trayY2 = winY2 - 10f;
+        contentY2 = trayY1;
+        searchX2 = contentX2 - 2f;
+        searchX1 = searchX2 - 258f;
+        searchY1 = winY1 + 18f;
+        searchY2 = searchY1 + 38f;
     }
 
     /** The glow PostProcessing draws behind the panel. */
     public void drawBloom() {
         if (getFontRenderer() == null || components == null)
             return;
-        int x = width / 8;
-        int y = height / 6;
-        x1 = width - x;
-        y1 = height - y;
-
+        layout();
         float openProgress = Math.min(1f, (System.currentTimeMillis() - openTime) / (float) OPEN_ANIMATION_DURATION);
         float glowFactor = MathUtils.clamp01((openProgress - 0.5f) / 0.5f);
         int glowAlpha = (int) (glowFactor * 255);
 
-        int mainC = ColorUtils.setColor(arsenic.gui.design.M3.primary(), 0, glowAlpha);
-        int gradientC = ColorUtils.setColor(arsenic.gui.design.M3.primaryContainer(), 0, glowAlpha);
+        int mainC = ColorUtils.setColor(M3.primary(), 0, glowAlpha);
+        int gradientC = ColorUtils.setColor(M3.colors().primaryContainer, 0, glowAlpha);
         ((SearchComponent) searchComponent).setupGlowAndBlur(glowAlpha);
-        DrawUtils.drawGradientRoundedRect(x, y, x1, y1, 30f, mainC, mainC, gradientC, gradientC);
+        DrawUtils.drawGradientRoundedRect(winX1, winY1, winX2, winY2, 28f, mainC, mainC, gradientC, gradientC);
     }
 
     @Override
@@ -151,10 +197,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
             return;
         }
 
-        int x = width / 8;
-        int y = height / 6;
-        x1 = width - x;
-        y1 = height - y;
+        layout();
+        Hover.beginFrame(mouseX, mouseY);
+        if (closing)
+            Hover.suppress(true);
 
         // 1.8 dissolved the panel through a shader on a captured framebuffer; here the whole GUI
         // fades and grows into place instead, which needs nothing but the pose and an opacity.
@@ -172,152 +218,145 @@ public class ClickGuiScreen extends CustomGuiScreen {
 
         try {
             drawBackdrop();
-            drawPanel(mouseX, mouseY, x, y);
-            drawHudEditorButton(mouseX, mouseY);
-            drawAddonManagerButton(mouseX, mouseY);
-            if (addonMode)
-                drawReloadButton(mouseX, mouseY);
-            else
-                drawTierToggles(mouseX, mouseY);
+            drawPanel(mouseX, mouseY);
             drawScanlines();
         } finally {
             pose.popMatrix();
             ScissorUtils.resetScissor();
             getFontRenderer().resetScale();
+            M3.label().resetScale();
+            M3.title().resetScale();
+            M3.headline().resetScale();
             RenderContext.setAlpha(1f);
         }
     }
 
-    private void drawPanel(int mouseX, int mouseY, int x, int y) {
+    private void drawPanel(int mouseX, int mouseY) {
         RenderInfo ri = new RenderInfo(mouseX, mouseY, getFontRenderer(), this);
-        getFontRenderer().setScale(height/450f);
-        Identifier logoPath = GuiStyle.logoMode() == GuiStyle.LogoMode.MODERN
-                ? Arsenic.getArsenic().getThemeManager().getCurrentTheme().getAltLogoPath()
-                : Arsenic.getArsenic().getThemeManager().getCurrentTheme().getLogoPath();
+        float fontScale = height / 470f;
+        getFontRenderer().setScale(fontScale);
+        M3.body().setScale(fontScale);
+        M3.label().setScale(fontScale);
+        M3.title().setScale(fontScale);
+        M3.headline().setScale(fontScale);
 
-        // main container - base layer, lifted off the backdrop
-        DrawUtils.drawShadow(x, y, x1, y1, 30f, GuiStyle.shadowSpread(10f), GuiStyle.shadowAlpha(190), 7);
-        // Material window: one flat surface, the rail and cards sit on it as tonal containers
-        DrawUtils.drawRoundedRect(x, y, x1, y1, 30f, ThemeManager.getClickGuiBackground());
+        M3Components.window(winX1, winY1, winX2, winY2, 28f);
+        M3Components.glass(railX1, railY1, railX2, railY2, 22f, M3.alpha(M3.surfaceContainer(), 200), 0.25f);
 
-        vLineX = 2 * x;
-        hLineY = (int) (1.5 * y);
+        // as large as the rail's width allows, centred in the header band above the categories
+        float logoX = railX1 + 16f;
+        float logoH = arsenic.gui.design.LabLogo.heightFor(railX2 - railX1 - 32f, 32f);
+        float logoY = railY1 + (60f - logoH) / 2f;
+        boolean logoHover = Hover.test(LOGO_KEY, logoX, logoY, logoX + arsenic.gui.design.LabLogo.width(logoH), logoY + logoH);
+        arsenic.gui.design.LabLogo.draw(logoX, logoY, logoH, logoHover);
 
-        int catWidth = 10 * (width / 100);
-        float leftColW = vLineX - x;
-        float catMargin = leftColW * 0.06f;
-        float catStartX = x + leftColW * 0.10f;
-        float expandMax = catWidth / 40f;
-        float sx1 = catStartX - catMargin, sy1 = hLineY + catMargin;
-        float sx2 = catStartX + catWidth + expandMax + catMargin, sy2 = y1 - catMargin;
-        // The addon manager keeps the same frame: its packs are listed where the module categories are.
-        DrawUtils.drawRoundedRect(sx1, sy1, sx2, sy2, 22f, arsenic.gui.design.M3.surfaceContainer());
-        DrawUtils.drawRect(vLineX + 5, hLineY, x1 - 18, hLineY + 1.0f, ThemeManager.getClickGuiSeparator());
-
-        //logo, tinted with the theme colour
-        int tempExpand = (int) (x * 0.1f);
-        DrawUtils.drawTexture(logoPath, x + tempExpand, y + tempExpand,
-                vLineX - x - (tempExpand * 2), hLineY - y - (tempExpand * 2), 0xFF000000 | ThemeManager.getMainColor());
-
+        float mascotTop = railY2 - 10f - MASCOT_H;
         if (addonMode) {
-            addonPage.drawSidebar(catStartX, sy1 + catMargin, sx1, sx2 + expandMax, sy2 - catMargin, ri);
+            // the addon list scrolls in the space above the mascot slot
+            float sideX1 = railX1 + 8f, sideX2 = railX2 - 8f, sideY1 = railY1 + 60f, sideY2 = mascotTop - 6f;
+            addonPage.drawSidebar(railX1 + 9f, sideY1, sideX1, sideX2, sideY2, ri);
+            drawMascot(mascotTop - 6f, mouseX, mouseY);
         } else {
-            PosInfo pi = new PosInfo(catStartX, sy1 + catMargin);
+            PosInfo pi = new PosInfo(railX1 + 9f, railY1 + 60f);
             components.forEach(component -> pi.moveY(component.updateComponent(pi, ri)));
+            drawMascot(mascotTop - 6f, mouseX, mouseY);
         }
 
-        searchComponent.updateComponent(new PosInfo((vLineX + 5), (float) ((y + hLineY) / 2.05)), ri);
+        searchComponent.updateComponent(new PosInfo(searchX1, searchY1), ri);
 
-        ScissorUtils.subScissor(vLineX + 1, hLineY, x1, y1);
+        String title = addonMode ? "Addons" : (cmcc == searchComponent ? "Search" : cmcc.getName());
+        M3.headline().drawString(title, contentX1 + 2f, (searchY1 + searchY2) / 2f,
+                M3.onSurface(), M3.headline().CENTREY);
 
-        PosInfo piL = new PosInfo(vLineX + 5, hLineY);
-        PosInfo piR = new PosInfo(vLineX + (x1 - vLineX) / 2f, hLineY);
+        ScissorUtils.subScissor((int) contentX1, (int) contentY1, (int) contentX2, (int) contentY2, 2);
+        Hover.pushClip(contentX1, contentY1, contentX2, contentY2);
+        float colGap = 10f;
+        // the columns sit 2 units inside the clip so the outline of a card on its edge is not cut off
+        float colX = contentX1 + 2f;
+        float colW = (contentX2 - 8f - colX - colGap) / 2f;   // 8: the scrollbar lane
+        ModuleComponent.columnWidth = colW;
+        ModuleCategoryComponent.contentWidth = contentX2 - contentX1;
+        float top = contentY1 + 2f;
+        float slide = slideProgress();
+        float span = contentX2 - contentX1;
         if (addonMode) {
-            float columnWidth = UITheme.space(width, 30);
-            addonPage.drawContent(piL.getX(), piR.getX(), hLineY, piR.getX() + columnWidth - piL.getX(), ri);
-            addonPage.subtractFromMaxScrollHeight(y1 - hLineY);
+            if (slide < 1f && slideFrom != null) {
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                slideFrom.drawLeft(new PosInfo(colX + off, top), ri);
+                slideFrom.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
+                Hover.suppress(wasSuppressed);
+            }
+            float off = slide < 1f && slideFrom != null ? slideDir * span * (1f - slide) : 0f;
+            addonPage.drawContent(colX + off, colX + colW + colGap + off, contentY1, contentX2 - colX - 4f, ri);
+            addonPage.subtractFromMaxScrollHeight(contentY2 - contentY1);
         } else {
-            cmcc.drawLeft(piL, ri);
-            cmcc.drawRight(piR, ri);
-            cmcc.subtractFromMaxScrollHeight(y1 - hLineY);
+            if (slide < 1f && slideFromAddon) {
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                addonPage.drawContent(colX + off, colX + colW + colGap + off, contentY1, contentX2 - colX - 4f, ri);
+                Hover.suppress(wasSuppressed);
+            } else if (slide < 1f && slideFrom != null && slideFrom != cmcc) {
+                // the old category leaves, and cannot take the cursor on its way out
+                float off = -slideDir * span * slide;
+                boolean wasSuppressed = Hover.isSuppressed();
+                Hover.suppress(true);
+                slideFrom.drawLeft(new PosInfo(colX + off, top), ri);
+                slideFrom.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
+                Hover.suppress(wasSuppressed);
+            }
+            float off = slide < 1f ? slideDir * span * (1f - slide) : 0f;
+            cmcc.drawLeft(new PosInfo(colX + off, top), ri);
+            cmcc.drawRight(new PosInfo(colX + colW + colGap + off, top), ri);
+            cmcc.subtractFromMaxScrollHeight(contentY2 - contentY1);
         }
-
+        Hover.popClip();
+        // popups (dropdowns, colour pickers) draw last, so they also win the cursor over rows beneath
         renderLastList.forEach(Runnable::run);
         renderLastList.clear();
 
         ScissorUtils.endSubScissor();
         if (addonMode)
-            addonPage.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
+            addonPage.drawScrollbar(contentX2, contentY1, contentY2 - contentY1, ri);
         else
-            cmcc.drawScrollbar(x1, hLineY, y1 - hLineY, ri);
+            cmcc.drawScrollbar(contentX2, contentY1, contentY2 - contentY1, ri);
+
+        drawTray();
+        drawFooter(mouseX, mouseY);
+        if (addonMode)
+            drawReloadButton(mouseX, mouseY);
     }
 
-    /** Draws one of the pill buttons around the panel. */
-    private void drawPill(String label, float bx1, float by1, float bx2, float by2, float hover) {
-        float h = by2 - by1;
-        float radius = h / 2f;
-        // Material tonal button: a container fill with a state layer on hover, no outline
-        DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, radius, arsenic.gui.design.M3.secondaryContainer());
-        if (hover > 0.01f)
-            DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, radius,
-                    UITheme.alpha(arsenic.gui.design.M3.onSecondaryContainer(), (int) (26 * hover)));
-
-        getFontRenderer().drawString(label, (bx1 + bx2) / 2f, (by1 + by2) / 2f,
-                arsenic.gui.design.M3.onSecondaryContainer(),
-                getFontRenderer().CENTREX, getFontRenderer().CENTREY);
+    private void drawMascot(float navBottom, int mouseX, int mouseY) {
+        float y2 = railY2 - 10f;
+        float y1 = navBottom + 6f;
+        float x1 = railX1 + 10f, x2 = railX2 - 10f;
+        boolean hover = Hover.test(MASCOT_KEY, x1, y1, x2, y2);
+        sceneX1 = x1;
+        sceneY1 = y1;
+        sceneX2 = x2;
+        sceneY2 = y2;
+        arsenic.gui.design.DistilleryScene.draw(x1, y1, x2, y2, hover, mouseX, mouseY);
     }
 
-    private void drawHudEditorButton(int mouseX, int mouseY) {
-        String label = "HUD Editor";
-        float pad = height / 100f * 1.6f;
-        float h = height / 100f * 4.2f;
-        float w = getFontRenderer().getWidth(label) + pad * 3f;
-        float margin = height / 100f * 2.5f;
-
-        hudBtnX1 = margin;
-        // the bottom left corner; the tier pill(s) stack above it
-        hudBtnY1 = height - margin - h;
-        hudBtnX2 = margin + w;
-        hudBtnY2 = hudBtnY1 + h;
-
-        hudBtnHovered = MathUtils.inside(mouseX, mouseY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2);
-        drawPill(label, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2, hudBtnTimer.getPercent());
-    }
-
-    /** Bottom right corner: opens the addon manager. */
-    private void drawAddonManagerButton(int mouseX, int mouseY) {
-        String label = addonMode ? "ClickGUI" : "Addon Manager";
-        float pad = height / 100f * 1.6f;
-        float h = height / 100f * 4.2f;
-        float w = getFontRenderer().getWidth(label) + pad * 3f;
-        float margin = height / 100f * 2.5f;
-
-        addonBtnX2 = width - margin;
-        addonBtnX1 = addonBtnX2 - w;
-        addonBtnY2 = height - margin;
-        addonBtnY1 = addonBtnY2 - h;
-
-        addonBtnHovered = MathUtils.inside(mouseX, mouseY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2);
-        drawPill(label, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2, addonBtnTimer.getPercent());
+    /** Re-opens the screen so a canvas scale change lays out at once. */
+    public void reapplyScale() {
+        minecraft.gui.setScreen(this);
     }
 
     private float reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2;
 
-    /** Top right, in the addon manager: loads the addons' current state (switches and binds apply here). */
     private void drawReloadButton(int mouseX, int mouseY) {
-        String label = "Reload addons";
-        float pad = height / 100f * 1.6f;
-        float h = height / 100f * 4.2f;
-        float w = getFontRenderer().getWidth(label) + pad * 3f;
-        float margin = height / 100f * 2.5f;
+        reloadBtnX2 = searchX1 - 10f;
+        reloadBtnX1 = reloadBtnX2 - 108f;
+        reloadBtnY1 = searchY1;
+        reloadBtnY2 = searchY2;
 
-        reloadBtnX2 = width - margin;
-        reloadBtnX1 = reloadBtnX2 - w;
-        reloadBtnY1 = margin;
-        reloadBtnY2 = margin + h;
-
-        boolean hovered = MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
-        drawPill(label, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2, hovered ? 1f : 0f);
+        boolean hovered = Hover.test(RELOAD_KEY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2);
+        M3Components.button(getFontRenderer(), "Reload", reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2,
+                hovered ? 1f : 0f, false);
     }
 
     private static final ModuleTier[] TIER_TOGGLES = {ModuleTier.BLATANT};
@@ -330,59 +369,82 @@ public class ClickGuiScreen extends CustomGuiScreen {
         for (int i = 0; i < TIER_TOGGLES.length; i++) {
             final int idx = i;
             tierHoverTimers[i] = new AnimationTimer(160, () -> tierHovered[idx], TickMode.SINE);
-            tierTickTimers[i] = new AnimationTimer(180, () -> GuiStyle.get().isTierShown(TIER_TOGGLES[idx]), TickMode.SINE);
+            tierTickTimers[i] = new AnimationTimer(220, () -> GuiStyle.get().isTierShown(TIER_TOGGLES[idx]), TickMode.SINE);
         }
     }
 
-    /** The Blatant toggle pill, stacked above the HUD Editor button in the bottom-left corner. */
-    private void drawTierToggles(int mouseX, int mouseY) {
-        float pad = height / 100f * 1.6f;
-        float h = height / 100f * 4.2f;
-        float box = h * 0.5f;
-        float margin = height / 100f * 2.5f;
-        float step = h * 1.3f;
-        float radius = h / 2f;
+    private void drawFooter(int mouseX, int mouseY) {
+        float gap = 10f;
+        float w = (footerX2 - footerX1 - gap * 2f) / 3f;
+        float cy = (footerY1 + footerY2) / 2f;
 
-        float w = 0;
-        for (ModuleTier tier : TIER_TOGGLES)
-            w = Math.max(w, pad * 1.4f + box + pad + getFontRenderer().getWidth(tier.getDisplayName()) + pad * 1.4f);
+        tierRects[0][0] = footerX1;
+        tierRects[0][1] = footerY1;
+        tierRects[0][2] = footerX1 + w;
+        tierRects[0][3] = footerY2;
+        addonBtnX1 = footerX1 + w + gap;
+        addonBtnX2 = addonBtnX1 + w;
+        addonBtnY1 = footerY1;
+        addonBtnY2 = footerY2;
+        hudBtnX1 = footerX1 + (w + gap) * 2f;
+        hudBtnX2 = hudBtnX1 + w;
+        hudBtnY1 = footerY1;
+        hudBtnY2 = footerY2;
 
-        for (int i = 0; i < TIER_TOGGLES.length; i++) {
-            ModuleTier tier = TIER_TOGGLES[i];
-            // a build without this tier has nothing to switch, so its pill is not drawn
-            if (!BuildTiers.allows(tier))
-                continue;
-            float tx1 = hudBtnX1, tx2 = tx1 + w;
-            float ty1 = height - margin - h - (i + 1) * step, ty2 = ty1 + h;
-            tierRects[i][0] = tx1;
-            tierRects[i][1] = ty1;
-            tierRects[i][2] = tx2;
-            tierRects[i][3] = ty2;
+        tierHovered[0] = Hover.test(BLATANT_KEY, tierRects[0][0], tierRects[0][1], tierRects[0][2], tierRects[0][3]);
+        addonBtnHovered = Hover.test(ADDON_KEY, addonBtnX1, addonBtnY1, addonBtnX2, addonBtnY2);
+        hudBtnHovered = Hover.test(HUD_KEY, hudBtnX1, hudBtnY1, hudBtnX2, hudBtnY2);
 
-            tierHovered[i] = MathUtils.inside(mouseX, mouseY, tx1, ty1, tx2, ty2);
-            float hover = tierHoverTimers[i].getPercent();
-            float tick = tierTickTimers[i].getPercent();
-
-            DrawUtils.drawRoundedRect(tx1, ty1, tx2, ty2, radius, arsenic.gui.design.M3.surfaceContainerHigh());
-            if (hover > 0.01f)
-                DrawUtils.drawRoundedRect(tx1, ty1, tx2, ty2, radius, UITheme.alpha(arsenic.gui.design.M3.onSurface(), (int) (20 * hover)));
-
-            float midY = (ty1 + ty2) / 2f;
-            float bx1 = tx1 + pad * 1.4f, bx2 = bx1 + box;
-            float by1 = midY - box / 2f, by2 = midY + box / 2f;
-            float boxRadius = Math.max(2f, box * 0.28f);
-            DrawUtils.drawRoundedRect(bx1, by1, bx2, by2, boxRadius,
-                    UITheme.alpha(UITheme.accent(), (int) (235 * tick)));
-            DrawUtils.drawRoundedOutline(bx1, by1, bx2, by2, boxRadius, 1f,
-                    UITheme.mix(UITheme.alpha(ThemeManager.getTextMuted(), 200), UITheme.accent(), Math.max(tick, hover * 0.6f)));
-            if (tick > 0.02f)
-                UITheme.check((bx1 + bx2) / 2f, midY, box * 0.7f, Math.max(1f, box * 0.14f),
-                        UITheme.alpha(UITheme.readableOn(UITheme.accent()), (int) (255 * tick)));
-
-            getFontRenderer().drawString(tier.getDisplayName(), bx2 + pad, midY,
-                    arsenic.gui.design.M3.onSurface(),
-                    getFontRenderer().CENTREY);
+        // a build without the Blatant tier has nothing to switch, so its card is left out
+        if (BuildTiers.allows(ModuleTier.BLATANT)) {
+            float blatantHoverPct = tierHoverTimers[0].getPercent();
+            float tick = tierTickTimers[0].getPercent();
+            footerCard(tierRects[0][0], footerY1, tierRects[0][2], footerY2, blatantHoverPct, false);
+            int blatantFg = M3.mix(M3.onSurfaceVariant(), M3.onSurface(), blatantHoverPct);
+            footerLabel(tierRects[0][0], tierRects[0][2] - 59f, cy, M3Icons.BLATANT, "Blatant modules", blatantFg);
+            M3Components.switchControl(tierRects[0][2] - 51f, footerY1, footerY2 - footerY1, tick, blatantHoverPct);
         }
+
+        float addonHoverPct = addonBtnTimer.getPercent();
+        footerCard(addonBtnX1, footerY1, addonBtnX2, footerY2, addonHoverPct, addonMode);
+        int addonFg = addonMode ? M3.onPrimaryContainer() : M3.mix(M3.onSurfaceVariant(), M3.onSurface(), addonHoverPct);
+        footerLabel(addonBtnX1, addonBtnX2 - 12f, cy,
+                addonMode ? M3Icons.ARROW_BACK : M3Icons.ADDONS,
+                addonMode ? "Back to modules" : "Addon Manager", addonFg);
+
+        float hudHoverPct = hudBtnTimer.getPercent();
+        footerCard(hudBtnX1, footerY1, hudBtnX2, footerY2, hudHoverPct, false);
+        int hudFg = M3.mix(M3.onSurfaceVariant(), M3.onSurface(), hudHoverPct);
+        footerLabel(hudBtnX1, hudBtnX2 - 12f, cy, M3Icons.HUD, "HUD Editor", hudFg);
+    }
+
+    /** The bottom bar behind the footer buttons: a rounded panel, inset like the rail. */
+    private void drawTray() {
+        int tray = M3.mix(M3.surfaceContainer(), M3.surfaceContainerLow(), 0.5f) | 0xFF000000;
+        float r = 16f;
+        DrawUtils.drawRoundedRect(trayX1, trayY1, trayX2, trayY2, r, tray);
+        DrawUtils.drawRoundedOutline(trayX1, trayY1, trayX2, trayY2, r, 1f, M3.alpha(M3.outlineVariant(), 130));
+    }
+
+    private void footerLabel(float x1, float x2, float cy, String glyph, String label, int color) {
+        float textW = getFontRenderer().getWidth(label);
+        float iconW = M3Icons.font().getWidth(glyph);
+        float groupW = iconW + 7f + textW;
+        float start = x1 + (x2 - x1 - groupW) / 2f;
+        M3Icons.drawCentered(glyph, start + iconW / 2f, cy, color);
+        getFontRenderer().drawString(label, start + iconW + 7f, cy, color, getFontRenderer().CENTREY);
+    }
+
+    private void footerCard(float x1, float y1, float x2, float y2, float hover, boolean active) {
+        int fill = active
+                ? M3.primaryContainer()
+                : M3.mix(M3.surfaceContainerHigh(), M3.surfaceContainerHighest(), hover);
+        float r = 10f;
+        M3Components.glass(x1, y1, x2, y2, r, fill, 0f);
+        if (active)
+            DrawUtils.drawRoundedOutline(x1, y1, x2, y2, r, 1f, M3.alpha(M3.primary(), 140));
+        if (hover > 0.01f)
+            DrawUtils.drawRoundedRect(x1, y1, x2, y2, r, M3.alpha(M3.onSurface(), (int) (14 * hover)));
     }
 
     /**
@@ -397,7 +459,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (alpha <= 0.001f)
             return;
         RenderContext.graphics().blurBeforeThisStratum();
-        int tint = ThemeManager.getMainColor();
+        int tint = M3.primary();
         int top = ColorUtils.setColor(tint, 0, (int) (alpha * 70));
         int bottom = ColorUtils.setColor(0x000000, 0, (int) (alpha * 140));
         // the canvas is letterboxed, so the wash covers the whole window around it
@@ -421,6 +483,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
     @Override
     public void mouseClick(int mouseX, int mouseY, int mouseButton) {
         if (components == null)
+            return;
+        if (closing)
+            return;
+        if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
+                && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY))
             return;
         if (addonMode && mouseButton == 0 && MathUtils.inside(mouseX, mouseY, reloadBtnX1, reloadBtnY1, reloadBtnX2, reloadBtnY2)) {
             arsenic.utils.java.SoundUtils.chordOpen();
@@ -452,12 +519,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
         searchComponent.handleClick(mouseX, mouseY, mouseButton);
         if (addonMode) {
             addonPage.clickSidebar(mouseX, mouseY, mouseButton);
-            if (mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
+            if (mouseX > contentX1 && mouseX < contentX2 && mouseY > contentY1 && mouseY < contentY2)
                 addonPage.clickContent(mouseX, mouseY, mouseButton);
             return;
         }
         components.forEach(panel -> panel.handleClick(mouseX, mouseY, mouseButton));
-        if(mouseX > vLineX && mouseX < x1 && mouseY > hLineY && mouseY < y1)
+        if (mouseX > contentX1 && mouseX < contentX2 && mouseY > contentY1 && mouseY < contentY2)
             cmcc.clickChildren(mouseX, mouseY, mouseButton);
     }
 
@@ -470,6 +537,11 @@ public class ClickGuiScreen extends CustomGuiScreen {
         if (addonMode == on)
             return;
         addonMode = on;
+        slideFrom = on ? cmcc : null;
+        slideFromAddon = !on;
+        slideDir = on ? 1f : -1f;
+        slideStart = System.currentTimeMillis();
+        Hover.reset();
         if (searchComponent != null)
             ((SearchComponent) searchComponent).setQuery("");
         if (on) {
@@ -512,11 +584,36 @@ public class ClickGuiScreen extends CustomGuiScreen {
             setAddonMode(false);
         if (cmcc != mcc) {
             prevCmcc = cmcc;
+            int from = navIndex(cmcc), to = navIndex(mcc);
+            slideDir = to >= from ? 1f : -1f;
+            slideFrom = cmcc;
+            slideFromAddon = false;
+            slideStart = System.currentTimeMillis();
+            Hover.reset();
             cmcc.setCurrentCategory(false);
             mcc.setCurrentCategory(true);
             cmcc = mcc;
         }
     }
+    /** 0 just after a category switch, 1 once the new page is in place (ease-out). */
+    private float slideProgress() {
+        float t = MathUtils.clamp01((System.currentTimeMillis() - slideStart) / (float) SLIDE_MS);
+        float u = 1f - t;
+        return 1f - u * u * u;
+    }
+
+    /** Position in the rail, so going down the list slides left and going up slides right; search is last. */
+    private int navIndex(ModuleCategoryComponent mcc) {
+        int i = 0;
+        for (UICategoryComponent group : components)
+            for (ModuleCategoryComponent c : group.getContents()) {
+                if (c == mcc)
+                    return i;
+                i++;
+            }
+        return i;
+    }
+
     public ModuleCategoryComponent getCmcc() {
         return cmcc;
     }
@@ -538,7 +635,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public final FontRendererExtension<?> getFontRenderer() {
         try {
             return GuiStyle.fontEnabled() ?
-                    Arsenic.getInstance().getFonts().Comfortaa.getFontRendererExtension() :
+                    Arsenic.getInstance().getFonts().Inter.getFontRendererExtension() :
                     Arsenic.getInstance().getFonts().Minecraft.getFontRendererExtension();
         } catch (NullPointerException e) {
             return null;

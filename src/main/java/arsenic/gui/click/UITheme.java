@@ -4,7 +4,7 @@ import arsenic.utils.java.MathUtils;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.render.DrawUtils;
-import arsenic.utils.render.RenderUtils;
+import arsenic.utils.render.RenderUtils;
 import arsenic.gui.design.M3;
 
 public final class UITheme {
@@ -91,16 +91,7 @@ public final class UITheme {
             return;
 
         intensity = MathUtils.clamp01(intensity);
-        float h = y2 - y1;
-
-        if (elevation != Elevation.FLAT && intensity > 0.01f) {
-            DrawUtils.drawShadow(x1, y1, x2, y2, radius,
-                    GuiStyle.shadowSpread(h * elevation.spread),
-                    GuiStyle.shadowAlpha((int) (elevation.shadow * intensity)), 6);
-        }
-
-        // Material tonal surface: a flat fill, no glass or edge glow
-        DrawUtils.drawRoundedRect(x1, y1, x2, y2, radius, fill);
+        arsenic.gui.design.M3Components.glass(x1, y1, x2, y2, radius, fill, elevation.spread * intensity);
     }
 
     public static void surface(float x1, float y1, float x2, float y2, float radius, int fill, Elevation elevation) {
@@ -136,6 +127,7 @@ public final class UITheme {
 
         line(cx + ax, cy + ay, cx + bx, cy + by, thickness, color);
         line(cx + bx, cy + by, cx + ccx, cy + ccy, thickness, color);
+        DrawUtils.drawCircle(cx + bx, cy + by, thickness * 0.6f, color);
     }
 
     public static void line(float x1, float y1, float x2, float y2, float thickness, int color) {

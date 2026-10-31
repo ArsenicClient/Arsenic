@@ -2476,6 +2476,7 @@ public class SoundUtils {
     public static void chordEnum();
     public static void chordKeybind();
     public static void chordClick();
+    public static void chordSlider();
     public static void hitConfirm();
     public static void note(int degree);
     public static void cmajStep();
@@ -2591,7 +2592,7 @@ public class ContainerUtils extends UtilityClass {
 ### arsenic.utils.minecraft.HotbarUse
 
 ```java
-public final class HotbarUse extends UtilityClass {
+public final class HotbarUse {
     /** The hotbar slot (0-8) of the first stack that matches, or -1. */ public static int find(Predicate<ItemStack> match);
     /** The inventory menu slot (9-44, hotbar last) of the first stack that matches, or -1. */ public static int findMenuSlot(Predicate<ItemStack> match);
     /** Whether this has moved the hotbar and not yet put it back. Modules return this from isSwappingHotbar. */ public boolean active();
@@ -2783,6 +2784,7 @@ public class DrawUtils extends UtilityClass {
     public static void drawCircle(float centrePointX, float centrePointY, float radius, int color);
     /** Draws a perfect triangle when height == width. A negative height points it upwards. */ public static void drawTriangle(float x1, float y1, float width, float height, int colour);
     /** Draws a whole texture stretched over the rectangle, tinted by color (ARGB). */ public static void drawTexture(Identifier texture, float x, float y, float width, float height, int color);
+    /** Draws part of a texture stretched over the rectangle: the pixel region u,v of size regionW x regionH */ public static void drawTextureRegion(Identifier texture, float x, float y, float width, float height, int u, int v, int regionW, int regionH, int texW, int texH, int color);
 }
 ```
 

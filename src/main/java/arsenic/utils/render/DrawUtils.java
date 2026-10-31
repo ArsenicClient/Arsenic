@@ -220,6 +220,23 @@ public class DrawUtils extends UtilityClass {
         graphics.pose().popMatrix();
     }
 
+    /**
+     * Draws part of a texture stretched over the rectangle: the pixel region {@code u,v} of size {@code regionW x regionH}
+     * out of a {@code texW x texH} texture, tinted by {@code color} (ARGB).
+     */
+    public static void drawTextureRegion(Identifier texture, float x, float y, float width, float height,
+                                         int u, int v, int regionW, int regionH, int texW, int texH, int color) {
+        if (width <= 0 || height <= 0)
+            return;
+        GuiGraphicsExtractor graphics = RenderContext.graphics();
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        graphics.pose().scale(width / regionW, height / regionH);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, 0, 0, (float) u, (float) v, regionW, regionH, texW, texH,
+                RenderContext.applyAlpha(color));
+        graphics.pose().popMatrix();
+    }
+
     /** Builds the outline of a rounded rectangle as x,y pairs, going around clockwise from the top-left. */
     private static float[] roundedPath(float x, float y, float x1, float y1, float radius, boolean[] round) {
         return roundedPath(x, y, x1, y1, radius, round, segmentsFor(radius));

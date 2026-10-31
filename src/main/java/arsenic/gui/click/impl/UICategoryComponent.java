@@ -7,6 +7,7 @@ import java.util.List;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UICategory;
+import arsenic.gui.design.M3;
 import arsenic.module.ModuleCategory;
 import arsenic.utils.interfaces.IContainer;
 import arsenic.utils.render.PosInfo;
@@ -32,15 +33,9 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     protected float drawComponent(RenderInfo ri) {
-        float hoverPct = hoverTimer.getPercent();
-        int color = hoverPct > 0
-                ? RenderUtils.interpolateColoursInt(getWhite(), getGradientColor(), hoverPct)
-                : getWhite();
-
-        ri.getFr().drawString(getName(), x1, midPointY, color, ri.getFr().CENTREY);
-
+        // no group heading ("COMBAT" above "Combat" said nothing new), and no gap: one continuous list
         PosInfo pi = new PosInfo(x1, y2);
-        contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri) * 1.1f));
+        contents.forEach(child -> pi.moveY(child.updateComponent(pi, ri)));
         expandY = pi.getY() - y2;
 
         return expandY + height;
@@ -48,7 +43,7 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     public void mouseUpdate(int mouseX, int mouseY) {
-        hovered = isMouseInArea(mouseX, mouseY);
+        hovered = arsenic.gui.design.Hover.test(this, x1, y1, x2, y2);
     }
 
     @Override
@@ -59,11 +54,11 @@ public class UICategoryComponent extends Component implements IContainer<ModuleC
 
     @Override
     public int getHeight(int i) {
-        return 5 * (i / 100);
+        return 0;
     }
 
     @Override
     public int getWidth(int i) {
-        return 9 * (i / 100);
+        return 174;
     }
 }

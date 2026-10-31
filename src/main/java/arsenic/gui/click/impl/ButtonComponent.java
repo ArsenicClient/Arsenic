@@ -2,6 +2,8 @@ package arsenic.gui.click.impl;
 
 import arsenic.gui.click.Component;
 import arsenic.gui.click.UITheme;
+import arsenic.gui.design.M3;
+import arsenic.gui.design.M3Components;
 import arsenic.gui.themes.ThemeManager;
 import arsenic.main.Arsenic;
 import arsenic.utils.java.SoundUtils;
@@ -33,34 +35,21 @@ public abstract class ButtonComponent extends Component {
         float pct = toggleTimer.getPercent();
         float hover = hoverPct();
 
-        float trackHeight = height * 0.44f;
-        float trackWidth = trackHeight * 1.85f;
+        float trackHeight = height * 0.56f;
+        float trackWidth = trackHeight * 1.75f;
         float trackX2 = x2;
         float trackX1 = trackX2 - trackWidth;
         this.trackX1 = trackX1;
-        float trackY1 = midPointY - trackHeight / 2f;
-        float trackY2 = midPointY + trackHeight / 2f;
-        float radius = UITheme.radiusPill(trackHeight);
 
-        // Material switch: primary track with a small light knob when on, outlined track with a dark knob when off
-        int track = UITheme.mix(arsenic.gui.design.M3.surfaceContainerHighest(), UITheme.accent(), pct);
-        DrawUtils.drawRoundedRect(trackX1, trackY1, trackX2, trackY2, radius, track);
-        if (pct < 0.98f)
-            DrawUtils.drawRoundedOutline(trackX1, trackY1, trackX2, trackY2, radius, 1f,
-                    UITheme.alpha(arsenic.gui.design.M3.outline(), (int) (255 * (1f - pct))));
-
-        float knobRadius = trackHeight * (0.26f + 0.12f * pct);
-        float travel = trackWidth - trackHeight;
-        float knobX = trackX1 + trackHeight / 2f + travel * pct;
-
-        if (hover > 0.02f)
-            DrawUtils.drawCircle(knobX, midPointY, knobRadius * 1.7f,
-                    UITheme.alpha(UITheme.mix(arsenic.gui.design.M3.onSurface(), UITheme.accent(), pct), (int) (28 * hover)));
-
-        int knob = UITheme.mix(arsenic.gui.design.M3.outline(), UITheme.readableOn(UITheme.accent()), pct);
-        DrawUtils.drawCircle(knobX, midPointY, knobRadius * (1f - 0.1f * pressPct()), knob);
-
+        M3Components.switchControl(trackX1, y1, height, pct, hover);
         return height;
+    }
+
+    /** Only the switch itself takes the cursor; the component's box spans the whole parent row. */
+    @Override
+    public void mouseUpdate(int mouseX, int mouseY) {
+        hovered = trackX1 != Float.MAX_VALUE
+                && arsenic.gui.design.Hover.test(this, trackX1 - 4f, y1, x2, y2);
     }
 
     @Override
