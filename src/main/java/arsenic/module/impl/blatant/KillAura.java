@@ -68,6 +68,7 @@ public class KillAura extends Module {
     public final RangeProperty pitchRange = new RangeProperty("Pitch Range", new RangeValue(-90, 90, 15, 25, 1));
     public final BooleanProperty silentRotations = new BooleanProperty("Silent Rotations", true);
     public final BooleanProperty disableOnFlag = new BooleanProperty("Disable On Flag", true);
+    public final BooleanProperty attackCooldown = new BooleanProperty("Attack Cooldown", true);
     @PropertyGroup(Group.ADVANCED)
     public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
     @PropertyGroup(Group.VISUAL)
@@ -82,7 +83,7 @@ public class KillAura extends Module {
     private final MSTimer onTargetTimer = new MSTimer();
     private boolean everOnTarget = false;
 
-    private static final double ATTACK_RANGE = 3.0;
+    private static final double DEFAULT_REACH = 3.0;
 
     private static final float PREDICTION_TICKS = 1f;
     private static final double CLICK_GRACE_MS = 300;
@@ -127,7 +128,7 @@ public class KillAura extends Module {
 
         blockActive = target != null && PlayerUtils.isPlayerHoldingBlocker() && !autoProjectile().isBusy();
         AutoBlocker.setRenderBlocking(AutoBlocker.isPacketMode(mode) && blockActive
-                && mc.player.distanceTo(target) <= ATTACK_RANGE + 1);
+                && mc.player.distanceTo(target) <= attackRange() + 1);
         if (mode == AutoBlocker.Mode.Legit)
             blocker.tickLegit(target, blockActive);
         else if (AutoBlocker.isPacketMode(mode))
@@ -177,7 +178,7 @@ public class KillAura extends Module {
         boolean packetBlock = AutoBlocker.isPacketMode(autoBlock.getValue());
         HitResult raytrace = event.getRayTraceEntity();
         Entity hit = raytrace instanceof net.minecraft.world.phys.EntityHitResult entityHit ? entityHit.getEntity() : null;
-        if (hit != null && mc.player.getEyePosition(1f).distanceTo(raytrace.getLocation()) > ATTACK_RANGE)
+        if (hit != null && mc.player.getEyePosition(1f).distanceTo(raytrace.getLocation()) > attackRange())
             hit = null;
         if (target != null && hit == target) {
             onTargetTimer.reset();
@@ -195,6 +196,7 @@ public class KillAura extends Module {
                     && blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.getLocation(), 1));
         if ((target != null || hitPlayer != null)
                 && !(weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
+                && cooldownReady()
                 && !Arsenic.getArsenic().getServerInfo().isInGuiServerSide()
                 && !flickInProgress
                 && ClickManager.get().isDue(ClickManager.Client.KILLAURA)
@@ -264,6 +266,20 @@ public class KillAura extends Module {
         RenderUtils.drawRing(target, event.partialTicks, 0.7, col, 255, circleStyle.getValue());
     };
 
+    /** The reach the server gives us (3 blocks unless an attribute changes it). */
+    private static double attackRange() {
+        return mc.player != null ? mc.player.entityInteractionRange() : DEFAULT_REACH;
+    }
+
+    /**
+     * Latest-version attacks do reduced damage until the weapon has recharged, so wait for it. Off for servers that
+     * have no attack cooldown (1.8 ones), where CPS alone decides.
+     */
+    private boolean cooldownReady() {
+        return !attackCooldown.getValue() || AutoBlocker.isPacketMode(autoBlock.getValue())
+                || mc.player.getAttackStrengthScale(0.5f) >= 0.95f;
+    }
+
     private AutoProjectile autoProjectile() {
         return Arsenic.getArsenic().getModuleManager().getModuleByClass(AutoProjectile.class);
     }
@@ -285,7 +301,7 @@ public class KillAura extends Module {
             }
             candidates = reachable;
         }
-        double aimRange = ATTACK_RANGE + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
+        double aimRange = attackRange() + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
         picker.valueScale = TargetManager.sortMode.getValue() == TargetManager.SortMode.Fov ? 0.04f : 1f;
         SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
         Vec3 eyes = mc.player.getEyePosition(1f);
@@ -323,7 +339,7 @@ public class KillAura extends Module {
      */
     private boolean shouldSwingAtAir(EventSilentRotation.Post event) {
         double dist = RotationUtils.getDistanceToEntityBox(target);
-        if (dist <= ATTACK_RANGE && shouldMissClick(event))
+        if (dist <= attackRange() && shouldMissClick(event))
             return true;
         return rotationMode.getValue() == AimController.RotationMode.Heuristics && dist <= PRE_SWING_RANGE;
     }
@@ -338,7 +354,7 @@ public class KillAura extends Module {
         int lookahead = Math.max(1, (int) Math.round(graceMs / 50.0));
         Vec3 eyes = mc.player.getEyePosition(1f);
         Vec3 look = Entity.calculateViewVector(event.getPitch(), event.getYaw());
-        Vec3 end = eyes.add(look.x * ATTACK_RANGE, look.y * ATTACK_RANGE, look.z * ATTACK_RANGE);
+        Vec3 end = eyes.add(look.x * attackRange(), look.y * attackRange(), look.z * attackRange());
         float border = target.getPickRadius();
         for (int t = 1; t <= lookahead; t++) {
             AABB box = aim.predictBox(target, t).inflate(border, border, border);

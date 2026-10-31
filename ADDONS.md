@@ -2588,11 +2588,28 @@ public class ContainerUtils extends UtilityClass {
 }
 ```
 
+### arsenic.utils.minecraft.HotbarUse
+
+```java
+public final class HotbarUse extends UtilityClass {
+    /** The hotbar slot (0-8) of the first stack that matches, or -1. */ public static int find(Predicate<ItemStack> match);
+    /** The inventory menu slot (9-44, hotbar last) of the first stack that matches, or -1. */ public static int findMenuSlot(Predicate<ItemStack> match);
+    /** Whether this has moved the hotbar and not yet put it back. Modules return this from isSwappingHotbar. */ public boolean active();
+    /** Goes back to the slot we left once a one-shot use is over. */ public void tick();
+    /** Switches to the slot and keeps it until #release(). */ public void select(int slot);
+    /** Switches to the slot for this tick only, for an action the caller does itself. */ public void switchOnce(int slot);
+    /** Switches to the slot, uses the item once and goes back next tick. */ public void use(int slot);
+    public void release();
+}
+```
+
 ### arsenic.utils.minecraft.ItemUtils
 
 ```java
 public class ItemUtils extends UtilityClass {
     public static boolean isSword(ItemStack stack);
+    public static boolean isMace(ItemStack stack);
+    public static boolean isSpear(ItemStack stack);
     public static boolean isAxe(ItemStack stack);
     public static boolean isWeapon(ItemStack stack);
     public static boolean isBlock(ItemStack stack);
@@ -2653,6 +2670,8 @@ public class PlayerUtils extends UtilityClass {
     public static void addMessageToChat(String msg);
     public static boolean isHolding(Class<? extends Item> type);
     public static boolean isPlayerHoldingWeapon();
+    /** The hand that blocks, main hand first, or null. Latest-version servers block with a shield, and 1.8 servers (also */ public static InteractionHand blockingHand();
+    public static boolean isPlayerHoldingBlocker();
     public static boolean isPlayerHoldingBlocks();
     public static boolean isPlayerHoldingSword();
     public static boolean isPlayerHoldingBow();

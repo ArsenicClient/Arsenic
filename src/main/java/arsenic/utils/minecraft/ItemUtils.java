@@ -27,12 +27,20 @@ public class ItemUtils extends UtilityClass {
         return stack != null && !stack.isEmpty() && stack.is(ItemTags.SWORDS);
     }
 
+    public static boolean isMace(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.is(net.minecraft.world.item.Items.MACE);
+    }
+
+    public static boolean isSpear(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.is(ItemTags.SPEARS);
+    }
+
     public static boolean isAxe(ItemStack stack) {
         return stack != null && !stack.isEmpty() && stack.is(ItemTags.AXES);
     }
 
     public static boolean isWeapon(ItemStack stack) {
-        return isSword(stack) || isAxe(stack);
+        return isSword(stack) || isAxe(stack) || isMace(stack) || isSpear(stack);
     }
 
     public static boolean isBlock(ItemStack stack) {
