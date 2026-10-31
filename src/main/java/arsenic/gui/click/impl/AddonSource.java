@@ -6,6 +6,7 @@ import java.util.Locale;
 
 import arsenic.addon.AddonManager;
 import arsenic.main.Arsenic;
+import arsenic.module.KeybindMode;
 import arsenic.module.Module;
 import arsenic.module.ModuleTier;
 import arsenic.module.property.Property;
@@ -90,6 +91,20 @@ final class AddonSource implements ModuleSource {
     @Override
     public void setKeybind(int key) {
         Arsenic.getArsenic().getAddonManager().setKeybind(info.name, key);
+    }
+
+    /** Held or toggle; kept on the loaded module, so the addon's own config entry saves it. */
+    @Override
+    public KeybindMode getKeybindMode() {
+        Module module = module();
+        return module != null ? module.getKeybindMode() : KeybindMode.TOGGLE;
+    }
+
+    @Override
+    public void setKeybindMode(KeybindMode mode) {
+        Module module = module();
+        if (module != null)
+            module.setKeybindMode(mode);
     }
 
     @Override

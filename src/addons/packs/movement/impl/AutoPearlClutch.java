@@ -33,12 +33,18 @@ import net.minecraft.util.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
  * When you fall towards the void, finds the nearest standable block that is not above your reach, solves the ender pearl
  * trajectory onto it, rotates there silently and throws a pearl from the hotbar. Useful for BuildFFA and similar modes.
+ *
+ * The pearl is always restored into the slot it was taken from (the current slot can move mid-aim because of a scroll
+ * or another module), a target that did not save you is skipped for a while and the throw is retried, and the module
+ * stands down while another module is swapping the hotbar.
  */
 @ModuleInfo(name = "AutoPearlClutch", description = "Pearls to the nearest safe surface when you fall into the void",
         category = ModuleCategory.MOVEMENT, tier = ModuleTier.BLATANT)
@@ -47,24 +53,29 @@ public class AutoPearlClutch extends Module {
     public final DoubleProperty speed = new DoubleProperty("Rotation Speed", new DoubleValue(60, 180, 150, 1));
     public final EnumProperty<SilentRotationManager.MovementFix> fix =
             new EnumProperty<>("Movement Fix", SilentRotationManager.MovementFix.SILENT);
-    public final DoubleProperty minFall = new DoubleProperty("Min Fall Distance", new DoubleValue(2, 20, 5, 0.5));
+    public final DoubleProperty minFall = new DoubleProperty("Min Fall Distance", new DoubleValue(1, 20, 3, 0.5));
     public final DoubleProperty voidY = new DoubleProperty("Void Y", new DoubleValue(-64, 100, 0, 1));
     public final DoubleProperty radius = new DoubleProperty("Search Radius", new DoubleValue(6, 32, 20, 1));
-    public final DoubleProperty maxUp = new DoubleProperty("Max Up", new DoubleValue(2, 24, 14, 1));
-    public final DoubleProperty maxDown = new DoubleProperty("Max Down", new DoubleValue(0, 12, 6, 1));
+    public final DoubleProperty maxUp = new DoubleProperty("Max Up", new DoubleValue(2, 24, 12, 1));
+    public final DoubleProperty maxDown = new DoubleProperty("Max Down", new DoubleValue(0, 16, 10, 1));
     public final BooleanProperty avoidEdges = new BooleanProperty("Avoid Edges", true);
+    public final BooleanProperty avoidLiquid = new BooleanProperty("Avoid Liquid", true);
     public final BooleanProperty lastResort = new BooleanProperty("Last Resort", true);
-    public final RangeProperty reaction = new RangeProperty("Reaction Ticks", new RangeValue(0, 8, 1, 2, 1));
-    public final DoubleProperty cooldown = new DoubleProperty("Cooldown Ticks", new DoubleValue(20, 80, 45, 1));
+    public final BooleanProperty retry = new BooleanProperty("Retry On Miss", true);
+    public final RangeProperty reaction = new RangeProperty("Reaction Ticks", new RangeValue(0, 6, 0, 1, 1));
+    public final DoubleProperty cooldown = new DoubleProperty("Cooldown Ticks", new DoubleValue(5, 80, 15, 1));
     public final BooleanProperty render = new BooleanProperty("Render", true);
     public final BooleanProperty hud = new BooleanProperty("HUD", true);
 
     private final HudElement panel = hudElement("AutoPearlClutch", 4, 140, 110, 16);
     private final Random random = new Random();
+    private final Map<Long, Integer> badTargets = new HashMap<>();
 
     private static final double LANDING_TOLERANCE = 2.5;
     private static final int MAX_CANDIDATES = 14;
     private static final int RESCAN_TICKS = 5;
+    private static final int BLACKLIST_TICKS = 80;
+    private static final int MISS_CHECK_TICKS = 30;
 
     private static final class Cand {
         final BlockPos pos; final Vec3 center; final double score;
@@ -82,17 +93,19 @@ public class AutoPearlClutch extends Module {
 
     private final List<Cand> candidates = new ArrayList<>();
     private Aim aim;
-    private BlockPos locked, shownTarget;
+    private BlockPos locked, shownTarget, lastTarget;
     private Vec3 landing;
     private boolean active, ready;
-    private int tickCounter, lastScan = -100, startTick, reactionTicks, cooldownLeft, pearlSlot = -1, thrown;
-    private int savedSlot = -1, lastSetSlot = -1, restoreIn;
+    private int tickCounter, lastScan = -100, startTick, reactionTicks, cooldownLeft, pearlSlot = -1, thrown, misses;
+    private int savedSlot = -1, lastSetSlot = -1, restoreIn, missCheckAt, timeLeft;
 
     @Override
     protected void onDisable() {
         restoreSlot();
         cooldownLeft = 0;
+        missCheckAt = 0;
         reset();
+        shownTarget = null;
     }
 
     @Override
@@ -103,6 +116,25 @@ public class AutoPearlClutch extends Module {
         tickCounter++;
         if (restoreIn > 0 && --restoreIn == 0) restoreSlot();
         if (cooldownLeft > 0) cooldownLeft--;
+
+        // the user scrolled while we had a slot out: hands off, never fight the current slot
+        if (lastSetSlot != -1 && restoreIn == 0 && mc.thePlayer.inventory.currentItem != lastSetSlot) {
+            savedSlot = -1;
+            lastSetSlot = -1;
+        }
+        // the last throw did not stop the fall: that target is not good enough, try again right away
+        if (missCheckAt > 0 && tickCounter >= missCheckAt) {
+            missCheckAt = 0;
+            if (shouldClutch()) {
+                if (lastTarget != null) badTargets.put(lastTarget.toLong(), tickCounter + BLACKLIST_TICKS);
+                misses++;
+                locked = null;
+                aim = null;
+                candidates.clear();
+                lastScan = -100;
+                cooldownLeft = 0;
+            }
+        }
 
         if (!shouldClutch()) { reset(); return; }
         if (!active) {
@@ -117,7 +149,7 @@ public class AutoPearlClutch extends Module {
         if (pearlSlot == -1) { ready = false; aim = null; return; }
         if (tickCounter - lastScan >= RESCAN_TICKS || candidates.isEmpty()) scan();
 
-        if (ready && aim != null && tickCounter - startTick >= reactionTicks) throwPearl();
+        if (ready && aim != null && tickCounter - startTick >= reactionTicks && !hotbarBusy()) throwPearl();
     };
 
     @RequiresPlayer @EventLink
@@ -147,7 +179,9 @@ public class AutoPearlClutch extends Module {
         Sim s = simulate(eyes.xCoord, eyes.yCoord, eyes.zCoord, event.getYaw(), event.getPitch());
         if (!landingOk(s)) return;
         if (s.landing.distanceTo(aim.center) > LANDING_TOLERANCE) return;
-        if (!timeSafe(s.ticks) && !lastResort.getValue()) return;
+        timeLeft = fallTicksLeft();
+        // the pearl has to arrive before the player is already below the void
+        if (s.ticks > timeLeft - 1 && !lastResort.getValue()) return;
         landing = s.landing;
         ready = true;
     };
@@ -189,7 +223,7 @@ public class AutoPearlClutch extends Module {
             if (dx * dx + dz * dz > r * r) continue;
             for (int y = yTop; y >= yBottom; y--) {
                 BlockPos pos = new BlockPos(bx + dx, y, bz + dz);
-                if (!standable(pos)) continue;
+                if (badCand(pos) || !standable(pos)) continue;
                 double hd = Math.sqrt(dx * dx + dz * dz);
                 double score = hd + 0.5 * Math.abs(y + 1 - py);
                 if (avoidEdges.getValue() && !inset(pos)) score += 3.0;
@@ -199,6 +233,11 @@ public class AutoPearlClutch extends Module {
         }
         all.sort(Comparator.comparingDouble(c -> c.score));
         for (int i = 0; i < Math.min(MAX_CANDIDATES, all.size()); i++) candidates.add(all.get(i));
+    }
+
+    private boolean badCand(BlockPos pos) {
+        Integer retryAt = badTargets.get(pos.toLong());
+        return retryAt != null && retryAt > tickCounter;
     }
 
     private boolean standable(BlockPos pos) {
@@ -216,6 +255,7 @@ public class AutoPearlClutch extends Module {
 
     private Aim solveBest() {
         Vec3 eyes = predictedEyes();
+        timeLeft = fallTicksLeft();
         List<Cand> order = new ArrayList<>(candidates);
         if (locked != null) { // try the locked target first so we do not flick between candidates
             for (int i = 0; i < order.size(); i++) {
@@ -268,7 +308,7 @@ public class AutoPearlClutch extends Module {
             float jp = pitch + (float) ((random.nextDouble() - 0.5) * 0.4);
             Sim sj = simulate(eyes.xCoord, eyes.yCoord, eyes.zCoord, jy, jp);
             if (landingOk(sj) && sj.landing.distanceTo(c.center) <= LANDING_TOLERANCE) { s = sj; yaw = jy; pitch = jp; }
-            return new Aim(c.pos, c.center, yaw, pitch, s.ticks, timeSafe(s.ticks));
+            return new Aim(c.pos, c.center, yaw, pitch, s.ticks, s.ticks <= timeLeft - 1);
         }
         return null;
     }
@@ -302,16 +342,24 @@ public class AutoPearlClutch extends Module {
         if (s == null || !s.hit || s.side != EnumFacing.UP || !standable(s.block)) return false;
         if (s.landing.yCoord - (s.block.getY() + 1) > 2.5) return false;
         BlockPos feet = new BlockPos(s.landing.xCoord, s.landing.yCoord, s.landing.zCoord);
-        return !mc.theWorld.getBlockState(feet).getBlock().getMaterial().blocksMovement()
-                && !mc.theWorld.getBlockState(feet.up()).getBlock().getMaterial().blocksMovement();
+        Material low = mc.theWorld.getBlockState(feet).getBlock().getMaterial();
+        Material high = mc.theWorld.getBlockState(feet.up()).getBlock().getMaterial();
+        if (low.blocksMovement() || high.blocksMovement()) return false;
+        // do not pearl into lava (or into a pool that will not hold us)
+        if (avoidLiquid.getValue() && (low.isLiquid() || high.isLiquid())) return false;
+        return true;
     }
 
-    // whether the player is still above the void when the pearl lands
-    private boolean timeSafe(int flightTicks) {
+    // ticks until the player itself would be below the void
+    private int fallTicksLeft() {
         EntityPlayerSP p = mc.thePlayer;
-        double y = p.posY + p.motionY, vy = (p.motionY - 0.08) * 0.98;
-        for (int i = 0; i < flightTicks; i++) { y += vy; vy = (vy - 0.08) * 0.98; }
-        return y > voidY.getValue().getInput() + 0.5;
+        double y = p.posY, vy = p.motionY, bottom = voidY.getValue().getInput();
+        for (int t = 1; t <= 200; t++) {
+            vy = (vy - 0.08) * 0.98;
+            y += vy;
+            if (y <= bottom) return t;
+        }
+        return 200;
     }
 
     private Vec3 predictedEyes() {
@@ -329,6 +377,12 @@ public class AutoPearlClutch extends Module {
         return -1;
     }
 
+    private boolean hotbarBusy() {
+        for (Module m : Arsenic.getArsenic().getModuleManager().getModules())
+            if (m != this && m.isEnabled() && m.isSwappingHotbar()) return true;
+        return false;
+    }
+
     // swap to the pearl, throw, and swap back two ticks later
     private void throwPearl() {
         if (mc.thePlayer.isUsingItem()) mc.playerController.onStoppedUsingItem(mc.thePlayer);
@@ -337,11 +391,17 @@ public class AutoPearlClutch extends Module {
         lastSetSlot = pearlSlot;
         ItemStack held = mc.thePlayer.inventory.getCurrentItem();
         if (held == null || held.getItem() != Items.ender_pearl) { restoreSlot(); return; }
-        mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held);
-        thrown++;
+        if (mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held)) {
+            mc.thePlayer.swingItem();
+            thrown++;
+            lastTarget = locked;
+            missCheckAt = retry.getValue() ? tickCounter + MISS_CHECK_TICKS : 0;
+        }
         cooldownLeft = (int) cooldown.getValue().getInput();
         restoreIn = 2;
         ready = false;
+        aim = null;
+        locked = null;
     }
 
     private void restoreSlot() {
@@ -349,6 +409,7 @@ public class AutoPearlClutch extends Module {
             mc.thePlayer.inventory.currentItem = savedSlot;
         savedSlot = -1;
         lastSetSlot = -1;
+        restoreIn = 0;
     }
 
     private void reset() {
@@ -383,7 +444,8 @@ public class AutoPearlClutch extends Module {
         else if (cooldownLeft > 0) text = "Pearl away";
         else if (aim == null) text = "No landing found";
         else text = ready ? "Throwing" : "Aiming";
-        text += "  x" + thrown;
+        if (active && timeLeft > 0 && timeLeft < 200) text += String.format("  %.1fs", timeLeft / 20.0);
+        text += "  x" + thrown + (misses > 0 ? " (" + misses + " miss)" : "");
         panel.setSize(Math.max(80, mc.fontRendererObj.getStringWidth(text) + 12), 16);
         DrawUtils.drawRoundedRect(panel.x, panel.y, panel.x + panel.width, panel.y + panel.height, 5, 0x96121212);
         mc.fontRendererObj.drawStringWithShadow(text, panel.x + 6, panel.y + 4, 0xFFFFFFFF);

@@ -2,6 +2,7 @@ package arsenic.gui.click.impl;
 
 import java.util.List;
 
+import arsenic.module.KeybindMode;
 import arsenic.module.Module;
 import arsenic.module.ModuleTier;
 import arsenic.module.property.Property;
@@ -22,6 +23,10 @@ public interface ModuleSource {
     int getKeybind();
 
     void setKeybind(int key);
+
+    KeybindMode getKeybindMode();
+
+    void setKeybindMode(KeybindMode mode);
 
     boolean isHidden();
 
@@ -51,6 +56,12 @@ public interface ModuleSource {
 
             @Override
             public void setKeybind(int key) { module.setKeybind(key); }
+
+            @Override
+            public KeybindMode getKeybindMode() { return module.getKeybindMode(); }
+
+            @Override
+            public void setKeybindMode(KeybindMode mode) { module.setKeybindMode(mode); }
 
             @Override
             public boolean isHidden() { return module.isHidden(); }
