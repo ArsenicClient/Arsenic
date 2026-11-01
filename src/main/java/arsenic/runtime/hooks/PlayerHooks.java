@@ -9,6 +9,7 @@ import arsenic.module.impl.client.Cape;
 import arsenic.module.impl.client.CapeHandler;
 import arsenic.module.impl.ghost.HitSelect;
 import arsenic.module.impl.movement.NoJumpDelay;
+import arsenic.utils.java.BindUtils;
 import arsenic.utils.render.FirstPersonRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
@@ -95,6 +96,24 @@ public final class PlayerHooks {
                 .post(new EventUpdate.Post(self.posX, self.posY, self.posZ, self.rotationYaw, self.rotationPitch, self.onGround));
     }
 
+    private static final boolean[] mouseBindDown = new boolean[16];
+
+    /**
+     * Module binds on the middle and side mouse buttons: a press posts the same EventKey a keyboard key would, with the
+     * button's bind code (see BindUtils). Only in game, like keyboard binds. The state is kept while a screen is open
+     * so a button held down when the screen closes does not count as a new press.
+     */
+    private static void pollMouseBinds() {
+        boolean inGame = Minecraft.getMinecraft().currentScreen == null;
+        int count = Math.min(BindUtils.mouseButtonCount(), mouseBindDown.length);
+        for (int button = BindUtils.FIRST_BINDABLE_BUTTON; button < count; button++) {
+            boolean down = Mouse.isButtonDown(button);
+            if (down && !mouseBindDown[button] && inGame)
+                Arsenic.getInstance().getEventManager().post(new EventKey(BindUtils.mouseKey(button)));
+            mouseBindDown[button] = down;
+        }
+    }
+
     /** EntityPlayerSP.onUpdate HEAD. @return true to drop the tick */
     public static boolean onUpdateHead(EntityPlayerSP self) {
         Arsenic.getInstance().getEventManager().post(new EventTick());
@@ -107,6 +126,7 @@ public final class PlayerHooks {
                 Arsenic.getArsenic().getEventManager().post(new EventMouse.Up(i));
             }
         }
+        pollMouseBinds();
         EventDropTick drop = new EventDropTick();
         Arsenic.getInstance().getEventManager().post(drop);
         if (!drop.isCancelled())
