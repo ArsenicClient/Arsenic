@@ -11,32 +11,41 @@ import net.minecraft.client.Minecraft;
 import org.reflections.Reflections;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import static org.reflections.scanners.Scanners.SubTypes;
+<<<<<<< Updated upstream
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
+=======
+>>>>>>> Stashed changes
 
 public class ModuleManager {
 
-    private final Map<Class<? extends Module>, Module> modules = new HashMap<>();
+    private final Map<Class<? extends Module>, Module> modules = new ConcurrentHashMap<>();
     /**
      * Built-in modules of a tier this build leaves out. They are never listed, enabled or saved, but the engine reads
      * them by class (getModuleByClass), so they still exist and stay disabled.
      */
+<<<<<<< Updated upstream
     private final Map<Class<? extends Module>, Module> unavailable = new HashMap<>();
     /** Modules a held key switched on, so its release can switch them off again. */
     private final Set<Module> heldModules = new HashSet<>();
+=======
+    private final Map<Class<? extends Module>, Module> unavailable = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Module>> keybindMap = new ConcurrentHashMap<>();
+>>>>>>> Stashed changes
 
     public final int initialize() {
-        if(modules.size() != 0)
+        if (!modules.isEmpty())
             throw new RuntimeException("Double initialization of Module Manager.");
 
         Reflections reflections = new Reflections("arsenic.module");
         reflections.get(SubTypes.of(Module.class).asClass()).forEach(module -> addModule((Class<? extends Module>) module));
 
-        if(System.getProperty("os.name").toLowerCase().contains("mac"))
+        if (System.getProperty("os.name").toLowerCase().contains("mac"))
             modules.remove(PostProcessing.class);
 
         Arsenic.getInstance().getAddonManager().installDefaults();
@@ -52,10 +61,8 @@ public class ModuleManager {
         return getModules().stream().filter(Module::isEnabled).collect(Collectors.toList());
     }
 
-
     public List<String> getClosestModuleName(String name) {
-        return Arsenic.getArsenic().getModuleManager().getModules()
-                .stream().map(Module::getName).filter(cName -> cName.toLowerCase().startsWith(name.toLowerCase()))
+        return getModules().stream().map(Module::getName).filter(cName -> cName.toLowerCase().startsWith(name.toLowerCase()))
                 .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
     }
 
@@ -76,6 +83,21 @@ public class ModuleManager {
         return null;
     }
 
+    public void updateKeybind(Module module, int oldKey, int newKey) {
+        if (oldKey != 0) {
+            List<Module> list = keybindMap.get(oldKey);
+            if (list != null) {
+                list.remove(module);
+                if (list.isEmpty()) {
+                    keybindMap.remove(oldKey);
+                }
+            }
+        }
+        if (newKey != 0) {
+            keybindMap.computeIfAbsent(newKey, k -> new CopyOnWriteArrayList<>()).add(module);
+        }
+    }
+
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
@@ -88,6 +110,7 @@ public class ModuleManager {
             return;
         }
 
+<<<<<<< Updated upstream
         AtomicBoolean saveConfig = new AtomicBoolean(false);
 
         getModules().stream()
@@ -98,6 +121,15 @@ public class ModuleManager {
                 });
 
         if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
+=======
+        List<Module> bound = keybindMap.get(event.getKeycode());
+        if (bound != null && !bound.isEmpty()) {
+            for (Module m : bound) {
+                m.setEnabled(!m.isEnabled());
+            }
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+        }
+>>>>>>> Stashed changes
     };
 
     /**
@@ -139,12 +171,18 @@ public class ModuleManager {
         }
         module.markAddon();
         modules.put(module.getClass(), module);
+        if (module.getKeybind() != 0) {
+            updateKeybind(module, 0, module.getKeybind());
+        }
         module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::add);
         return null;
     }
 
     public void unregisterExternal(Module module) {
         modules.remove(module.getClass());
+        if (module.getKeybind() != 0) {
+            updateKeybind(module, module.getKeybind(), 0);
+        }
         module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::remove);
     }
 
@@ -153,10 +191,16 @@ public class ModuleManager {
             Module module = moduleClass.newInstance();
             module.registerProperties();
             ModuleInfo info = moduleClass.getAnnotation(ModuleInfo.class);
-            if (info != null && !BuildTiers.allows(info.tier()))
+            if (info != null && !BuildTiers.allows(info.tier())) {
                 unavailable.put(moduleClass, module);
-            else
+            } else {
                 modules.put(moduleClass, module);
-        } catch (Exception e) {e.printStackTrace();}
+                if (module.getKeybind() != 0) {
+                    updateKeybind(module, 0, module.getKeybind());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

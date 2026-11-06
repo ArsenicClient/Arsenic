@@ -1523,6 +1523,179 @@ public enum Group {
 }
 ```
 
+### arsenic.module.property.impl.BooleanProperty
+
+```java
+public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
+    public BooleanProperty(String name, Boolean value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public java.util.List<String> possibleValues();
+}
+```
+
+### arsenic.module.property.impl.ButtonProperty
+
+```java
+public class ButtonProperty extends Property<String> {
+    public ButtonProperty(String value);
+    public ButtonProperty(String name, Runnable action);
+    public ButtonProperty(String name, String label, Runnable action);
+    public void fire();
+}
+```
+
+### arsenic.module.property.impl.ColourProperty
+
+```java
+public class ColourProperty extends SerializableProperty<Integer> {
+    public ColourProperty(String name, int value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void setMode(cMode mode);
+    public void setColor(int i, int newValue);
+    public Integer getValue();
+    public int getColor(int i);
+
+    public enum cMode {
+        CUSTOM, THEME;
+    }
+}
+```
+
+### arsenic.module.property.impl.DisplayMode
+
+```java
+public enum DisplayMode {
+    NORMAL, PERCENT, MILLIS;
+    public String getSuffix();
+    public String toString();
+}
+```
+
+### arsenic.module.property.impl.doubleproperty.DoubleProperty
+
+```java
+public class DoubleProperty extends SerializableProperty<DoubleValue> {
+    public DoubleProperty(String name, DoubleValue value);
+    public DoubleProperty(String name, DoubleValue value, SliderScale scale);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public String getValueString();
+    public DisplayMode getDisplayMode();
+}
+```
+
+### arsenic.module.property.impl.doubleproperty.DoubleValue
+
+```java
+public class DoubleValue {
+    public DoubleValue(double minBound, double maxBound, double value, double inc);
+    public double getInput();
+    public void setInputSilently(double value);
+    public void setInput(double value);
+    public double getMaxBound();
+    public double getMinBound();
+    public void onUpdate();
+}
+```
+
+### arsenic.module.property.impl.EnumProperty
+
+```java
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
+    public EnumProperty(String name, T value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void nextMode();
+    public void prevMode();
+    public boolean setByName(String name);
+    public List<String> getModeNames();
+    public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public List<String> possibleValues();
+}
+```
+
+### arsenic.module.property.impl.FolderProperty
+
+```java
+public class FolderProperty extends SerializableProperty<List<Property<?>>> {
+    public FolderProperty(String name, Property<?>... values);
+    public void loadFromJson(JsonObject obj);
+    public JsonObject saveInfoToJson(JsonObject obj);
+}
+```
+
+### arsenic.module.property.impl.rangeproperty.RangeProperty
+
+```java
+public class RangeProperty extends SerializableProperty<RangeValue> {
+    public RangeProperty(String name, RangeValue value);
+    public RangeProperty(String name, RangeValue value, SliderScale scale);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public String getValueString();
+    public boolean hasInRange(double value);
+    public DisplayMode getDisplayMode();
+
+    public enum Helping {
+        MIN, MAX;
+    }
+}
+```
+
+### arsenic.module.property.impl.rangeproperty.RangeValue
+
+```java
+public class RangeValue {
+    public RangeValue(double minBound, double maxBound, double min, double max, double inc);
+    public double getMin();
+    public void setMinSilently(double min);
+    public void setMin(double min);
+    public double getMax();
+    public void setMaxSilently(double max);
+    public void setMax(double min);
+    public double getMaxBound();
+    public double getMinBound();
+    public double getRandomInRange();
+    public void onUpdate();
+}
+```
+
+### arsenic.module.property.impl.SliderScale
+
+```java
+public enum SliderScale {
+    LINEAR, LOG;
+    public float toPercent(double v, double lo, double hi);
+    public double fromPercent(double pct, double lo, double hi);
+}
+```
+
+### arsenic.module.property.impl.StringProperty
+
+```java
+public class StringProperty extends Property<String> {
+    public StringProperty(String value);
+}
+```
+
+### arsenic.module.property.impl.TextProperty
+
+```java
+public class TextProperty extends SerializableProperty<String> {
+    public TextProperty(String name, String value);
+    public TextProperty(String name, String value, int maxLength);
+    public void setValue(String value);
+    public void setValueSilently(String value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+}
+```
+
 ### arsenic.module.property.IReliable
 
 ```java
@@ -1601,179 +1774,6 @@ public @interface ShowWhen {
 ```java
 public final class Visibility {
     /** Wires the rules of every public property field of owner. A rule with a problem is left out, so its setting stays */ public static List<String> wire(Object owner);
-}
-```
-
-### arsenic.module.property.impl.BooleanProperty
-
-```java
-public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
-    public BooleanProperty(String name, Boolean value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public Supplier<Boolean> valueCheck(String value);
-    public String currentValue();
-    public java.util.List<String> possibleValues();
-}
-```
-
-### arsenic.module.property.impl.ButtonProperty
-
-```java
-public class ButtonProperty extends Property<String> {
-    public ButtonProperty(String value);
-    public ButtonProperty(String name, Runnable action);
-    public ButtonProperty(String name, String label, Runnable action);
-    public void fire();
-}
-```
-
-### arsenic.module.property.impl.ColourProperty
-
-```java
-public class ColourProperty extends SerializableProperty<Integer> {
-    public ColourProperty(String name, int value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void setMode(cMode mode);
-    public void setColor(int i, int newValue);
-    public Integer getValue();
-    public int getColor(int i);
-
-    public enum cMode {
-        CUSTOM, THEME;
-    }
-}
-```
-
-### arsenic.module.property.impl.DisplayMode
-
-```java
-public enum DisplayMode {
-    NORMAL, PERCENT, MILLIS;
-    public String getSuffix();
-    public String toString();
-}
-```
-
-### arsenic.module.property.impl.EnumProperty
-
-```java
-public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
-    public EnumProperty(String name, T value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void nextMode();
-    public void prevMode();
-    public boolean setByName(String name);
-    public List<String> getModeNames();
-    public Supplier<Boolean> valueCheck(String value);
-    public String currentValue();
-    public List<String> possibleValues();
-}
-```
-
-### arsenic.module.property.impl.FolderProperty
-
-```java
-public class FolderProperty extends SerializableProperty<List<Property<?>>> {
-    public FolderProperty(String name, Property<?>... values);
-    public void loadFromJson(JsonObject obj);
-    public JsonObject saveInfoToJson(JsonObject obj);
-}
-```
-
-### arsenic.module.property.impl.SliderScale
-
-```java
-public enum SliderScale {
-    LINEAR, LOG;
-    public float toPercent(double v, double lo, double hi);
-    public double fromPercent(double pct, double lo, double hi);
-}
-```
-
-### arsenic.module.property.impl.StringProperty
-
-```java
-public class StringProperty extends Property<String> {
-    public StringProperty(String value);
-}
-```
-
-### arsenic.module.property.impl.TextProperty
-
-```java
-public class TextProperty extends SerializableProperty<String> {
-    public TextProperty(String name, String value);
-    public TextProperty(String name, String value, int maxLength);
-    public void setValue(String value);
-    public void setValueSilently(String value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-}
-```
-
-### arsenic.module.property.impl.doubleproperty.DoubleProperty
-
-```java
-public class DoubleProperty extends SerializableProperty<DoubleValue> {
-    public DoubleProperty(String name, DoubleValue value);
-    public DoubleProperty(String name, DoubleValue value, SliderScale scale);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public String getValueString();
-    public DisplayMode getDisplayMode();
-}
-```
-
-### arsenic.module.property.impl.doubleproperty.DoubleValue
-
-```java
-public class DoubleValue {
-    public DoubleValue(double minBound, double maxBound, double value, double inc);
-    public double getInput();
-    public void setInputSilently(double value);
-    public void setInput(double value);
-    public double getMaxBound();
-    public double getMinBound();
-    public void onUpdate();
-}
-```
-
-### arsenic.module.property.impl.rangeproperty.RangeProperty
-
-```java
-public class RangeProperty extends SerializableProperty<RangeValue> {
-    public RangeProperty(String name, RangeValue value);
-    public RangeProperty(String name, RangeValue value, SliderScale scale);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public String getValueString();
-    public boolean hasInRange(double value);
-    public DisplayMode getDisplayMode();
-
-    public enum Helping {
-        MIN, MAX;
-    }
-}
-```
-
-### arsenic.module.property.impl.rangeproperty.RangeValue
-
-```java
-public class RangeValue {
-    public RangeValue(double minBound, double maxBound, double min, double max, double inc);
-    public double getMin();
-    public void setMinSilently(double min);
-    public void setMin(double min);
-    public double getMax();
-    public void setMaxSilently(double max);
-    public void setMax(double min);
-    public double getMaxBound();
-    public double getMinBound();
-    public double getRandomInRange();
-    public void onUpdate();
 }
 ```
 
@@ -2498,14 +2498,6 @@ public enum TickMode {
 }
 ```
 
-### arsenic.utils.timer.TimeUtils
-
-```java
-public final class TimeUtils {
-    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
-}
-```
-
 ### arsenic.utils.timer.Timer
 
 ```java
@@ -2521,6 +2513,32 @@ public class Timer {
     public long getElapsedTimeAsPercent();
     public long getTimeLeft();
     public boolean hasExceededTimeBy(long additionalThreshold);
+}
+```
+
+### arsenic.utils.timer.TimeUtils
+
+```java
+public final class TimeUtils {
+    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
+}
+```
+
+### arsenic.utils.java.BindUtils
+
+```java
+public final class BindUtils {
+    public static int MOUSE_OFFSET;
+    /** The first button that can be bound: left and right click would fire on every attack / block. */ public static int FIRST_BINDABLE_BUTTON;
+    public static int mouseKey(int button);
+    public static boolean isMouse(int key);
+    public static int getButton(int key);
+    public static boolean isBindableButton(int button);
+    /** The name shown for a bind, e.g. "G", "LSHIFT" or "MOUSE4". Never throws, whatever the number. */ public static String getKeyName(int key);
+    /** The bind for a name typed by the player ("g", "f13", "mouse4"). */ public static int parse(String name);
+    /** Whether the key or mouse button of a bind is held right now. Never throws, whatever the number. */ public static boolean isDown(int key);
+    /** How many mouse buttons the game can see on this mouse (at least the usual five). */ public static int mouseButtonCount();
+    /** Every name #parse accepts, for tab completion. */ public static List<String> allNames();
 }
 ```
 

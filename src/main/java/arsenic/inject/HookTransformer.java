@@ -404,6 +404,7 @@ public final class HookTransformer implements ClassFileTransformer {
             return transform(className, classfileBuffer);
         } catch (Throwable t) {
             log.accept("Could not hook " + className + ": " + t);
+            missed.add("Class " + className + " transform error: " + t.getMessage());
             return null;
         }
     }

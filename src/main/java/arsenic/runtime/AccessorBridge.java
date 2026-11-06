@@ -29,17 +29,28 @@ public final class AccessorBridge {
         Object run(Object self, Object[] args);
     }
 
-    private static final Map<String, Member> MEMBERS = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, Member>> CACHE = new ConcurrentHashMap<>();
 
     private AccessorBridge() {}
 
     public static Object invoke(Object self, String accessor, String nameAndDesc, Object[] args) {
-        Member member = MEMBERS.get(accessor + '.' + nameAndDesc);
+        Map<String, Member> accessorMap = CACHE.get(accessor);
+        Member member = accessorMap != null ? accessorMap.get(nameAndDesc) : null;
         if (member == null) {
-            member = resolve(accessor, nameAndDesc);
-            MEMBERS.put(accessor + '.' + nameAndDesc, member);
+            member = resolveAndCache(accessor, nameAndDesc);
+
         }
         return member.run(self, args);
+    }
+
+    private static synchronized Member resolveAndCache(String accessor, String nameAndDesc) {
+        Map<String, Member> accessorMap = CACHE.computeIfAbsent(accessor, k -> new ConcurrentHashMap<>());
+        Member member = accessorMap.get(nameAndDesc);
+        if (member == null) {
+            member = resolve(accessor, nameAndDesc);
+            accessorMap.put(nameAndDesc, member);
+        }
+        return member;
     }
 
     private static Member resolve(String accessor, String nameAndDesc) {

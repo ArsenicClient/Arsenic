@@ -431,7 +431,20 @@ public final class TargetFx {
         return new float[]{Math.min(1f, 2f * (1 - h)), Math.min(1f, 2f * h), 0.15f};
     }
 
+    // uniform lookups are glGets (a CPU wait on threaded drivers); they only change with the program
+    private static final java.util.Map<String, Integer> LOCATIONS = new java.util.HashMap<>();
+    private static int locationsProgram;
+
     private static int loc(String name) {
-        return glGetUniformLocation(program, name);
+        if (locationsProgram != program) {
+            LOCATIONS.clear();
+            locationsProgram = program;
+        }
+        Integer loc = LOCATIONS.get(name);
+        if (loc == null) {
+            loc = glGetUniformLocation(program, name);
+            LOCATIONS.put(name, loc);
+        }
+        return loc;
     }
 }

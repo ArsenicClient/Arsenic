@@ -10,6 +10,7 @@ import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
@@ -109,13 +110,18 @@ public class TTFontRenderer implements IFontRenderer {
 
     @Override
     public void drawString(String text, float x, float y, int color) {
-        renderString(text, x, y, color, false);
+        if (text == null || text.length() == 0)
+            return;
+        renderString(text, x, y, color, false, currentTransform());
     }
 
     @Override
     public void drawStringWithShadow(String text, float x, float y, int color) {
-        renderString(text, x + 0.5f, y + 0.5f, color, true);
-        renderString(text, x, y, color, false);
+        if (text == null || text.length() == 0)
+            return;
+        Transform transform = currentTransform();
+        renderString(text, x + 0.5f, y + 0.5f, color, true, transform);
+        renderString(text, x, y, color, false, transform);
     }
 
     @Override
@@ -149,11 +155,7 @@ public class TTFontRenderer implements IFontRenderer {
         return advance;
     }
 
-    private void renderString(CharSequence text, float x, float y, int color, boolean shadow) {
-        if (text == null || text.length() == 0)
-            return;
-
-        Transform transform = currentTransform();
+    private void renderString(CharSequence text, float x, float y, int color, boolean shadow, Transform transform) {
         int rasterSize = Math.round(emSize * transform.pixelsPerUnit);
         // World-space text (rotated or in perspective) can't be pixel-snapped, and its size on screen
         // changes with every camera move: give it a few shared size steps instead of an atlas per size.
@@ -333,11 +335,49 @@ public class TTFontRenderer implements IFontRenderer {
 
     // ---- where text lands on screen ------------------------------------------------------------
 
+    /*
+     * Reading the matrices back is a glGet, which makes the CPU wait for the driver to catch up (very costly with
+     * threaded drivers, e.g. NVIDIA's threaded optimisation). Code that draws many strings without touching the
+     * matrix in between can wrap them in beginBatch/endBatch so they share one read. A uniform scale applied
+     * through FontRendererExtension is tracked with pushScale/popScale; any other matrix change inside a batch
+     * is not seen.
+     */
+    private static int batchDepth;
+    private static float[][] batchRows;
+    private static float batchReadScale = 1f;
+    private static float batchScale = 1f;
+
+    /** Starts a run of strings drawn under one unchanged matrix (apart from FontRendererExtension scaling). */
+    public static void beginBatch() {
+        batchDepth++;
+    }
+
+    public static void endBatch() {
+        if (batchDepth > 0 && --batchDepth == 0)
+            batchRows = null;
+    }
+
+    /** A uniform glScalef applied around a string inside a batch. */
+    static void pushScale(float scale) {
+        batchScale *= scale;
+    }
+
+    static void popScale(float scale) {
+        batchScale /= scale;
+    }
+
     /**
      * Reads projection x modelview to find the text's size in screen pixels and to snap glyphs to
      * the pixel grid. Works whatever transforms are active, including the ClickGUI's own projection.
      */
     private Transform currentTransform() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (batchDepth > 0 && batchRows != null) {
+            // a uniform scale S multiplies the x, y and z columns of P * M
+            float k = batchScale / batchReadScale;
+            return new Transform(scaled(batchRows[0], k), scaled(batchRows[1], k), scaled(batchRows[2], k),
+                    mc.displayWidth, mc.displayHeight);
+        }
         matrixBuffer.clear();
         GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, matrixBuffer);
         matrixBuffer.get(projection);
@@ -346,8 +386,15 @@ public class TTFontRenderer implements IFontRenderer {
         matrixBuffer.get(modelview);
         // rows 0, 1 and 3 of P * M (column-major), for the x, y and w of a point at z = 0
         float[] row0 = row(0), row1 = row(1), row3 = row(3);
-        Minecraft mc = Minecraft.getMinecraft();
+        if (batchDepth > 0) {
+            batchRows = new float[][]{row0.clone(), row1.clone(), row3.clone()};
+            batchReadScale = batchScale;
+        }
         return new Transform(row0, row1, row3, mc.displayWidth, mc.displayHeight);
+    }
+
+    private static float[] scaled(float[] row, float k) {
+        return k == 1f ? row : new float[]{row[0] * k, row[1] * k, row[2] * k, row[3]};
     }
 
     private float[] row(int r) {
@@ -441,6 +488,16 @@ public class TTFontRenderer implements IFontRenderer {
         return atlas;
     }
 
+    /** Glyph pixels are staged here before upload; reused so each glyph doesn't allocate native memory. */
+    private static ByteBuffer uploadScratch;
+
+    private static ByteBuffer uploadBuffer(int bytes) {
+        if (uploadScratch == null || uploadScratch.capacity() < bytes)
+            uploadScratch = BufferUtils.createByteBuffer(Math.max(bytes, 64 * 64 * 4));
+        uploadScratch.clear();
+        return uploadScratch;
+    }
+
     private static final class Glyph {
         final int texture;
         final float u0, v0, u1, v1;
@@ -528,12 +585,12 @@ public class TTFontRenderer implements IFontRenderer {
             shelfX += w;
             shelfHeight = Math.max(shelfHeight, h);
 
-            ByteBuffer pixels = BufferUtils.createByteBuffer(w * h * 4);
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    pixels.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) (image.getRGB(x, y) >>> 24));
-                }
-            }
+            // read the raster's backing array: BufferedImage.getRGB per pixel goes through the colour model and
+            // took tens of milliseconds for large world-space glyphs
+            int[] argb = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+            ByteBuffer pixels = uploadBuffer(w * h * 4);
+            for (int p : argb)
+                pixels.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) (p >>> 24));
             pixels.flip();
             GL11.glPushAttrib(GL11.GL_TEXTURE_BIT);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);

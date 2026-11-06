@@ -10,6 +10,7 @@ import net.minecraft.util.ResourceLocation;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -243,13 +244,24 @@ public class ShaderUtil {
         glUseProgram(0);
     }
 
+    /**
+     * Uniform locations are fixed once the program is linked. Looking them up is a glGet, which makes the CPU wait
+     * for threaded drivers, and every rounded rect set five of them per draw, so they are looked up once and kept.
+     */
+    private final Map<String, Integer> uniformLocations = new HashMap<>();
+
     public int getUniform(String name) {
-        return glGetUniformLocation(programID, name);
+        Integer loc = uniformLocations.get(name);
+        if (loc == null) {
+            loc = glGetUniformLocation(programID, name);
+            uniformLocations.put(name, loc);
+        }
+        return loc;
     }
 
 
     public void setUniformf(String name, float... args) {
-        int loc = glGetUniformLocation(programID, name);
+        int loc = getUniform(name);
         switch (args.length) {
             case 1:
                 glUniform1f(loc, args[0]);
@@ -267,7 +279,7 @@ public class ShaderUtil {
     }
 
     public void setUniformi(String name, int... args) {
-        int loc = glGetUniformLocation(programID, name);
+        int loc = getUniform(name);
         if (args.length > 1) glUniform2i(loc, args[0], args[1]);
         else glUniform1i(loc, args[0]);
     }

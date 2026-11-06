@@ -142,8 +142,12 @@ public class PlayerUtils extends UtilityClass {
         return targets;
     }
 
+    public static boolean isPlayerLoaded() {
+        return mc.thePlayer != null && mc.theWorld != null;
+    }
+
     public static boolean isPlayerNotLoaded() {
-        return !(mc.thePlayer == null && mc.theWorld == null);
+        return !isPlayerLoaded();
     }
 
     public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target) {

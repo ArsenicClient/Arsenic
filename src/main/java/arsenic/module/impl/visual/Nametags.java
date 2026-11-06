@@ -17,10 +17,12 @@ import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.font.TTFontRenderer;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
@@ -30,6 +32,7 @@ import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.StringUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -53,9 +56,12 @@ public class Nametags extends Module {
         double renderPosX = renderManager.getRenderPosX();
         double renderPosY = renderManager.getRenderPosY();
         double renderPosZ = renderManager.getRenderPosZ();
+        // the camera's view this frame; tags of players out of view are never seen, skip their whole draw
+        Frustum frustum = new Frustum();
+        frustum.setPosition(renderPosX, renderPosY, renderPosZ);
 
         for (EntityPlayer player : mc.theWorld.playerEntities) {
-            if (!shouldRenderNametag(player)) {
+            if (!shouldRenderNametag(player) || !tagInView(frustum, player, event.partialTicks)) {
                 continue;
             }
 
@@ -63,7 +69,13 @@ public class Nametags extends Module {
             double y = interpolate(player.lastTickPosY, player.posY, event.partialTicks) - renderPosY;
             double z = interpolate(player.lastTickPosZ, player.posZ, event.partialTicks) - renderPosZ;
 
-            renderNametag(player, x, y, z);
+            // the matrix is set once per tag before its first string, so the tag's strings share one matrix read
+            TTFontRenderer.beginBatch();
+            try {
+                renderNametag(player, x, y, z);
+            } finally {
+                TTFontRenderer.endBatch();
+            }
         }
     };
 
@@ -77,6 +89,24 @@ public class Nametags extends Module {
         return mc.thePlayer.getDistanceToEntity(player) <= 250.0f;
     }
 
+    /** The world-space box the tag, its armour row and enchant tags can cover (they grow with distance). */
+    private boolean tagInView(Frustum frustum, EntityPlayer player, float partialTicks) {
+        float scale = tagScale(mc.thePlayer.getDistanceToEntity(player));
+        double x = interpolate(player.lastTickPosX, player.posX, partialTicks);
+        double y = interpolate(player.lastTickPosY, player.posY, partialTicks);
+        double z = interpolate(player.lastTickPosZ, player.posZ, partialTicks);
+        double half = Math.max(player.width, TAG_HALF_WIDTH * scale);
+        double top = y + player.height + 0.72 + TAG_HEIGHT * scale;
+        return frustum.isBoundingBoxInFrustum(new AxisAlignedBB(x - half, y, z - half, x + half, top, z + half));
+    }
+
+    /** Generous bounds of a tag in its own units: card plus armour row plus a few enchant lines above it. */
+    private static final float TAG_HEIGHT = 110f, TAG_HALF_WIDTH = 80f;
+
+    private float tagScale(float distance) {
+        return (float) (Math.max(1.25, distance * 0.14) * scaleProperty.getValue().getInput() * 0.024);
+    }
+
     private double interpolate(double prev, double current, float partialTicks) {
         return prev + (current - prev) * partialTicks;
     }
@@ -88,7 +118,7 @@ public class Nametags extends Module {
             return;
 
         float distance = mc.thePlayer.getDistanceToEntity(player);
-        float scale = (float) (Math.max(1.25, distance * 0.14) * scaleProperty.getValue().getInput() * 0.024);
+        float scale = tagScale(distance);
 
         boolean isFriend = Arsenic.getArsenic().getFriendManager().isFriend(player);
         String name = player.getDisplayName().getFormattedText();
@@ -183,6 +213,9 @@ public class Nametags extends Module {
             renderEquipment(player, y1 - 3f, bodyFr);
         }
 
+        // RenderItem leaves the alpha test off; the first-person hand is drawn after this and its skin's
+        // transparent overlay pixels would come out solid black
+        GlStateManager.enableAlpha();
         GlStateManager.enableCull();
         GlStateManager.depthMask(true);
         GlStateManager.enableDepth();

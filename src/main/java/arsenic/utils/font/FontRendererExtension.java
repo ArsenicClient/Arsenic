@@ -83,6 +83,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
         if(scale != 1f) {
             SCALE.accept(posInfo, text);
             GL11.glScalef(scale, scale, scale);
+            TTFontRenderer.pushScale(scale);
         }
     }
 
@@ -91,6 +92,7 @@ public class FontRendererExtension<T extends IFontRenderer>{
         if(scale != 1f) {
             float scaleReciprocal = 1f/(tempScale * this.scale);
             GL11.glScalef(scaleReciprocal, scaleReciprocal, scaleReciprocal);
+            TTFontRenderer.popScale(scale);
         }
         this.tempScale = 1f;
         this.tempScaleReciprocal = 1f;

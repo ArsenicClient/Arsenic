@@ -48,6 +48,12 @@ public class ConfigManager implements ISerializable {
     private String selectedName;
     /** Saves are skipped while values are being applied, so a half-loaded state is never written. */
     private boolean applying;
+    private final java.util.concurrent.ScheduledExecutorService saveExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "Arsenic-Config-Saver");
+        t.setDaemon(true);
+        return t;
+    });
+    private java.util.concurrent.ScheduledFuture<?> pendingSaveTask;
 
     public synchronized int initialize() {
         if (!configDirectory.isDirectory())
@@ -79,7 +85,7 @@ public class ConfigManager implements ISerializable {
         }
         saveClientConfig();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(this::saveConfig, "Arsenic config save"));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveConfig(true), "Arsenic config save"));
         return configs.size();
     }
 
@@ -222,8 +228,41 @@ public class ConfigManager implements ISerializable {
 
     /* ---------------------------------------------------------------- saving */
 
-    /** Saves the selected config and clientConfig.json. Called after every change. */
+    /** Saves the selected config and clientConfig.json. Debounced by default to prevent frame stutter. */
     public synchronized void saveConfig() {
+        saveConfig(false);
+    }
+
+    /**
+     * Saves the selected config and clientConfig.json.
+     * @param synchronous if true, writes immediately on the calling thread; if false, debounces on a background thread.
+     */
+    public synchronized void saveConfig(boolean synchronous) {
+        if (applying)
+            return;
+        if (synchronous) {
+            if (pendingSaveTask != null) {
+                pendingSaveTask.cancel(false);
+                pendingSaveTask = null;
+            }
+            performSave();
+            return;
+        }
+        if (pendingSaveTask != null) {
+            pendingSaveTask.cancel(false);
+        }
+        pendingSaveTask = saveExecutor.schedule(this::safePerformSave, 350, java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+
+    private synchronized void safePerformSave() {
+        try {
+            performSave();
+        } catch (Throwable t) {
+            Arsenic.getArsenic().getLogger().error("Failed to save config in background", t);
+        }
+    }
+
+    private void performSave() {
         if (applying)
             return;
         if (currentConfig != null)
@@ -248,7 +287,7 @@ public class ConfigManager implements ISerializable {
         }
         if (target == null || !target.exists())
             return false;
-        saveConfig();
+        saveConfig(true);
         currentConfig = target;
         target.loadConfig();
         saveClientConfig();
@@ -301,7 +340,7 @@ public class ConfigManager implements ISerializable {
 
         boolean wasCurrent = config == currentConfig;
         if (wasCurrent)
-            saveConfig();
+            saveConfig(true);
         File target = fileFor(newName);
         try {
             if (newName.equalsIgnoreCase(config.getName())) {
@@ -328,7 +367,7 @@ public class ConfigManager implements ISerializable {
     /** Puts every module of the selected config back to its defaults (all off, no binds) and saves it. */
     public synchronized void resetCurrentConfig() {
         applyModules(new JsonObject());
-        saveConfig();
+        saveConfig(true);
     }
 
     /** The config as json text, for the clipboard. The selected one is saved first, so it is up to date. */

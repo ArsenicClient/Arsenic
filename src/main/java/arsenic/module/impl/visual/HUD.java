@@ -20,6 +20,7 @@ import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.font.TTFontRenderer;
 import arsenic.utils.java.ColorUtils;
 import arsenic.utils.java.MathUtils;
 import arsenic.utils.keystrokes.SyntheticKeys;
@@ -147,6 +148,16 @@ public class HUD extends Module {
 
         int accent = colorMode.getValue().getColor(4, 0);
 
+        // nothing here moves the matrix between strings, so they can share one matrix read
+        TTFontRenderer.beginBatch();
+        try {
+            renderHud(fr, sr, accent);
+        } finally {
+            TTFontRenderer.endBatch();
+        }
+    };
+
+    private void renderHud(FontRendererExtension<?> fr, ScaledResolution sr, int accent) {
         renderWatermark(fr, accent);
         if (showCoords.getValue() && mc.thePlayer != null)
             renderCoords(fr, accent);
@@ -164,7 +175,7 @@ public class HUD extends Module {
         buildEntries(fr);
         drawArrayList(fr, sr, Pass.NORMAL);
         HudStyle.resetGl();
-    };
+    }
 
     @EventLink
     public final Listener<EventShader.Bloom> bloomListener = event -> {
@@ -173,7 +184,12 @@ public class HUD extends Module {
         FontRendererExtension<?> fr = HudStyle.body();
         if (fr == null || visible.isEmpty())
             return;
-        drawArrayList(fr, new ScaledResolution(mc), Pass.BLOOM);
+        TTFontRenderer.beginBatch();
+        try {
+            drawArrayList(fr, new ScaledResolution(mc), Pass.BLOOM);
+        } finally {
+            TTFontRenderer.endBatch();
+        }
     };
 
     @EventLink
@@ -185,8 +201,14 @@ public class HUD extends Module {
             return;
         ScaledResolution sr = new ScaledResolution(mc);
         drawHudBlurMasks(sr);
-        if (!visible.isEmpty())
-            drawArrayList(fr, sr, Pass.BLUR);
+        if (!visible.isEmpty()) {
+            TTFontRenderer.beginBatch();
+            try {
+                drawArrayList(fr, sr, Pass.BLUR);
+            } finally {
+                TTFontRenderer.endBatch();
+            }
+        }
     };
 
     private void drawHudBlurMasks(ScaledResolution sr) {

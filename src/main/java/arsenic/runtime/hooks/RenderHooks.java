@@ -17,6 +17,7 @@ import arsenic.module.impl.visual.Nametags;
 import arsenic.module.impl.visual.NoHurtCam;
 import arsenic.module.impl.visual.PostProcessing;
 import arsenic.module.impl.visual.RotationView;
+import arsenic.utils.java.FrameProfiler;
 import arsenic.utils.render.FirstPersonRender;
 
 
@@ -68,6 +69,14 @@ public final class RenderHooks {
     private static final Access.MethodRef DO_BOW_TRANSFORMATIONS = Access.method(ItemRenderer.class, "func_178098_a", float.class, AbstractClientPlayer.class);
     private static final Access.MethodRef DO_ITEM_USED_TRANSFORMATIONS = Access.method(ItemRenderer.class, "func_178105_d", float.class);
 
+    private static final FrameProfiler.Section PROFILE_WORLD_LAST = FrameProfiler.section("RenderWorldLast (all listeners)");
+    private static final FrameProfiler.Section PROFILE_RENDER_2D = FrameProfiler.section("Render2D (all listeners)");
+    private static final FrameProfiler.Section PROFILE_POST_PROCESSING = FrameProfiler.section("PostProcessing blur+bloom");
+    private static final FrameProfiler.Section PROFILE_SILENT_VIEW = FrameProfiler.section("SilentView pass");
+    private static final FrameProfiler.GpuSection GPU_WORLD_LAST = FrameProfiler.gpuSection("RenderWorldLast (all listeners)");
+    private static final FrameProfiler.GpuSection GPU_RENDER_2D = FrameProfiler.gpuSection("Render2D (all listeners)");
+    private static final FrameProfiler.GpuSection GPU_POST_PROCESSING = FrameProfiler.gpuSection("PostProcessing blur+bloom");
+
     // third person rotation swap of the local player, undone at RETURN
     private static EventRenderThirdPerson thirdPersonEvent;
     private static float cYawH, cPYawH, cYawO, cPYawO, cPitch, cPPitch;
@@ -81,9 +90,13 @@ public final class RenderHooks {
         if (SilentView.isRendering())
             return;
         boolean redirected = RenderTargets.beginVisuals();
+        long start = FrameProfiler.start();
+        int gpu = FrameProfiler.gpuBegin(GPU_WORLD_LAST);
         try {
             Arsenic.getArsenic().getEventManager().getBus().post(new EventRenderWorldLast(Minecraft.getMinecraft().renderGlobal, partialTicks));
         } finally {
+            FrameProfiler.gpuEnd(GPU_WORLD_LAST, gpu);
+            FrameProfiler.end(PROFILE_WORLD_LAST, start);
             RenderTargets.endVisuals(redirected);
         }
     }
@@ -91,13 +104,17 @@ public final class RenderHooks {
     /** renderWorld HEAD. */
     public static void renderWorldHead(EntityRenderer self, float partialTicks, long finishTimeNano) {
         RotationView rotationView = Arsenic.getArsenic().getModuleManager().getModuleByClass(RotationView.class);
-        if ((rotationView.isEnabled() && rotationView.wantsFrame()) || RenderTargets.recordsSilentView())
+        if ((rotationView.isEnabled() && rotationView.wantsFrame()) || RenderTargets.recordsSilentView()) {
+            long start = FrameProfiler.start();
             SilentView.render(partialTicks, finishTimeNano);
+            FrameProfiler.end(PROFILE_SILENT_VIEW, start);
+        }
     }
 
     /** updateCameraAndRender HEAD. */
     public static void updateCameraAndRenderHead(EntityRenderer self, float partialTicks, long nanoTime) {
         arsenic.utils.java.HitchWatchdog.beat();
+        FrameProfiler.frameStart();
         RenderTargets.onFrameStart();
     }
 
@@ -413,10 +430,24 @@ public final class RenderHooks {
             if (!System.getProperty("os.name").toLowerCase().contains("mac")) {
                 PostProcessing postProcessing = Arsenic.getArsenic().getModuleManager().getModuleByClass(PostProcessing.class);
                 if (postProcessing.isEnabled()) {
-                    postProcessing.blurScreen();
+                    long start = FrameProfiler.start();
+                    int gpu = FrameProfiler.gpuBegin(GPU_POST_PROCESSING);
+                    try {
+                        postProcessing.blurScreen();
+                    } finally {
+                        FrameProfiler.gpuEnd(GPU_POST_PROCESSING, gpu);
+                        FrameProfiler.end(PROFILE_POST_PROCESSING, start);
+                    }
                 }
             }
-            Arsenic.getInstance().getEventManager().post(new EventRender2D(partialTicks, sr));
+            long start = FrameProfiler.start();
+            int gpu = FrameProfiler.gpuBegin(GPU_RENDER_2D);
+            try {
+                Arsenic.getInstance().getEventManager().post(new EventRender2D(partialTicks, sr));
+            } finally {
+                FrameProfiler.gpuEnd(GPU_RENDER_2D, gpu);
+                FrameProfiler.end(PROFILE_RENDER_2D, start);
+            }
         } finally {
             RenderTargets.endVisuals(redirected);
         }

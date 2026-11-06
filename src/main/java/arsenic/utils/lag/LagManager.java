@@ -26,7 +26,6 @@ public final class LagManager {
     public static final Predicate<Packet<?>> ALL_PACKETS = p -> true;
 
     private static final Map<Class<?>, Predicate<Packet<?>>> holders = new ConcurrentHashMap<>();
-    private static final List<Packet<?>> buffer = Collections.synchronizedList(new ArrayList<>());
     private static final PacketDelayChannel incomingDelay = new PacketDelayChannel();
     private static final PacketDelayChannel outgoingDelay = new PacketDelayChannel();
 
@@ -63,15 +62,6 @@ public final class LagManager {
         }
 
         if (outgoingDelay.offer(packet)) {
-            event.cancel();
-            return;
-        }
-
-        if (holders.isEmpty())
-            return;
-        boolean held = holders.values().stream().anyMatch(f -> f.test(packet));
-        if (held) {
-            buffer.add(packet);
             event.cancel();
         }
     };
@@ -110,9 +100,9 @@ public final class LagManager {
         outgoingDelay.processChunkedReleases(LagManager::sendPacket);
     };
 
-
     public static void acquire(Class<?> holderClass, Predicate<Packet<?>> filter) {
         holders.put(holderClass, filter);
+        outgoingDelay.bind(holderClass, filter, p -> Long.MAX_VALUE);
     }
 
     public static void acquire(Class<?> holderClass) {
@@ -121,20 +111,18 @@ public final class LagManager {
 
     public static void release(Class<?> holderId) {
         holders.remove(holderId);
-        flushUnheld();
+        outgoingDelay.unbind(holderId);
+        outgoingDelay.releaseOwned(holderId, p -> true, LagManager::sendPacket);
     }
 
     public static void releaseAndDiscard(Class<?> holderId) {
         holders.remove(holderId);
-        synchronized (buffer) {
-            buffer.clear();
-        }
+        outgoingDelay.unbind(holderId);
+        outgoingDelay.discardOwned(holderId);
     }
 
     public static int countBuffered() {
-        synchronized (buffer) {
-            return buffer.size();
-        }
+        return outgoingDelay.count(ALL_PACKETS);
     }
 
     public static boolean isLagging() {
@@ -147,31 +135,6 @@ public final class LagManager {
 
     public static boolean isHolding(Class<?> holderId) {
         return LagManager.getHolders().contains(holderId);
-    }
-
-    private static void flushUnheld() {
-        if (holders.isEmpty()) {
-            flushAll();
-            return;
-        }
-        synchronized (buffer) {
-            Iterator<Packet<?>> it = buffer.iterator();
-            while (it.hasNext()) {
-                Packet<?> packet = it.next();
-                boolean stillHeld = holders.values().stream().anyMatch(f -> f.test(packet));
-                if (!stillHeld) {
-                    sendPacket(packet);
-                    it.remove();
-                }
-            }
-        }
-    }
-
-    private static void flushAll() {
-        synchronized (buffer) {
-            buffer.forEach(LagManager::sendPacket);
-            buffer.clear();
-        }
     }
 
     public static void delay(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> delayFunction) {
@@ -256,9 +219,6 @@ public final class LagManager {
 
     private static void discardOutgoing() {
         outgoingDelay.discard(ALL_PACKETS);
-        synchronized (buffer) {
-            buffer.clear();
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -286,7 +246,7 @@ public final class LagManager {
 
         private final Map<Class<?>, DelayRule> handlers = new ConcurrentHashMap<>();
         private final Queue<TimedPacket> queue = new ConcurrentLinkedQueue<>();
-        private final Set<Packet<?>> skip = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        private final Set<Packet<?>> skip = Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
         private final Queue<ChunkedRelease> chunkedReleases = new ConcurrentLinkedQueue<>();
 
         void bind(Class<?> holderKey, Predicate<Packet<?>> selector, Function<Packet<?>, Long> fn) {
@@ -339,6 +299,10 @@ public final class LagManager {
                     releaser.accept(timedPacket.getPacket());
                 }
             }
+        }
+
+        void discardOwned(Class<?> holderKey) {
+            queue.removeIf(timedPacket -> timedPacket.isOwnedBy(holderKey));
         }
 
         void releaseFinished(Consumer<Packet<?>> releaser) {
