@@ -28,6 +28,8 @@ import arsenic.utils.minecraft.AutoBlocker;
 import arsenic.utils.minecraft.BadPacketsManager;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.minecraft.HotbarUse;
+import arsenic.utils.minecraft.ItemUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.minecraft.ServerInfo;
 import arsenic.utils.render.RenderUtils;
@@ -74,7 +76,52 @@ public class KillAura extends Module {
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<TargetFx.Style> circleStyle = new EnumProperty<>("Circle", TargetFx.Style.CLASSIC);
     public final EnumProperty<AutoBlocker.Mode> autoBlock = new EnumProperty<>("Auto Block", AutoBlocker.Mode.None);
+    /** Charge (%) an attack waits for, rolled again after every swing so no two land at the same charge. */
+    @ShowWhen(property = "Attack Cooldown", is = "true")
+    @PropertyGroup(Group.ADVANCED)
+    public final RangeProperty cooldownRange = new RangeProperty("Cooldown Range", new RangeValue(50, 100, 95, 95, 1));
+    /** Caps the attack reach; 3 or more leaves it at what the server gives. */
+    @PropertyGroup(Group.ADVANCED)
+    public final DoubleProperty maxReach = new DoubleProperty("Max Reach", new DoubleValue(1, 3, 3, 0.05));
+    /** Chance (%) to let a due attack pass with no packet at all. */
+    @PropertyGroup(Group.ADVANCED)
+    public final DoubleProperty skipChance = new DoubleProperty("Skip Chance", new DoubleValue(0, 25, 0, 1));
+    /** Keeps the current target while it stays in range, instead of switching to a better one. */
+    @PropertyGroup(Group.ADVANCED)
+    public final BooleanProperty stickyTarget = new BooleanProperty("Sticky Targeting", false);
+    /** Width of the cone in front of the camera a new target is picked from (360 is everywhere). */
+    @PropertyGroup(Group.ADVANCED)
+    public final DoubleProperty targetFov = new DoubleProperty("Target FOV", new DoubleValue(30, 360, 360, 5));
+    /** Drops any target further than this from the camera's yaw (180 is never). */
+    @PropertyGroup(Group.ADVANCED)
+    public final DoubleProperty maxYaw = new DoubleProperty("Max Yaw", new DoubleValue(0, 180, 180, 5));
+    public final EnumProperty<ShieldMode> onShielding = new EnumProperty<>("On Shielding", ShieldMode.Ignore);
+    @PropertyGroup(Group.VISUAL)
+    public final BooleanProperty aimDot = new BooleanProperty("Aim Dot", false);
+    @ShowWhen(property = "Aim Dot", is = "true")
+    @PropertyGroup(Group.VISUAL)
+    public final DoubleProperty dotSize = new DoubleProperty("Dot Size", new DoubleValue(0.02, 0.5, 0.1, 0.01));
     public Player target = null;
+    private final HotbarUse axeSwap = new HotbarUse();
+    private double rolledCooldown = 0.95;
+    private Vec3 dotOffset;
+    private int dotTargetId = Integer.MIN_VALUE;
+
+    /** What to do when the target holds a shield up towards us. */
+    public enum ShieldMode {
+        Ignore("Ignore"), Skip("Skip"), PreferAxe("Prefer Axe");
+
+        private final String display;
+
+        ShieldMode(String display) {
+            this.display = display;
+        }
+
+        @Override
+        public String toString() {
+            return display;
+        }
+    }
     private boolean hadTarget = false;
     private boolean wasUsingItem;
     private final AutoBlocker blocker = new AutoBlocker();
@@ -104,6 +151,8 @@ public class KillAura extends Module {
         target = null;
         hadTarget = false;
         everOnTarget = false;
+        dotOffset = null;
+        rollCooldown();
         aim.reset();
         ClickManager.get().reset(ClickManager.Client.KILLAURA);
     }
@@ -115,7 +164,19 @@ public class KillAura extends Module {
         blocker.stopPacket();
         AutoBlocker.setRenderBlocking(false);
         lastBlockMode = AutoBlocker.Mode.None;
+        axeSwap.release();
+        dotOffset = null;
     }
+
+    @Override
+    public boolean isSwappingHotbar() {
+        return axeSwap.active();
+    }
+
+    /** Puts the hotbar back the tick after a swap to an axe for a shield hit. */
+    @RequiresPlayer
+    @EventLink
+    public final Listener<EventTick> onTick = event -> axeSwap.tick();
 
     /** Runs the selected autoblock for this tick; the result gates the attack in the post listener. */
     private void autoBlockTick() {
@@ -183,6 +244,8 @@ public class KillAura extends Module {
         if (target != null && hit == target) {
             onTargetTimer.reset();
             everOnTarget = true;
+            dotOffset = raytrace.getLocation().subtract(target.position());
+            dotTargetId = target.getId();
         }
         if (hitflick.attackedThisTick()) {
             resetAttackCycle();
@@ -210,9 +273,22 @@ public class KillAura extends Module {
             if (hitPlayer != null) {
                 // Hypixel waits for a hit that would do damage
                 if (packetBlock && !blocker.shouldHit(autoBlock.getValue(), hitPlayer, raytrace.getLocation())) {
+                } else if (onShielding.getValue() == ShieldMode.Skip && shieldingAt(hitPlayer)) {
+                    // the shield is up: hold the hit until it comes down
+                } else if (skipChance.getValue().getInput() > 0
+                        && Math.random() * 100 < skipChance.getValue().getInput()) {
+                    // a skipped click sends nothing, it only waits out one click interval
+                    resetAttackCycle();
                 } else if (hitflick.isEnabled() && hitflick.shouldFlick() && hitflick.armFlick(hit, event.getYaw())) {
                     resetAttackCycle();
                 } else {
+                    if (onShielding.getValue() == ShieldMode.PreferAxe && shieldingAt(hitPlayer)
+                            && !ItemUtils.isAxe(mc.player.getMainHandItem())) {
+                        // the attack sends the slot change first, and the hotbar goes back next tick
+                        int axe = HotbarUse.find(ItemUtils::isAxe);
+                        if (axe != -1)
+                            axeSwap.switchOnce(axe);
+                    }
                     mc.gameMode.attack(mc.player, hit);
                     PlayerUtils.swingItem();
                     resetAttackCycle();
@@ -264,11 +340,32 @@ public class KillAura extends Module {
             return;
         int col = Arsenic.getInstance().getThemeManager().getCurrentTheme().getMainColor();
         RenderUtils.drawRing(target, event.partialTicks, 0.7, col, 255, circleStyle.getValue());
+        if (aimDot.getValue() && dotOffset != null && dotTargetId == target.getId()) {
+            Vec3 centre = RenderUtils.interpolatedPosition(target).add(dotOffset);
+            double s = dotSize.getValue().getInput();
+            RenderUtils.renderBox(new AABB(centre.x - s, centre.y - s, centre.z - s, centre.x + s, centre.y + s, centre.z + s),
+                    col, true, true);
+        }
     };
 
-    /** The reach the server gives us (3 blocks unless an attribute changes it). */
-    private static double attackRange() {
-        return mc.player != null ? mc.player.entityInteractionRange() : DEFAULT_REACH;
+    /** The reach the server gives us (3 blocks unless an attribute changes it), capped by Max Reach below 3. */
+    private double attackRange() {
+        double range = mc.player != null ? mc.player.entityInteractionRange() : DEFAULT_REACH;
+        double cap = maxReach.getValue().getInput();
+        return cap >= DEFAULT_REACH ? range : Math.min(range, cap);
+    }
+
+    /** Whether {@code p} holds a shield up facing us, so a hit would be blocked. */
+    private boolean shieldingAt(Player p) {
+        if (!p.isBlocking())
+            return false;
+        Vec3 look = p.getViewVector(1f);
+        double dx = mc.player.getX() - p.getX(), dz = mc.player.getZ() - p.getZ();
+        return look.x * dx + look.z * dz > 0;
+    }
+
+    private void rollCooldown() {
+        rolledCooldown = cooldownRange.getValue().getRandomInRange() / 100.0;
     }
 
     /**
@@ -277,7 +374,7 @@ public class KillAura extends Module {
      */
     private boolean cooldownReady() {
         return !attackCooldown.getValue() || AutoBlocker.isPacketMode(autoBlock.getValue())
-                || mc.player.getAttackStrengthScale(0.5f) >= 0.95f;
+                || mc.player.getAttackStrengthScale(0.5f) >= Math.min(rolledCooldown, 1.0) - 1e-4;
     }
 
     private AutoProjectile autoProjectile() {
@@ -293,15 +390,31 @@ public class KillAura extends Module {
                 || weaponOnly.getValue() && !PlayerUtils.isPlayerHoldingWeapon())
             return null;
         List<Player> candidates = TargetManager.getTargets();
-        if (pitchBandActive()) {
+        double fov = targetFov.getValue().getInput();
+        double yawCap = maxYaw.getValue().getInput();
+        if (pitchBandActive() || fov < 360 || yawCap < 180) {
+            float camYaw = mc.player.getYRot();
+            Vec3 eye = mc.player.getEyePosition(1f);
             List<Player> reachable = new ArrayList<>(candidates.size());
             for (Player p : candidates) {
-                if (aim.inPitchBand(p))
-                    reachable.add(p);
+                if (pitchBandActive() && !aim.inPitchBand(p))
+                    continue;
+                if (fov < 360 || yawCap < 180) {
+                    AABB box = p.getBoundingBox();
+                    float off = Math.abs(Mth.wrapDegrees(RotationUtils.yawTo(
+                            (box.minX + box.maxX) / 2 - eye.x, (box.minZ + box.maxZ) / 2 - eye.z) - camYaw));
+                    // Max Yaw drops any target, the FOV cone only limits picking a new one
+                    if (off > yawCap || p != target && off > fov / 2)
+                        continue;
+                }
+                reachable.add(p);
             }
             candidates = reachable;
         }
         double aimRange = attackRange() + (candidates.size() == 1 ? PRE_AIM_RANGE : 0);
+        if (stickyTarget.getValue() && target != null && target.isAlive() && candidates.contains(target)
+                && RotationUtils.getDistanceToEntityBox(target) <= aimRange + picker.keepMargin)
+            return target;
         picker.valueScale = TargetManager.sortMode.getValue() == TargetManager.SortMode.Fov ? 0.04f : 1f;
         SilentRotationManager srm = Arsenic.getArsenic().getSilentRotationManager();
         Vec3 eyes = mc.player.getEyePosition(1f);
@@ -331,6 +444,7 @@ public class KillAura extends Module {
 
     private void resetAttackCycle() {
         ClickManager.get().onClick(ClickManager.Client.KILLAURA, cps.getValue());
+        rollCooldown();
     }
 
     /**

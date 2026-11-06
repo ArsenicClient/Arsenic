@@ -1,6 +1,13 @@
 package arsenic.module.impl.player;
 
 import arsenic.module.ModuleTier;
+import arsenic.gui.themes.ThemeManager;
+import arsenic.module.property.ShowWhen;
+import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.property.impl.EnumProperty;
+import arsenic.module.property.impl.rangeproperty.RangeProperty;
+import arsenic.module.property.impl.rangeproperty.RangeValue;
+import arsenic.utils.io.Keys;
 import arsenic.utils.timer.MSTimer;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
@@ -33,9 +40,26 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.ThreadLocalRandom;
 
-@ModuleInfo(name = "ChestStealer", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
+/** Shift-clicks every item out of a chest you open, in a short human-looking path, then closes it. */
+@ModuleInfo(name = "ChestStealer", description = "Steals items out of chests", category = ModuleCategory.PLAYER, tier = ModuleTier.LEGIT)
 public class ChestStealer extends Module {
+
+    public enum Bind {
+        None, Middle, Mouse4, Mouse5, R, F, G, V, X, Z, C, Q, Tab, Left_Alt, Caps_Lock
+    }
+
+    @ShowWhen(property = "Randomize Delay", is = "false")
     public final DoubleProperty delay = new DoubleProperty("Delay (ms)", new DoubleValue(0, 500, 110, 10));
+    /** Waits a random time in a range between pulls instead of a fixed delay. */
+    public final BooleanProperty randomize = new BooleanProperty("Randomize Delay", false);
+    @ShowWhen(property = "Randomize Delay", is = "true")
+    public final RangeProperty delayRange = new RangeProperty("Delay Range (ms)", new RangeValue(0, 1000, 100, 200, 10));
+    /** Closes the chest once it is empty. */
+    public final BooleanProperty close = new BooleanProperty("Close", true);
+    /** Also steals from chests you did not just click: barrels, chest minecarts, chests opened by plugins. */
+    public final BooleanProperty anyContainer = new BooleanProperty("Any Container", false);
+    /** Hold to steal; None steals automatically as soon as the chest opens. */
+    public final EnumProperty<Bind> activateKey = new EnumProperty<>("Activate Key", Bind.None);
 
 
     private static final long CHEST_CLICK_WINDOW_MS = 3000;
@@ -50,20 +74,24 @@ public class ChestStealer extends Module {
 
     private Runnable nextAction;
     private final Runnable closeAction = () -> {
-        mc.player.closeContainer();
+        if (close.getValue())
+            mc.player.closeContainer();
         inChest = false;
     };
 
     private final Runnable stealAction = () -> {
+        // skip slots emptied since the path was planned (by hand or by the server)
+        while (!path.isEmpty() && !chest.getSlot(path.get(0).s).hasItem())
+            path.remove(0);
         if (path.isEmpty()) {
-            timer.setCooldown((int) delay.getValue().getInput());
+            timer.setCooldown(nextDelay());
             nextAction = closeAction;
             return;
         }
         percentStolen = (totalSlots - path.size()) / (float) (totalSlots);
         mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), net.minecraft.sounds.SoundEvents.NOTE_BLOCK_HAT.value(), net.minecraft.sounds.SoundSource.PLAYERS, 3f, percentStolen * 2f, false);
-        mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, path.remove(0).s, 0, net.minecraft.world.inventory.ContainerInput.values()[1], mc.player);
-        timer.setCooldown((int) delay.getValue().getInput());
+        mc.gameMode.handleContainerInput(chest.containerId, path.remove(0).s, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player);
+        timer.setCooldown(nextDelay());
     };
 
     private final Runnable startAction = () -> {
@@ -87,22 +115,30 @@ public class ChestStealer extends Module {
     @EventLink
     public final Listener<EventDisplayGuiScreen> eventDisplayScreen = event -> {
         inChest = event.getGuiScreen() instanceof ContainerScreen && mc.player.containerMenu instanceof ChestMenu
-                && chestClick.getTime() <= CHEST_CLICK_WINDOW_MS;
+                && (anyContainer.getValue() || chestClick.getTime() <= CHEST_CLICK_WINDOW_MS);
         chestClick.setTime(0);
         if (!inChest)
             return;
         chest = (ChestMenu) mc.player.containerMenu;
         percentStolen = 0;
         path.clear();
-        timer.setCooldown((int) delay.getValue().getInput());
+        timer.setCooldown(nextDelay());
         timer.start();
         nextAction = startAction;
     };
 
 
+    @RequiresPlayer
     @EventLink
     public final Listener<EventTick> tickListener = event -> {
         if (!inChest)
+            return;
+        if (mc.gameMode == null || mc.player.containerMenu != chest) {
+            inChest = false;
+            return;
+        }
+        // with an Activate Key, stealing pauses while it is not held
+        if (activateKey.getValue() != Bind.None && !bindDown(activateKey.getValue()))
             return;
 
         if (timer.hasFinished()) {
@@ -114,6 +150,22 @@ public class ChestStealer extends Module {
     @Override
     protected void onDisable() {
         inChest = false;
+    }
+
+    private int nextDelay() {
+        return (int) (randomize.getValue() ? delayRange.getValue().getRandomInRange() : delay.getValue().getInput());
+    }
+
+    private static boolean bindDown(Bind b) {
+        int mask = switch (b) {
+            case Middle -> 2;
+            case Mouse4 -> 8;
+            case Mouse5 -> 16;
+            default -> 0;
+        };
+        if (mask != 0)
+            return (org.lwjgl.sdl.SDLMouse.SDL_GetMouseState(null, null) & mask) != 0;
+        return Keys.isKeyDown(Keys.getKeyIndex(b.name()));
     }
 
     public ArrayList<Slot> generatePath(ChestMenu chest) {
@@ -176,7 +228,7 @@ public class ChestStealer extends Module {
         FontRendererExtension<?> fr = Arsenic.getArsenic().getClickGuiScreen().getFontRenderer();
         float textX = (container.width) / 2f;
         float textY = 2 * (container.height / 3f);
-        int color = RenderUtils.interpolateColours(new Color(0xFFFF0000), new Color(0xFF00FF00), percentStolen);
+        int color = RenderUtils.interpolateColoursInt(ThemeManager.getDarkerColor(), ThemeManager.getMainColor(), percentStolen);
         String text = "Stealing (press escape to leave)";
         fr.drawStringWithShadow(text, textX, textY, color, fr.CENTREX, fr.CENTREY);
         float fontWidth = fr.getWidth(text);

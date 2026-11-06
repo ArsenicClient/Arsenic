@@ -31,12 +31,17 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import arsenic.module.property.impl.BooleanProperty;
+import arsenic.module.impl.client.AntiBot;
+import arsenic.module.property.impl.rangeproperty.RangeProperty;
+import arsenic.module.property.impl.rangeproperty.RangeValue;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-@ModuleInfo(name = "Hitflick", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
+/** Turns your aim sharply off the target around each hit, then lands the hit, to sway the knockback or hide the aim. */
+@ModuleInfo(name = "Hitflick", description = "Flicks the view off-target around each hit", category = ModuleCategory.COMBAT, tier = ModuleTier.BLATANT)
 public class Hitflick extends Module {
 
     public final EnumProperty<FlickDirection> direction = new EnumProperty<>("Direction", FlickDirection.Right);
@@ -55,6 +60,17 @@ public class Hitflick extends Module {
 
     @ShowWhen(property = "Direction", is = "Void2")
     public final DoubleProperty void2Angle = new DoubleProperty("Void2 Angle", new DoubleValue(1, 180, 90, 1));
+
+    @ShowWhen(property = "Direction", is = "Random")
+    public final RangeProperty randomAngle = new RangeProperty("Random Angle", new RangeValue(10, 180, 60, 75, 1));
+
+    public final BooleanProperty playersOnly = new BooleanProperty("Players Only", false);
+
+    public final BooleanProperty requireSprint = new BooleanProperty("Require Sprint", false);
+
+    public final BooleanProperty ignoreFriends = new BooleanProperty("Ignore Friends", true);
+
+    public final BooleanProperty jitter = new BooleanProperty("Jitter", false);
 
     private long sinceLastFlick = 0;
     private long lastFlickTime = 0;
@@ -118,6 +134,15 @@ public class Hitflick extends Module {
     }
 
     public boolean armFlick(Entity target, float baseYaw) {
+        if (mc.player == null || target == null)
+            return false;
+        if (playersOnly.getValue() && !(target instanceof Player))
+            return false;
+        if (requireSprint.getValue() && !mc.player.isSprinting())
+            return false;
+        if (target instanceof Player p && ignoreFriends.getValue()
+                && (Arsenic.getArsenic().getFriendManager().isFriend(p) || AntiBot.isBot(p)))
+            return false;
         originalYaw = baseYaw;
         boolean clamp = stayOnHitbox.getValue();
 
@@ -162,6 +187,8 @@ public class Hitflick extends Module {
             flickYaw = originalYaw + angle;
             pendingVoidHit = false;
         }
+        if (jitter.getValue() && !pendingVoidHit)
+            flickYaw += random.nextFloat() * 3f - 1.5f;
 
         this.pendingTarget = target;
         state = FlickState.FLICKING_AWAY;
@@ -446,6 +473,12 @@ public class Hitflick extends Module {
             case Right:  return  90f;
             case Back:   return 180f;
             case Custom: return (float) customAngle.getValue().getInput();
+            case Random: {
+                double lo = Math.min(randomAngle.getValue().getMin(), randomAngle.getValue().getMax());
+                double hi = Math.max(randomAngle.getValue().getMin(), randomAngle.getValue().getMax());
+                float a = (float) (lo + random.nextDouble() * (hi - lo));
+                return random.nextBoolean() ? a : -a;
+            }
             default:     return  90f;
         }
     }
@@ -470,7 +503,7 @@ public class Hitflick extends Module {
     }
 
     public enum FlickDirection {
-        Left, Right, Back, Custom, Void, Void2;
+        Left, Right, Back, Custom, Void, Void2, Random;
     }
     private static final class VoidArrow {
         final double x, y, z;

@@ -13,15 +13,19 @@ import arsenic.injection.accessor.IMixinMoveEntityPacket;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.EnumProperty;
 import arsenic.module.property.impl.rangeproperty.RangeProperty;
 import arsenic.module.property.impl.rangeproperty.RangeValue;
 import arsenic.utils.lag.LagManager;
+import arsenic.utils.minecraft.ItemUtils;
 import arsenic.utils.render.RenderUtils;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.network.protocol.game.VecDeltaCodec;
 import net.minecraft.world.entity.PositionMoveRotation;
@@ -35,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+/** Holds back a hit target's movement packets for a moment so you can keep hitting where they just were. */
 @ModuleInfo(name = "Backtrack", category = ModuleCategory.COMBAT, tier = ModuleTier.LEGIT)
 public class BackTrack extends Module {
 
@@ -50,6 +55,10 @@ public class BackTrack extends Module {
     private static final double REACH_LIMIT = 2.95;
 
     public final RangeProperty latencyRange = new RangeProperty("Latency", new RangeValue(GRIM_MIN_LAG_MS, GRIM_MAX_LAG_MS, 40, 80, 10), SliderScale.LOG);
+    public final RangeProperty range = new RangeProperty("Range", new RangeValue(0, 10, 0, 6, 0.1));
+    public final BooleanProperty weaponOnly = new BooleanProperty("Weapon Only", false);
+    public final BooleanProperty onlyRetreating = new BooleanProperty("Only Retreating", false);
+    public final BooleanProperty flushOnKnockback = new BooleanProperty("Flush On Knockback", false);
     @PropertyGroup(Group.VISUAL)
     public final EnumProperty<EspMode> espMode = new EnumProperty<>("ESP", EspMode.BOX);
 
@@ -61,6 +70,11 @@ public class BackTrack extends Module {
         final VecDeltaCodec codec = new VecDeltaCodec();
         final int latency;
         final Player player;
+        /** Whether this entry's move packets are currently being held (Only Retreating decides per packet). */
+        volatile boolean holding = true;
+        // Render-thread smoothing: the box glides to each new server position over three ticks
+        Vec3 renderPrev, renderPos, renderGoal;
+        int renderSteps;
 
         TrackEntry(Player player, Vec3 vec3, int latency) {
             this.player = player;
@@ -91,9 +105,50 @@ public class BackTrack extends Module {
     }
 
 
+    /** Holding packets is allowed right now (Weapon Only). Updated on the tick, read from the netty thread. */
+    private volatile boolean allowed = true;
+
+    private boolean holdingWeapon() {
+        return !weaponOnly.getValue() || ItemUtils.isWeapon(mc.player.getMainHandItem());
+    }
+
+    /**
+     * Decides whether the packet carrying {@code end} is held. With Only Retreating, packets that bring the target
+     * closer are let through, after releasing that target's held packets first so they still apply in order.
+     */
+    private long decide(TrackEntry entry, Vec3 end) {
+        if (!allowed) {
+            LagManager.releaseDelayedFor(BackTrack.class, filterFor(entry.player.getId()));
+            entry.holding = false;
+        } else if (onlyRetreating.getValue() && end != null && mc.player != null) {
+            boolean retreating = eyeDistance(end, entry.player) > eyeDistance(entry.vec3, entry.player) + 0.001;
+            if (!retreating && entry.holding)
+                LagManager.releaseDelayedFor(BackTrack.class, filterFor(entry.player.getId()));
+            entry.holding = retreating;
+        } else if (end != null) {
+            entry.holding = true;
+        }
+        if (end != null) {
+            entry.codec.setBase(end);
+            entry.vec3 = end;
+        }
+        return entry.holding ? entry.latency : 0L;
+    }
+
+    private double eyeDistance(Vec3 feet, Player target) {
+        AABB box = target.getBoundingBox();
+        double hw = (box.maxX - box.minX) / 2, h = box.maxY - box.minY;
+        Vec3 eyes = mc.player.getEyePosition(1f);
+        double x = Mth.clamp(eyes.x, feet.x - hw, feet.x + hw);
+        double y = Mth.clamp(eyes.y, feet.y, feet.y + h);
+        double z = Mth.clamp(eyes.z, feet.z - hw, feet.z + hw);
+        return eyes.distanceTo(new Vec3(x, y, z));
+    }
+
     @Override
     public void onEnable() {
         tracked.clear();
+        allowed = true;
         // Pos, PosRot and Rot are all ClientboundMoveEntityPacket, so one selector covers them.
         LagManager.delay(BackTrack.class, ALL_TRACKED, this::onDelayPacket);
     }
@@ -126,12 +181,8 @@ public class BackTrack extends Module {
         TrackEntry entry = tracked.get(((IMixinMoveEntityPacket) packet).getEntityId());
         if (entry == null) return 0L;
 
-        if (packet.hasPosition()) {
-            Vec3 end = packet.getPositionDelta().decode(entry.codec).endPosition();
-            entry.codec.setBase(end);
-            entry.vec3 = end;
-        }
-        return entry.latency;
+        Vec3 end = packet.hasPosition() ? packet.getPositionDelta().decode(entry.codec).endPosition() : null;
+        return decide(entry, end);
     }
 
     private long onEntityTeleport(ClientboundTeleportEntityPacket packet) {
@@ -140,9 +191,7 @@ public class BackTrack extends Module {
 
         PositionMoveRotation current = new PositionMoveRotation(entry.vec3, Vec3.ZERO, 0, 0);
         Vec3 end = PositionMoveRotation.calculateAbsolute(current, packet.change(), packet.relatives()).position();
-        entry.codec.setBase(end);
-        entry.vec3 = end;
-        return entry.latency;
+        return decide(entry, end);
     }
 
     private long onPositionSync(ClientboundEntityPositionSyncPacket packet) {
@@ -150,9 +199,7 @@ public class BackTrack extends Module {
         if (entry == null) return 0L;
 
         Vec3 end = packet.position().endPosition();
-        entry.codec.setBase(end);
-        entry.vec3 = end;
-        return entry.latency;
+        return decide(entry, end);
     }
 
 
@@ -162,6 +209,7 @@ public class BackTrack extends Module {
         if (!(event.getTarget() instanceof Player)) return;
 
         Player target = (Player) event.getTarget();
+        if (!allowed || !range.hasInRange(mc.player.distanceTo(target))) return;
 
         tracked.computeIfAbsent(target.getId(), id -> new TrackEntry(
                 target,
@@ -174,8 +222,32 @@ public class BackTrack extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
+        boolean nowAllowed = holdingWeapon();
+        if (allowed && !nowAllowed)
+            LagManager.releaseDelayedFor(BackTrack.class);
+        allowed = nowAllowed;
+
         if (tracked.isEmpty())
             return;
+
+        for (TrackEntry entry : tracked.values()) {
+            Vec3 goal = entry.vec3;
+            if (entry.renderPos == null) {
+                entry.renderPos = goal;
+                entry.renderPrev = goal;
+                entry.renderGoal = goal;
+                continue;
+            }
+            entry.renderPrev = entry.renderPos;
+            if (goal != entry.renderGoal) {
+                entry.renderGoal = goal;
+                entry.renderSteps = 3;
+            }
+            if (entry.renderSteps > 0) {
+                entry.renderPos = entry.renderPos.add(goal.subtract(entry.renderPos).scale(1.0 / entry.renderSteps));
+                entry.renderSteps--;
+            }
+        }
 
         tracked.entrySet().removeIf(mapEntry -> {
             TrackEntry entry = mapEntry.getValue();
@@ -210,11 +282,19 @@ public class BackTrack extends Module {
         for (TrackEntry entry : tracked.values()) {
             Vec3 vec3 = entry.vec3;
             Player target = entry.player;
-            if (vec3 == null || target.isRemoved()) continue;
+            if (vec3 == null || target.isRemoved() || !entry.holding) continue;
 
-            double rx = vec3.x;
-            double ry = vec3.y;
-            double rz = vec3.z;
+            double rx, ry, rz;
+            if (entry.renderPos != null && entry.renderPrev != null) {
+                float pt = event.partialTicks;
+                rx = Mth.lerp(pt, entry.renderPrev.x, entry.renderPos.x);
+                ry = Mth.lerp(pt, entry.renderPrev.y, entry.renderPos.y);
+                rz = Mth.lerp(pt, entry.renderPrev.z, entry.renderPos.z);
+            } else {
+                rx = vec3.x;
+                ry = vec3.y;
+                rz = vec3.z;
+            }
 
             AABB playerBB = target.getBoundingBox();
             double w = playerBB.maxX - playerBB.minX;
@@ -236,6 +316,17 @@ public class BackTrack extends Module {
             }
         }
 
+    };
+
+    /** Flush On Knockback: being hit or set back releases everything held, so the fight resyncs. */
+    @EventLink
+    public final Listener<EventPacket.Incoming.Pre> onIncoming = event -> {
+        if (!flushOnKnockback.getValue() || mc.player == null) return;
+        Packet<?> packet = event.getPacket();
+        boolean flush = packet instanceof ClientboundPlayerPositionPacket
+                || packet instanceof ClientboundSetEntityMotionPacket motion && motion.id() == mc.player.getId();
+        if (flush)
+            LagManager.releaseDelayedFor(BackTrack.class);
     };
 
     private static Predicate<Packet<?>> filterFor(int entityId) {

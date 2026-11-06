@@ -4,16 +4,21 @@ import arsenic.module.ModuleTier;
 import arsenic.asm.RequiresPlayer;
 import arsenic.event.bus.Listener;
 import arsenic.event.bus.annotations.EventLink;
+import arsenic.event.impl.EventPacket;
 import arsenic.event.impl.EventTick;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.property.ShowWhen;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -25,6 +30,8 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Filters fake players (NPCs, lobby bots, server dummies) out of targeting, ESP and nametags.
@@ -35,6 +42,10 @@ import java.util.Set;
  * - Stationary: a player missing from the tab list who has not moved for a long time is an NPC.
  * - Name: a name with a space (Minecraft usernames cannot contain one) or an [NPC] tag is always a bot. Looser name
  *   patterns only count for players who are also missing from the tab list.
+ * - UUID: a nil UUID, or one that is not a random (version 4) Mojang UUID, is a bot. Off by default because offline
+ *   mode servers hand out version 3 UUIDs to everyone.
+ * - Teleport: a player the server has teleported many times since we joined the world is a bot (anticheat bots
+ *   are moved around with teleport packets instead of normal movement).
  *
  * Singleplayer and LAN have no tab list, so the tab-based checks never run there.
  */
@@ -55,6 +66,21 @@ public class AntiBot extends Module {
 
     public static DoubleProperty tabGrace = new DoubleProperty("Tab Grace (s)", new DoubleValue(0, 10, 2, 0.5));
     public static DoubleProperty stillTime = new DoubleProperty("Stationary Time (s)", new DoubleValue(5, 60, 15, 1));
+
+    @ShowWhen(property = "Ping Checks", is = "true")
+    public static DoubleProperty pingGrace = new DoubleProperty("Ping Grace (s)", new DoubleValue(0, 10, 0, 0.5));
+    @ShowWhen(property = "Ping Checks", is = "true")
+    public static BooleanProperty pingSurvivalOnly = new BooleanProperty("Ping Survival Only", false);
+
+    public static BooleanProperty uuidChecks = new BooleanProperty("UUID Checks", false),
+            teleportChecks = new BooleanProperty("Teleport Checks", false);
+
+    @ShowWhen(property = "Teleport Checks", is = "true")
+    public static DoubleProperty teleportCount = new DoubleProperty("Teleport Count", new DoubleValue(1, 50, 10, 1));
+
+    /** Teleport packets received per entity id since joining the world. Written on the netty thread. */
+    private static final Map<Integer, Integer> TELEPORTS = new ConcurrentHashMap<>();
+    private static ClientLevel teleportLevel;
 
     /** Per-entity movement history, rebuilt every tick from the players currently loaded. */
     private static final class Track {
@@ -94,7 +120,30 @@ public class AntiBot extends Module {
         }
         TRACKS.clear();
         TRACKS.putAll(next);
+
+        if (mc.level != teleportLevel) {
+            teleportLevel = mc.level;
+            TELEPORTS.clear();
+        } else if (!TELEPORTS.isEmpty()) {
+            TELEPORTS.keySet().removeIf(id -> {
+                Entity e = mc.level.getEntity(id);
+                return e == null || !e.isAlive();
+            });
+        }
     };
+
+    /** Counts server teleports per entity. Runs on the netty thread, so it only records the id. */
+    @EventLink
+    public final Listener<EventPacket.Incoming.Pre> onPacket = event -> {
+        if (teleportChecks.getValue() && event.getPacket() instanceof ClientboundTeleportEntityPacket packet) {
+            TELEPORTS.merge(packet.id(), 1, Integer::sum);
+        }
+    };
+
+    @Override
+    protected void onDisable() {
+        TELEPORTS.clear();
+    }
 
     public static boolean isBot(Entity entityPlayer) {
         return isBotCustom(entityPlayer);
@@ -152,11 +201,30 @@ public class AntiBot extends Module {
         }
 
         if (pingCheck.getValue()) {
-            if (mc.getConnection() != null && en.getName() != null) {
+            if (mc.getConnection() != null && en.getName() != null
+                    && en.tickCount >= (int) (pingGrace.getValue().getInput() * 20)) {
                 PlayerInfo playerInfo = mc.getConnection().getPlayerInfo(en.getName().getString());
                 if (playerInfo != null && playerInfo.getLatency() <= 0) {
-                    return true;
+                    GameType mode = playerInfo.getGameMode();
+                    if (!pingSurvivalOnly.getValue() || mode == GameType.SURVIVAL || mode == GameType.ADVENTURE) {
+                        return true;
+                    }
                 }
+            }
+        }
+
+        if (uuidChecks.getValue()) {
+            UUID uuid = player.getUUID();
+            if (uuid == null || (uuid.getMostSignificantBits() == 0L && uuid.getLeastSignificantBits() == 0L)
+                    || uuid.version() != 4) {
+                return true;
+            }
+        }
+
+        if (teleportChecks.getValue()) {
+            Integer count = TELEPORTS.get(player.getId());
+            if (count != null && count >= (int) teleportCount.getValue().getInput()) {
+                return true;
             }
         }
 
