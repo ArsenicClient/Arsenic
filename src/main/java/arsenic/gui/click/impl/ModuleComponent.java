@@ -173,7 +173,9 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
         toggleZoneX1 = Math.min(x2, buttonComponent.getTrackX1()) - pad * 0.5f;
         RenderUtils.resetColorText();
 
-        String bindName = binding ? "..." : BindUtils.getKeyName(self.getKeybind());
+        String keyName = BindUtils.getKeyName(self.getKeybind());
+        String bindName = binding ? "..."
+                : self.getKeybindMode() == arsenic.module.KeybindMode.HOLD ? "Hold " + keyName : keyName;
         boolean hasBind = self.getKeybind() != 0 || binding;
         float chipHeight = height * 0.46f;
         float chipRight = toggleZoneX1 - pad * 0.6f;
@@ -315,7 +317,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     private long hoverSince;
     private boolean hintDismissed;
     private static final long HINT_DELAY_MS = 900;
-    private static final String HINT = "Click to configure. Toggle the switch. Click the key box to bind.";
+    private static final String HINT = "Click to configure. Toggle the switch. Click the key box to bind, right-click it for hold.";
 
     /** The usage hint, once the header has been hovered a while without being clicked. */
     private void queueHint(RenderInfo ri) {
@@ -346,6 +348,12 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     @Override
     protected void clickComponent(int mouseX, int mouseY, int mouseButton) {
         hintDismissed = true;
+        if (mouseButton == 1 && bindZoneX2 > bindZoneX1 && mouseX >= bindZoneX1 && mouseX <= bindZoneX2) {
+            self.setKeybindMode(self.getKeybindMode().next());
+            SoundUtils.chordKeybind();
+            Arsenic.getArsenic().getConfigManager().saveConfig();
+            return;
+        }
         if (mouseButton == 2) {
             binding = !binding;
             Arsenic.getArsenic().getClickGuiScreen().setAlwaysInputComponent(binding ? this : null);

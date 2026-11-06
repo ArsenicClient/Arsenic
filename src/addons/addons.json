@@ -28,6 +28,22 @@
     {
       "file": "BowAimbot",
       "description": "Turns your camera onto the nearest enemy while a bow is drawn, leading the shot (camera aim, not silent)."
+    },
+    {
+      "file": "CobClutch",
+      "description": "When a hit throws you off the side of a block, places a cobweb in the knockback path so you stop instead of flying into the void. Reacts to the velocity packet, predicts where you will be a tick later, clicks the block you were standing on with a silent rotation, and only fires when the place you are being knocked into is empty down to the void."
+    },
+    {
+      "file": "AutoCob",
+      "description": "Traps the nearest player with a cobweb: standing players get a web in the block they occupy, falling players get one on the block they are about to land on (with a fall prediction and their last-tick drift). Per-target limit, placement delay, team ignore, and the usual silent placement with verify and fallback."
+    },
+    {
+      "file": "KeyCob",
+      "description": "The manual version of AutoCob, bound to a key: on press it places a cobweb where you look, on the nearest player, or on the nearest player first with your crosshair as the fallback. Toggle mode places once and switches itself off, Hold mode keeps placing while the key is held."
+    },
+    {
+      "file": "FollowPearl",
+      "description": "When a nearby player throws an ender pearl, works out where it will land from the spawn and velocity packets, then throws your own pearl onto the same block so you teleport to the enemy instead of to where they came from. Ignores your own pearls, teammates and pearls that land outside your throw range."
     }
   ]
 }

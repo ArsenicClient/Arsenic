@@ -67,6 +67,19 @@ public final class BindUtils {
         return Keyboard.getKeyIndex(upper);
     }
 
+    /** Whether the key or mouse button of a bind is held right now. Never throws, whatever the number. */
+    public static boolean isDown(int key) {
+        try {
+            if (isMouse(key)) {
+                int button = getButton(key);
+                return button >= 0 && button < Mouse.getButtonCount() && Mouse.isButtonDown(button);
+            }
+            return key > 0 && key < Keyboard.KEYBOARD_SIZE && Keyboard.isKeyDown(key);
+        } catch (IllegalStateException e) {
+            return false;
+        }
+    }
+
     /** How many mouse buttons the game can see on this mouse (at least the usual five). */
     public static int mouseButtonCount() {
         try {
