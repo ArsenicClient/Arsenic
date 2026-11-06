@@ -6,6 +6,7 @@ import arsenic.event.impl.EventGameLoop;
 import arsenic.event.impl.EventKey;
 import arsenic.main.Arsenic;
 import arsenic.module.impl.visual.PostProcessing;
+import arsenic.utils.java.BindUtils;
 import net.minecraft.client.Minecraft;
 import org.reflections.Reflections;
 
@@ -112,7 +113,7 @@ public class ModuleManager {
             if (module.getKeybindMode() != KeybindMode.HOLD || module.getKeybind() == 0)
                 continue;
             boolean down = windowActive && Minecraft.getMinecraft().currentScreen == null
-                    && Keyboard.isKeyDown(module.getKeybind());
+                    && BindUtils.isDown(module.getKeybind());
             if (down) {
                 if (!module.isEnabled()) {
                     module.setEnabledQuietly(true);

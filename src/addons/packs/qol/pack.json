@@ -17,6 +17,6 @@
     "BackgroundFps": "Lowers the frame limit while the game window is not focused.",
     "AutoScreenshot": "Takes a screenshot on a kill or on your death.",
     "AntiCrash": "Drops incoming packets known to crash clients: oversized payloads and particle floods.",
-    "FreeLook": "Free camera: your body keeps facing the same way (held as a silent rotation) while you look around."
+    "FreeLook": "Lunar-style free look: hold the key (Left Alt by default) to look around while your body and direction stay frozen."
   }
 }
