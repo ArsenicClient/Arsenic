@@ -12,15 +12,10 @@ import org.reflections.Reflections;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import static org.reflections.scanners.Scanners.SubTypes;
-<<<<<<< Updated upstream
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
-=======
->>>>>>> Stashed changes
 
 public class ModuleManager {
 
@@ -29,14 +24,9 @@ public class ModuleManager {
      * Built-in modules of a tier this build leaves out. They are never listed, enabled or saved, but the engine reads
      * them by class (getModuleByClass), so they still exist and stay disabled.
      */
-<<<<<<< Updated upstream
-    private final Map<Class<? extends Module>, Module> unavailable = new HashMap<>();
+    private final Map<Class<? extends Module>, Module> unavailable = new ConcurrentHashMap<>();
     /** Modules a held key switched on, so its release can switch them off again. */
     private final Set<Module> heldModules = new HashSet<>();
-=======
-    private final Map<Class<? extends Module>, Module> unavailable = new ConcurrentHashMap<>();
-    private final Map<Integer, List<Module>> keybindMap = new ConcurrentHashMap<>();
->>>>>>> Stashed changes
 
     public final int initialize() {
         if (!modules.isEmpty())
@@ -83,21 +73,6 @@ public class ModuleManager {
         return null;
     }
 
-    public void updateKeybind(Module module, int oldKey, int newKey) {
-        if (oldKey != 0) {
-            List<Module> list = keybindMap.get(oldKey);
-            if (list != null) {
-                list.remove(module);
-                if (list.isEmpty()) {
-                    keybindMap.remove(oldKey);
-                }
-            }
-        }
-        if (newKey != 0) {
-            keybindMap.computeIfAbsent(newKey, k -> new CopyOnWriteArrayList<>()).add(module);
-        }
-    }
-
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
         int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
@@ -110,26 +85,16 @@ public class ModuleManager {
             return;
         }
 
-<<<<<<< Updated upstream
-        AtomicBoolean saveConfig = new AtomicBoolean(false);
-
-        getModules().stream()
-                .filter(m -> m.getKeybind() == event.getKeycode() && m.getKeybindMode() == KeybindMode.TOGGLE)
-                .forEach(m -> {
-                    m.setEnabled(!m.isEnabled());
-                    saveConfig.set(true);
-                });
-
-        if (saveConfig.get()) { Arsenic.getArsenic().getConfigManager().saveConfig(); }
-=======
-        List<Module> bound = keybindMap.get(event.getKeycode());
-        if (bound != null && !bound.isEmpty()) {
-            for (Module m : bound) {
-                m.setEnabled(!m.isEnabled());
-            }
-            Arsenic.getArsenic().getConfigManager().saveConfig();
+        // a key press is rare enough to just walk the modules; a bind cache would also have to follow config loads
+        boolean toggled = false;
+        for (Module m : getModules()) {
+            if (m.getKeybind() != event.getKeycode() || m.getKeybindMode() != KeybindMode.TOGGLE)
+                continue;
+            m.setEnabled(!m.isEnabled());
+            toggled = true;
         }
->>>>>>> Stashed changes
+        if (toggled)
+            Arsenic.getArsenic().getConfigManager().saveConfig();
     };
 
     /**
@@ -171,18 +136,12 @@ public class ModuleManager {
         }
         module.markAddon();
         modules.put(module.getClass(), module);
-        if (module.getKeybind() != 0) {
-            updateKeybind(module, 0, module.getKeybind());
-        }
         module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::add);
         return null;
     }
 
     public void unregisterExternal(Module module) {
         modules.remove(module.getClass());
-        if (module.getKeybind() != 0) {
-            updateKeybind(module, module.getKeybind(), 0);
-        }
         module.getCommands().forEach(Arsenic.getArsenic().getCommandManager()::remove);
     }
 
@@ -195,9 +154,6 @@ public class ModuleManager {
                 unavailable.put(moduleClass, module);
             } else {
                 modules.put(moduleClass, module);
-                if (module.getKeybind() != 0) {
-                    updateKeybind(module, 0, module.getKeybind());
-                }
             }
         } catch (Exception e) {
             e.printStackTrace();

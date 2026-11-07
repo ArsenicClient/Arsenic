@@ -250,11 +250,7 @@ public class Module implements IContainer<Property<?>>, ISerializable {
     }
 
     public final void setKeybind(int keybind) {
-        int old = this.keybind;
         this.keybind = keybind;
-        if (Arsenic.getInstance() != null && Arsenic.getInstance().getModuleManager() != null) {
-            Arsenic.getInstance().getModuleManager().updateKeybind(this, old, keybind);
-        }
     }
 
     /** Toggle (press to switch) or hold (on while the key is down); see {@link ModuleManager}'s key loop. */
