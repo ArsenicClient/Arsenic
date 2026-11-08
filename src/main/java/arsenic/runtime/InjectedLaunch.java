@@ -215,9 +215,14 @@ public final class InjectedLaunch {
         List<IResourcePack> defaults = Access.field(Minecraft.class, "defaultResourcePacks").get(mc);
         defaults.add(pack);
         Object resources = Names.GET_RESOURCE_MANAGER.invoke(mc);
-        Names.RELOAD_RESOURCE_PACK.invoke(resources, pack);
-        // sounds.json is only read on a reload
-        Names.ON_RESOURCE_MANAGER_RELOAD.invoke(Names.GET_SOUND_HANDLER.invoke(mc), resources);
+        if (Names.RELOAD_RESOURCE_PACK.accepts(resources)) {
+            Names.RELOAD_RESOURCE_PACK.invoke(resources, pack);
+            // sounds.json is only read on a reload
+            Names.ON_RESOURCE_MANAGER_RELOAD.invoke(Names.GET_SOUND_HANDLER.invoke(mc), resources);
+        } else {
+            // another resource manager (Ornithe OSL on OneClient): a full reload picks the pack up from the default packs
+            Access.method(Minecraft.class, "refreshResources").invoke(mc);
+        }
     }
 
     /**

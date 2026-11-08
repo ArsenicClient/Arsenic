@@ -38,6 +38,7 @@ public final class Injector {
         FORGE("Forge", new Color(0xE0812F)),
         LUNAR("Lunar Client", new Color(0x3B82F6)),
         VANILLA("Vanilla", new Color(0x3FA34D)),
+        FABRIC("Fabric", new Color(0x2DB7A3)),
         UNKNOWN("Minecraft", new Color(0x7C3AED)),
         OTHER("Java", new Color(0x55555F));
 
@@ -79,7 +80,7 @@ public final class Injector {
             // Lunar's command line does not carry a reliable Minecraft version; the agent checks it is 1.8.9 inside
             if (client == Client.LUNAR)
                 return true;
-            if (client != Client.VANILLA && client != Client.FORGE)
+            if (client != Client.VANILLA && client != Client.FORGE && client != Client.FABRIC)
                 return false;
             return version == null || version.contains("1.8.9");
         }
@@ -512,8 +513,13 @@ public final class Injector {
                 || lower.contains("org.prismlauncher.entrypoint")) {
             // these launchers start the game from their own main class; the class path says which loader it uses
             boolean forge = lower.contains("fmltweaker") || lower.contains("net.minecraftforge") || lower.contains("forge-");
+            if (!forge && lower.contains("fabric-loader"))
+                return Client.FABRIC;
             return forge ? Client.FORGE : Client.VANILLA;
         }
+        // Fabric's Knot (OneClient by Polyfrost, Legacy Fabric, Ornithe)
+        if (lower.contains("net.fabricmc.loader.impl.launch.knot") || lower.contains("net.fabricmc.loader.launch.knot"))
+            return Client.FABRIC;
         if (commandLine.contains("net.minecraft.launchwrapper.Launch")) {
             boolean forge = commandLine.contains("FMLTweaker") || version != null && version.toLowerCase(Locale.ROOT).contains("forge");
             return forge ? Client.FORGE : Client.VANILLA;
@@ -527,6 +533,9 @@ public final class Injector {
 
     /** The Minecraft version, from the launcher argument or from the Minecraft/Forge jar on the class path. */
     private static String versionOf(String commandLine) {
+        Matcher fabric = Pattern.compile("-Dfabric\\.gameVersion=(\\S+)").matcher(commandLine);
+        if (fabric.find())
+            return fabric.group(1);
         String version = argument(commandLine, "--version");
         if (version != null)
             return version;
@@ -598,7 +607,7 @@ public final class Injector {
     /** Names a launcher gives its game's process, which the name alone does not show as Minecraft. */
     private static boolean mayBeMinecraft(String displayName) {
         String lower = displayName.toLowerCase(Locale.ROOT);
-        for (String hint : new String[]{"minecraft", "entrypoint", "prism", "multimc", "launchwrapper", "client.main"})
+        for (String hint : new String[]{"minecraft", "entrypoint", "prism", "multimc", "launchwrapper", "client.main", "knot", "fabricmc"})
             if (lower.contains(hint))
                 return true;
         return false;

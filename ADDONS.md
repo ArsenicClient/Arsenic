@@ -1523,179 +1523,6 @@ public enum Group {
 }
 ```
 
-### arsenic.module.property.impl.BooleanProperty
-
-```java
-public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
-    public BooleanProperty(String name, Boolean value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public Supplier<Boolean> valueCheck(String value);
-    public String currentValue();
-    public java.util.List<String> possibleValues();
-}
-```
-
-### arsenic.module.property.impl.ButtonProperty
-
-```java
-public class ButtonProperty extends Property<String> {
-    public ButtonProperty(String value);
-    public ButtonProperty(String name, Runnable action);
-    public ButtonProperty(String name, String label, Runnable action);
-    public void fire();
-}
-```
-
-### arsenic.module.property.impl.ColourProperty
-
-```java
-public class ColourProperty extends SerializableProperty<Integer> {
-    public ColourProperty(String name, int value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void setMode(cMode mode);
-    public void setColor(int i, int newValue);
-    public Integer getValue();
-    public int getColor(int i);
-
-    public enum cMode {
-        CUSTOM, THEME;
-    }
-}
-```
-
-### arsenic.module.property.impl.DisplayMode
-
-```java
-public enum DisplayMode {
-    NORMAL, PERCENT, MILLIS;
-    public String getSuffix();
-    public String toString();
-}
-```
-
-### arsenic.module.property.impl.doubleproperty.DoubleProperty
-
-```java
-public class DoubleProperty extends SerializableProperty<DoubleValue> {
-    public DoubleProperty(String name, DoubleValue value);
-    public DoubleProperty(String name, DoubleValue value, SliderScale scale);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public String getValueString();
-    public DisplayMode getDisplayMode();
-}
-```
-
-### arsenic.module.property.impl.doubleproperty.DoubleValue
-
-```java
-public class DoubleValue {
-    public DoubleValue(double minBound, double maxBound, double value, double inc);
-    public double getInput();
-    public void setInputSilently(double value);
-    public void setInput(double value);
-    public double getMaxBound();
-    public double getMinBound();
-    public void onUpdate();
-}
-```
-
-### arsenic.module.property.impl.EnumProperty
-
-```java
-public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
-    public EnumProperty(String name, T value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public void nextMode();
-    public void prevMode();
-    public boolean setByName(String name);
-    public List<String> getModeNames();
-    public Supplier<Boolean> valueCheck(String value);
-    public String currentValue();
-    public List<String> possibleValues();
-}
-```
-
-### arsenic.module.property.impl.FolderProperty
-
-```java
-public class FolderProperty extends SerializableProperty<List<Property<?>>> {
-    public FolderProperty(String name, Property<?>... values);
-    public void loadFromJson(JsonObject obj);
-    public JsonObject saveInfoToJson(JsonObject obj);
-}
-```
-
-### arsenic.module.property.impl.rangeproperty.RangeProperty
-
-```java
-public class RangeProperty extends SerializableProperty<RangeValue> {
-    public RangeProperty(String name, RangeValue value);
-    public RangeProperty(String name, RangeValue value, SliderScale scale);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-    public String getValueString();
-    public boolean hasInRange(double value);
-    public DisplayMode getDisplayMode();
-
-    public enum Helping {
-        MIN, MAX;
-    }
-}
-```
-
-### arsenic.module.property.impl.rangeproperty.RangeValue
-
-```java
-public class RangeValue {
-    public RangeValue(double minBound, double maxBound, double min, double max, double inc);
-    public double getMin();
-    public void setMinSilently(double min);
-    public void setMin(double min);
-    public double getMax();
-    public void setMaxSilently(double max);
-    public void setMax(double min);
-    public double getMaxBound();
-    public double getMinBound();
-    public double getRandomInRange();
-    public void onUpdate();
-}
-```
-
-### arsenic.module.property.impl.SliderScale
-
-```java
-public enum SliderScale {
-    LINEAR, LOG;
-    public float toPercent(double v, double lo, double hi);
-    public double fromPercent(double pct, double lo, double hi);
-}
-```
-
-### arsenic.module.property.impl.StringProperty
-
-```java
-public class StringProperty extends Property<String> {
-    public StringProperty(String value);
-}
-```
-
-### arsenic.module.property.impl.TextProperty
-
-```java
-public class TextProperty extends SerializableProperty<String> {
-    public TextProperty(String name, String value);
-    public TextProperty(String name, String value, int maxLength);
-    public void setValue(String value);
-    public void setValueSilently(String value);
-    public JsonObject saveInfoToJson(JsonObject obj);
-    public void loadFromJson(JsonObject obj);
-}
-```
-
 ### arsenic.module.property.IReliable
 
 ```java
@@ -1774,6 +1601,179 @@ public @interface ShowWhen {
 ```java
 public final class Visibility {
     /** Wires the rules of every public property field of owner. A rule with a problem is left out, so its setting stays */ public static List<String> wire(Object owner);
+}
+```
+
+### arsenic.module.property.impl.BooleanProperty
+
+```java
+public class BooleanProperty extends SerializableProperty<Boolean> implements IReliable {
+    public BooleanProperty(String name, Boolean value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public java.util.List<String> possibleValues();
+}
+```
+
+### arsenic.module.property.impl.ButtonProperty
+
+```java
+public class ButtonProperty extends Property<String> {
+    public ButtonProperty(String value);
+    public ButtonProperty(String name, Runnable action);
+    public ButtonProperty(String name, String label, Runnable action);
+    public void fire();
+}
+```
+
+### arsenic.module.property.impl.ColourProperty
+
+```java
+public class ColourProperty extends SerializableProperty<Integer> {
+    public ColourProperty(String name, int value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void setMode(cMode mode);
+    public void setColor(int i, int newValue);
+    public Integer getValue();
+    public int getColor(int i);
+
+    public enum cMode {
+        CUSTOM, THEME;
+    }
+}
+```
+
+### arsenic.module.property.impl.DisplayMode
+
+```java
+public enum DisplayMode {
+    NORMAL, PERCENT, MILLIS;
+    public String getSuffix();
+    public String toString();
+}
+```
+
+### arsenic.module.property.impl.EnumProperty
+
+```java
+public class EnumProperty<T extends Enum<?>> extends SerializableProperty<T> implements IReliable {
+    public EnumProperty(String name, T value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public void nextMode();
+    public void prevMode();
+    public boolean setByName(String name);
+    public List<String> getModeNames();
+    public Supplier<Boolean> valueCheck(String value);
+    public String currentValue();
+    public List<String> possibleValues();
+}
+```
+
+### arsenic.module.property.impl.FolderProperty
+
+```java
+public class FolderProperty extends SerializableProperty<List<Property<?>>> {
+    public FolderProperty(String name, Property<?>... values);
+    public void loadFromJson(JsonObject obj);
+    public JsonObject saveInfoToJson(JsonObject obj);
+}
+```
+
+### arsenic.module.property.impl.SliderScale
+
+```java
+public enum SliderScale {
+    LINEAR, LOG;
+    public float toPercent(double v, double lo, double hi);
+    public double fromPercent(double pct, double lo, double hi);
+}
+```
+
+### arsenic.module.property.impl.StringProperty
+
+```java
+public class StringProperty extends Property<String> {
+    public StringProperty(String value);
+}
+```
+
+### arsenic.module.property.impl.TextProperty
+
+```java
+public class TextProperty extends SerializableProperty<String> {
+    public TextProperty(String name, String value);
+    public TextProperty(String name, String value, int maxLength);
+    public void setValue(String value);
+    public void setValueSilently(String value);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+}
+```
+
+### arsenic.module.property.impl.doubleproperty.DoubleProperty
+
+```java
+public class DoubleProperty extends SerializableProperty<DoubleValue> {
+    public DoubleProperty(String name, DoubleValue value);
+    public DoubleProperty(String name, DoubleValue value, SliderScale scale);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public String getValueString();
+    public DisplayMode getDisplayMode();
+}
+```
+
+### arsenic.module.property.impl.doubleproperty.DoubleValue
+
+```java
+public class DoubleValue {
+    public DoubleValue(double minBound, double maxBound, double value, double inc);
+    public double getInput();
+    public void setInputSilently(double value);
+    public void setInput(double value);
+    public double getMaxBound();
+    public double getMinBound();
+    public void onUpdate();
+}
+```
+
+### arsenic.module.property.impl.rangeproperty.RangeProperty
+
+```java
+public class RangeProperty extends SerializableProperty<RangeValue> {
+    public RangeProperty(String name, RangeValue value);
+    public RangeProperty(String name, RangeValue value, SliderScale scale);
+    public JsonObject saveInfoToJson(JsonObject obj);
+    public void loadFromJson(JsonObject obj);
+    public String getValueString();
+    public boolean hasInRange(double value);
+    public DisplayMode getDisplayMode();
+
+    public enum Helping {
+        MIN, MAX;
+    }
+}
+```
+
+### arsenic.module.property.impl.rangeproperty.RangeValue
+
+```java
+public class RangeValue {
+    public RangeValue(double minBound, double maxBound, double min, double max, double inc);
+    public double getMin();
+    public void setMinSilently(double min);
+    public void setMin(double min);
+    public double getMax();
+    public void setMaxSilently(double max);
+    public void setMax(double min);
+    public double getMaxBound();
+    public double getMinBound();
+    public double getRandomInRange();
+    public void onUpdate();
 }
 ```
 
@@ -2498,6 +2498,14 @@ public enum TickMode {
 }
 ```
 
+### arsenic.utils.timer.TimeUtils
+
+```java
+public final class TimeUtils {
+    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
+}
+```
+
 ### arsenic.utils.timer.Timer
 
 ```java
@@ -2513,14 +2521,6 @@ public class Timer {
     public long getElapsedTimeAsPercent();
     public long getTimeLeft();
     public boolean hasExceededTimeBy(long additionalThreshold);
-}
-```
-
-### arsenic.utils.timer.TimeUtils
-
-```java
-public final class TimeUtils {
-    /** True for the first half of every period and false for the second: a text cursor blink. */ public static boolean blink(long halfPeriodMs);
 }
 ```
 
@@ -2559,6 +2559,16 @@ public class ColorUtils extends UtilityClass {
 }
 ```
 
+### arsenic.utils.java.FakeLobby
+
+```java
+public final class FakeLobby {
+    /** Replaces any fake players with count new ones around the player. @return how many were added */ public static int spawn(int count);
+    public static int clear();
+    public Listener<EventTick> onTick;
+}
+```
+
 ### arsenic.utils.java.FileUtils
 
 ```java
@@ -2566,6 +2576,30 @@ public class FileUtils extends UtilityClass {
     public static String getArsenicFolderDirAsString();
     /** The Arsenic folder: configs, addons, themes and everything else Arsenic saves. It sits in the user's home folder */ public static synchronized File getArsenicFolderDirAsFile();
     public static String readInputStream(InputStream inputStream);
+}
+```
+
+### arsenic.utils.java.FrameProfiler
+
+```java
+public final class FrameProfiler {
+    /** The section for one event listener; the same section is returned when a module subscribes again. */ public static synchronized Section listener(Object owner, String field, Type eventType);
+    /** A named section timed by hand with #start() and #end. */ public static synchronized Section section(String name);
+    public static long start();
+    public static void end(Section section, long start);
+    public static synchronized GpuSection gpuSection(String name);
+    public static int gpuBegin(GpuSection section);
+    public static void gpuEnd(GpuSection section, int slot);
+    /** Render thread, at the start of every frame. */ public static void frameStart();
+    public static boolean isRunning();
+    public static synchronized void start(int seconds);
+    public static synchronized void stop();
+
+    public static final class Section {
+    }
+
+    public static final class GpuSection {
+    }
 }
 ```
 
@@ -2802,6 +2836,7 @@ public class PlayerUtils extends UtilityClass {
     public static boolean withinFov(Entity entity, float fov);
     public static List<EntityPlayer> getPlayersWithin(double distance);
     public static List<Entity> getEntitysWithin(double distance);
+    public static boolean isPlayerLoaded();
     public static boolean isPlayerNotLoaded();
     public static boolean isEntityTeamSameAsPlayer(EntityLivingBase target);
     public static int getTool(Block block);

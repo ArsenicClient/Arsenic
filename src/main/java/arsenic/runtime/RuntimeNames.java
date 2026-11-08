@@ -35,7 +35,9 @@ public final class RuntimeNames {
         /** Lunar Client and development games: MCP names. */
         MCP,
         /** Vanilla: Mojang's obfuscated names. */
-        NOTCH
+        NOTCH,
+        /** Fabric (OneClient, Ornithe, Legacy Fabric): the intermediary names from the game mappings. */
+        INTERMEDIARY
     }
 
     private static final String MC = "net/minecraft/";
@@ -54,7 +56,7 @@ public final class RuntimeNames {
     private RuntimeNames(Namespace namespace, ClassLoader loader) {
         this.namespace = namespace;
         this.loader = loader;
-        this.t = namespace == Namespace.SRG ? null : tables();
+        this.t = namespace == Namespace.SRG ? null : namespace == Namespace.INTERMEDIARY ? intermediaryTables(loader) : tables();
     }
 
     /** The names of the game this copy of the client runs in. SRG until the injector says otherwise. */
@@ -128,11 +130,129 @@ public final class RuntimeNames {
         return t;
     }
 
+    /** Notch or intermediary names: both go through the tables. */
+    private boolean obfuscated() {
+        return namespace == Namespace.NOTCH || namespace == Namespace.INTERMEDIARY;
+    }
+
+    private static Tables intermediary;
+
+    /**
+     * Fabric (OneClient): the notch tables carried on to the intermediary names of the mappings.tiny the game runs
+     * with (Ornithe calamus on OneClient). Fabric remaps Minecraft to these names as it loads it.
+     */
+    private static synchronized Tables intermediaryTables(ClassLoader loader) {
+        if (intermediary != null)
+            return intermediary;
+        Tables notch = tables();
+        Map<String, String> classes = new HashMap<>(), fieldNames = new HashMap<>(), methodNames = new HashMap<>();
+        String tab = String.valueOf((char) 9);
+        try (InputStream in = openTiny(loader)) {
+            if (in == null)
+                throw new IllegalStateException("The intermediary mappings of the game (mappings/mappings.tiny) were not found");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            String header = reader.readLine();
+            java.util.List<String> h = java.util.Arrays.asList(header == null ? new String[0] : header.split(tab));
+            // tiny v1 gives owners and descriptors in the first namespace, which has to be official
+            int from = h.indexOf("official") - 1, to = h.indexOf("intermediary") - 1, max = Math.max(from, to);
+            if (h.isEmpty() || !h.get(0).equals("v1") || from != 0 || to < 0)
+                throw new IllegalStateException("Unsupported mappings.tiny (expected tiny v1 official/intermediary): " + header);
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] p = line.split(tab);
+                if (p[0].equals("CLASS") && p.length > 1 + max)
+                    classes.put(p[1 + from], p[1 + to]);
+                else if (p[0].equals("FIELD") && p.length > 3 + max)
+                    fieldNames.put(p[1] + ' ' + p[3 + from], p[3 + to]);
+                else if (p[0].equals("METHOD") && p.length > 3 + max)
+                    methodNames.put(p[1] + ' ' + p[3 + from] + ' ' + p[2], p[3 + to]);
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not read the intermediary mappings of the game", e);
+        }
+        RuntimeNames notchNames = new RuntimeNames(Namespace.NOTCH, null);
+        Tables t = new Tables();
+        for (Map.Entry<String, String> e : notch.classToRuntime.entrySet()) {
+            String name = classes.getOrDefault(e.getValue(), e.getValue());
+            t.classToRuntime.put(e.getKey(), name);
+            t.classToSrg.put(name, e.getKey());
+        }
+        t.supers.putAll(notch.supers);
+        t.mcp.putAll(notch.mcp);
+        for (Map.Entry<String, String> e : notch.fields.entrySet()) {
+            String owner = notch.classToRuntime.get(e.getKey().split(" ")[0]);
+            String name = inheritedTiny(notch, fieldNames, e.getKey().split(" ")[0], " " + e.getValue());
+            t.fields.put(e.getKey(), name != null ? name : e.getValue());
+        }
+        for (Map.Entry<String, String> e : notch.methods.entrySet()) {
+            String[] k = e.getKey().split(" ");
+            String owner = notch.classToRuntime.get(k[0]);
+            String name = inheritedTiny(notch, methodNames, k[0], " " + e.getValue() + ' ' + notchNames.mapDesc(k[2]));
+            if (name == null)
+                name = e.getValue();
+            t.methods.put(e.getKey(), name);
+            t.methodNames.computeIfAbsent(k[0] + ' ' + k[1], x -> new HashSet<>()).add(name);
+        }
+        intermediary = t;
+        return t;
+    }
+
+    /** A tiny entry of a member, looked up on its owner then on its super types: tiny only lists the declaring class. */
+    private static String inheritedTiny(Tables notch, Map<String, String> tiny, String srgOwner, String suffix) {
+        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>();
+        Set<String> seen = new HashSet<>();
+        queue.add(srgOwner);
+        while (!queue.isEmpty()) {
+            String srg = queue.poll();
+            if (!seen.add(srg))
+                continue;
+            String owner = notch.classToRuntime.get(srg);
+            String name = owner == null ? null : tiny.get(owner + suffix);
+            if (name != null)
+                return name;
+            String[] parents = notch.supers.get(srg);
+            if (parents != null)
+                queue.addAll(java.util.Arrays.asList(parents));
+        }
+        return null;
+    }
+
+    /** The mappings.tiny of the game: from the intermediary jar on the class path, else from a class loader. */
+    private static InputStream openTiny(ClassLoader loader) {
+        for (String entry : System.getProperty("java.class.path", "").split(java.io.File.pathSeparator)) {
+            String lower = entry.toLowerCase(java.util.Locale.ROOT);
+            if (!lower.endsWith(".jar") || !lower.contains("intermediary"))
+                continue;
+            try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(entry)) {
+                java.util.zip.ZipEntry tiny = zip.getEntry("mappings/mappings.tiny");
+                if (tiny == null)
+                    continue;
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (InputStream in = zip.getInputStream(tiny)) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) != -1)
+                        out.write(buf, 0, n);
+                }
+                return new java.io.ByteArrayInputStream(out.toByteArray());
+            } catch (java.io.IOException ignored) {
+            }
+        }
+        for (ClassLoader l : new ClassLoader[]{loader, ClassLoader.getSystemClassLoader(), RuntimeNames.class.getClassLoader()}) {
+            InputStream in = l == null ? null : l.getResourceAsStream("mappings/mappings.tiny");
+            if (in != null)
+                return in;
+        }
+        return null;
+    }
+
     // ---- SRG -> runtime ----
 
     /** Runtime internal name of a class given by its SRG (= MCP) internal name. */
     public String mapClass(String srg) {
-        if (namespace != Namespace.NOTCH || srg == null)
+        if (!obfuscated() || srg == null)
             return srg;
         if (srg.startsWith("[")) {
             return mapDesc(srg);
@@ -149,7 +269,7 @@ public final class RuntimeNames {
 
     /** SRG internal name of a runtime class. */
     public String unmapClass(String runtime) {
-        if (namespace != Namespace.NOTCH || runtime == null)
+        if (!obfuscated() || runtime == null)
             return runtime;
         String srg = t.classToSrg.get(runtime);
         return srg != null ? srg : runtime;
@@ -157,7 +277,7 @@ public final class RuntimeNames {
 
     /** A field or method descriptor with its class names mapped. */
     public String mapDesc(String desc) {
-        if (namespace != Namespace.NOTCH || desc.indexOf('L') < 0)
+        if (!obfuscated() || desc.indexOf('L') < 0)
             return desc;
         StringBuilder sb = new StringBuilder(desc.length());
         for (int i = 0; i < desc.length(); i++) {
@@ -236,7 +356,7 @@ public final class RuntimeNames {
 
     /** SRG name of a field declared by {@code srgOwner}, from its runtime name. */
     public String unmapField(String srgOwner, String runtimeName) {
-        if (namespace != Namespace.NOTCH)
+        if (!obfuscated())
             return runtimeName;
         String srg = back(true).get(srgOwner + ' ' + runtimeName);
         return srg != null ? srg : runtimeName;
@@ -244,7 +364,7 @@ public final class RuntimeNames {
 
     /** SRG name of a method declared by {@code srgOwner}, from its runtime name and descriptor. */
     public String unmapMethod(String srgOwner, String runtimeName, String runtimeDesc) {
-        if (namespace != Namespace.NOTCH)
+        if (!obfuscated())
             return runtimeName;
         String srg = back(false).get(srgOwner + ' ' + runtimeName + ' ' + runtimeDesc);
         return srg != null ? srg : runtimeName;
@@ -383,7 +503,7 @@ public final class RuntimeNames {
      * dropped; only the shape of the class is needed.
      */
     public byte[] toSrgDeclarations(byte[] runtimeBytes) {
-        if (namespace != Namespace.NOTCH)
+        if (!obfuscated())
             return runtimeBytes;
         ClassReader reader = new ClassReader(runtimeBytes);
         ClassWriter writer = new ClassWriter(0);

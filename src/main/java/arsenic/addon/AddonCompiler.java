@@ -97,7 +97,7 @@ public final class AddonCompiler {
         });
         // injected into vanilla: SRG to the game's names, which follows member lookups up through the addon's own classes
         RuntimeNames names = RuntimeNames.current();
-        if (table != null && names.namespace() == RuntimeNames.Namespace.NOTCH)
+        if (table != null && (names.namespace() == RuntimeNames.Namespace.NOTCH || names.namespace() == RuntimeNames.Namespace.INTERMEDIARY))
             srg.values().forEach(names::registerSupers);
         srg.forEach((internal, bytes) -> result.classes.put(internal.replace('/', '.'),
                 table != null ? names.toRuntime(bytes) : bytes));

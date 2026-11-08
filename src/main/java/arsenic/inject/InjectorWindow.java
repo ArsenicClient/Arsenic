@@ -47,6 +47,8 @@ final class InjectorWindow {
     private final ActionButton uninjectButton = new ActionButton("Uninject");
     private final ActionButton injectLunarButton = new ActionButton("Inject");
     private final ActionButton removeLunarButton = new ActionButton("Remove");
+    private final ActionButton injectOneClientButton = new ActionButton("Inject");
+    private final ActionButton removeOneClientButton = new ActionButton("Remove");
     private final IconButton refreshButton = new IconButton(IconButton.REFRESH, "Refresh");
     private final Toggle showAll = new Toggle("Show every Java process");
     private final Toggle autoUpdate = new Toggle("Auto-update");
@@ -99,7 +101,10 @@ final class InjectorWindow {
         body.add(cardScroll, BorderLayout.CENTER);
         JPanel bottom = transparent(new BorderLayout(0, 12));
         bottom.add(footer(), BorderLayout.NORTH);
-        bottom.add(launchingInLunar(), BorderLayout.SOUTH);
+        JPanel launchers = transparent(new BorderLayout(0, 0));
+        launchers.add(launchingInLunar(), BorderLayout.NORTH);
+        launchers.add(launchingInOneClient(), BorderLayout.SOUTH);
+        bottom.add(launchers, BorderLayout.SOUTH);
         body.add(bottom, BorderLayout.SOUTH);
         root.add(body, BorderLayout.CENTER);
 
@@ -107,7 +112,7 @@ final class InjectorWindow {
         frame.setContentPane(root);
         frame.setIconImages(icons());
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.setSize(560, 610);
+        frame.setSize(560, 665);
         frame.setMinimumSize(new Dimension(460, 540));
         frame.setLocationRelativeTo(null);
         frame.getRootPane().setDefaultButton(null);
@@ -537,6 +542,108 @@ final class InjectorWindow {
         appendLog("       " + Injector.agentArg());
     }
 
+    /** OneClient blocks attach too, so Arsenic goes into the launch arguments of its 1.8.9 profiles. Under Lunar. */
+    private JComponent launchingInOneClient() {
+        JPanel panel = transparent(new BorderLayout(14, 0));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                new EmptyBorder(10, 0, 0, 0),
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
+                        new EmptyBorder(10, 0, 0, 0))));
+
+        JPanel brand = transparent(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        brand.add(label("OneClient", 22f, Font.BOLD, TEXT));
+        BufferedImage logo = image("/assets/arsenic/inject/oneclient.png");
+        if (logo != null)
+            brand.add(new JLabel(new ImageIcon(logo.getScaledInstance(34, 34, Image.SCALE_SMOOTH))));
+        panel.add(brand, BorderLayout.WEST);
+
+        injectOneClientButton.addActionListener(() -> oneClientTask(true));
+        removeOneClientButton.addActionListener(() -> oneClientTask(false));
+        JPanel actions = transparent(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.add(removeOneClientButton);
+        actions.add(injectOneClientButton);
+        panel.add(actions, BorderLayout.EAST);
+        return panel;
+    }
+
+    private void setOneClientButtonsEnabled(boolean enabled) {
+        injectOneClientButton.setText("Inject");
+        removeOneClientButton.setText("Remove");
+        injectOneClientButton.setEnabled(enabled);
+        removeOneClientButton.setEnabled(enabled);
+    }
+
+    /** Stops OneClient, then changes the launch arguments of its 1.8.9 profiles. Runs off the event thread. */
+    private void oneClientTask(boolean inject) {
+        if (busy)
+            return;
+        String title = inject ? "Inject into OneClient" : "Remove from OneClient";
+        String effect = inject ? "adds Arsenic to the launch arguments of OneClient's 1.8.9 instances"
+                : "takes Arsenic out of the launch arguments of OneClient's 1.8.9 instances";
+        String question = "This closes OneClient and any game running in it, then " + effect + ".\n\nContinue?";
+        int answer = JOptionPane.showConfirmDialog(frame, question, title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (answer != JOptionPane.YES_OPTION)
+            return;
+        busy = true;
+        updateButtons();
+        setLunarButtonsEnabled(false);
+        setOneClientButtonsEnabled(false);
+        (inject ? injectOneClientButton : removeOneClientButton).setText("Working...");
+        appendLog(title);
+        setStatus("Updating OneClient", TEXT_SECONDARY);
+
+        new SwingWorker<Boolean, String>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                String agent = Injector.agentArg();
+                if (inject && !agent.endsWith(".jar"))
+                    throw new IllegalStateException("Run the built Arsenic jar; the classes folder cannot be a launch argument");
+                File db = OneClientInjection.database();
+                if (!db.isFile())
+                    throw new IllegalStateException("No OneClient settings at " + db + "; open OneClient once first");
+                List<String> pids = OneClientInjection.runningOneClient();
+                if (!pids.isEmpty()) {
+                    publish("Closing OneClient (" + pids.size() + " processes)");
+                    if (!OneClientInjection.stop(pids, line -> publish(line)))
+                        throw new IllegalStateException("OneClient is still running; close it and try again");
+                }
+                return inject ? OneClientInjection.setAgent(db, agent, line -> publish(line))
+                        : OneClientInjection.removeAgent(db, line -> publish(line));
+            }
+
+            @Override
+            protected void process(List<String> lines) {
+                for (String line : lines)
+                    appendLog(line);
+            }
+
+            @Override
+            protected void done() {
+                busy = false;
+                setLunarButtonsEnabled(true);
+                setOneClientButtonsEnabled(true);
+                updateButtons();
+                try {
+                    boolean changed = get();
+                    if (inject) {
+                        setStatus(changed ? "OneClient will load Arsenic when you launch a 1.8.9 instance" : "OneClient already loads Arsenic", SUCCESS);
+                        appendLog("Start OneClient and launch a 1.8.9 instance; Arsenic loads with it.");
+                    } else {
+                        setStatus(changed ? "OneClient will no longer load Arsenic" : "Arsenic was not in OneClient's settings", changed ? SUCCESS : TEXT_SECONDARY);
+                    }
+                } catch (java.util.concurrent.ExecutionException e) {
+                    String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                    setStatus(message, DANGER);
+                    appendLog("Failed: " + message);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                refresh();
+            }
+        }.execute();
+    }
+
     /** Lunar Client turns attach off, so Arsenic goes into its launch arguments instead. Always shown, under the log. */
     private JComponent launchingInLunar() {
         JPanel panel = transparent(new BorderLayout(14, 0));
@@ -598,6 +705,7 @@ final class InjectorWindow {
         busy = true;
         updateButtons();
         setLunarButtonsEnabled(false);
+        setOneClientButtonsEnabled(false);
         lunarButton(action).setText("Working...");
         appendLog(action.title);
         setStatus("Updating Lunar Client", TEXT_SECONDARY);
@@ -631,6 +739,7 @@ final class InjectorWindow {
             protected void done() {
                 busy = false;
                 setLunarButtonsEnabled(true);
+                setOneClientButtonsEnabled(true);
                 updateButtons();
                 try {
                     boolean changed = get();
