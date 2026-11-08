@@ -881,7 +881,7 @@ public final class AddonManager {
             if (in == null)
                 throw new IllegalStateException("addon-mappings.txt is missing from this build");
             // vanilla (injected): compiled against SRG names like Forge, then renamed to the game's names
-            if (namespace == RuntimeNames.Namespace.NOTCH)
+            if (namespace == RuntimeNames.Namespace.NOTCH || namespace == RuntimeNames.Namespace.INTERMEDIARY)
                 return new AddonCompiler(new VanillaClassSource(Arsenic.class.getClassLoader(), RuntimeNames.current()), MappingTable.load(in));
             // Lunar Client's Forge: Minecraft as Lunar defined it (SRG names, access transformers applied), recorded by
             // the agent; Lunar has no launchwrapper class files nor the ASM Forge's deobfuscation transformer needs

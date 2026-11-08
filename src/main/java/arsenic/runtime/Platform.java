@@ -6,7 +6,10 @@ package arsenic.runtime;
  */
 public final class Platform {
 
-    private static final boolean FORGE = present("net.minecraftforge.common.MinecraftForge");
+    // Fabric mods such as forgecompat ship stand-ins for some Forge classes: under Fabric (and Ornithe) it is never Forge
+    private static final boolean FORGE = present("net.minecraftforge.common.MinecraftForge")
+            && !present("net.fabricmc.loader.api.FabricLoader")
+            && !present("net.fabricmc.loader.impl.launch.knot.Knot");
 
     private Platform() {}
 

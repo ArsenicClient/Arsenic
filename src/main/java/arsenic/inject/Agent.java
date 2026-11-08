@@ -455,6 +455,16 @@ public final class Agent {
 
         if (minecraft != null) {
             ClassLoader loader = minecraft.getClassLoader();
+            // Fabric (OneClient): Minecraft keeps its class name, its members have the intermediary names of the game
+            if (classExists("net.fabricmc.loader.api.FabricLoader", loader)) {
+                String getMinecraft = RuntimeNames.create(RuntimeNames.Namespace.INTERMEDIARY, loader)
+                        .mapMethod(MINECRAFT, GET_MINECRAFT, "()L" + MINECRAFT + ";");
+                if (!declaresMethod(minecraft, getMinecraft))
+                    throw new IllegalStateException("Fabric runs Minecraft under names this injector does not know (no "
+                            + getMinecraft + "); only 1.8.9 with Ornithe or Legacy Fabric intermediary names is supported");
+                boolean oneClient = String.valueOf(System.getProperty("fabric.modsFolder")).contains("OneClient");
+                return new Game(oneClient ? "Fabric (OneClient)" : "Fabric", loader, RuntimeNames.Namespace.INTERMEDIARY, false, false);
+            }
             boolean srg = declaresMethod(minecraft, GET_MINECRAFT);
             boolean forge = srg && classExists("net.minecraftforge.fml.common.Loader", loader);
             if (forge)
@@ -539,6 +549,15 @@ public final class Agent {
     private static void addToLoader(Instrumentation inst, ClassLoader loader, URL jar) throws Exception {
         if (loader == ClassLoader.getSystemClassLoader())
             return;
+        // Fabric's Knot is no URLClassLoader; its launcher takes new code sources
+        if (loader.getClass().getName().startsWith("net.fabricmc.loader.impl.launch.knot.")) {
+            Object launcher = Class.forName("net.fabricmc.loader.impl.launch.FabricLauncherBase", true, loader)
+                    .getMethod("getLauncher").invoke(null);
+            Class.forName("net.fabricmc.loader.impl.launch.FabricLauncher", true, loader)
+                    .getMethod("addToClassPath", java.nio.file.Path.class, String[].class)
+                    .invoke(launcher, new File(jar.toURI()).toPath(), new String[0]);
+            return;
+        }
         // Forge's LaunchClassLoader and some launchers' loaders make addURL public
         try {
             Method addURL = loader.getClass().getMethod("addURL", URL.class);

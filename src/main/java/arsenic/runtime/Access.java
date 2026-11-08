@@ -134,6 +134,11 @@ public final class Access {
             this.method = method;
         }
 
+        /** Whether the method can be called on this object (its owner may be replaced by a mod). */
+        public boolean accepts(Object owner) {
+            return java.lang.reflect.Modifier.isStatic(method.getModifiers()) || method.getDeclaringClass().isInstance(owner);
+        }
+
         @SuppressWarnings("unchecked")
         public <T> T invoke(Object owner, Object... args) {
             try {
