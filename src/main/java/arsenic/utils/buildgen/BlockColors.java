@@ -40,7 +40,16 @@ public final class BlockColors {
             "dark_oak_leaves", new int[]{0x77, 0xab, 0x2f}, "mangrove_leaves", new int[]{0x92, 0xc0, 0x50},
             "birch_leaves", new int[]{0x80, 0xa7, 0x55}, "spruce_leaves", new int[]{0x61, 0x99, 0x61});
 
+    /** Blocks with an item that the creative menu still leaves out (operator blocks and the like). */
+    private static final List<String> NOT_CREATIVE = List.of("air", "command_block", "chain_command_block",
+            "repeating_command_block", "structure_block", "structure_void", "jigsaw", "barrier", "light", "test_block",
+            "test_instance_block", "petrified_oak_slab");
+
     public static void main(String[] args) throws Exception {
+        if (args.length > 2 && args[2].equals("all")) {
+            all(args[0], args[1]);
+            return;
+        }
         try (ZipFile jar = new ZipFile(args[0]); PrintWriter out = new PrintWriter(Files.newBufferedWriter(Path.of(args[1])))) {
             Map<String, String> lines = new TreeMap<>();
             String prefix = "assets/minecraft/blockstates/";
@@ -88,6 +97,67 @@ public final class BlockColors {
             for (String l : lines.values()) out.println(l);
             System.out.println(lines.size() + " cube blocks");
         }
+    }
+
+    /**
+     * blocks.txt for {@link Palette.Level#ALL}: {@code java arsenic.utils.buildgen.BlockColors <client.jar> <blocks.txt> all}.
+     * Every block in the creative menu (a block with an item of the same name, less {@link #NOT_CREATIVE}), coloured
+     * by its default model's main texture whatever the shape.
+     */
+    private static void all(String jarPath, String outPath) throws Exception {
+        try (ZipFile jar = new ZipFile(jarPath); PrintWriter out = new PrintWriter(Files.newBufferedWriter(Path.of(outPath)))) {
+            Map<String, String> lines = new TreeMap<>();
+            String prefix = "assets/minecraft/blockstates/";
+            for (Enumeration<? extends ZipEntry> en = jar.entries(); en.hasMoreElements(); ) {
+                String n = en.nextElement().getName();
+                if (!n.startsWith(prefix) || !n.endsWith(".json")) continue;
+                String block = n.substring(prefix.length(), n.length() - 5);
+                if (NOT_CREATIVE.contains(block) || jar.getEntry("assets/minecraft/items/" + block + ".json") == null) continue;
+                double[] c = null;
+                String model = anyModel(json(jar, n));
+                String tx = model == null ? null : texture(jar, model);
+                if (tx != null) c = average(jar, "assets/minecraft/textures/" + tx + ".png");
+                if (c == null) c = new double[]{128, 128, 128, 255};
+                int[] tint = TINT.get(block);
+                if (tint == null && (block.endsWith("_leaves") || block.equals("vine") || block.contains("grass") || block.equals("fern")
+                        || block.equals("large_fern") || block.equals("lily_pad"))) tint = TINT.get("oak_leaves");
+                if (tint != null && !block.startsWith("cherry") && !block.startsWith("azalea") && !block.startsWith("flowering"))
+                    for (int k = 0; k < 3; k++) c[k] = c[k] * tint[k] / 255;
+                lines.put(block, String.format("%s %d %d %d %d", block, (int) c[0], (int) c[1], (int) c[2], (int) c[3]));
+            }
+            for (String l : lines.values()) out.println(l);
+            System.out.println(lines.size() + " creative blocks");
+        }
+    }
+
+    /** The first model of a blockstate file, plain variants or multipart (fences, walls, panes). */
+    private static String anyModel(JsonObject state) {
+        String m = firstModel(state);
+        if (m != null || state == null || !state.has("multipart")) return m;
+        JsonElement apply = state.getAsJsonArray("multipart").get(0).getAsJsonObject().get("apply");
+        if (apply.isJsonArray()) apply = apply.getAsJsonArray().get(0);
+        return apply.getAsJsonObject().get("model").getAsString();
+    }
+
+    /** The model's main texture, following parents and "#name" references. */
+    private static String texture(ZipFile jar, String model) throws Exception {
+        Map<String, String> tex = new java.util.HashMap<>();
+        for (int depth = 0; model != null && depth < 10; depth++) {
+            JsonObject m = json(jar, "assets/minecraft/models/" + model.replace("minecraft:", "") + ".json");
+            if (m == null) break;
+            if (m.has("textures"))
+                for (var e : m.getAsJsonObject("textures").entrySet()) tex.putIfAbsent(e.getKey(), sprite(e.getValue()));
+            model = m.has("parent") && m.get("parent").isJsonPrimitive() ? m.get("parent").getAsString() : null;
+        }
+        List<String> keys = new ArrayList<>(List.of("all", "side", "top", "end", "texture", "cross", "plant", "pane",
+                "wall", "particle"));
+        keys.addAll(tex.keySet());
+        for (String k : keys) {
+            String v = tex.get(k);
+            for (int i = 0; v != null && v.startsWith("#") && i < 10; i++) v = tex.get(v.substring(1));
+            if (v != null && !v.startsWith("#")) return v.replace("minecraft:", "");
+        }
+        return null;
     }
 
     /** A texture reference is a sprite name, or an object with one since 26.x ({"sprite": ..., "force_translucent": true}). */

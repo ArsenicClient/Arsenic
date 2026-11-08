@@ -111,6 +111,15 @@ public class Arsenic implements ClientModInitializer {
                 org.spongepowered.asm.mixin.MixinEnvironment.getCurrentEnvironment().audit();
                 logger.info("Mixin audit passed.");
             }
+
+            // -Darsenic.buildshot=<folder>: screenshot generated builds for scoring, then quit (see BuildShots)
+            String shots = System.getProperty("arsenic.buildshot");
+            if (shots != null && !shots.isBlank())
+                arsenic.utils.minecraft.BuildShots.startAtLaunch(shots, Boolean.getBoolean("arsenic.buildshot.redo"));
+            // -Darsenic.gallery=<folder>;<folder>: a walkable world of every build, then quit (see BuildGallery)
+            String gallery = System.getProperty("arsenic.gallery");
+            if (gallery != null && !gallery.isBlank())
+                arsenic.utils.minecraft.BuildGallery.startAtLaunch(gallery);
         });
 
         logger.info("Loaded {}.", clientName);

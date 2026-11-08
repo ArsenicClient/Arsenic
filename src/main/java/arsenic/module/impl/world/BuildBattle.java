@@ -21,12 +21,18 @@ import arsenic.utils.botcore.Box;
 import arsenic.utils.buildcore.Blueprint;
 import arsenic.utils.buildcore.BuildCore;
 import arsenic.utils.buildcore.BuildView;
+import arsenic.utils.buildcore.Placement;
 import arsenic.utils.buildcore.Schematic;
 import arsenic.utils.java.FileUtils;
 import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.rotations.SilentRotationManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -76,13 +82,72 @@ public class BuildBattle extends Module {
     /** Hotbar slots the builder may use: 1 to 8. Slot 9 is left alone (the Build Battle menu item sits there). */
     private static final int SLOTS = 8;
 
+    /**
+     * Singleplayer only: writes a schematic straight into the world, centred on the player's feet like the builder does
+     * (air cells clear what is there, cells the build does not care about are left alone). Returns the chat message.
+     */
+    public static String spawn(String name) {
+        Minecraft client = Minecraft.getInstance();
+        LocalPlayer p = client.player;
+        IntegratedServer server = client.getSingleplayerServer();
+        if (p == null || server == null || client.level == null) return "spawn only works in a singleplayer world";
+        Blueprint blueprint;
+        try (InputStream in = new FileInputStream(new File(folder(), name.endsWith(".schem") ? name : name + ".schem"))) {
+            blueprint = Schematic.read(in).trimmed();
+        } catch (Exception e) {
+            return "could not read " + name + " (" + e.getMessage() + ")";
+        }
+        BlockPos feet = p.blockPosition();
+        int ox = feet.getX() - blueprint.sizeX / 2, oy = feet.getY(), oz = feet.getZ() - blueprint.sizeZ / 2;
+        ServerLevel level = server.getLevel(client.level.dimension());
+        if (level == null) return "no server level for this dimension";
+        server.execute(() -> place(level, blueprint, ox, oy, oz));
+        return "spawned " + blueprint.solidCount() + " blocks, " + blueprint.sizeX + "x" + blueprint.sizeY + "x" + blueprint.sizeZ;
+    }
+
+    /**
+     * Writes a blueprint into a server level with its low corner at (ox, oy, oz); call on the server thread. Air cells
+     * clear what is there, cells the build does not care about are left alone.
+     */
+    public static void place(ServerLevel level, Blueprint blueprint, int ox, int oy, int oz) {
+        BlockState[] states = new BlockState[blueprint.palette.size()];
+        for (int id = 1; id < states.length; id++) states[id] = parseState(blueprint.palette.get(id));
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = 0; y < blueprint.sizeY; y++)
+            for (int z = 0; z < blueprint.sizeZ; z++)
+                for (int x = 0; x < blueprint.sizeX; x++) {
+                    int id = blueprint.get(x, y, z);
+                    if (id == Blueprint.ANY) continue;
+                    pos.set(ox + x, oy + y, oz + z);
+                    BlockState st = id == Blueprint.AIR ? Blocks.AIR.defaultBlockState() : states[id];
+                    if (st != null) level.setBlock(pos, st, Block.UPDATE_CLIENTS);
+                }
+    }
+
+    /** "minecraft:oak_stairs[facing=east,half=top]" as a block state; air for a block that does not exist. */
+    private static BlockState parseState(String text) {
+        Block block = BuiltInRegistries.BLOCK.getOptional(Identifier.parse(Blueprint.blockName(text))).orElse(Blocks.AIR);
+        BlockState st = block.defaultBlockState();
+        for (net.minecraft.world.level.block.state.properties.Property<?> p : block.getStateDefinition().getProperties()) {
+            String v = Placement.prop(text, p.getName());
+            if (v != null) st = withValue(st, p, v);
+        }
+        return st;
+    }
+
+    private static <T extends Comparable<T>> BlockState withValue(BlockState st, net.minecraft.world.level.block.state.properties.Property<T> p, String v) {
+        return p.getValue(v).map(x -> st.setValue(p, x)).orElse(st);
+    }
+
     private BuildCore core;
     private Blueprint bp;
     /** Palette id each hotbar slot was given, and the tick it was last used. */
     private final int[] slotId = new int[9];
     private final int[] slotUsed = new int[9];
     private final Map<Integer, Item> items = new HashMap<>();
-    private final Map<String, Integer> idByBlock = new HashMap<>();
+    /** Palette id by {@link Placement#key}: block plus the properties a click decides (stair facing, slab type). */
+    private final Map<String, Integer> idByKey = new HashMap<>();
+    private String[] keyById = new String[0];
     private int ticks;
     /** The rotation the builder wants this tick, handed to the silent rotation manager. */
     private float wantYaw, wantPitch;
@@ -113,7 +178,8 @@ public class BuildBattle extends Module {
             return;
         }
         items.clear();
-        idByBlock.clear();
+        idByKey.clear();
+        keyById = new String[bp.palette.size()];
         for (int id = 1; id < bp.palette.size(); id++) {
             String block = Blueprint.blockName(bp.palette.get(id));
             Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(block)).orElse(Items.AIR);
@@ -121,15 +187,17 @@ public class BuildBattle extends Module {
                 item = BuiltInRegistries.BLOCK.getOptional(Identifier.parse(block)).map(b -> b.asItem()).orElse(Items.AIR);
             }
             if (item != Items.AIR) items.put(id, item);
-            idByBlock.putIfAbsent(block, id);
+            keyById[id] = Placement.of(bp.palette.get(id)).key;
+            idByKey.putIfAbsent(keyById[id], id);
         }
-        // blocks with no item to place them with (wall torches, fire, ...) are left to chance
+        // blocks with no item to place them with (wall torches, fire, ...) are left to chance, and so are double
+        // slabs, which one click cannot make
         int skipped = 0;
         for (int y = 0; y < bp.sizeY; y++)
             for (int z = 0; z < bp.sizeZ; z++)
                 for (int x = 0; x < bp.sizeX; x++) {
                     int id = bp.get(x, y, z);
-                    if (id > 0 && !items.containsKey(id)) {
+                    if (id > 0 && (!items.containsKey(id) || Placement.doubleSlab(bp.palette.get(id)))) {
                         bp.set(x, y, z, Blueprint.ANY);
                         skipped++;
                     }
@@ -194,7 +262,8 @@ public class BuildBattle extends Module {
             return;
         }
         if (out.done) {
-            PlayerUtils.addMessageToChat("BuildBattle: done in " + ticks / 20 + "s");
+            PlayerUtils.addMessageToChat("BuildBattle: done in " + ticks / 20 + "s"
+                    + (core.unplaceable > 0 ? ", " + core.unplaceable + " stairs/slabs could not be given their facing" : ""));
             setEnabled(false);
             return;
         }
@@ -329,14 +398,35 @@ public class BuildBattle extends Module {
         public int idAt(int x, int y, int z) {
             BlockState st = level.getBlockState(new BlockPos(x, y, z));
             if (st.isAir() || st.canBeReplaced() && st.getFluidState().isEmpty()) return Blueprint.AIR;
-            String block = BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString();
+            String key = stateKey(st);
             int bx = x - core.ox, by = y - core.oy, bz = z - core.oz;
             if (bp.inside(bx, by, bz)) {
                 int want = bp.get(bx, by, bz);
-                if (want > 0 && Blueprint.blockName(bp.palette.get(want)).equals(block)) return want;
+                if (want > 0 && key.equals(keyById[want])) return want;
             }
-            Integer id = idByBlock.get(block);
+            Integer id = idByKey.get(key);
             return id == null ? -2 : id;
+        }
+
+        /** The block plus the properties that {@link Placement} cares about, spelt as {@link Placement#key} spells them. */
+        private String stateKey(BlockState st) {
+            String block = BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString();
+            List<String> names = Placement.relevant(block);
+            if (names.isEmpty()) return block;
+            StringBuilder sb = new StringBuilder(block).append('[');
+            for (int i = 0; i < names.size(); i++) {
+                sb.append(i == 0 ? "" : ",").append(names.get(i)).append('=');
+                String value = "";
+                for (net.minecraft.world.level.block.state.properties.Property<?> p : st.getProperties()) {
+                    if (p.getName().equals(names.get(i))) value = valueName(st, p);
+                }
+                sb.append(value);
+            }
+            return sb.append(']').toString();
+        }
+
+        private <T extends Comparable<T>> String valueName(BlockState st, net.minecraft.world.level.block.state.properties.Property<T> p) {
+            return p.getName(st.getValue(p));
         }
 
         @Override

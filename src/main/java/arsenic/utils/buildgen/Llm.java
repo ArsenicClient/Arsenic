@@ -21,7 +21,11 @@ public abstract class Llm {
     public record Msg(String role, String text, byte[] png) {
     }
 
-    public record Reply(String text, int inTokens, int outTokens, long ms) {
+    /** A model's answer; reasoning is its thinking text where the API returns one (DeepSeek), else null. */
+    public record Reply(String text, int inTokens, int outTokens, long ms, String reasoning) {
+        public Reply(String text, int inTokens, int outTokens, long ms) {
+            this(text, inTokens, outTokens, ms, null);
+        }
     }
 
     protected final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -104,10 +108,76 @@ public abstract class Llm {
         }
     }
 
+    /** DeepSeek's OpenAI-style chat API; effort is none (no thinking), low, high or max. */
+    public static final class DeepSeek extends Llm {
+        private final String model, effort, key;
+        /** Cap on output tokens, thinking included; 0 leaves it to the API. */
+        public int maxTokens;
+
+        public DeepSeek(String model, String effort, String key) {
+            this.model = model;
+            this.effort = effort;
+            this.key = key;
+        }
+
+        @Override
+        public String name() {
+            return model + " (effort " + effort + ")";
+        }
+
+        @Override
+        public Reply chat(String system, List<Msg> msgs, long timeoutMs) throws Exception {
+            long start = System.nanoTime();
+            JsonObject body = new JsonObject();
+            body.addProperty("model", model);
+            JsonObject thinking = new JsonObject();
+            thinking.addProperty("type", effort.equals("none") ? "disabled" : "enabled");
+            body.add("thinking", thinking);
+            if (!effort.equals("none")) body.addProperty("reasoning_effort", effort);
+            if (maxTokens > 0) body.addProperty("max_tokens", maxTokens);
+            JsonArray messages = new JsonArray();
+            JsonObject sys = new JsonObject();
+            sys.addProperty("role", "system");
+            sys.addProperty("content", system);
+            messages.add(sys);
+            for (Msg m : msgs) {
+                JsonObject jm = new JsonObject();
+                jm.addProperty("role", m.role());
+                JsonArray content = new JsonArray();
+                if (m.png() != null) {
+                    JsonObject url = new JsonObject();
+                    url.addProperty("url", "data:image/png;base64," + Base64.getEncoder().encodeToString(m.png()));
+                    JsonObject img = new JsonObject();
+                    img.addProperty("type", "image_url");
+                    img.add("image_url", url);
+                    content.add(img);
+                }
+                JsonObject text = new JsonObject();
+                text.addProperty("type", "text");
+                text.addProperty("text", m.text());
+                content.add(text);
+                jm.add("content", content);
+                messages.add(jm);
+            }
+            body.add("messages", messages);
+            JsonObject res = post("https://api.deepseek.com/chat/completions", body, timeoutMs, "authorization", "Bearer " + key);
+            JsonObject message = res.getAsJsonArray("choices").get(0).getAsJsonObject().getAsJsonObject("message");
+            // a reply cut off by max_tokens while still thinking has no content
+            String text = message.has("content") && !message.get("content").isJsonNull() ? message.get("content").getAsString() : "";
+            String reasoning = message.has("reasoning_content") && !message.get("reasoning_content").isJsonNull()
+                    ? message.get("reasoning_content").getAsString() : null;
+            JsonObject usage = res.getAsJsonObject("usage");
+            return new Reply(text, usage.get("prompt_tokens").getAsInt(), usage.get("completion_tokens").getAsInt(),
+                    (System.nanoTime() - start) / 1_000_000, reasoning);
+        }
+    }
+
     /** A model served by a local Ollama, thinking on or off. */
     public static final class Ollama extends Llm {
         private final String model, url;
         private final boolean think;
+        /** Context window and reply cap in tokens; a numPredict of -1 lets the model think and write without limit. */
+        public int numCtx = 16384, numPredict = 12000;
 
         public Ollama(String model, boolean think) {
             this(model, think, "http://localhost:11434");
@@ -141,8 +211,8 @@ public abstract class Llm {
             body.addProperty("think", think);
             body.addProperty("keep_alive", "30m");
             JsonObject options = new JsonObject();
-            options.addProperty("num_ctx", 16384);
-            options.addProperty("num_predict", 12000);
+            options.addProperty("num_ctx", numCtx);
+            options.addProperty("num_predict", numPredict);
             body.add("options", options);
             JsonArray messages = new JsonArray();
             JsonObject sys = new JsonObject();

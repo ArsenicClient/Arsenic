@@ -17,7 +17,7 @@ import static arsenic.utils.java.JavaUtils.autoCompleteHelper;
  * Starts BuildBattle on a schematic from the schematics folder: {@code .build} or {@code .build latest} for the last
  * one generated, {@code .build <name>}, {@code .build list}, {@code .build stop}.
  */
-@CommandInfo(name = "build", args = { "latest|name|list|stop" }, help = "builds a schematic from the schematics folder")
+@CommandInfo(name = "build", args = { "latest|name|list|stop", "spawn" }, help = "builds a schematic from the schematics folder; 'spawn' places it instantly in singleplayer")
 public class BuildCommand extends Command {
 
     @Override
@@ -28,7 +28,9 @@ public class BuildCommand extends Command {
             return;
         }
         BuildBattle module = Arsenic.getArsenic().getModuleManager().getModuleByClass(BuildBattle.class);
-        String arg = args.length == 0 ? "latest" : String.join(" ", args).trim();
+        boolean spawn = args.length > 0 && args[args.length - 1].equalsIgnoreCase("spawn");
+        String[] nameArgs = spawn ? Arrays.copyOf(args, args.length - 1) : args;
+        String arg = nameArgs.length == 0 ? "latest" : String.join(" ", nameArgs).trim();
         if (arg.equalsIgnoreCase("stop")) {
             module.setEnabled(false);
             return;
@@ -42,6 +44,10 @@ public class BuildCommand extends Command {
         String name = arg.endsWith(".schem") ? arg.substring(0, arg.length() - 6) : arg;
         if (!new File(BuildBattle.folder(), name + ".schem").isFile()) {
             PlayerUtils.addWaterMarkedMessageToChat("no " + name + ".schem in " + BuildBattle.folder().getPath());
+            return;
+        }
+        if (spawn) {
+            PlayerUtils.addWaterMarkedMessageToChat(BuildBattle.spawn(name));
             return;
         }
         module.schematic.setValue(name + ".schem");
@@ -61,6 +67,7 @@ public class BuildCommand extends Command {
 
     @Override
     protected List<String> getAutoComplete(String str, int arg, List<String> list) {
+        if (arg == 1) return autoCompleteHelper(List.of("spawn"), str);
         if (arg != 0) return list;
         List<String> options = new ArrayList<>(List.of("latest", "list", "stop"));
         for (String n : names()) if (!options.contains(n)) options.add(n);

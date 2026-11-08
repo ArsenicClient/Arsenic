@@ -73,6 +73,10 @@ public final class BuildCore {
         public int skipTicks = 100;
         /** Hover points scored with line of sight (the best this many by cells in reach). */
         public int hoverChecks = 10;
+        /** Degrees off a heading's quadrant edges kept clear when a stair or facing block must face a way. */
+        public double facingMargin = 42;
+        /** Fraction of a block kept clear of the middle when a hit height must pick a stair or slab half. */
+        public double halfMargin = 0.05;
 
         public static Tuning best() {
             return new Tuning();
@@ -153,8 +157,17 @@ public final class BuildCore {
     /** Cells whose hover point gave nothing to click, and the tick until which they wait. */
     private final java.util.Map<Long, Integer> skip = new java.util.HashMap<>();
 
+    /** How each palette id has to be clicked into place (stairs, slabs, blocks that face the player). */
+    private final Placement[] placements;
+    /** Cells to place that no click on a neighbour can give the right state, for now (rebuilt every scan). */
+    private final Set<Long> impossible = new HashSet<>();
+    /** Cells left unplaced at the last scan because no neighbour can be clicked to give their facing or half. */
+    public int unplaceable;
+
     private boolean skipped(int x, int y, int z) {
-        Integer until = skip.get(key(x, y, z));
+        long k = key(x, y, z);
+        if (impossible.contains(k)) return true;
+        Integer until = skip.get(k);
         return until != null && until > ticks;
     }
 
@@ -165,6 +178,8 @@ public final class BuildCore {
         this.oz = oz;
         this.tun = tun;
         need = new int[bp.sizeX * bp.sizeY * bp.sizeZ];
+        placements = new Placement[bp.palette.size()];
+        for (int i = 0; i < placements.length; i++) placements[i] = i == 0 ? Placement.NONE : Placement.of(bp.palette.get(i));
         int[] counts = new int[bp.palette.size()];
         for (int y = 0; y < bp.sizeY; y++)
             for (int z = 0; z < bp.sizeZ; z++)
@@ -172,8 +187,12 @@ public final class BuildCore {
                     int id = bp.get(x, y, z);
                     if (id > 0) counts[id]++;
                 }
+        // scaffolds are the commonest block that any click places the same way
+        boolean found = false;
         for (int i = 1; i < counts.length; i++) {
-            if (counts[i] > counts[scaffoldId]) scaffoldId = i;
+            if (placements[i].constrained()) continue;
+            if (!found || counts[i] > counts[scaffoldId]) scaffoldId = i;
+            found = true;
         }
         outside = new boolean[(bp.sizeX + 2) * (bp.sizeY + 2) * (bp.sizeZ + 2)];
         ArrayDeque<int[]> queue = new ArrayDeque<>();
@@ -288,6 +307,7 @@ public final class BuildCore {
         openPlace = 0;
         openBreak = 0;
         lowestY = Integer.MAX_VALUE;
+        impossible.clear();
         for (int y = 0; y < bp.sizeY; y++)
             for (int z = 0; z < bp.sizeZ; z++)
                 for (int x = 0; x < bp.sizeX; x++) {
@@ -307,13 +327,17 @@ public final class BuildCore {
                         n = have == t ? NEED_NONE : have == Blueprint.AIR ? NEED_PLACE : NEED_BREAK;
                     }
                     need[i] = n;
-                    if (n == NEED_PLACE) {
+                    if (n == NEED_PLACE && placements[t].constrained() && !clickable(w, t, wx, wy, wz)) {
+                        // no neighbour gives it the right facing or half yet; a neighbour placed later may
+                        impossible.add(key(wx, wy, wz));
+                    } else if (n == NEED_PLACE) {
                         openPlace++;
                         if (wy < lowestY && !skipped(wx, wy, wz) && supported(w, wx, wy, wz)) lowestY = wy;
                     } else if (n == NEED_BREAK) {
                         openBreak++;
                     }
                 }
+        unplaceable = impossible.size();
         for (int[] c : scaffoldCells) {
             long k = key(c[0], c[1], c[2]);
             if (scaffoldPlan.contains(k)) {
@@ -326,6 +350,25 @@ public final class BuildCore {
         if (clearing) openBreak += scaffoldUp.size();
         if (lowestY == Integer.MAX_VALUE) lowestY = oy;
         flowUp(w);
+    }
+
+    /** Whether some solid neighbour has a face that can be clicked to give palette id t its facing and half. */
+    private boolean clickable(BuildView w, int t, int x, int y, int z) {
+        Placement pl = placements[t];
+        for (int d = 0; d < 6; d++) {
+            int nx = x + Dir.DX[d], ny = y + Dir.DY[d], nz = z + Dir.DZ[d];
+            if (!solid(w, nx, ny, nz) || needAt(nx, ny, nz) == NEED_BREAK) continue;
+            int face = Dir.opposite(d);
+            if (pl.allows(face) && !merges(w, t, nx, ny, nz, face)) return true;
+        }
+        return false;
+    }
+
+    /** Whether clicking this face of a slab, holding the same kind of slab, would make a double slab instead. */
+    private boolean merges(BuildView w, int t, int nx, int ny, int nz, int face) {
+        if (!placements[t].slab || face != Dir.UP && face != Dir.DOWN) return false;
+        int id = w.idAt(nx, ny, nz);
+        return id > 0 && Blueprint.blockName(bp.palette.get(id)).equals(Blueprint.blockName(bp.palette.get(t)));
     }
 
     /** Whether a cell to place may go in now: low enough, and nothing still to place under it. */
@@ -633,6 +676,8 @@ public final class BuildCore {
         double score;
         boolean ready;
         Ray.Hit hit;
+        /** What the click must give: facing from the heading, half from the face and the height hit. */
+        Placement pl = Placement.NONE;
     }
 
     /** Where on a face to aim, as fractions across its two other axes: the centre first, then toward the corners. */
@@ -655,9 +700,11 @@ public final class BuildCore {
                     if (n == NEED_PLACE) {
                         if (!due(x, y, z)) continue;
                         if (new Box(x, y, z, x + 1, y + 1, z + 1).intersects(guard)) continue;
+                        int t = targetIdAt(x, y, z);
                         for (int d = 0; d < 6; d++) {
                             int nx = x + Dir.DX[d], ny = y + Dir.DY[d], nz = z + Dir.DZ[d];
                             if (!solid(w, nx, ny, nz) || needAt(nx, ny, nz) == NEED_BREAK) continue;
+                            if (!placements[t].allows(Dir.opposite(d)) || merges(w, t, nx, ny, nz, Dir.opposite(d))) continue;
                             // the face of the neighbour that touches the cell, seen from the cell's side
                             add(list, Output.PLACE, x, y, z, nx, ny, nz, Dir.opposite(d), ex, ey, ez, held);
                         }
@@ -714,6 +761,9 @@ public final class BuildCore {
             double dx = px - ex, dy = py - ey, dz = pz - ez;
             if (dx * dx + dy * dy + dz * dz > tun.reach * tun.reach) continue;
             float wy = Ray.yawTo(dx, dz), wp = Ray.pitchTo(dx, dy, dz);
+            // a stair or facing block takes its facing from the heading the server has when the click lands: the
+            // one before this tick's turn, so it must be right already
+            if (c.pl.look >= 0 && (!c.pl.heading(wy, tun.facingMargin) || turnLimited && !c.pl.heading(yaw, tun.facingMargin))) continue;
             float ry = wy, rp = wp;
             if (turnLimited) {
                 if (angle(yaw, pitch, wy, wp) > tun.maxTurn) continue;
@@ -723,6 +773,8 @@ public final class BuildCore {
             }
             Ray.Hit h = ray.trace(w, ex, ey, ez, ry, rp, tun.reach);
             if (h == null || h.x != c.bx || h.y != c.by || h.z != c.bz || h.face != f) continue;
+            // on a side face the half comes from the height hit
+            if (c.pl.half != 0 && Dir.DY[f] == 0 && !c.pl.hitHeight(h.hy - c.by, tun.halfMargin)) continue;
             c.yaw = wy;
             c.pitch = wp;
             c.hit = h;
@@ -759,6 +811,7 @@ public final class BuildCore {
         c.yaw = Ray.yawTo(dx, dz);
         c.pitch = Ray.pitchTo(dx, dy, dz);
         if (action == Output.PLACE) {
+            c.pl = placements[targetIdAt(x, y, z)];
             c.score = (y - lowestY) * tun.layerCost + (targetIdAt(x, y, z) != held ? tun.switchCost : 0);
         } else {
             // clear from the top down, before placing

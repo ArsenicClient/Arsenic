@@ -148,6 +148,8 @@ public final class ScriptRunner {
                 if (thrown[0] != null) return "the script threw " + describe(thrown[0]);
             }
             if (bp.solidCount() == 0) return "the script placed no blocks.";
+            // a block with nothing but blocks round it can never be seen, and the player can never get to it
+            canvas.hollowed = Canvas.hollow(bp, palette, 1);
             r.bp = bp;
             r.report = report(bp, canvas, target);
             return null;
@@ -183,7 +185,7 @@ public final class ScriptRunner {
                 for (int x = 0; x < bp.sizeX; x++) {
                     int id = bp.get(x, y, z);
                     if (id <= 0) continue;
-                    use.merge(bp.palette.get(id).replace("minecraft:", ""), 1, Integer::sum);
+                    use.merge(Blueprint.blockName(bp.palette.get(id)).replace("minecraft:", ""), 1, Integer::sum);
                     x0 = Math.min(x0, x);
                     y0 = Math.min(y0, y);
                     z0 = Math.min(z0, z);
@@ -200,6 +202,12 @@ public final class ScriptRunner {
         int[] parts = components(bp);
         sb.append("connected parts: ").append(parts[0]).append(" (largest ").append(parts[1]).append(" blocks, ").append(parts[2])
                 .append(" single blocks touching nothing)\n");
+        if (canvas.hollowed > 0)
+            sb.append("WARNING: ").append(canvas.hollowed).append(" buried blocks (no exposed face, so unseen and unreachable) were removed. "
+                    + "Build hollow in the first place: hollowBox, shell, hollowCylinder, hollowEllipsoid, or call hollowOut() last, and "
+                    + "count only the blocks that show.\n");
+        for (Map.Entry<String, Integer> e : canvas.badState.entrySet())
+            sb.append("WARNING: invalid ").append(e.getKey()).append(" (").append(e.getValue()).append(" blocks), used the default\n");
         if (canvas.outside > 0) sb.append("WARNING: ").append(canvas.outside).append(" blocks were outside the box and skipped\n");
         for (Map.Entry<String, Integer> e : canvas.unknown.entrySet())
             sb.append("WARNING: '").append(e.getKey()).append("' is not in the palette (").append(e.getValue())

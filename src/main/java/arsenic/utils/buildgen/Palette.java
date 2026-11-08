@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The blocks a generated build may use, and the colour each one is drawn with. Only plain cubes for now: shaped
- * blocks (stairs, slabs, walls) need a facing, which the builder does not place yet. Colours come from colors.txt,
- * made from the game's textures by {@link BlockColors}.
+ * The blocks a generated build may use, and the colour each one is drawn with: plain cubes, plus the stairs and slabs
+ * cut from them (the builder gives those their facing and half). Colours come from colors.txt, made from the game's
+ * textures by {@link BlockColors}.
  */
 public final class Palette {
     public enum Level {
@@ -22,7 +22,9 @@ public final class Palette {
         /** About 90 hand-picked blocks: colours, glass, lights, stone, wood, ores, nature. */
         DETAILED,
         /** Every plain cube in the game. */
-        FULL
+        FULL,
+        /** Every block in the creative menu, any shape (blocks.txt). */
+        ALL
     }
 
     private static final String[] COLOURS = {"white", "light_gray", "gray", "black", "brown", "red", "orange", "yellow",
@@ -46,7 +48,7 @@ public final class Palette {
 
     public Palette(Level level) {
         this.level = level;
-        colours = load();
+        colours = level == Level.ALL ? loadAll() : load();
         List<String> want = new ArrayList<>();
         switch (level) {
             case SIMPLE -> {
@@ -58,25 +60,74 @@ public final class Palette {
                 for (String c : COLOURS) want.add(c + "_terracotta");
                 want.addAll(List.of(DETAILED));
             }
-            case FULL -> want.addAll(colours.keySet());
+            case FULL -> want.addAll(load().keySet());
+            case ALL -> want.addAll(read("blocks.txt").keySet());
         }
         for (String b : want)
             if (colours.containsKey(b) && !blocks.contains(b)) blocks.add(b);
+        findShaped();
+    }
+
+    /** Stems of the stairs and slabs the game has ("oak" for oak_stairs); the plain block each is cut from follows by name. */
+    private static final String[] STAIR_STEMS = {"oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove",
+            "cherry", "bamboo", "crimson", "warped", "stone", "cobblestone", "mossy_cobblestone", "stone_brick",
+            "mossy_stone_brick", "andesite", "diorite", "granite", "polished_andesite", "polished_diorite",
+            "polished_granite", "sandstone", "smooth_sandstone", "red_sandstone", "smooth_red_sandstone", "brick",
+            "mud_brick", "nether_brick", "red_nether_brick", "quartz", "smooth_quartz", "purpur", "prismarine",
+            "prismarine_brick", "dark_prismarine", "end_stone_brick", "blackstone", "polished_blackstone",
+            "polished_blackstone_brick", "cobbled_deepslate", "polished_deepslate", "deepslate_brick", "deepslate_tile",
+            "tuff", "polished_tuff", "tuff_brick"};
+    private static final String[] SLAB_ONLY_STEMS = {"smooth_stone", "cut_sandstone", "cut_red_sandstone"};
+
+    /** The stairs and slabs allowed, named as the game names them (made from the allowed blocks). */
+    public final List<String> shaped = new ArrayList<>();
+
+    private void findShaped() {
+        for (String s : STAIR_STEMS)
+            if (baseOf(s, true) != null) shaped.add(s + "_stairs");
+        for (String s : STAIR_STEMS)
+            if (baseOf(s, true) != null) shaped.add(s + "_slab");
+        for (String s : SLAB_ONLY_STEMS)
+            if (baseOf(s, true) != null) shaped.add(s + "_slab");
+    }
+
+    /** The plain block a stair or slab stem is cut from: "oak" -> oak_planks, "stone_brick" -> stone_bricks. */
+    private String baseOf(String stem, boolean allowedOnly) {
+        for (String c : new String[]{stem, stem + "_planks", stem + "s", stem + "_block"})
+            if (allowedOnly ? blocks.contains(c) : colours.containsKey(c)) return c;
+        return null;
+    }
+
+    /** Whether a name is one of the stairs or slabs the game has, made from a block allowed here. */
+    private boolean shapedAllowed(String block) {
+        return shaped.contains(block);
+    }
+
+    /** "oak_stairs" -> the plain block it is drawn with ("oak_planks"), or null if it is not a stair or slab. */
+    private String shapeBase(String block) {
+        String stem = block.endsWith("_stairs") ? block.substring(0, block.length() - 7)
+                : block.endsWith("_slab") ? block.substring(0, block.length() - 5) : null;
+        return stem == null ? null : baseOf(stem, false);
     }
 
     public boolean has(String block) {
-        return blocks.contains(block);
+        return blocks.contains(block) || shapedAllowed(block);
     }
 
-    /** r, g, b, a (0-255) of a block, grey if unknown. */
+    /** r, g, b, a (0-255) of a block, grey if unknown. Stairs and slabs take their plain block's colour. */
     public int[] colour(String block) {
         int[] c = colours.get(block);
+        if (c == null) {
+            String base = shapeBase(block);
+            if (base != null) c = colours.get(base);
+        }
         return c == null ? new int[]{128, 128, 128, 255} : c;
     }
 
     /** The allowed blocks closest in spelling to a name that is not allowed, for the error message. */
     public List<String> closest(String name, int n) {
         List<String> sorted = new ArrayList<>(blocks);
+        sorted.addAll(shaped);
         sorted.sort((a, b) -> Integer.compare(distance(a, name), distance(b, name)));
         return sorted.subList(0, Math.min(n, sorted.size()));
     }
@@ -95,13 +146,26 @@ public final class Palette {
         return prev[b.length()];
     }
 
-    private static Map<String, int[]> cache;
+    private static Map<String, int[]> cache, cacheAll;
 
     private static synchronized Map<String, int[]> load() {
-        if (cache != null) return cache;
+        if (cache == null) cache = read("colors.txt");
+        return cache;
+    }
+
+    /** Every creative block; the cube colours from colors.txt win, being made from the top and side faces. */
+    private static synchronized Map<String, int[]> loadAll() {
+        if (cacheAll == null) {
+            cacheAll = new LinkedHashMap<>(read("blocks.txt"));
+            cacheAll.putAll(load());
+        }
+        return cacheAll;
+    }
+
+    private static Map<String, int[]> read(String file) {
         Map<String, int[]> m = new LinkedHashMap<>();
-        try (InputStream in = Palette.class.getResourceAsStream("/buildgen/colors.txt")) {
-            if (in == null) throw new IllegalStateException("buildgen/colors.txt is missing");
+        try (InputStream in = Palette.class.getResourceAsStream("/buildgen/" + file)) {
+            if (in == null) throw new IllegalStateException("buildgen/" + file + " is missing");
             BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             for (String line; (line = r.readLine()) != null; ) {
                 String[] p = line.trim().split(" ");
@@ -111,7 +175,6 @@ public final class Palette {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-        cache = m;
         return m;
     }
 }

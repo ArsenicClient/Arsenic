@@ -2562,6 +2562,23 @@ public final class BedwarsTracker {
 }
 ```
 
+### arsenic.utils.minecraft.BuildGallery
+
+```java
+public final class BuildGallery {
+    public static void startAtLaunch(String folders);
+}
+```
+
+### arsenic.utils.minecraft.BuildShots
+
+```java
+public final class BuildShots {
+    /** At launch: opens the buildshot world by itself and quits when done. */ public static void startAtLaunch(String folder, boolean redo);
+    /** From a command, in the singleplayer world the player is in. Returns the chat message. */ public static String start(File folder, boolean redo);
+}
+```
+
 ### arsenic.utils.minecraft.ContainerUtils
 
 ```java
