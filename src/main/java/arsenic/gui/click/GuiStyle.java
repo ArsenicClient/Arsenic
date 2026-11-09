@@ -160,12 +160,13 @@ public final class GuiStyle implements ISerializable {
 
     public void setClickGuiKey(int clickGuiKey) { this.clickGuiKey = clickGuiKey; }
 
-    public boolean isCustomMenus() { return customMenus; }
+    /** The saved setting is left alone under OneClient and Lunar; it only reads as off while running in them. */
+    public boolean isCustomMenus() { return customMenus && !arsenic.runtime.Platform.hasOwnMenus(); }
 
     public void setCustomMenus(boolean customMenus) { this.customMenus = customMenus; }
 
     /** For the game's hooks: when false they leave the vanilla menus alone. */
-    public static boolean customMenus() { return INSTANCE.customMenus; }
+    public static boolean customMenus() { return INSTANCE.customMenus && !arsenic.runtime.Platform.hasOwnMenus(); }
 
     public Preset getPreset() { return preset; }
 

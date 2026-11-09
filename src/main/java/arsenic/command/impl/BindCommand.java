@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import arsenic.command.Command;
 import arsenic.command.CommandInfo;
+import arsenic.gui.click.GuiStyle;
 import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.utils.java.BindUtils;
@@ -17,6 +18,10 @@ public class BindCommand extends Command {
 
     @Override
     public void execute(String[] args) {
+        if (args[0].equalsIgnoreCase("clickgui")) {
+            bindClickGui(args[1]);
+            return;
+        }
         Module module = Arsenic.getArsenic().getModuleManager().getModuleByName(args[0]);
         if (module == null) {
             PlayerUtils.addWaterMarkedMessageToChat(args[0] + " is not a valid module");
@@ -33,10 +38,25 @@ public class BindCommand extends Command {
         Arsenic.getArsenic().getConfigManager().saveConfig();
     }
 
+    /** The ClickGUI isn't a module; its key lives in the GUI style and only takes keyboard keys. */
+    private void bindClickGui(String keyName) {
+        int bind = BindUtils.parse(keyName);
+        if (bind == 0 || BindUtils.isMouse(bind)) {
+            PlayerUtils.addWaterMarkedMessageToChat(keyName + " is not a keyboard key");
+            return;
+        }
+        GuiStyle.get().setClickGuiKey(bind);
+        PlayerUtils.addWaterMarkedMessageToChat("Bound ClickGUI to " + BindUtils.getKeyName(bind));
+        Arsenic.getArsenic().getConfigManager().saveConfig();
+    }
+
     @Override
     public List<String> getAutoComplete(String str, int arg, List<String> list) {
-        if (arg == 0)
-            return autoCompleteHelper(Arsenic.getArsenic().getModuleManager().getModules().stream().map(Module::getName).collect(Collectors.toList()), str);
+        if (arg == 0) {
+            List<String> names = Arsenic.getArsenic().getModuleManager().getModules().stream().map(Module::getName).collect(Collectors.toList());
+            names.add("ClickGUI");
+            return autoCompleteHelper(names, str);
+        }
         if (arg == 1)
             return autoCompleteHelper(BindUtils.allNames(), str);
         return list;

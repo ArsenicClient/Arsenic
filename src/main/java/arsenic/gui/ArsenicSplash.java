@@ -302,11 +302,18 @@ public final class ArsenicSplash {
     }
 
     public static void start() {
+        // OneClient and Lunar draw their own menus over GL state they track themselves: no loading screen there
+        if (arsenic.runtime.Platform.hasOwnMenus())
+            return;
         try {
             loadTheme();
-            setGL();
-            loadLogo();
-            buildFont();
+            glPushAttrib(GL_TEXTURE_BIT);
+            try {
+                loadLogo();
+                buildFont();
+            } finally {
+                glPopAttrib();
+            }
             startedAt = System.currentTimeMillis();
             enabled = true;
         } catch (Throwable t) {
@@ -330,13 +337,30 @@ public final class ArsenicSplash {
         enabled = false;
         glDeleteTextures(logoTex);
         glDeleteTextures(fontTex);
-        clearGL();
     }
 
+    /**
+     * One frame of the splash. It draws with plain GL calls, behind the back of the game's state cache
+     * (GlStateManager), so everything it changes is put back before the game or the client's own loading runs again.
+     */
     private static void frame() {
         shown += (Math.min(1f, goal) - shown) * 0.25f;
         float fade = Math.min(1f, (System.currentTimeMillis() - startedAt) / 600f) * fadeOut;
-        draw(Display.getWidth(), Display.getHeight(), shown, message, fade);
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        try {
+            setGL();
+            draw(Display.getWidth(), Display.getHeight(), shown, message, fade);
+        } finally {
+            glMatrixMode(GL_PROJECTION);
+            glPopMatrix();
+            glMatrixMode(GL_MODELVIEW);
+            glPopMatrix();
+            glPopAttrib();
+        }
         Display.update();
         Display.sync(60);
     }
@@ -628,16 +652,5 @@ public final class ArsenicSplash {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    }
-
-    /** The GL state the game expects, and the viewport for the window as it is now. */
-    private static void clearGL() {
-        glColor4f(1f, 1f, 1f, 1f);
-        glClearColor(1, 1, 1, 1);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, .1f);
-        glViewport(0, 0, Display.getWidth(), Display.getHeight());
     }
 }

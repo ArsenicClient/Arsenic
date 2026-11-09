@@ -18,6 +18,27 @@ public final class Platform {
         return FORGE;
     }
 
+    private static Boolean ownMenus;
+
+    /**
+     * True in OneClient (Polyfrost) and Lunar Client, which draw their own menus: the client's loading screen, custom
+     * menus and screen transitions stay out of their way. Found from the launch.
+     */
+    public static boolean hasOwnMenus() {
+        if (ownMenus == null) {
+            String launch = System.getProperty("java.class.path", "") + ' ' + System.getProperty("sun.java.command", "")
+                    + ' ' + System.getProperty("user.dir", "") + ' ' + System.getProperty("java.library.path", "");
+            try {
+                launch += ' ' + String.join(" ", java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments());
+            } catch (Throwable ignored) {
+            }
+            launch = launch.toLowerCase(java.util.Locale.ROOT);
+            ownMenus = launch.contains("oneclient") || launch.contains("polyfrost")
+                    || launch.contains("lunarclient") || launch.contains("com.moonsworth.lunar");
+        }
+        return ownMenus;
+    }
+
     private static boolean present(String name) {
         try {
             Class.forName(name, false, Platform.class.getClassLoader());

@@ -73,10 +73,24 @@ public class ModuleManager {
         return null;
     }
 
+    /**
+     * Keys whose press was already handled. The press event comes from a bytecode hook in runTick, which other
+     * clients' patches to runTick (OneClient's) can break, so onGameLoop polls the bound keys too and skips any
+     * press this set shows the hook delivered.
+     */
+    private final Set<Integer> handledKeys = new HashSet<>();
+
     @EventLink
     public final Listener<EventKey> onKeyPress = event -> {
+        // the poll below can see a press before the runTick hook delivers it; whichever comes second is a repeat
+        if (!handledKeys.contains(event.getKeycode()))
+            handleKey(event.getKeycode());
+    };
+
+    private void handleKey(int keycode) {
+        handledKeys.add(keycode);
         int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
-        if (clickGuiKey != 0 && event.getKeycode() == clickGuiKey) {
+        if (clickGuiKey != 0 && keycode == clickGuiKey) {
             if (Minecraft.getMinecraft().currentScreen instanceof arsenic.gui.click.ClickGuiScreen) {
                 ((arsenic.gui.click.ClickGuiScreen) Minecraft.getMinecraft().currentScreen).startClosing();
             } else {
@@ -88,14 +102,40 @@ public class ModuleManager {
         // a key press is rare enough to just walk the modules; a bind cache would also have to follow config loads
         boolean toggled = false;
         for (Module m : getModules()) {
-            if (m.getKeybind() != event.getKeycode() || m.getKeybindMode() != KeybindMode.TOGGLE)
+            if (m.getKeybind() != keycode || m.getKeybindMode() != KeybindMode.TOGGLE)
                 continue;
             m.setEnabled(!m.isEnabled());
             toggled = true;
         }
         if (toggled)
             Arsenic.getArsenic().getConfigManager().saveConfig();
-    };
+    }
+
+    /** Presses of bound keys the runTick hook did not deliver. */
+    private void pollPresses() {
+        boolean live = Display.isActive() && Minecraft.getMinecraft().currentScreen == null;
+        List<Integer> keys = new ArrayList<>();
+        int clickGuiKey = arsenic.gui.click.GuiStyle.get().getClickGuiKey();
+        if (clickGuiKey != 0)
+            keys.add(clickGuiKey);
+        for (Module m : getModules()) {
+            if (m.getKeybind() != 0 && m.getKeybindMode() == KeybindMode.TOGGLE)
+                keys.add(m.getKeybind());
+        }
+        // presses of keys nothing is bound to must not stay marked, or binding one later would miss its first press
+        handledKeys.retainAll(keys);
+        for (int key : keys) {
+            boolean down = BindUtils.isDown(key);
+            if (!down) {
+                handledKeys.remove(key);
+            } else if (!live) {
+                // held through a screen or an unfocused window: not a new press once the game is live again
+                handledKeys.add(key);
+            } else if (!handledKeys.contains(key)) {
+                handleKey(key);
+            }
+        }
+    }
 
     /**
      * Hold binds are polled instead of read from presses: the module is on exactly while its key is down. They stay
@@ -105,6 +145,7 @@ public class ModuleManager {
     public final Listener<EventGameLoop> onGameLoop = event -> {
         if (modules.isEmpty())
             return;
+        pollPresses();
         boolean windowActive = Display.isActive();
         for (Module module : getModules()) {
             if (module.getKeybindMode() != KeybindMode.HOLD || module.getKeybind() == 0)
