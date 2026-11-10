@@ -250,21 +250,5 @@ loom {
             // forces every mixin to apply at startup, see Arsenic#onInitializeClient
             vmArg "-Darsenic.auditMixins=true"
         }
-        // ./gradlew runBuildshot -Pshots=<folder> [-Predo=true]: screenshots every .schem under the folder, then quits
-        buildshot {
-            client()
-            name "Buildshot"
-            runDir "run"
-            vmArg "-Darsenic.buildshot=${project.findProperty('shots') ?: ''}"
-            vmArg "-Darsenic.buildshot.redo=${project.findProperty('redo') ?: 'false'}"
-            programArgs "--width", "1280", "--height", "720"
-        }
-        // ./gradlew runGallery -Pgallery=<folder>;<folder>: a walkable world of every build in run/saves, then quits
-        gallery {
-            client()
-            name "Gallery"
-            runDir "run"
-            vmArg "-Darsenic.gallery=${project.findProperty('gallery') ?: ''}"
-        }
     }
 }
