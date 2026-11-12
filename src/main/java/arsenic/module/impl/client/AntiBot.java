@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Filters fake players (NPCs, lobby bots, server dummies) out of targeting, ESP and nametags.
@@ -61,13 +62,18 @@ public class AntiBot extends Module {
         double x, z;
         int still, seen;
 
-        Track(double x, double z) {
-            this.x = x;
-            this.z = z;
+        final UUID id;
+
+        Track(EntityPlayer player) {
+            this.x = player.posX;
+            this.z = player.posZ;
+            this.id = player.getUniqueID();
         }
     }
 
     private static final Map<Integer, Track> TRACKS = new HashMap<>();
+    private static final Map<Integer, UUID> STATIONARY_NPCS = new HashMap<>();
+    private static Object trackedWorld;
 
     /** Lower-cased tab names, rebuilt once per world tick instead of once per entity. */
     private static final Set<String> TAB_NAMES = new HashSet<>();
@@ -76,12 +82,19 @@ public class AntiBot extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> onTick = event -> {
+        if (trackedWorld != mc.theWorld) {
+            trackedWorld = mc.theWorld;
+            TRACKS.clear();
+            STATIONARY_NPCS.clear();
+            TAB_NAMES.clear();
+            tabStamp = Long.MIN_VALUE;
+        }
         Map<Integer, Track> next = new HashMap<>();
         for (EntityPlayer p : mc.theWorld.playerEntities) {
             if (p == mc.thePlayer) continue;
             Track t = TRACKS.get(p.getEntityId());
-            if (t == null) {
-                t = new Track(p.posX, p.posZ);
+            if (t == null || !java.util.Objects.equals(t.id, p.getUniqueID())) {
+                t = new Track(p);
             } else if (Math.abs(t.x - p.posX) > 0.001 || Math.abs(t.z - p.posZ) > 0.001) {
                 t.x = p.posX;
                 t.z = p.posZ;
@@ -90,6 +103,13 @@ public class AntiBot extends Module {
                 t.still++;
             }
             t.seen++;
+            UUID id = p.getUniqueID();
+            if (STATIONARY_NPCS.containsKey(p.getEntityId())
+                    && !STATIONARY_NPCS.get(p.getEntityId()).equals(id))
+                STATIONARY_NPCS.remove(p.getEntityId());
+            if (id != null && stationaryChecks.getValue() && onServer() && !inTab(p)
+                    && t.still >= (int) (stillTime.getValue().getInput() * 20))
+                STATIONARY_NPCS.put(p.getEntityId(), id);
             next.put(p.getEntityId(), t);
         }
         TRACKS.clear();
@@ -112,6 +132,10 @@ public class AntiBot extends Module {
         boolean onServer = onServer();
         boolean listed = !onServer || inTab(player);
         int graceTicks = (int) (tabGrace.getValue().getInput() * 20);
+
+        if (stationaryChecks.getValue() && trackedWorld == mc.theWorld
+                && player.getUniqueID() != null
+                && player.getUniqueID().equals(STATIONARY_NPCS.get(player.getEntityId()))) return true;
 
         if (zeroHealthChecks.getValue()) {
             if (player.getHealth() <= 0.0F || en.isDead) {
