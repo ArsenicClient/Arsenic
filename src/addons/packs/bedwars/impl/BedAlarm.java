@@ -10,6 +10,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.module.impl.client.AntiBot;
 import arsenic.module.property.impl.BooleanProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
@@ -34,6 +35,7 @@ import java.util.Set;
  * respawn, corrected by "You can't destroy your own bed!" if you ever hit it. Destruction is reported from the
  * server's bed destruction message, not from locally missing blocks. It also warns once when an enemy (not a
  * teammate or friend) comes within range of your bed, and again after they leave and return.
+ * Teammates are skipped with the same team check Targets uses, and players AntiBot flags are ignored.
  * Nothing is shown outside a BedWars game.
  */
 @ModuleInfo(name = "BedAlarm", description = "Highlights your bed in BedWars and alerts when it is broken", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
@@ -102,7 +104,7 @@ public class BedAlarm extends Module {
         double range = enemyRange.getValue().getInput();
         Set<Integer> inRange = new HashSet<>();
         for (EntityPlayer p : mc.theWorld.playerEntities) {
-            if (p == mc.thePlayer || p.isDead || p.isOnSameTeam(mc.thePlayer)) continue;
+            if (p == mc.thePlayer || p.isDead || AntiBot.isBot(p) || PlayerUtils.isEntityTeamSameAsPlayer(p)) continue;
             if (Arsenic.getArsenic().getFriendManager().isFriend(p)) continue;
             double nearest = Double.MAX_VALUE;
             for (BlockPos bed : beds)
