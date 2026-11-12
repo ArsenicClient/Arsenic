@@ -18,9 +18,6 @@ Two ways in:
 Configs, addons, themes and everything else Arsenic saves live in one `Arsenic` folder in your home folder
 (`C:\Users\<name>\Arsenic` on Windows, `~/Arsenic` elsewhere), so they are the same whichever launcher you play on.
 An `Arsenic` folder left in a game folder by an older version is copied there the first time.
-
-AntiBot remembers stationary, unlisted NPCs by entity ID and UUID for the current world, so they remain filtered if
-their movement or tab-list status changes. Disabling Stationary Checks disables this remembered classification.
   
 
 ## Addons (make your own with AI)
@@ -70,8 +67,6 @@ Helpful docs:
 
 Default addons live in [`src/addons`](src/addons): loose ones in `java/`, packs in `packs/<id>/`. They are written
 exactly like user addons.
-
-BedWars tracking recognizes numbered and cosmetic bed destruction messages and retains known bed positions through temporary block unloads; an unrecognized or missed destruction message can leave the position stale.
 
 ## Credits
 
