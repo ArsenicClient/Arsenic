@@ -381,9 +381,12 @@ public final class RenderHooks {
     }
 
     /** renderModel HEAD. */
-    public static void renderModelHead(RendererLivingEntity<?> self, EntityLivingBase entity, float limbSwing, float limbSwingAmount,
-                                       float ageInTicks, float netHeadYaw, float headPitch, float scale) {
+    public static boolean renderModelHead(RendererLivingEntity<?> self, EntityLivingBase entity, float limbSwing, float limbSwingAmount,
+                                          float ageInTicks, float netHeadYaw, float headPitch, float scale) {
+        if (ChamsRenderer.renderInvisibleModel(self, entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale))
+            return true;
         ChamsRenderer.beginModel(entity);
+        return false;
     }
 
     /** renderModel RETURN. */

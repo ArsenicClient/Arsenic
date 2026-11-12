@@ -5,6 +5,7 @@ import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.visual.ESP;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.RendererLivingEntity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
@@ -40,6 +41,28 @@ public final class ChamsRenderer {
 
         GL11.glDisable(POLYGON_OFFSET_FILL);
         GL11.glPolygonOffset(1f, OFFSET_UNITS);
+    }
+
+    public static boolean renderInvisibleModel(RendererLivingEntity<?> renderer, EntityLivingBase entity,
+                                               float limbSwing, float limbSwingAmount, float ageInTicks,
+                                               float netHeadYaw, float headPitch, float scale) {
+        if (!entity.isInvisible() || entity == mc.thePlayer || !(entity instanceof EntityPlayer) || AntiBot.isBot(entity))
+            return false;
+        boolean glow = GlowRenderer.isRenderingSilhouettes();
+        if (!glow && !isTarget(entity))
+            return false;
+        if (glow) {
+            GlStateManager.disableTexture2D();
+        } else {
+            beginModel(entity);
+        }
+        try {
+            renderer.getMainModel().render(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
+        } finally {
+            if (glow) GlStateManager.enableTexture2D();
+            else endModel();
+        }
+        return true;
     }
 
 

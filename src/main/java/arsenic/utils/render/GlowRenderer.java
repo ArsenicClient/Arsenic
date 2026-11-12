@@ -25,6 +25,12 @@ public final class GlowRenderer {
     private static final int FRAMEBUFFER_BINDING = 0x8CA6;
     private static final int CURRENT_PROGRAM = 0x8B8D;
 
+    private static boolean renderingSilhouettes;
+
+    public static boolean isRenderingSilhouettes() {
+        return renderingSilhouettes;
+    }
+
     private static final float ALPHA_THRESHOLD = 0.05f;
 
     private Framebuffer entityBuffer;
@@ -161,8 +167,11 @@ public final class GlowRenderer {
                 RenderUtils.setAlphaLimit(0f);
 
                 try {
+                    renderingSilhouettes = true;
                     renderManager.renderEntityStatic(target, partialTicks, false);
                 } catch (Throwable ignored) {
+                } finally {
+                    renderingSilhouettes = false;
                 }
             }
         } finally {

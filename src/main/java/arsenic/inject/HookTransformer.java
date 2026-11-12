@@ -241,7 +241,7 @@ public final class HookTransformer implements ClassFileTransformer {
         add(Kind.HEAD_RETURN, rle, "canRenderName", "(Lnet/minecraft/entity/EntityLivingBase;)Z", RENDER_HOOKS, "canRenderName");
         add(Kind.HEAD, rle, "doRender", doRender, RENDER_HOOKS, "doRenderHead");
         add(Kind.RETURN, rle, "doRender", doRender, RENDER_HOOKS, "doRenderReturn");
-        add(Kind.HEAD, rle, "renderModel", renderModel, RENDER_HOOKS, "renderModelHead");
+        add(Kind.HEAD_CANCEL, rle, "renderModel", renderModel, RENDER_HOOKS, "renderModelHead");
         add(Kind.RETURN, rle, "renderModel", renderModel, RENDER_HOOKS, "renderModelReturn");
 
         add(Kind.ARG, "client/gui/FontRenderer", "renderString", "(Ljava/lang/String;FFIZ)I", RENDER_HOOKS, "renderStringText").index(0);
