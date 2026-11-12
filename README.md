@@ -68,6 +68,8 @@ Helpful docs:
 Default addons live in [`src/addons`](src/addons): loose ones in `java/`, packs in `packs/<id>/`. They are written
 exactly like user addons.
 
+BedWars tracking recognizes numbered and cosmetic bed destruction messages and retains known bed positions through temporary block unloads; an unrecognized or missed destruction message can leave the position stale.
+
 ## Credits
 
 Thanks to everyone who has contributed:

@@ -30,6 +30,8 @@ import java.util.regex.Pattern;
  * You can't destroy your own bed!                        the bed you just tried to mine is yours
  * BED DESTRUCTION > Your Bed was destroyed by NAME!      your bed is gone
  * BED DESTRUCTION > Red Bed was destroyed by NAME!       another team's bed is gone
+ * BED DESTRUCTION > Your Bed was bed #16,486 destroyed by NAME!  numbered kill message
+ * BED DESTRUCTION > Your Bed was dreadfully corrupted by NAME!   cosmetic destruction message
  * TEAM ELIMINATED > Red Team has been eliminated!        a team is out
  * </pre>
  * Your bed is first taken as the bed nearest to where you stand when the game starts or you respawn (searched for a few
@@ -38,7 +40,7 @@ import java.util.regex.Pattern;
  */
 public final class BedwarsTracker {
 
-    private static final Pattern BED_DESTROYED = Pattern.compile("^BED DESTRUCTION > (\\w+) Bed was destroyed by (\\w+)!?$");
+    private static final Pattern BED_DESTROYED = Pattern.compile("^BED DESTRUCTION > (\\w+) Bed was .+ by (\\w+)!?$");
     private static final Pattern TEAM_ELIMINATED = Pattern.compile("^TEAM ELIMINATED > (\\w+) Team has been eliminated!?$");
     private static final int SEARCH_RADIUS = 20;
     private static final int SEARCH_TICKS = 200;
@@ -136,9 +138,6 @@ public final class BedwarsTracker {
             if (searchTicks % 10 == 0 && ownBed.isEmpty())
                 findNearestBed();
         }
-        // a known bed that is gone from a loaded chunk no longer counts as your bed
-        if (!ownBed.isEmpty() && mc.thePlayer.ticksExisted % 10 == 0)
-            ownBed.removeIf(p -> world.isBlockLoaded(p) && !(world.getBlockState(p).getBlock() instanceof BlockBed));
     };
 
     private static void read(String line) {
