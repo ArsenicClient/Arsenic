@@ -19,7 +19,6 @@ import arsenic.utils.minecraft.PlayerUtils;
 import arsenic.utils.render.DrawUtils;
 import arsenic.utils.render.RenderUtils;
 import arsenic.utils.timer.MSTimer;
-import net.minecraft.block.BlockBed;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.BlockPos;
 
@@ -32,10 +31,10 @@ import java.util.Set;
  * Highlights your bed and alerts when it is broken.
  *
  * Which bed is yours comes from BedwarsTracker: the bed nearest to where you stand when the game starts or you
- * respawn, corrected by "You can't destroy your own bed!" if you ever hit it. The alert fires as soon as a half of
- * your bed disappears from a loaded chunk, or when the server says "BED DESTRUCTION > Your Bed was destroyed",
- * whichever comes first. It also warns once when an enemy (not a teammate or friend) comes within the enemy range
- * of your bed, and again only after they have left and come back. Nothing is shown outside a BedWars game.
+ * respawn, corrected by "You can't destroy your own bed!" if you ever hit it. Destruction is reported from the
+ * server's bed destruction message, not from locally missing blocks. It also warns once when an enemy (not a
+ * teammate or friend) comes within range of your bed, and again after they leave and return.
+ * Nothing is shown outside a BedWars game.
  */
 @ModuleInfo(name = "BedAlarm", description = "Highlights your bed in BedWars and alerts when it is broken", category = ModuleCategory.PLAYER, tier = ModuleTier.QOL)
 public class BedAlarm extends Module {
@@ -76,21 +75,21 @@ public class BedAlarm extends Module {
         }
 
         List<BlockPos> known = BedwarsTracker.ownBed();
-        if (!known.isEmpty() && !beds.containsAll(known)) {
+        if (!alarmed && !BedwarsTracker.ownBedDestroyed() && !beds.equals(known)) {
             beds.clear();
             beds.addAll(known);
-            if (!announced && chat.getValue())
-                PlayerUtils.addWaterMarkedMessageToChat("BedAlarm found your bed and is guarding it.");
-            announced = true;
+            nearEnemies.clear();
+            if (!beds.isEmpty() && !announced) {
+                if (chat.getValue())
+                    PlayerUtils.addWaterMarkedMessageToChat("BedAlarm found your bed and is guarding it.");
+                announced = true;
+            }
         }
 
-        boolean lost = false;
-        for (BlockPos p : beds)
-            if (mc.theWorld.isBlockLoaded(p) && !(mc.theWorld.getBlockState(p).getBlock() instanceof BlockBed))
-                lost = true;
-        if ((lost || BedwarsTracker.ownBedDestroyed()) && !alarmed) {
+        if (BedwarsTracker.ownBedDestroyed() && !alarmed) {
             alarmed = true;
             beds.clear();
+            nearEnemies.clear();
             alarmTimer.reset();
             if (chat.getValue()) PlayerUtils.addWaterMarkedMessageToChat("Your bed was broken!");
             if (sound.getValue()) mc.thePlayer.playSound("random.anvil_land", 1f, 0.8f);
@@ -139,8 +138,8 @@ public class BedAlarm extends Module {
         boolean enemyNear = enemyTimer.getTime() < 5000 && !nearEnemies.isEmpty();
         String text;
         if (alarming) text = "Bed broken!";
+        else if (alarmed || BedwarsTracker.ownBedDestroyed()) text = "Bed lost";
         else if (enemyNear) text = "Enemy near bed!";
-        else if (BedwarsTracker.ownBedDestroyed()) text = "Bed lost";
         else if (!beds.isEmpty()) text = "Bed OK";
         else text = "Looking for your bed...";
         panel.setSize(Math.max(150, mc.fontRendererObj.getStringWidth(text) + 12), 16);
