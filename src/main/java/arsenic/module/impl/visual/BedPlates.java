@@ -16,6 +16,7 @@ import arsenic.module.ModuleTier;
 import arsenic.module.property.impl.doubleproperty.DoubleProperty;
 import arsenic.module.property.impl.doubleproperty.DoubleValue;
 import arsenic.utils.font.FontRendererExtension;
+import arsenic.utils.minecraft.BedwarsTracker;
 import arsenic.utils.render.DrawUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBed;
@@ -200,7 +201,7 @@ public class BedPlates extends Module {
 
         for (Map.Entry<BlockPos, List<ItemStack>> entry : bedCache.entrySet()) {
             BlockPos pos = entry.getKey();
-            if (pos.distanceSq(mc.thePlayer.getPosition()) > maxSq)
+            if (BedwarsTracker.isOwnBed(pos) || pos.distanceSq(mc.thePlayer.getPosition()) > maxSq)
                 continue;
             List<ItemStack> blocks = entry.getValue();
 
