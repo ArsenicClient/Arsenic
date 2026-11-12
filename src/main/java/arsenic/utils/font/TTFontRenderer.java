@@ -50,6 +50,8 @@ public class TTFontRenderer implements IFontRenderer {
     private static final int MAX_ATLASES = 12;
     /** Ratio between two neighbouring raster sizes for text that can't be pixel-snapped. */
     private static final double SIZE_STEP_RATIO = 1.2;
+    /** Keep small world-space glyphs detailed enough to survive perspective minification. */
+    private static final int MIN_WORLD_RASTER = 32;
     /** World-space text bigger than this on screen is scaled up from it: huge glyphs are slow to rasterise. */
     private static final int MAX_WORLD_RASTER = 128;
 
@@ -174,7 +176,7 @@ public class TTFontRenderer implements IFontRenderer {
             // the player used to rasterise giant glyphs into new atlases each frame.
             if (!transform.mayShow(x, y, getWidth(text.toString()), height))
                 return;
-            atlas = atlas(Math.min(MAX_WORLD_RASTER, sizeStep(rasterSize)), true);
+            atlas = atlas(Math.max(MIN_WORLD_RASTER, Math.min(MAX_WORLD_RASTER, sizeStep(rasterSize))), true);
         }
         float unit = emSize / atlas.pixelSize;
 
