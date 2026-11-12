@@ -8,6 +8,7 @@ import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
 import arsenic.module.ModuleTier;
+import arsenic.module.property.impl.BooleanProperty;
 import arsenic.utils.rotations.RotationUtils;
 import arsenic.utils.timer.MSTimer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -27,6 +28,7 @@ public class AntiFireball extends Module {
     private static final double RANGE = 4.5;
 
     private static final int MIN_FIREBALL_AGE_TICKS = 10;
+    public final BooleanProperty autoPunch = new BooleanProperty("AutoPunch", true);
 
     private Entity target;
     private final MSTimer attackTimer = new MSTimer();
@@ -39,6 +41,10 @@ public class AntiFireball extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventSilentRotation> eventSilentRotation = event -> {
+        if (!autoPunch.getValue()) {
+            target = null;
+            return;
+        }
         target = findBestFireball();
         if (target == null)
             return;
@@ -57,7 +63,7 @@ public class AntiFireball extends Module {
     @RequiresPlayer
     @EventLink
     public final Listener<EventTick> eventTick = event -> {
-        if (target == null || !target.isEntityAlive())
+        if (!autoPunch.getValue() || target == null || !target.isEntityAlive())
             return;
 
         if (RotationUtils.getDistanceToEntityBox(target) > RANGE)
