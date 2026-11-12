@@ -18,6 +18,9 @@ Two ways in:
 Configs, addons, themes and everything else Arsenic saves live in one `Arsenic` folder in your home folder
 (`C:\Users\<name>\Arsenic` on Windows, `~/Arsenic` elsewhere), so they are the same whichever launcher you play on.
 An `Arsenic` folder left in a game folder by an older version is copied there the first time.
+
+World-space text uses a minimum 32-pixel font atlas raster to retain glyph detail at small on-screen sizes; GUI text
+keeps its existing raster sizing.
   
 
 ## Addons (make your own with AI)
