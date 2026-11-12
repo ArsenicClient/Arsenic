@@ -3,6 +3,7 @@ import arsenic.main.Arsenic;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
+import arsenic.notifications.NotificationManager;
 import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
@@ -17,6 +18,16 @@ import java.util.List;
 public class PanicKey extends Module {
 
     private final List<Module> switchedOff = new ArrayList<>();
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        if (enabled) NotificationManager.setSuppressed(true);
+        try {
+            super.setEnabled(enabled);
+        } finally {
+            if (!enabled) NotificationManager.setSuppressed(false);
+        }
+    }
 
     @Override
     protected void onEnable() {

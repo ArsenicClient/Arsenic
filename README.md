@@ -18,6 +18,8 @@ Two ways in:
 Configs, addons, themes and everything else Arsenic saves live in one `Arsenic` folder in your home folder
 (`C:\Users\<name>\Arsenic` on Windows, `~/Arsenic` elsewhere), so they are the same whichever launcher you play on.
 An `Arsenic` folder left in a game folder by an older version is copied there the first time.
+
+PanicKey clears visible and queued notifications and suppresses new ones while panic is active; normal notifications resume when it is disabled.
   
 
 ## Addons (make your own with AI)

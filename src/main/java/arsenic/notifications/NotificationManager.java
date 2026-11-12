@@ -14,10 +14,20 @@ public class NotificationManager {
     private static final LinkedBlockingQueue<Notification> pendingNotifications = new LinkedBlockingQueue<>();
     private static final List<Notification> activeNotifications = new ArrayList<>();
     private static final int MAX_VISIBLE = 4;
+    private static volatile boolean suppressed;
     private static final int GAP = 5;
 
-    public static void show(Notification notification) {
+    public static synchronized void show(Notification notification) {
+        if (suppressed) return;
         pendingNotifications.add(notification);
+    }
+
+    public static synchronized void setSuppressed(boolean suppressed) {
+        NotificationManager.suppressed = suppressed;
+        if (suppressed) {
+            pendingNotifications.clear();
+            activeNotifications.clear();
+        }
     }
 
     @EventLink
@@ -26,7 +36,12 @@ public class NotificationManager {
         render(sr);
     };
 
-    private void render(ScaledResolution sr) {
+    private static synchronized void render(ScaledResolution sr) {
+        if (suppressed) {
+            activeNotifications.clear();
+            pendingNotifications.clear();
+            return;
+        }
         activeNotifications.removeIf(n -> !n.isShown());
 
         while (activeNotifications.size() < MAX_VISIBLE && !pendingNotifications.isEmpty()) {
