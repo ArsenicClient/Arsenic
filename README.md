@@ -68,6 +68,8 @@ Helpful docs:
 Default addons live in [`src/addons`](src/addons): loose ones in `java/`, packs in `packs/<id>/`. They are written
 exactly like user addons.
 
+BedwarsAdvisor offers iron armor advice and shows diamond and emerald generators above configurable thresholds. Generator detection uses loaded dropped items near matching blocks, so dropped items can be misidentified and unloaded or differently built generators missed.
+
 ## Credits
 
 Thanks to everyone who has contributed:
