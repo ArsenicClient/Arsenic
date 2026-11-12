@@ -80,23 +80,23 @@ public class AntiFireball extends Module {
             if (mc.thePlayer.getDistanceToEntity(e) > 64)
                 continue;
 
-            drawFireballIndicator(e, event.getSr());
+            drawFireballIndicator(e, event.getSr(), event.getPartialTicks());
         }
     };
 
-    private void drawFireballIndicator(Entity fireball, ScaledResolution sr) {
-        double dx = fireball.posX - mc.thePlayer.posX;
-        double dz = fireball.posZ - mc.thePlayer.posZ;
-        float yaw = RotationUtils.yawTo(dx, dz);
-        float angle = MathHelper.wrapAngleTo180_float(yaw - mc.thePlayer.rotationYaw);
-
-        double radians = Math.toRadians(angle + 90);
+    private void drawFireballIndicator(Entity fireball, ScaledResolution sr, float partialTicks) {
+        double playerX = mc.thePlayer.lastTickPosX + (mc.thePlayer.posX - mc.thePlayer.lastTickPosX) * partialTicks;
+        double playerZ = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * partialTicks;
+        double x = fireball.lastTickPosX + (fireball.posX - fireball.lastTickPosX) * partialTicks;
+        double z = fireball.lastTickPosZ + (fireball.posZ - fireball.lastTickPosZ) * partialTicks;
+        double yaw = Math.toRadians(MathHelper.wrapAngleTo180_float(RotationUtils.yawTo(x - playerX, z - playerZ) - mc.thePlayer.rotationYaw));
+        double directionX = Math.sin(yaw);
+        double directionY = -Math.cos(yaw);
         int radius = 50;
         int centerX = sr.getScaledWidth() / 2;
         int centerY = sr.getScaledHeight() / 2;
-
-        int indicatorX = centerX + (int) (radius * Math.cos(radians));
-        int indicatorY = centerY - (int) (radius * Math.sin(radians));
+        double indicatorX = centerX + radius * directionX;
+        double indicatorY = centerY + radius * directionY;
 
         int dist = (int) mc.thePlayer.getDistanceToEntity(fireball);
 
@@ -109,14 +109,15 @@ public class AntiFireball extends Module {
         GL11.glColor4f(1.0f, 0.3f, 0.3f, 0.9f);
         float size = 6.0f;
         GL11.glBegin(GL11.GL_TRIANGLES);
-        GL11.glVertex2d(indicatorX, indicatorY - size);
-        GL11.glVertex2d(indicatorX - size, indicatorY + size);
-        GL11.glVertex2d(indicatorX + size, indicatorY + size);
+        GL11.glVertex2d(indicatorX + directionX * size, indicatorY + directionY * size);
+        GL11.glVertex2d(indicatorX - directionX * size + directionY * size, indicatorY - directionY * size - directionX * size);
+        GL11.glVertex2d(indicatorX - directionX * size - directionY * size, indicatorY - directionY * size + directionX * size);
         GL11.glEnd();
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        mc.fontRendererObj.drawStringWithShadow(dist + "m", indicatorX - 8, indicatorY + 8, new Color(255, 80, 80).getRGB());
+        String distance = dist + "m";
+        mc.fontRendererObj.drawStringWithShadow(distance, (float) (indicatorX - mc.fontRendererObj.getStringWidth(distance) / 2.0), (float) (indicatorY + size + 2), new Color(255, 80, 80).getRGB());
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glPopMatrix();
     }
