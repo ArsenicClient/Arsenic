@@ -1,6 +1,7 @@
 package arsenic.utils.render;
 
 import arsenic.main.Arsenic;
+import arsenic.module.impl.client.AntiBot;
 import arsenic.module.impl.visual.ESP;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -72,7 +73,7 @@ public final class ChamsRenderer {
 
 
     private static boolean isTarget(EntityLivingBase entity) {
-        if (entity == null || entity == mc.thePlayer || !(entity instanceof EntityPlayer))
+        if (entity == null || entity == mc.thePlayer || !(entity instanceof EntityPlayer) || AntiBot.isBot(entity))
             return false;
         ESP esp = settings();
         return esp != null && esp.isChamsEnabled();
