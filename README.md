@@ -18,9 +18,6 @@ Two ways in:
 Configs, addons, themes and everything else Arsenic saves live in one `Arsenic` folder in your home folder
 (`C:\Users\<name>\Arsenic` on Windows, `~/Arsenic` elsewhere), so they are the same whichever launcher you play on.
 An `Arsenic` folder left in a game folder by an older version is copied there the first time.
-
-ESP Chams and Glow can draw invisible player models when the client has the entity. The invisible-model path skips
-players classified by AntiBot as bots, including invisible players when its Invis Checks setting is enabled.
   
 
 ## Addons (make your own with AI)
