@@ -23,11 +23,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Warns when a player who is not on your friend list comes within the chosen distance. Plays a sound each time someone
+ * Warns when an enemy (not a teammate or friend) comes within the chosen distance. Plays a sound each time someone
  * enters the range, and lists the closest players (name and distance) in a HUD panel while anyone is in range.
- * Players the built-in AntiBot filters (NPCs, lobby bots) are ignored.
+ * Teammates are skipped with the same team check Targets uses; players AntiBot filters (NPCs, lobby bots) are ignored.
  */
-@ModuleInfo(name = "EnemyWarning", description = "Warns when a non-friend player comes within a chosen distance", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
+@ModuleInfo(name = "EnemyWarning", description = "Warns when an enemy comes within a chosen distance", category = ModuleCategory.RENDER, tier = ModuleTier.VISUAL)
 public class EnemyWarning extends Module {
 
     public final DoubleProperty distance = new DoubleProperty("Distance", new DoubleValue(4, 64, 20, 1));
@@ -53,7 +53,7 @@ public class EnemyWarning extends Module {
         List<EntityPlayer> close = new ArrayList<>();
 
         for (EntityPlayer p : PlayerUtils.getPlayersWithin(range)) {
-            if (p.isDead || AntiBot.isBot(p)) continue;
+            if (p.isDead || AntiBot.isBot(p) || PlayerUtils.isEntityTeamSameAsPlayer(p)) continue;
             if (ignoreFriends.getValue() && Arsenic.getArsenic().getFriendManager().isFriend(p)) continue;
             now.add(p.getEntityId());
             close.add(p);

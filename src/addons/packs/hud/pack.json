@@ -10,7 +10,7 @@
     "HitCounter": "Counts the hits you land and take in the current fight, and resets after a quiet period.",
     "ArmorStatus": "Panel with the durability of your armour and held item, and the nearest player's.",
     "HealthWarning": "Flashes the screen, plays a sound and turns the HUD panel red when your health drops below a limit.",
-    "EnemyWarning": "Warns when a player who is not on your friend list comes within a chosen distance. Ignores players the AntiBot filters.",
+    "EnemyWarning": "Warns when an enemy comes within a chosen distance. Skips teammates (same team check as Targets), AntiBot targets and optionally friends.",
     "TpsMeter": "Estimates the server TPS from the time updates it sends, and shows it red below 18.",
     "LagbackAlert": "Alerts when the server pulls you back to another position, with the distance.",
     "ItemCounter": "Counts blocks, arrows, ender pearls and golden apples in your inventory.",
