@@ -180,8 +180,21 @@ public class SearchComponent extends ModuleCategoryComponent implements IAlwaysK
                 if (AddonSource.matches(info, q))
                     found.add(AddonRow.of(info).component());
         }
+        if (!q.isEmpty())
+            sortResults(found, q);
         for (Component component : found)
             (resultsL.size() <= resultsR.size() ? resultsL : resultsR).add(component);
+    }
+
+    /** Name matches precede description and pack matches across both modules and addons. */
+    static void sortResults(List<Component> results, String query) {
+        results.sort(Comparator.comparingInt((Component component) -> {
+            String name = ((ModuleComponent) component).getName().toLowerCase(Locale.ROOT);
+            if (name.equals(query)) return 0;
+            if (name.startsWith(query)) return 1;
+            if (name.contains(query)) return 2;
+            return 3;
+        }).thenComparing(component -> ((ModuleComponent) component).getName(), String.CASE_INSENSITIVE_ORDER));
     }
 
     private ModuleComponent moduleRow(Module module) {

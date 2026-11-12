@@ -194,7 +194,7 @@ public class AddonPageComponent {
         List<AddonCardComponent> top = new ArrayList<>();
         List<Component> list = new ArrayList<>();
         if (!q.isEmpty()) {
-            // modules first (addons that are modules are found through their addon row below)
+            // Addons that are modules are found through their addon row below.
             int modules = 0;
             for (Module module : Arsenic.getArsenic().getModuleManager().getModules()) {
                 if (!module.isAddon() && ModuleComponent.matches(module, q)) {
@@ -209,6 +209,7 @@ public class AddonPageComponent {
                     addonHits++;
                 }
             }
+            SearchComponent.sortResults(list, q);
             String found = list.isEmpty() ? "No addon or module matches. Search looks at names, descriptions and pack names."
                     : addonHits + (addonHits == 1 ? " addon" : " addons") + " and " + modules
                     + (modules == 1 ? " module" : " modules") + " found.";
