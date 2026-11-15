@@ -7,16 +7,27 @@ import arsenic.event.impl.EventTick;
 import arsenic.module.Module;
 import arsenic.module.ModuleCategory;
 import arsenic.module.ModuleInfo;
-import net.minecraft.block.Block;
+import arsenic.module.property.impl.doubleproperty.DoubleProperty;
+import arsenic.module.property.impl.doubleproperty.DoubleValue;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 
 /**
- * Presses jump at a block edge while you sprint forward, so you take the jump instead of walking off the block. It only
- * presses the jump key: it never changes your speed or direction. Nothing happens while sneaking, in the air, or with a
- * GUI open.
+ * Presses jump on the last tick you can still jump before sprinting off a block edge. Vanilla moves an entity on Y
+ * before X/Z, so the tick where nothing is left under your hitbox is still an on-ground tick: the last one a jump works.
+ * "Ticks Early" jumps that many ticks sooner, predicting your position from last tick's movement. It only presses the
+ * jump key: it never changes your speed or direction. Nothing happens while sneaking, in the air, or with a GUI open.
  */
-@ModuleInfo(name = "Parkour", description = "Jumps at block edges while you sprint forward", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
+@ModuleInfo(name = "Parkour", description = "Jumps on the last tick before you sprint off a block edge", category = ModuleCategory.MOVEMENT, tier = ModuleTier.LEGIT)
 public class Parkour extends Module {
+
+    public final DoubleProperty ticksEarly = new DoubleProperty("Ticks Early", new DoubleValue(0, 5, 0, 1));
+
+    // on the ground, vanilla motionY is -0.0784 every tick
+    private static final double GROUND_CHECK = 0.08;
+    // a bigger step is a teleport or a respawn, not walking
+    private static final double MAX_STEP = 1.0;
 
     private boolean jumpNow;
 
@@ -29,17 +40,22 @@ public class Parkour extends Module {
     @EventLink
     public final Listener<EventTick> onTick = event -> {
         jumpNow = false;
-        if (mc.currentScreen != null || !mc.thePlayer.onGround || !mc.thePlayer.isSprinting()
-                || mc.thePlayer.isSneaking() || mc.thePlayer.moveForward <= 0) return;
-        double yaw = Math.toRadians(mc.thePlayer.rotationYaw);
-        double ahead = 0.9;
-        int ax = (int) Math.floor(mc.thePlayer.posX - Math.sin(yaw) * ahead);
-        int az = (int) Math.floor(mc.thePlayer.posZ + Math.cos(yaw) * ahead);
-        int fy = (int) Math.floor(mc.thePlayer.posY);
-        BlockPos below = new BlockPos(ax, fy - 1, az);
-        if (!mc.theWorld.isBlockLoaded(below)) return;
-        boolean groundHere = !isAir(new BlockPos(mc.thePlayer.posX, mc.thePlayer.posY - 0.1, mc.thePlayer.posZ));
-        jumpNow = groundHere && isAir(below);
+        EntityPlayerSP p = mc.thePlayer;
+        if (mc.currentScreen != null || !p.onGround || !p.isSprinting() || p.isSneaking() || p.moveForward <= 0) return;
+
+        // EventTick fires before prevPos is updated: this is how far we moved last tick
+        double stepX = p.posX - p.prevPosX, stepZ = p.posZ - p.prevPosZ;
+        if (Math.hypot(stepX, stepZ) > MAX_STEP) return;
+
+        int early = (int) ticksEarly.getValue().getInput();
+        for (int i = 0; i <= early; i++) {
+            double ox = stepX * i, oz = stepZ * i;
+            if (!mc.theWorld.isBlockLoaded(new BlockPos(p.posX + ox, p.posY - 1, p.posZ + oz))) return;
+            if (!groundUnder(p, ox, oz)) {
+                jumpNow = true;
+                return;
+            }
+        }
     };
 
     @RequiresPlayer
@@ -51,8 +67,11 @@ public class Parkour extends Module {
         }
     };
 
-    private static boolean isAir(BlockPos p) {
-        Block b = mc.theWorld.getBlockState(p).getBlock();
-        return b.getMaterial().isReplaceable();
+    /** True if anything solid is right under the whole hitbox, shifted by (ox, oz). */
+    private static boolean groundUnder(EntityPlayerSP p, double ox, double oz) {
+        AxisAlignedBB bb = p.getEntityBoundingBox();
+        AxisAlignedBB feet = new AxisAlignedBB(bb.minX + ox, bb.minY - GROUND_CHECK, bb.minZ + oz,
+                bb.maxX + ox, bb.minY, bb.maxZ + oz);
+        return !mc.theWorld.getCollidingBoundingBoxes(p, feet).isEmpty();
     }
 }
