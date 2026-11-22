@@ -5,6 +5,7 @@ import arsenic.event.bus.annotations.EventLink;
 import arsenic.event.impl.*;
 import arsenic.main.Arsenic;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.MathHelper;
 
 import static net.minecraft.util.MathHelper.wrapAngleTo180_float;
@@ -29,8 +30,16 @@ public class SilentRotationManager {
     private float pitchMomentum = 0;
     private static final float MOMENTUM_BLEND = 0.45f;
 
+    /** Player instance seen on the previous tick, used to detect rejoins / server switches / dimension changes. */
+    private EntityPlayerSP lastPlayer;
+
     @EventLink
     public final Listener<EventLiving> eventTickListener = event -> {
+        if (mc.thePlayer != lastPlayer) {
+            lastPlayer = mc.thePlayer;
+            resetState();
+        }
+
         EventSilentRotation rotation = new EventSilentRotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, speed);
         Arsenic.getArsenic().getEventManager().post(rotation);
         prevYaw = yaw;
@@ -45,8 +54,7 @@ public class SilentRotationManager {
 
 
         if (!rotation.hasBeenModified() && !modified) {
-            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
-            mc.thePlayer.rotationYaw = yaw;
+            syncPlayerYaw();
             pitch = mc.thePlayer.rotationPitch;
             modified = false;
             yawMomentum = 0;
@@ -84,12 +92,53 @@ public class SilentRotationManager {
 
         modified = rotation.hasBeenModified() || (Math.abs(RotationUtils.getYawDifference(mc.thePlayer.rotationYaw, yaw)) > speed);
         if(!modified && !rotation.hasBeenModified()) {
-            yaw = snapYawToMultipleOf360(yaw, mc.thePlayer.rotationYaw);
-            mc.thePlayer.rotationYaw = yaw;
+            syncPlayerYaw();
             pitch = mc.thePlayer.rotationPitch;
         }
         postSettled();
     };
+
+    /**
+     * Resets all internal rotation state to the current player's rotation.
+     * Called when a new player entity is detected (rejoin, server switch, dimension change),
+     * so stale values from the previous session are never applied to the new player.
+     */
+    private void resetState() {
+        yaw = prevYaw = mc.thePlayer.rotationYaw;
+        pitch = prevPitch = mc.thePlayer.rotationPitch;
+        modified = prevModified = false;
+        yawMomentum = 0;
+        pitchMomentum = 0;
+        lastPlaceYawDelta = -1f;
+    }
+
+    /**
+     * Aligns the player's rotationYaw with the internal yaw (same angle modulo 360)
+     * WITHOUT causing a visual camera spin.
+     *
+     * Previously only rotationYaw was snapped, while prevRotationYaw stayed untouched.
+     * Rendering interpolates between the two, so a 360°/720° snap turned into a
+     * full camera spin within one tick (and caused chunks to unload/reload).
+     * Here every interpolated yaw field is shifted by the same offset.
+     */
+    private void syncPlayerYaw() {
+        EntityPlayerSP player = mc.thePlayer;
+        float snapped = snapYawToMultipleOf360(yaw, player.rotationYaw);
+        float offset = snapped - player.rotationYaw;
+
+        if (offset != 0f) {
+            player.rotationYaw += offset;
+            player.prevRotationYaw += offset;
+            player.rotationYawHead += offset;
+            player.prevRotationYawHead += offset;
+            player.renderYawOffset += offset;
+            player.prevRenderYawOffset += offset;
+            player.renderArmYaw += offset;
+            player.prevRenderArmYaw += offset;
+        }
+
+        yaw = player.rotationYaw;
+    }
 
     public boolean isBlockingUserInput() {
         return blockUserInput && mc.thePlayer != null;
