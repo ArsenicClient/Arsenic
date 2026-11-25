@@ -21,9 +21,21 @@ public final class Backdrop {
     private Backdrop() {}
 
     public static void draw(float width, float height) {
-        blur();
+        if (Wallpaper.isActive() && Wallpaper.ready()) {
+     // a see-through wallpaper sits on top of the usual blurred, dimmed world
+     if (GuiStyle.get().getWallpaperOpacity() < 100) {
+  if (GuiStyle.get().isWorldBlur())
+      blur();
+  scrim();
+     }
+     Wallpaper.draw();
+     shader();
+     return;
+        }
+        if (GuiStyle.get().isWorldBlur())
+     blur();
         scrim();
-        shader();
+ shader();
     }
 
     /** Drawn after the GUI: the preset's scanline/VHS film. */

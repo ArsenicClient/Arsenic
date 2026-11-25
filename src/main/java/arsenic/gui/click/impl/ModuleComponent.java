@@ -195,7 +195,14 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
         boolean isHidden = self.isHidden();
         float hiddenChipRight = bindZoneX1 - pad * 0.6f;
-        if (isHidden || hover > 0.02f) {
+        // in narrow rows the hover-only "Hide" chip is skipped when it would squeeze the name too much
+        boolean roomForHide = true;
+ if (!isHidden) {
+     float nameStart = chevronZoneX2 + pad * 0.3f;
+            float hideW = ri.getFr().getWidth("Hide") + chipHeight * 0.84f;
+     roomForHide = hiddenChipRight - hideW - pad * 0.4f - nameStart >= M3.label().getWidth(name) * 0.8f;
+        }
+        if (isHidden || (hover > 0.02f && roomForHide)) {
             // hidden: a grey "Hidden" chip; not hidden: a red "Hide" chip, shown while the row is hovered
             float chipAlpha = isHidden ? 1f : hover;
             int hiddenChipFill = M3.alpha(isHidden ? M3.surfaceContainerHighest() : M3.errorContainer(), (int) (230 * chipAlpha));
@@ -210,7 +217,9 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
         float textX = chevronZoneX2 + pad * 0.3f;
         int titleColor = M3.mix(M3.onSurfaceVariant(), M3.primary(), enabledPct);
-        M3.label().drawString(name, textX, midPointY, titleColor, M3.label().CENTREY);
+        // the name stops before the chips / switch so nothing draws on top of it in narrow columns
+ float nameRoom = hiddenZoneX1 - pad * 0.4f - textX;
+        M3.label().drawString(fitName(name, nameRoom), textX, midPointY, titleColor, M3.label().CENTREY);
         RenderUtils.resetColorText();
 
         PosInfo pi = new PosInfo(x1 + pad * 1.1f, y2);
@@ -379,7 +388,14 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
             Arsenic.getArsenic().getConfigManager().saveConfig();
             return;
         }
-        buttonComponent.handleClick(mouseX, mouseY, mouseButton);
+        // Only the switch toggles the module; anywhere else on the header opens its settings.
+        // (The switch's box spans ~95% of the row, so it must not receive every click.)
+        if (mouseButton != 0)
+     return;
+ if (mouseX >= toggleZoneX1)
+     buttonComponent.handleClick(mouseX, mouseY, mouseButton);
+        else
+     toggleOpen();
     }
 
     /** Pastel tones on dark surfaces, deeper ones on light surfaces so the tag stays legible. */
@@ -435,6 +451,21 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
     /** Set by the screen each frame: the width of one module column. */
     public static float columnWidth = -1f;
 
+    /** Trims the module name with ".." so it fits in {@code room}. */
+    private static String fitName(String text, float room) {
+        arsenic.utils.font.FontRendererExtension<?> fr = M3.label();
+        if (room <= 0)
+     return "";
+        if (fr.getWidth(text) <= room)
+     return text;
+ String s = text;
+        while (s.length() > 1 && fr.getWidth(s + "..") > room)
+            s = s.substring(0, s.length() - 1);
+        return s + "..";
+    }
+    /** Row height override for the column layout (-1 = default 42). */
+    public static int rowHeight = -1;
+
     @Override
     public int getWidth(int i) {
         return columnWidth > 0 ? (int) columnWidth : (int) UITheme.space(i, 30);
@@ -442,7 +473,7 @@ public class ModuleComponent extends Component implements IContainer<PropertyCom
 
     @Override
     public int getHeight(int i) {
-        return 42;
+        return rowHeight > 0 ? rowHeight : 42;
     }
 
     @Override
