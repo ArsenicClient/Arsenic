@@ -132,6 +132,11 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
             opacityTrackY = -1000;
 
         y += 6;
+ M3Components.divider(x, y, x + rowW);
+        y += 16;
+        y = drawLayoutSection(ri, x, y, rowW, mx, my);
+
+        y += 6;
         M3Components.divider(x, y, x + rowW);
         y += 16;
 
@@ -216,6 +221,111 @@ public class GuiComponent extends ModuleCategoryComponent implements IAlwaysKeyb
         y = drawScaleSlider(ri, x, y, rowW, mx, my);
 
         maxHeight = y - contentTop + BOTTOM_MARGIN;
+    }
+
+    private static final int[] PANEL_WIDTHS = {130, 150, 170, 190, 210, 230, 260};
+    private static final int[] PANEL_OPACITIES = {40, 55, 70, 85, 100};
+    private static final int[] PANEL_RADII = {0, 4, 8, 10, 12, 16};
+    private static final int[] WALLPAPER_DIMS = {0, 15, 30, 45, 60, 75};
+    private static final int[] WALLPAPER_OPACITIES = {100, 90, 75, 60, 45, 30, 15};
+
+    /** The next value after {@code current} in {@code steps}, wrapping around. */
+    private static int nextStep(int[] steps, int current) {
+ for (int step : steps)
+     if (step > current)
+         return step;
+        return steps[0];
+    }
+
+    private static void save() {
+        Arsenic.getArsenic().getConfigManager().saveConfig();
+    }
+
+    /** Session-only: reveals the per-value column settings under "Column style". */
+    private static boolean columnsAdvanced;
+
+    /** One-click column presets; "Custom" (null) when the values were fine-tuned by hand. */
+    private enum ColumnStyle {
+ COMPACT("Compact", 150, 8, true),
+        BALANCED("Balanced", 170, 10, true),
+        LARGE("Large", 210, 12, false);
+
+        final String label;
+ final int width, radius;
+        final boolean compactRows;
+
+        ColumnStyle(String label, int width, int radius, boolean compactRows) {
+     this.label = label;
+     this.width = width;
+            this.radius = radius;
+            this.compactRows = compactRows;
+        }
+
+        static ColumnStyle of(GuiStyle s) {
+     for (ColumnStyle c : values())
+         if (c.width == s.getPanelWidth() && c.radius == s.getPanelRadius() && c.compactRows == s.isCompactRows())
+      return c;
+            return null;
+ }
+
+        static ColumnStyle next(ColumnStyle current) {
+     return current == null ? COMPACT : values()[(current.ordinal() + 1) % values().length];
+        }
+
+ void apply(GuiStyle s) {
+     s.setPanelWidth(width);
+            s.setPanelRadius(radius);
+     s.setCompactRows(compactRows);
+ }
+    }
+
+    /** Layout (window / floating columns), panel look, wallpaper and accent override. */
+    private float drawLayoutSection(RenderInfo ri, float x, float y, float rowW, float mx, float my) {
+        GuiStyle s = GuiStyle.get();
+ sectionLabel(ri, "Layout & wallpaper", x, y);
+        y += 18;
+
+ y = drawChoice(ri, x, y, rowW, mx, my, "Layout", "One window, or floating category panels",
+  s.getLayout().label, false, () -> {
+      s.setLayout(s.getLayout() == GuiStyle.Layout.WINDOW ? GuiStyle.Layout.COLUMNS : GuiStyle.Layout.WINDOW);
+      Hover.reset();
+      save();
+         });
+        if (s.getLayout() == GuiStyle.Layout.COLUMNS) {
+     ColumnStyle cs = ColumnStyle.of(s);
+     y = drawChoice(ri, x, y, rowW, mx, my, "Column style", "Size of the columns and their rows",
+      cs == null ? "Custom" : cs.label, false, () -> { ColumnStyle.next(ColumnStyle.of(s)).apply(s); save(); });
+     y = drawChoice(ri, x, y, rowW, mx, my, "Column opacity", "How solid the columns are",
+      s.getPanelOpacity() + "%", false, () -> { s.setPanelOpacity(nextStep(PANEL_OPACITIES, s.getPanelOpacity())); save(); });
+     y = drawChoice(ri, x, y, rowW, mx, my, "Column header", "Look of each column's title bar",
+      s.getPanelHeader().label, false, () -> { s.cyclePanelHeader(); save(); });
+     y = drawSwitch(ri, x, y, rowW, mx, my, "Fine-tune columns", "Show width, corners and row size",
+      columnsAdvanced, () -> columnsAdvanced = !columnsAdvanced);
+            if (columnsAdvanced) {
+         y = drawChoice(ri, x, y, rowW, mx, my, "Column width", "Width of the floating columns",
+   s.getPanelWidth() + "", false, () -> { s.setPanelWidth(nextStep(PANEL_WIDTHS, s.getPanelWidth())); save(); });
+         y = drawChoice(ri, x, y, rowW, mx, my, "Column corners", "Corner radius of the columns",
+          s.getPanelRadius() + "", false, () -> { s.setPanelRadius(nextStep(PANEL_RADII, s.getPanelRadius())); save(); });
+         y = drawSwitch(ri, x, y, rowW, mx, my, "Compact rows", "Smaller module rows in columns",
+   s.isCompactRows(), () -> { s.setCompactRows(!s.isCompactRows()); save(); });
+     }
+        }
+        y = drawSwitch(ri, x, y, rowW, mx, my, "World blur", "Blur the game behind the menu",
+         s.isWorldBlur(), () -> { s.setWorldBlur(!s.isWorldBlur()); save(); });
+        y = drawChoice(ri, x, y, rowW, mx, my, "Wallpaper", "Built-in presets + your images",
+         arsenic.gui.design.Wallpaper.label(), false, () -> { arsenic.gui.design.Wallpaper.cycle(); save(); });
+        y = drawChoice(ri, x, y, rowW, mx, my, "Wallpaper folder", "Drop .png / .jpg / .gif (animated) here",
+         "Open", false, arsenic.gui.design.Wallpaper::openFolder);
+        if (arsenic.gui.design.Wallpaper.isActive())
+            y = drawChoice(ri, x, y, rowW, mx, my, "Wallpaper dim", "Darkens the image for readability",
+      s.getWallpaperDim() + "%", false, () -> { s.setWallpaperDim(nextStep(WALLPAPER_DIMS, s.getWallpaperDim())); save(); });
+        if (arsenic.gui.design.Wallpaper.isActive())
+            y = drawChoice(ri, x, y, rowW, mx, my, "Wallpaper opacity", "Lower lets the game show through",
+      s.getWallpaperOpacity() + "%", false, () -> { s.setWallpaperOpacity(nextStep(WALLPAPER_OPACITIES, s.getWallpaperOpacity())); save(); });
+        int accent = s.getAccentOverride();
+        y = drawChoice(ri, x, y, rowW, mx, my, "Accent override", "Replaces the theme's accent colour",
+         accent == 0 ? "Theme" : String.format("#%06X", accent & 0xFFFFFF), false, () -> { s.cycleAccent(); save(); });
+        return y;
     }
 
     /** The whole-menu zoom: an M3 slider row that relays the fixed canvas live. */

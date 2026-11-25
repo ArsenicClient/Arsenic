@@ -35,10 +35,12 @@ public class ScissorUtils extends UtilityClass {
         float s = GuiCanvas.isActive() ? GuiCanvas.scale() : scale;
         float ox = GuiCanvas.isActive() ? GuiCanvas.offsetX() : 0f;
         float oy = GuiCanvas.isActive() ? GuiCanvas.offsetY() : 0f;
-        int[] rah = new int[] {(int) (x1 * s + ox), (int) (mc.displayHeight - (y2 * s + oy)), (int) ((x2 - x1) * s), (int) ((y2 - y1) * s)};
-        for(int i = 0; i <= 3; i++) {
-            rah[i] = Math.max(rah[i], 0);
-        }
+        int px1 = (int) (x1 * s + ox), px2 = (int) Math.ceil(x2 * s + ox);
+        int py1 = (int) (mc.displayHeight - (y2 * s + oy)), py2 = (int) Math.ceil(mc.displayHeight - (y1 * s + oy));
+        // clip to the window first, so a box partly off-screen keeps its real visible size
+        px1 = Math.max(px1, 0);
+        py1 = Math.max(py1, 0);
+ int[] rah = new int[] {px1, py1, Math.max(0, px2 - px1), Math.max(0, py2 - py1)};
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(rah[0], rah[1], rah[2], rah[3]);
         rahhh.add(new int[] {x1,y1,x2,y2});
@@ -54,7 +56,8 @@ public class ScissorUtils extends UtilityClass {
 
     public static void resetScissor() {
         rahhh.clear();
-        rahhh.add(new int[] {0,0,Integer.MAX_VALUE, Integer.MAX_VALUE});
+        // negative coordinates are valid on a GuiCanvas screen (the bars left/above the canvas)
+        rahhh.add(new int[] {-1000000, -1000000, Integer.MAX_VALUE, Integer.MAX_VALUE});
     }
 
 

@@ -168,6 +168,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
     /** The burn's box is the window, so the post-processing masks vanish in the same pattern as the GUI. */
     public float[] getBurnBoxPx() {
         layout();
+        if (GuiStyle.columns())
+     return new float[]{GuiCanvas.pixelX(0), GuiCanvas.pixelY(0),
+      GuiCanvas.pixelX(width), GuiCanvas.pixelY(height), 0f};
         return new float[]{GuiCanvas.pixelX(winX1), GuiCanvas.pixelY(winY1),
                 GuiCanvas.pixelX(winX2), GuiCanvas.pixelY(winY2), 28f * GuiCanvas.scale()};
     }
@@ -232,9 +235,12 @@ public class ClickGuiScreen extends CustomGuiScreen {
         searchY2 = searchY1 + 38f;
     }
 
+    /** The floating-panel layout; created on first use. */
+    private ColumnLayout columnLayout;
+
     public void drawBloom() {
-        if (getFontRenderer() == null)
-            return;
+ if (getFontRenderer() == null || GuiStyle.columns())
+     return;
         GuiCanvas.setActive(true);
         try {
             rescaleGui();
@@ -325,7 +331,17 @@ public class ClickGuiScreen extends CustomGuiScreen {
         M3.title().setScale(fontScale);
         M3.headline().setScale(fontScale);
 
-        M3Components.window(winX1, winY1, winX2, winY2, 28f);
+        if (GuiStyle.columns()) {
+     if (columnLayout == null)
+         columnLayout = new ColumnLayout(this);
+     GlStateManager.pushMatrix();
+     columnLayout.draw(width, height, mouseX, mouseY, ri);
+     renderLastList.forEach(Runnable::run);
+     renderLastList.clear();
+     ScissorUtils.resetScissor();
+     GlStateManager.popMatrix();
+        } else {
+ M3Components.window(winX1, winY1, winX2, winY2, 28f);
         M3Components.glass(railX1, railY1, railX2, railY2, 22f, M3.alpha(M3.surfaceContainer(), 200), 0.25f);
 
         // as large as the rail's width allows, centred in the header band above the categories
@@ -434,8 +450,9 @@ public class ClickGuiScreen extends CustomGuiScreen {
         drawFooter(mouseX, mouseY);
         if (addonMode)
             drawReloadButton(mouseX, mouseY);
+        }
 
-        Backdrop.overlay();
+ Backdrop.overlay();
 
         getFontRenderer().resetScale();
         M3.label().resetScale();
@@ -451,10 +468,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
                 drawScaledFbo(scaleFbo, 0.92f + 0.08f * eased, scaleProgress);
             } else {
                 try {
-                    arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
-                            burnFbo.framebufferTexture, burnProgress, M3.primary(),
-                            getTransitionStyleId(), GuiCanvas.pixelX(winX1), GuiCanvas.pixelY(winY1),
-                            GuiCanvas.pixelX(winX2), GuiCanvas.pixelY(winY2), 28f * GuiCanvas.scale());
+                    float[] box = getBurnBoxPx();
+      arsenic.utils.render.shader.ShaderUtil.renderBurnComposite(
+       burnFbo.framebufferTexture, burnProgress, M3.primary(),
+       getTransitionStyleId(), box[0], box[1], box[2], box[3], box[4]);
                 } catch (Exception e) {
                     try { burnFbo.framebufferRender(mc.displayWidth, mc.displayHeight); } catch (Exception ignored) {}
                 }
@@ -732,6 +749,13 @@ public class ClickGuiScreen extends CustomGuiScreen {
             alwaysKeyboardInput.recieveInput(arsenic.utils.java.BindUtils.mouseKey(mouseButton));
             return;
         }
+        if (GuiStyle.columns()) {
+     if (alwaysClickedComponent != null && alwaysClickedComponent.clickAlwaysClickable(mouseX, mouseY, mouseButton))
+  return;
+     if (columnLayout != null)
+  columnLayout.mouseClick(mouseX, mouseY, mouseButton);
+            return;
+        }
         if (mouseButton == 0 && MathUtils.inside(mouseX, mouseY, sceneX1, sceneY1, sceneX2, sceneY2)
                 && arsenic.gui.design.DistilleryScene.click(mouseX, mouseY))
             return;
@@ -818,6 +842,8 @@ public class ClickGuiScreen extends CustomGuiScreen {
     public void onAddonsReloaded() {
         String typed = searchComponent == null ? "" : ((SearchComponent) searchComponent).getQuery();
         init();
+ if (columnLayout != null)
+     columnLayout.rebuild();
         ((SearchComponent) searchComponent).setQuery(typed);
         if (addonMode) {
             cmcc.setCurrentCategory(false);
@@ -907,7 +933,10 @@ public class ClickGuiScreen extends CustomGuiScreen {
         i = Integer.compare(i, 0);
         int mouseX = (int) GuiCanvas.unitX(Mouse.getEventX());
         int mouseY = (int) GuiCanvas.unitY(mc.displayHeight - Mouse.getEventY());
-        if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
+        if (GuiStyle.columns()) {
+     if (columnLayout != null)
+         columnLayout.scroll(mouseX, mouseY, i);
+        } else if (addonMode && addonPage.isOverSidebar(mouseX, mouseY))
             addonPage.scrollSidebar(i * 30);
         else if (addonMode)
             addonPage.scroll(i * 30);
@@ -927,11 +956,16 @@ public class ClickGuiScreen extends CustomGuiScreen {
             alwaysKeyboardInput.recieveInput(keyCode);
             return;
         }
-        if (keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE) {
-            startClosing();
-            return;
+        if (GuiStyle.columns() && columnLayout != null) {
+            if (!columnLayout.keyTyped(typedChar, keyCode) && keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE)
+  startClosing();
+     return;
         }
-        ((SearchComponent) searchComponent).recieveInput(keyCode);
+        if (keyCode == org.lwjgl.input.Keyboard.KEY_ESCAPE) {
+     startClosing();
+     return;
+        }
+ ((SearchComponent) searchComponent).recieveInput(keyCode);
         super.keyTyped(typedChar, keyCode);
     }
 
@@ -948,6 +982,7 @@ public class ClickGuiScreen extends CustomGuiScreen {
         components.forEach(component -> component.handleRelease(mouseX, mouseY, state));
         if (cmcc != null) cmcc.handleRelease(mouseX, mouseY, state);
         if (searchComponent != null) searchComponent.handleRelease(mouseX, mouseY, state);
+        if (columnLayout != null) columnLayout.mouseRelease(mouseX, mouseY, state);
         super.mouseRelease(mouseX, mouseY, state);
     }
 

@@ -149,7 +149,11 @@ public class ThemeManager implements IConfig<Theme>, ISerializable {
         return currentTheme;
     }
 
-    public static int getMainColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor(); }
+    public static int getMainColor() {
+ int override = arsenic.gui.click.GuiStyle.accentOverride();
+        if (override != 0) return override;
+        return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getMainColor();
+    }
     public static int getDarkerColor() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getDarkerColor(); }
     public static int getWhite() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getWhite(); }
     public static int getBlack() { return Arsenic.getArsenic().getThemeManager().getCurrentTheme().getBlack(); }

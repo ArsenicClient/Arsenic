@@ -118,6 +118,101 @@ public final class GuiStyle implements ISerializable {
     /** Background shader opacity in percent (the Glass preset's default is 45). */
     private int bgOpacity = 45;
 
+    // ---- layout & customisation ----
+
+    /** WINDOW: the classic single window with a category rail. COLUMNS: floating, draggable panels (Meteor style). */
+    public enum Layout {
+        WINDOW("Window"), COLUMNS("Columns");
+        public final String label;
+        Layout(String label) { this.label = label; }
+    }
+
+    /** How the column panels' title bars are drawn. */
+    public enum PanelHeader {
+        SOLID("Solid"), GRADIENT("Gradient"), MINIMAL("Minimal");
+        public final String label;
+ PanelHeader(String label) { this.label = label; }
+    }
+
+    private Layout layout = Layout.WINDOW;
+    private PanelHeader panelHeader = PanelHeader.GRADIENT;
+    /** Width of one column panel, in GUI units. */
+    private int panelWidth = 170;
+    /** Opacity of the column panels' body, in percent. */
+    private int panelOpacity = 85;
+    /** Corner radius of the column panels, in GUI units. */
+    private int panelRadius = 10;
+    /** Smaller module rows (columns layout). */
+    private boolean compactRows = true;
+    /** Blur the world behind the GUI. */
+    private boolean worldBlur = true;
+    /** File name inside ~/Arsenic/wallpapers, empty for none. */
+    private String wallpaper = "";
+    /** How much the wallpaper is darkened, in percent. */
+    private int wallpaperDim = 30;
+    /** How opaque the wallpaper is, in percent (below 100 the world shows through). */
+    private int wallpaperOpacity = 100;
+    /** 0 follows the theme; any other value replaces the accent colour everywhere. */
+    private int accentOverride = 0;
+    /** Saved column panel positions: id -> {x, y, collapsed (0/1)}. */
+    private final java.util.Map<String, float[]> panelStates = new java.util.LinkedHashMap<>();
+
+    /** Accent colours offered by the "Accent" picker (0 = theme). */
+    public static final int[] ACCENTS = {
+            0, 0xFFEF4444, 0xFFF97316, 0xFFEAB308, 0xFF22C55E, 0xFF14B8A6,
+     0xFF06B6D4, 0xFF3B82F6, 0xFF6366F1, 0xFFA855F7, 0xFFEC4899, 0xFFE5E5E5
+    };
+
+    public Layout getLayout() { return layout; }
+    public void setLayout(Layout layout) { if (layout != null) this.layout = layout; }
+    public static boolean columns() { return INSTANCE.layout == Layout.COLUMNS; }
+
+    public PanelHeader getPanelHeader() { return panelHeader; }
+    public void cyclePanelHeader() {
+ PanelHeader[] all = PanelHeader.values();
+        panelHeader = all[(panelHeader.ordinal() + 1) % all.length];
+    }
+
+    public int getPanelWidth() { return panelWidth; }
+    public void setPanelWidth(int w) { panelWidth = MathUtils.clamp(w, 130, 260); }
+
+    public int getPanelOpacity() { return panelOpacity; }
+    public void setPanelOpacity(int pct) { panelOpacity = MathUtils.clamp(pct, 10, 100); }
+
+    public int getPanelRadius() { return panelRadius; }
+    public void setPanelRadius(int r) { panelRadius = MathUtils.clamp(r, 0, 16); }
+
+    public boolean isCompactRows() { return compactRows; }
+    public void setCompactRows(boolean compact) { compactRows = compact; }
+
+    public boolean isWorldBlur() { return worldBlur; }
+    public void setWorldBlur(boolean blur) { worldBlur = blur; }
+
+    public String getWallpaper() { return wallpaper; }
+    public void setWallpaper(String name) { wallpaper = name == null ? "" : name; }
+
+    public int getWallpaperDim() { return wallpaperDim; }
+    public void setWallpaperDim(int pct) { wallpaperDim = MathUtils.clamp(pct, 0, 90); }
+
+    public int getWallpaperOpacity() { return wallpaperOpacity; }
+    public void setWallpaperOpacity(int pct) { wallpaperOpacity = MathUtils.clamp(pct, 10, 100); }
+
+    public int getAccentOverride() { return accentOverride; }
+    public void setAccentOverride(int argb) { accentOverride = argb; }
+    public void cycleAccent() {
+ int i = 0;
+        for (int k = 0; k < ACCENTS.length; k++)
+     if (ACCENTS[k] == accentOverride) { i = k; break; }
+        accentOverride = ACCENTS[(i + 1) % ACCENTS.length];
+    }
+    public static int accentOverride() { return INSTANCE.accentOverride; }
+
+    public float[] getPanelState(String id) { return panelStates.get(id); }
+    public void setPanelState(String id, float x, float y, boolean collapsed) {
+        panelStates.put(id, new float[]{x, y, collapsed ? 1f : 0f});
+    }
+    public void clearPanelStates() { panelStates.clear(); }
+
     /** The GUI tab's background picker: the theme's own shader, off, or a fixed one. */
     public enum BgChoice {
         THEME(null), NONE(null),
@@ -338,6 +433,31 @@ public final class GuiStyle implements ISerializable {
     }
 
 
+    /** The layout/wallpaper settings; a bad value only resets itself, not the rest of the style. */
+    private void loadCustomisation(JsonObject obj) {
+        try { if (obj.has("layout")) layout = Layout.valueOf(obj.get("layout").getAsString()); } catch (Exception ignored) {}
+        try { if (obj.has("panelHeader")) panelHeader = PanelHeader.valueOf(obj.get("panelHeader").getAsString()); } catch (Exception ignored) {}
+        try { if (obj.has("panelWidth")) setPanelWidth(obj.get("panelWidth").getAsInt()); } catch (Exception ignored) {}
+        try { if (obj.has("panelOpacity")) setPanelOpacity(obj.get("panelOpacity").getAsInt()); } catch (Exception ignored) {}
+        try { if (obj.has("panelRadius")) setPanelRadius(obj.get("panelRadius").getAsInt()); } catch (Exception ignored) {}
+ try { if (obj.has("compactRows")) compactRows = obj.get("compactRows").getAsBoolean(); } catch (Exception ignored) {}
+        try { if (obj.has("worldBlur")) worldBlur = obj.get("worldBlur").getAsBoolean(); } catch (Exception ignored) {}
+        try { if (obj.has("wallpaper")) setWallpaper(obj.get("wallpaper").getAsString()); } catch (Exception ignored) {}
+        try { if (obj.has("wallpaperDim")) setWallpaperDim(obj.get("wallpaperDim").getAsInt()); } catch (Exception ignored) {}
+        try { if (obj.has("wallpaperOpacity")) setWallpaperOpacity(obj.get("wallpaperOpacity").getAsInt()); } catch (Exception ignored) {}
+        try { if (obj.has("accentOverride")) accentOverride = obj.get("accentOverride").getAsInt(); } catch (Exception ignored) {}
+ try {
+     if (obj.has("panels")) {
+  panelStates.clear();
+         for (java.util.Map.Entry<String, com.google.gson.JsonElement> e : obj.getAsJsonObject("panels").entrySet()) {
+      com.google.gson.JsonArray arr = e.getValue().getAsJsonArray();
+      if (arr.size() >= 3)
+   panelStates.put(e.getKey(), new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()});
+  }
+     }
+        } catch (Exception ignored) {}
+    }
+
     @Override
     public String getJsonKey() { return "GuiStyle"; }
 
@@ -355,6 +475,25 @@ public final class GuiStyle implements ISerializable {
         obj.addProperty("lightMode", lightMode);
         obj.addProperty("bgChoice", bgChoice == null ? "" : bgChoice.name());
         obj.addProperty("bgOpacity", bgOpacity);
+        obj.addProperty("layout", layout.name());
+        obj.addProperty("panelHeader", panelHeader.name());
+        obj.addProperty("panelWidth", panelWidth);
+ obj.addProperty("panelOpacity", panelOpacity);
+        obj.addProperty("panelRadius", panelRadius);
+        obj.addProperty("compactRows", compactRows);
+        obj.addProperty("worldBlur", worldBlur);
+        obj.addProperty("wallpaper", wallpaper);
+ obj.addProperty("wallpaperDim", wallpaperDim);
+        obj.addProperty("wallpaperOpacity", wallpaperOpacity);
+        obj.addProperty("accentOverride", accentOverride);
+        JsonObject panels = new JsonObject();
+ for (java.util.Map.Entry<String, float[]> e : panelStates.entrySet()) {
+     com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+     for (float f : e.getValue())
+         arr.add(new com.google.gson.JsonPrimitive(f));
+     panels.add(e.getKey(), arr);
+        }
+        obj.add("panels", panels);
         return obj;
     }
 
@@ -395,6 +534,7 @@ public final class GuiStyle implements ISerializable {
             }
             if (obj.has("bgOpacity"))
                 setBgOpacity(obj.get("bgOpacity").getAsInt());
+            loadCustomisation(obj);
         } catch (Exception e) {
             preset = Preset.GLASS;
         }
